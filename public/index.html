@@ -63,8 +63,14 @@
     </style>
 </head>
 <body>
-    <h2>Weather Station</h2>
-    <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
+    <h2>Moore's Weather<br>13961 Cunningham Hwy</h2>
+    h2 {
+        font-weight: bold;
+        text-align: center;  /* This ensures it stays centered */
+        line-height: 1.4;  /* Adjusts spacing between lines */
+    }
+    
+    <img src="/public/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
     <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
     <button id="pingBtn" onclick="pingStation()">PING STATION</button>
     <p id="status" class="connected">Status: Waiting...</p>
@@ -93,8 +99,9 @@
                     statusText.className = "connected";
                 })
                 .catch(error => {
-                    statusText.innerText = "Status: Connection Failed";
+                    statusText.innerText = `Status: ${error.message || "Connection Failed"}`;
                     statusText.className = "error";
+                    dataOutput.innerHTML = "<b>Error:</b> Could not retrieve weather data.";
                     console.error("Fetch error:", error);
                 })
                 .finally(() => {
@@ -103,7 +110,9 @@
         }
 
         function pingStation() {
-            fetch("http://localhost:8899/ping")
+            const statusText = document.getElementById("status");
+
+            fetch("/ping")
                 .then(response => {
                     if (!response.ok) {
                         throw new Error("Ping failed: " + response.status);
@@ -112,9 +121,13 @@
                 })
                 .then(data => {
                     alert("Weather station responded: " + data);
+                    statusText.innerText = "Status: Weather station is online";
+                    statusText.className = "connected";
                 })
                 .catch(error => {
                     alert("Ping failed: " + error);
+                    statusText.innerText = "Status: Connection Failed";
+                    statusText.className = "error";
                 });
         }
 
