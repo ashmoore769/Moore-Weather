@@ -15,6 +15,7 @@
             font-weight: bold;
             text-align: center;
             line-height: 1.4; /* Adjusts spacing between lines */
+            margin-bottom: 15px;
         }
         button {
             padding: 12px;
@@ -67,8 +68,8 @@
 <body>
     <h2>Moore's Weather<br>13961 Cunningham Hwy</h2>
 
-    <!-- Ensure the image file is in the "public" folder -->
-    <img src="/public/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
+    <!-- Fixed Image Path -->
+    <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 
     <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
     <button id="pingBtn" onclick="pingStation()">PING STATION</button>
