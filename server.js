@@ -11,13 +11,11 @@ const app = express();
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
-let lastRequestTime = 0;  // Track last request timestamp
-const MIN_REQUEST_INTERVAL = 5000;  // 5 seconds delay to prevent hammering
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 5000;
 
 app.get("/weather", (req, res) => {
     const now = Date.now();
-
-    // Prevent too many requests in a short time
     if (now - lastRequestTime < MIN_REQUEST_INTERVAL) {
         return res.status(429).send("Too many requests. Slow down.");
     }
@@ -25,44 +23,47 @@ app.get("/weather", (req, res) => {
 
     const client = new net.Socket();
     let receivedData = "";
-    let isResponseSent = false;  // Prevent duplicate responses
+    let isResponseSent = false;
 
-    client.setTimeout(3000);  // Set timeout to 3 seconds
+    client.setTimeout(3000);
+    
+    function sendResponse(status, message) {
+        if (!isResponseSent) {
+            res.status(status).send(message);
+            isResponseSent = true;
+            client.destroy();
+        }
+    }
 
     client.connect(WEATHER_STATION_PORT, WEATHER_STATION_HOST, () => {
-        console.log(`✅ Connected to weather station at ${WEATHER_STATION_HOST}:${WEATHER_STATION_PORT}`);
+        console.log(`✅ Connected to ${WEATHER_STATION_HOST}:${WEATHER_STATION_PORT}`);
         client.write("r3\r\n");
     });
 
     client.on("data", (data) => {
         receivedData += data.toString();
+        client.end();  // Gracefully close connection after receiving data
     });
 
     client.on("close", () => {
-        console.log("✅ Weather station connection closed.");
-        if (!isResponseSent) {
-            res.send(receivedData || "No data received");
-            isResponseSent = true;
-        }
+        console.log("✅ Connection closed.");
+        sendResponse(200, receivedData || "No data received");
     });
 
     client.on("error", (err) => {
-        console.error(`❌ Weather Station Connection Error: ${err.message}`);
-        if (!isResponseSent) {
-            res.status(500).send("Error connecting to weather station");
-            isResponseSent = true;
-        }
-        client.destroy();
+        console.error(`❌ Connection error: ${err.message}`);
+        sendResponse(500, "Error connecting to weather station");
     });
 
     client.on("timeout", () => {
         console.error("❌ Connection timed out.");
-        if (!isResponseSent) {
-            res.status(504).send("Weather station timeout");
-            isResponseSent = true;
-        }
-        client.destroy();
+        sendResponse(504, "Weather station timeout");
     });
+});
+
+// Add a simple ping check
+app.get("/ping", (req, res) => {
+    res.send("Weather station proxy is online.");
 });
 
 app.get("/", (req, res) => {
