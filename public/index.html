@@ -99,7 +99,6 @@
   <pre id="weatherData"></pre>
 
   <script>
-      let updateInterval;
       function getWindDirection(degrees) {
           const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", 
                               "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
@@ -151,6 +150,8 @@
           data = data.replace(/r3\r?\n?/, "").trim();
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
+          const batteryVoltage = parseFloat(lines[10]);
+          const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
 
           return `
 <b>Date:</b> ${lines[0]}<br>
@@ -177,28 +178,12 @@
 <b>Moisture 30cm:</b> ${lines[28]}%<br>
 <b>Moisture 40cm:</b> ${lines[29]}%<br>
 <hr>
-<b>Evaporation Rate:</b> ${data[18]} mm/h<br>
-            <b>Daily Evaporation:</b> ${data[20]} mm<br>
-            <b>Dew Point:</b> ${data[21]}°C<br>
-            <b>Rain Gauge (Tot/Min):</b> ${data[6]} mm<br><br>
 <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
 <b>Load:</b> ${lines[11]} mA<br>
 <b>Solar Voltage:</b> ${lines[12]} V<br>
 <b>Charge Current:</b> ${lines[13]} mA<br>
           `;
       }
-
-      function startAutoUpdate() {
-          fetchWeather();
-          updateInterval = setInterval(fetchWeather, 30000);
-      }
-
-      function stopAutoUpdate() {
-          clearInterval(updateInterval);
-      }
-
-      window.addEventListener("load", startAutoUpdate);
-      window.addEventListener("beforeunload", stopAutoUpdate);
   </script>
 </body>
 </html>
