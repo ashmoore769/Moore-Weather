@@ -90,7 +90,6 @@
       }
 
       /* Data Container */
-      /* Using a <div> to allow float-based wrapping for the icon. */
       #weatherData {
           background: white;
           padding: 15px;
@@ -103,20 +102,20 @@
           text-align: left; /* Left-align text inside the container */
       }
 
+      /* Weather Icon Floated Right */
+      .weather-icon {
+          float: right;          /* Floats icon to the right; text flows around it */
+          margin-left: 10px;     /* Gap to the left of the icon */
+          /* Remove margin-bottom so it stays top-aligned */
+          height: 60px;          /* Increase if you want a larger icon */
+          /* transform: rotate(-15deg); */ /* Uncomment if you want it angled */
+      }
+
       /* Address Title */
       .address-title {
           font-size: 16px;
           font-weight: bold;
           margin-bottom: 6px;
-      }
-
-      /* Weather Icon Floated Right */
-      .weather-icon {
-          float: right;          /* Floats icon to the right; text flows around it */
-          margin-left: 10px;     /* Gap to the left of the icon */
-          margin-bottom: 10px;   /* Some space under the icon before text flows below it */
-          height: 60px;          /* Increase if you want a larger icon */
-          /* transform: rotate(-15deg); */ /* Uncomment if you want it angled */
       }
 
       /* Horizontal Rules (dividers) */
@@ -191,11 +190,11 @@
           let solarRadiation = parseFloat(lines[7]);
           solarRadiation = Math.max(0, solarRadiation);
 
-          // Build the HTML using normal <div>/<br> for line breaks
-          // The icon is floated right; text flows around it
+          // IMPORTANT: Place the icon *before* the text so it floats at the top right
           return `
-<div class="address-title">13961 Cunningham Hwy</div>
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
+
+<div class="address-title">13961 Cunningham Hwy</div>
 
 <b>Date:</b> ${lines[0]}<br>
 <b>Time:</b> ${lines[1]}<br>
