@@ -2,151 +2,183 @@
 <html lang="en">
 <head>
   <link rel="apple-touch-icon" href="/Weather_Station_App.png">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moore's Weather</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        h2 {
-            font-weight: bold;
-            text-align: center;
-            line-height: 1.4;
-            margin-bottom: 15px;
-            font-size: 16px; /* Smaller font size */
-        }
-        button {
-            padding: 12px;
-            width: 220px;
-            font-size: 16px;
-            font-weight: bold;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            display: block;
-            margin: 10px auto;
-        }
-        button:disabled {
-            background-color: gray;
-            cursor: not-allowed;
-        }
-        #status {
-            font-weight: bold;
-            margin-top: 15px;
-        }
-        .connected {
-            color: #006400;
-        }
-        .error {
-            color: red;
-        }
-        #weatherData {
-            margin-top: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: left;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-            font-size: 14px;
-            color: #333;
-            white-space: pre-wrap;
-        }
-        .weather-icon {
-            width: 80px;
-            display: block;
-            margin: 10px auto;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moore's Weather</title>
+  <style>
+      body {
+          font-family: Arial, sans-serif;
+          text-align: center;
+          padding: 20px;
+          background-color: #f4f4f4;
+      }
+      h2 {
+          font-weight: bold;
+          line-height: 1.4;
+          margin-bottom: 15px;
+          font-size: 16px;
+      }
+      button {
+          padding: 12px;
+          width: 220px;
+          font-size: 16px;
+          font-weight: bold;
+          background-color: #007bff;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          display: block;
+          margin: 10px auto;
+          transition: background 0.3s;
+      }
+      button:hover {
+          background-color: #0056b3;
+      }
+      button:disabled {
+          background-color: gray;
+          cursor: not-allowed;
+      }
+      #status {
+          font-weight: bold;
+          margin-top: 15px;
+      }
+      .connected {
+          color: #006400;
+      }
+      .error {
+          color: red;
+      }
+      #weatherData {
+          margin-top: 20px;
+          background: white;
+          padding: 15px;
+          border-radius: 8px;
+          text-align: left;
+          max-width: 400px;
+          margin-left: auto;
+          margin-right: auto;
+          box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+          font-size: 14px;
+          color: #333;
+          white-space: pre-wrap;
+      }
+      .weather-icon {
+          width: 80px;
+          display: block;
+          margin: 10px auto;
+      }
+      .loading {
+          font-style: italic;
+          color: #555;
+          display: none;
+      }
+      @media (max-width: 600px) {
+          h2 {
+              font-size: 14px;
+          }
+          button {
+              width: 100%;
+              font-size: 14px;
+          }
+          #weatherData {
+              max-width: 90%;
+              font-size: 12px;
+          }
+      }
+  </style>
 </head>
 <body>
-    <h2>Moore's Weather<br>13961 Cunningham Hwy</h2>
+  <h2>Moore's Weather<br>13961 Cunningham Hwy</h2>
 
-    <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
+  <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 
-    <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
-    <p id="status" class="connected">Status: Waiting...</p>
-    <pre id="weatherData"></pre>
+  <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
+  <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
+  <p id="loadingMessage" class="loading">Loading data...</p>
+  <pre id="weatherData"></pre>
 
-    <script>
-        function fetchWeather() {
-            const statusText = document.getElementById("status");
-            const dataOutput = document.getElementById("weatherData");
-            const button = document.getElementById("fetchBtn");
+  <script>
+      function getWindDirection(degrees) {
+          const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", 
+                              "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+          const index = Math.round(degrees / 22.5) % 16;
+          return directions[index];
+      }
 
-            statusText.innerText = "Status: Fetching data...";
-            statusText.className = "connected";
-            button.disabled = true;
+      function fetchWeather(retry = false) {
+          const statusText = document.getElementById("status");
+          const dataOutput = document.getElementById("weatherData");
+          const button = document.getElementById("fetchBtn");
+          const loadingMsg = document.getElementById("loadingMessage");
 
-            fetch("/weather")
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("Server responded with " + response.status);
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    dataOutput.innerHTML = formatWeatherData(data);
-                    statusText.innerText = "Status: Connected";
-                    statusText.className = "connected";
-                })
-                .catch(error => {
-                    statusText.innerText = `Status: ${error.message || "Connection Failed"}`;
-                    statusText.className = "error";
-                    dataOutput.innerHTML = "<b>Error:</b> Could not retrieve weather data.";
-                    console.error("Fetch error:", error);
-                })
-                .finally(() => {
-                    button.disabled = false;
-                });
-        }
+          statusText.innerText = "Status: Fetching data...";
+          statusText.className = "connected";
+          button.disabled = true;
+          loadingMsg.style.display = "block";
 
-        function formatWeatherData(data) {
-            if (!data) return "No data received";
-            
-            const lines = data.split(",");
-            if (lines.length < 30) return "Invalid response format: " + data;
+          fetch("/weather")
+              .then(response => {
+                  if (!response.ok) {
+                      throw new Error("Server responded with " + response.status);
+                  }
+                  return response.text();
+              })
+              .then(data => {
+                  dataOutput.innerHTML = formatWeatherData(data);
+                  statusText.innerText = "Status: Connected";
+                  statusText.className = "connected";
+              })
+              .catch(error => {
+                  if (!retry) {
+                      setTimeout(() => fetchWeather(true), 2000);
+                  } else {
+                      statusText.innerText = `Status: ${error.message || "Connection Failed"}`;
+                      statusText.className = "error";
+                      dataOutput.innerHTML = "<b>Error:</b> Could not retrieve weather data.";
+                      console.error("Fetch error:", error);
+                  }
+              })
+              .finally(() => {
+                  button.disabled = false;
+                  loadingMsg.style.display = "none";
+              });
+      }
 
-            return `
+      function formatWeatherData(data) {
+          if (!data) return "<b>Error:</b> No data received.";
+
+          // Remove any instance of "r3" and leading/trailing whitespace
+          data = data.replace(/r3\r?\n?/, "").trim();
+
+          const lines = data.split(",");
+          if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
+          const batteryVoltage = parseFloat(lines[10]);
+          const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
+
+          return `
 <b>Date:</b> ${lines[0]}<br>
 <b>Time:</b> ${lines[1]}<br>
 <hr>
 <b>Wind Speed:</b> ${lines[2]} km/h<br>
-<b>Wind Direction:</b> ${lines[3]}°<br>
+<b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
 <b>Humidity:</b> ${lines[4]}%<br>
 <b>Temperature:</b> ${lines[5]}°C<br>
 <b>Rain Since 9AM:</b> ${lines[17]} mm<br>
 <b>Solar Radiation:</b> ${lines[7]} W/m²<br>
 <b>Pressure:</b> ${lines[8]} hPa<br>
 <b>Garden Temp:</b> ${lines[9]}°C<br>
+<b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
+<b>Daily Evaporation:</b> ${lines[20]} mm<br>
+<b>Dew Point:</b> ${lines[21]}°C<br>
+<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br>
 <hr>
-<b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
-<b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
-<b>Vector Wind Direction:</b> ${lines[16]}°<br>
-<hr>
-<b>Soil Temp 10cm:</b> ${lines[22]}°C<br>
-<b>Soil Temp 20cm:</b> ${lines[23]}°C<br>
-<b>Soil Temp 30cm:</b> ${lines[24]}°C<br>
-<b>Soil Temp 40cm:</b> ${lines[25]}°C<br>
-<b>Moisture 10cm:</b> ${lines[26]}%<br>
-<b>Moisture 20cm:</b> ${lines[27]}%<br>
-<b>Moisture 30cm:</b> ${lines[28]}%<br>
-<b>Moisture 40cm:</b> ${lines[29]}%<br>
-<hr>
-<b>Battery:</b> ${lines[10]} V<br>
+<b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
 <b>Load:</b> ${lines[11]} mA<br>
 <b>Solar Voltage:</b> ${lines[12]} V<br>
 <b>Charge Current:</b> ${lines[13]} mA<br>
-            `;
-        }
-    </script>
+          `;
+      }
+  </script>
 </body>
 </html>
