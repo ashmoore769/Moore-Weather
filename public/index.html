@@ -49,9 +49,8 @@
       .error {
           color: red;
       }
-      /* Reduced margin-top for tighter layout */
       #weatherData {
-          margin-top: 10px;
+          margin-top: 20px;
           background: white;
           padding: 15px;
           border-radius: 8px;
@@ -63,6 +62,11 @@
           font-size: 14px;
           color: #333;
           white-space: pre-wrap;
+      }
+      .weather-icon {
+          width: 80px;
+          display: block;
+          margin: 10px auto;
       }
       @media (max-width: 600px) {
           h2 {
@@ -97,31 +101,12 @@
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
       }
-      
-      /* Data Header (Date/Time + Icon) */
-      .data-header {
-          display: flex;
-          align-items: center;      /* Vertically center icon and text */
-          justify-content: space-between;
-          margin-bottom: 8px;       /* Slightly smaller bottom margin */
-      }
-      .data-header div {
-          text-align: left;
-      }
-      .data-header img {
-          /* Adjust height/width as needed */
-          max-height: 40px;
-          margin-left: 10px;
-      }
-      /* Optional: a lighter horizontal divider */
-      .divider {
-          border-top: 1px solid #ccc;
-          margin: 10px 0;
-      }
   </style>
 </head>
 <body>
   <h2>Moore's Weather<br>13961 Cunningham Hwy</h2>
+
+  <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 
   <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
   <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
@@ -155,16 +140,10 @@
           let solarRadiation = parseFloat(lines[7]);
           solarRadiation = Math.max(0, solarRadiation);
 
-          // Combine date and time in one line, place icon to the right
           return `
-<div class="data-header">
-  <div>
-    <strong>Date:</strong> ${lines[0]} &nbsp;&nbsp;
-    <strong>Time:</strong> ${lines[1]}
-  </div>
-  <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-</div>
-<div class="divider"></div>
+<b>Date:</b> ${lines[0]}<br>
+<b>Time:</b> ${lines[1]}<br>
+<hr>
 <b>Wind Speed:</b> ${lines[2]} km/h<br>
 <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
 <b>Humidity:</b> ${lines[4]}%<br>
@@ -176,7 +155,7 @@
 <b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
 <b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
 <b>Vector Wind Direction:</b> ${lines[16]}°<br>
-<div class="divider"></div>
+<hr>
 <b>Soil Temp 10cm:</b> ${lines[22]}°C<br>
 <b>Soil Temp 20cm:</b> ${lines[23]}°C<br>
 <b>Soil Temp 30cm:</b> ${lines[24]}°C<br>
@@ -185,7 +164,7 @@
 <b>Moisture 20cm:</b> ${lines[27]}%<br>
 <b>Moisture 30cm:</b> ${lines[28]}%<br>
 <b>Moisture 40cm:</b> ${lines[29]}%<br>
-<div class="divider"></div>
+<hr>
 <b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
 <b>Daily Evaporation:</b> ${lines[20]} mm<br>
 <b>Dew Point:</b> ${lines[21]}°C<br>
