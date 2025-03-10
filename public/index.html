@@ -26,32 +26,28 @@
           border-radius: 5px;
       }
 
-      /* Control Section: Contains button (left) and status (right) on one line */
-      .control-section {
+      /* Control Container: Same width as data container (400px) and centered */
+      .control-container {
+          max-width: 400px;
+          margin: 10px auto; /* Vertical spacing and centered horizontally */
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 10px;
       }
-      .control-left, .control-right {
+      .control-half {
           width: 50%;
-      }
-      .control-left {
-          text-align: left;
-      }
-      .control-right {
-          text-align: right;
+          text-align: center;
       }
 
-      /* CURRENT READINGS Button: Auto width with padding, vibrant orange with black text */
+      /* CURRENT READINGS Button: Reduced padding for a less tall look and increased border radius */
       button {
-          padding: 12px 20px;
+          padding: 8px 16px;
           font-size: 16px;
           font-weight: bold;
           background-color: #FFA500;  /* Vibrant orange */
           color: black;
           border: none;
-          border-radius: 5px;
+          border-radius: 10px;  /* More rounded corners */
           cursor: pointer;
           transition: background 0.3s;
           display: inline-block;
@@ -119,7 +115,7 @@
       .weather-icon {
           float: right;
           margin-left: 10px;
-          /* No margin-bottom so it stays top-aligned */
+          /* Remove margin-bottom so it stays top-aligned */
           height: 60px;
           /* transform: rotate(-15deg); */ /* Uncomment if you want it angled */
       }
@@ -145,9 +141,13 @@
           h2 {
               font-size: 18px;
           }
-          .control-left, .control-right {
-              width: 50%;
-              font-size: 14px;
+          .control-container {
+              flex-direction: column;
+          }
+          .control-half {
+              width: 100%;
+              text-align: center;
+              margin: 4px 0;
           }
           button {
               font-size: 14px;
@@ -174,12 +174,12 @@
     <h2>Moore's LIVE Weather Data</h2>
   </div>
 
-  <!-- Control Section: Button (left) and Status (right) -->
-  <div class="control-section">
-    <div class="control-left">
+  <!-- Control Section: Button on left and Status on right -->
+  <div class="control-container">
+    <div class="control-half">
       <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
     </div>
-    <div class="control-right">
+    <div class="control-half">
       <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
     </div>
   </div>
