@@ -63,11 +63,6 @@
           color: #333;
           white-space: pre-wrap;
       }
-      .weather-icon {
-          width: 80px;
-          display: block;
-          margin: 10px auto;
-      }
       @media (max-width: 600px) {
           h2 {
               font-size: 14px;
@@ -101,12 +96,28 @@
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
       }
+      
+      /* Data Header (Date/Time + Icon) */
+      .data-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 10px;
+      }
+      .data-header div {
+          text-align: left;
+      }
+      .data-header img {
+          /* Adjust height as needed to match the Date/Time block */
+          max-height: 50px;
+          margin-left: 10px;
+      }
   </style>
 </head>
 <body>
   <h2>Moore's Weather<br>13961 Cunningham Hwy</h2>
 
-  <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
+  <!-- The icon has been removed from here and will now be included in the weather data container -->
 
   <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
   <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
@@ -141,8 +152,13 @@
           solarRadiation = Math.max(0, solarRadiation);
 
           return `
-<b>Date:</b> ${lines[0]}<br>
-<b>Time:</b> ${lines[1]}<br>
+<div class="data-header">
+  <div>
+    <b>Date:</b> ${lines[0]}<br>
+    <b>Time:</b> ${lines[1]}
+  </div>
+  <img src="/Weather_Station_App.png" alt="Weather Station Icon">
+</div>
 <hr>
 <b>Wind Speed:</b> ${lines[2]} km/h<br>
 <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
