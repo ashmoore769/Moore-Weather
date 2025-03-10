@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
-      /* Restore a modern sans-serif font for all text */
+      /* Use a modern sans-serif font for all text */
       body {
           margin: 0;
           background-color: #f4f4f4;
@@ -38,7 +38,8 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 10px;
+          margin-bottom: 6px;
+          padding: 0 10px; /* Adds left/right padding so button isn't flush against the edge */
       }
       .control-half {
           width: 50%;
@@ -131,6 +132,15 @@
           clear: both;
       }
 
+      /* Two-column layout for Wind & Battery */
+      .wind-power {
+          display: flex;
+          justify-content: space-between;
+      }
+      .wind-col, .power-col {
+          width: 48%;
+      }
+
       /* Two-column layout for Moisture vs. Soil Temp */
       .soil-moisture {
           display: flex;
@@ -139,11 +149,6 @@
       .moisture-col, .soiltemp-col {
           width: 48%;
       }
-
-      /* 
-         REMOVED the media query to keep the layout identical on mobile 
-         and desktop (no stacked columns, no font-size changes).
-      */
   </style>
 </head>
 <body>
@@ -204,46 +209,69 @@
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
           
-          // Battery voltage & color
+          /* ----------------------------
+             Battery & Solar Voltage Logic
+          -----------------------------*/
           const batteryVoltage = parseFloat(lines[10]);
           const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
 
-          // Solar voltage logic
           let rawSolarVoltage = parseFloat(lines[12]);
           let solarVoltageDisplay;
           if (rawSolarVoltage < batteryVoltage) {
-              solarVoltageDisplay = `0 V (NIGHT TIME)`;
+              solarVoltageDisplay = `0.0 V (NIGHT)`;
           } else {
-              solarVoltageDisplay = `${rawSolarVoltage} V (DAY TIME)`;
+              solarVoltageDisplay = `${rawSolarVoltage} V (DAY)`;
           }
 
-          // Solar radiation (cap negative values)
-          let solarRadiation = parseFloat(lines[7]);
-          solarRadiation = Math.max(0, solarRadiation);
+          /* ----------------------------
+             Rain Gauge Logic
+          -----------------------------*/
+          let rainGaugeVal = parseFloat(lines[6]);
+          let rainGaugeDisplay = `${rainGaugeVal.toFixed(1)} mm`;
+          if (rainGaugeVal >= 0.2) {
+              rainGaugeDisplay += " (NOW RAINING)";
+          }
 
-          // Format the date
+          /* ----------------------------
+             Format Date & Time
+          -----------------------------*/
           const formattedDate = formatDateString(lines[0]);
+          const displayTime = `${lines[1]} AEST`;  // Append "AEST" to the time
 
-          // Build the HTML for weather data.
+          /* ----------------------------
+             Build HTML
+          -----------------------------*/
           return `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
 <b>Date:</b> ${formattedDate}<br>
-<b>Time:</b> ${lines[1]}<br>
+<b>Time:</b> ${displayTime}<br>
 <hr>
-<b>Wind Speed:</b> ${lines[2]} km/h<br>
-<b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
 <b>Humidity:</b> ${lines[4]}%<br>
 <b>Temperature:</b> ${lines[5]}°C<br>
 <b>Rain Since 9AM:</b> ${lines[17]} mm<br>
-<b>Solar Radiation:</b> ${solarRadiation} W/m²<br>
+<b>Solar Radiation:</b> ${Math.max(0, parseFloat(lines[7]))} W/m²<br>
 <b>Pressure:</b> ${lines[8]} hPa<br>
 <b>Garden Temp:</b> ${lines[9]}°C<br>
 <hr>
-<b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
-<b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
-<b>Vector Wind Direction:</b> ${lines[16]}°<br>
+<!-- Two-column: Wind data on left, Battery/Power on right -->
+<div class="wind-power">
+  <div class="wind-col">
+    <b>Wind Speed:</b> ${lines[2]} km/h<br>
+    <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
+    <b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
+    <b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
+    <b>Vector Wind Direction:</b> ${lines[16]}°<br>
+  </div>
+  <div class="power-col">
+    <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
+    <b>Load:</b> ${lines[11]} mA<br>
+    <b>Solar Voltage:</b> ${solarVoltageDisplay}<br>
+    <b>Charge Current:</b> ${lines[13]} mA<br>
+  </div>
+</div>
 <hr>
+<!-- Two-column: Moisture on left, Soil Temp on right -->
 <div class="soil-moisture">
   <div class="moisture-col">
     <b>Moisture 10cm:</b> ${lines[26]}%<br>
@@ -259,15 +287,10 @@
   </div>
 </div>
 <hr>
+<b>Rain Gauge (Tot/Min):</b> ${rainGaugeDisplay}<br>
 <b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
 <b>Daily Evaporation:</b> ${lines[20]} mm<br>
 <b>Dew Point:</b> ${lines[21]}°C<br>
-<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br>
-<hr>
-<b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
-<b>Load:</b> ${lines[11]} mA<br>
-<b>Solar Voltage:</b> ${solarVoltageDisplay}<br>
-<b>Charge Current:</b> ${lines[13]} mA<br>
           `;
       }
 
@@ -312,6 +335,7 @@
               });
       }
 
+      // Auto-fetch on page load
       window.addEventListener("load", () => {
           fetchWeather();
       });
