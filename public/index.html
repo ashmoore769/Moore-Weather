@@ -146,14 +146,14 @@
       }
 
       function formatWeatherData(data) {
-          if (!data) return "<b>Error:</b> No data received.";
-          data = data.replace(/r3\r?\n?/, "").trim();
-          const lines = data.split(",");
-          if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
-          const batteryVoltage = parseFloat(lines[10]);
-          const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
+    if (!data) return "<b>Error:</b> No data received.";
+    data = data.replace(/r3\r?\n?/, "").trim();
+    const lines = data.split(",");
+    if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
+    const batteryVoltage = parseFloat(lines[10]);
+    const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
 
-          return `
+    return `
 <b>Date:</b> ${lines[0]}<br>
 <b>Time:</b> ${lines[1]}<br>
 <hr>
@@ -178,16 +178,16 @@
 <b>Moisture 30cm:</b> ${lines[28]}%<br>
 <b>Moisture 40cm:</b> ${lines[29]}%<br>
 <hr>
-<b>Evaporation Rate:</b> ${data[18]} mm/h<br>
-<b>Daily Evaporation:</b> ${data[20]} mm<br>
-<b>Dew Point:</b> ${data[21]}°C<br>
-<b>Rain Gauge (Tot/Min):</b> ${data[6]} mm<br><br>
+<b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
+<b>Daily Evaporation:</b> ${lines[20]} mm<br>
+<b>Dew Point:</b> ${lines[21]}°C<br>
+<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br><br>
 <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
 <b>Load:</b> ${lines[11]} mA<br>
 <b>Solar Voltage:</b> ${lines[12]} V<br>
 <b>Charge Current:</b> ${lines[13]} mA<br>
-          `;
-      }
+    `;
+}
   </script>
 </body>
 </html>
