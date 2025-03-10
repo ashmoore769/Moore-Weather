@@ -11,17 +11,13 @@
           text-align: center;
           padding: 20px;
           background-color: #f4f4f4;
-          margin: 0;
       }
-      /* Header Title */
       h2 {
           font-weight: bold;
-          margin: 0;
-          padding: 10px 0;
+          line-height: 1.4;
+          margin-bottom: 15px;
           font-size: 16px;
       }
-
-      /* Current Readings Button */
       button {
           padding: 12px;
           width: 220px;
@@ -43,11 +39,9 @@
           background-color: gray;
           cursor: not-allowed;
       }
-
-      /* Status Text */
       #status {
           font-weight: bold;
-          margin: 10px 0;
+          margin-top: 15px;
       }
       .connected {
           color: #006400;
@@ -55,21 +49,39 @@
       .error {
           color: red;
       }
-
-      /* Data Container */
       #weatherData {
+          margin-top: 20px;
           background: white;
           padding: 15px;
           border-radius: 8px;
           text-align: left;
           max-width: 400px;
-          margin: 10px auto 30px auto;
+          margin-left: auto;
+          margin-right: auto;
           box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
           font-size: 14px;
           color: #333;
           white-space: pre-wrap;
       }
-
+      .weather-icon {
+          width: 80px;
+          display: block;
+          margin: 10px auto;
+      }
+      @media (max-width: 600px) {
+          h2 {
+              font-size: 14px;
+          }
+          button {
+              width: 100%;
+              font-size: 14px;
+          }
+          #weatherData {
+              max-width: 90%;
+              font-size: 12px;
+          }
+      }
+      
       /* Spinner Styles */
       .spinner-container {
           display: none; /* Hidden by default */
@@ -89,57 +101,13 @@
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
       }
-
-      /* Data Header (Address, Date/Time + Icon) */
-      .address-title {
-          font-size: 16px;
-          font-weight: bold;
-          margin-bottom: 8px;
-      }
-      .data-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 8px;
-      }
-      .data-header div {
-          text-align: left;
-      }
-      .weather-icon {
-          max-height: 40px;
-          margin-left: 10px;
-          /* Uncomment to angle the icon if desired:
-          transform: rotate(-15deg);
-          */
-      }
-
-      /* Dividers between sections */
-      hr {
-          border: none;
-          border-top: 1px solid #ccc;
-          margin: 10px 0;
-      }
-
-      @media (max-width: 600px) {
-          h2 {
-              font-size: 14px;
-          }
-          button {
-              width: 100%;
-              font-size: 14px;
-          }
-          #weatherData {
-              max-width: 90%;
-              font-size: 12px;
-          }
-      }
   </style>
 </head>
 <body>
-  <!-- Page Header -->
-  <h2>Moore's Weather</h2>
+  <h2>Moore's Weather<br>13961 Cunningham Hwy</h2>
 
-  <!-- Button + Status -->
+  <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
+
   <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
   <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
   
@@ -148,7 +116,6 @@
     <div class="spinner"></div>
   </div>
 
-  <!-- Data Output Container -->
   <pre id="weatherData"></pre>
 
   <script>
@@ -165,24 +132,17 @@
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
           
-          // Battery voltage & color
+          // Process battery voltage
           const batteryVoltage = parseFloat(lines[10]);
           const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
           
-          // Solar radiation (cap negative values)
+          // Process solar radiation and cap negative values to 0
           let solarRadiation = parseFloat(lines[7]);
           solarRadiation = Math.max(0, solarRadiation);
 
-          // Build HTML
           return `
-<span class="address-title">13961 Cunningham Hwy</span>
-<div class="data-header">
-  <div>
-    <b>Date:</b> ${lines[0]} &nbsp;&nbsp;
-    <b>Time:</b> ${lines[1]}
-  </div>
-  <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-</div>
+<b>Date:</b> ${lines[0]}<br>
+<b>Time:</b> ${lines[1]}<br>
 <hr>
 <b>Wind Speed:</b> ${lines[2]} km/h<br>
 <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
@@ -208,8 +168,7 @@
 <b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
 <b>Daily Evaporation:</b> ${lines[20]} mm<br>
 <b>Dew Point:</b> ${lines[21]}°C<br>
-<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br>
-<hr>
+<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br><br>
 <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
 <b>Load:</b> ${lines[11]} mA<br>
 <b>Solar Voltage:</b> ${lines[12]} V<br>
