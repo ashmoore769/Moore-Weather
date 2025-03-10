@@ -6,10 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
-      /* Basic Page & Body Styles */
+      /* Restore a modern sans-serif font for all text */
       body {
           margin: 0;
           background-color: #f4f4f4;
+          font-family: "Helvetica Neue", Arial, sans-serif;
       }
 
       /* Centered Container for All Content (max 400px) */
@@ -18,7 +19,7 @@
           margin: 20px auto;  /* 20px top/bottom margin, auto left/right for centering */
       }
 
-      /* Header Box with Blue Background & Rounded Corners */
+      /* Header Box with Blue Background */
       .header-box {
           background-color: #4169E1; /* Royal Blue */
           border-radius: 5px;
@@ -120,7 +121,6 @@
           float: right;
           margin-left: 10px;
           height: 60px;
-          /* transform: rotate(-15deg); */
       }
 
       /* Horizontal Rules (dividers) */
@@ -140,34 +140,10 @@
           width: 48%;
       }
 
-      /* Mobile Adjustments */
-      @media (max-width: 600px) {
-          .header-box h2 {
-              font-size: 18px;
-          }
-          .control-container {
-              flex-direction: column;
-          }
-          .control-half {
-              width: 100%;
-              margin: 4px 0;
-          }
-          button {
-              font-size: 14px;
-          }
-          #weatherData {
-              font-size: 12px;
-          }
-          .weather-icon {
-              height: 50px;
-          }
-          .soil-moisture {
-              flex-direction: column;
-          }
-          .moisture-col, .soiltemp-col {
-              width: 100%;
-          }
-      }
+      /* 
+         REMOVED the media query to keep the layout identical on mobile 
+         and desktop (no stacked columns, no font-size changes).
+      */
   </style>
 </head>
 <body>
@@ -231,7 +207,16 @@
           // Battery voltage & color
           const batteryVoltage = parseFloat(lines[10]);
           const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
-          
+
+          // Solar voltage logic
+          let rawSolarVoltage = parseFloat(lines[12]);
+          let solarVoltageDisplay;
+          if (rawSolarVoltage < batteryVoltage) {
+              solarVoltageDisplay = `0 V (NIGHT TIME)`;
+          } else {
+              solarVoltageDisplay = `${rawSolarVoltage} V (DAY TIME)`;
+          }
+
           // Solar radiation (cap negative values)
           let solarRadiation = parseFloat(lines[7]);
           solarRadiation = Math.max(0, solarRadiation);
@@ -281,7 +266,7 @@
 <hr>
 <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
 <b>Load:</b> ${lines[11]} mA<br>
-<b>Solar Voltage:</b> ${lines[12]} V<br>
+<b>Solar Voltage:</b> ${solarVoltageDisplay}<br>
 <b>Charge Current:</b> ${lines[13]} mA<br>
           `;
       }
