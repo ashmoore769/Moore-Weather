@@ -12,28 +12,35 @@
           background-color: #f4f4f4;
           margin: 0;
           padding: 20px;
-          text-align: center; /* Center header & button; data container content will be left-aligned */
+          text-align: center; /* Center header; inner containers will handle alignment */
       }
 
-      /* Main Heading: Blue background, white text, spans full width */
+      /* Main Heading: Royal blue with rounded corners */
       h2 {
           margin: 0;
           font-size: 20px;
           font-weight: bold;
-          background-color: #007bff;  /* Blue */
+          background-color: #4169E1; /* Royal Blue */
           color: white;
           padding: 10px 0;
+          border-radius: 5px;
       }
 
-      /* Uniform spacing between sections */
-      .header-section {
+      /* Control Section: Contains button (left) and status (right) on one line */
+      .control-section {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
           margin-bottom: 10px;
       }
-      .button-section {
-          margin-bottom: 8px;
+      .control-left, .control-right {
+          width: 50%;
       }
-      .status-section {
-          margin-bottom: 10px;
+      .control-left {
+          text-align: left;
+      }
+      .control-right {
+          text-align: right;
       }
 
       /* CURRENT READINGS Button: Auto width with padding, vibrant orange with black text */
@@ -114,8 +121,7 @@
           margin-left: 10px;
           /* No margin-bottom so it stays top-aligned */
           height: 60px;
-          /* Uncomment the next line to angle the icon if desired */
-          /* transform: rotate(-15deg); */
+          /* transform: rotate(-15deg); */ /* Uncomment if you want it angled */
       }
 
       /* Horizontal Rules (dividers) */
@@ -126,9 +132,22 @@
           clear: both;
       }
 
+      /* Soil Moisture and Temperature Section: Two-column layout */
+      .soil-moisture {
+          display: flex;
+          justify-content: space-between;
+      }
+      .moisture-col, .soiltemp-col {
+          width: 48%;
+      }
+
       @media (max-width: 600px) {
           h2 {
               font-size: 18px;
+          }
+          .control-left, .control-right {
+              width: 50%;
+              font-size: 14px;
           }
           button {
               font-size: 14px;
@@ -140,6 +159,12 @@
           .weather-icon {
               height: 50px;
           }
+          .soil-moisture {
+              flex-direction: column;
+          }
+          .moisture-col, .soiltemp-col {
+              width: 100%;
+          }
       }
   </style>
 </head>
@@ -149,14 +174,14 @@
     <h2>Moore's LIVE Weather Data</h2>
   </div>
 
-  <!-- Button Section -->
-  <div class="button-section">
-    <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
-  </div>
-
-  <!-- Status Section -->
-  <div class="status-section">
-    <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
+  <!-- Control Section: Button (left) and Status (right) -->
+  <div class="control-section">
+    <div class="control-left">
+      <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
+    </div>
+    <div class="control-right">
+      <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
+    </div>
   </div>
   
   <!-- Spinner -->
@@ -206,7 +231,9 @@
           // Format the date
           const formattedDate = formatDateString(lines[0]);
 
-          // Build the HTML for weather data
+          // Build the HTML for weather data.
+          // The icon is placed first so that it floats to the top-right.
+          // The Soil Temp and Moisture section is split into two columns.
           return `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
@@ -226,14 +253,20 @@
 <b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
 <b>Vector Wind Direction:</b> ${lines[16]}°<br>
 <hr>
-<b>Soil Temp 10cm:</b> ${lines[22]}°C<br>
-<b>Soil Temp 20cm:</b> ${lines[23]}°C<br>
-<b>Soil Temp 30cm:</b> ${lines[24]}°C<br>
-<b>Soil Temp 40cm:</b> ${lines[25]}°C<br>
-<b>Moisture 10cm:</b> ${lines[26]}%<br>
-<b>Moisture 20cm:</b> ${lines[27]}%<br>
-<b>Moisture 30cm:</b> ${lines[28]}%<br>
-<b>Moisture 40cm:</b> ${lines[29]}%<br>
+<div class="soil-moisture">
+  <div class="moisture-col">
+    <b>Moisture 10cm:</b> ${lines[26]}%<br>
+    <b>Moisture 20cm:</b> ${lines[27]}%<br>
+    <b>Moisture 30cm:</b> ${lines[28]}%<br>
+    <b>Moisture 40cm:</b> ${lines[29]}%<br>
+  </div>
+  <div class="soiltemp-col">
+    <b>Soil Temp 10cm:</b> ${lines[22]}°C<br>
+    <b>Soil Temp 20cm:</b> ${lines[23]}°C<br>
+    <b>Soil Temp 30cm:</b> ${lines[24]}°C<br>
+    <b>Soil Temp 40cm:</b> ${lines[25]}°C<br>
+  </div>
+</div>
 <hr>
 <b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
 <b>Daily Evaporation:</b> ${lines[20]} mm<br>
