@@ -38,8 +38,8 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 6px;
-          padding: 0 10px; /* Adds left/right padding so button isn't flush against the edge */
+          margin-bottom: 4px;   /* Reduced from 10px to squash height */
+          padding: 0 10px;      /* Adds left/right padding so button isn't flush against the edge */
       }
       .control-half {
           width: 50%;
@@ -130,15 +130,6 @@
           border-top: 1px solid #ccc;
           margin: 10px 0;
           clear: both;
-      }
-
-      /* Two-column layout for Wind & Battery */
-      .wind-power {
-          display: flex;
-          justify-content: space-between;
-      }
-      .wind-col, .power-col {
-          width: 48%;
       }
 
       /* Two-column layout for Moisture vs. Soil Temp */
@@ -241,35 +232,37 @@
           /* ----------------------------
              Build HTML
           -----------------------------*/
+          // 
+          // WIND SPEED → GARDEN TEMP + BATTERY/POWER in one section
+          // Then new <hr> for Peak Wind Gust / Vector data
+          // Then soil moisture columns
+          // Then Rain Gauge etc.
+          //
           return `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
+
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
+<b>Wind Speed:</b> ${lines[2]} km/h<br>
+<b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
 <b>Humidity:</b> ${lines[4]}%<br>
 <b>Temperature:</b> ${lines[5]}°C<br>
 <b>Rain Since 9AM:</b> ${lines[17]} mm<br>
 <b>Solar Radiation:</b> ${Math.max(0, parseFloat(lines[7]))} W/m²<br>
 <b>Pressure:</b> ${lines[8]} hPa<br>
 <b>Garden Temp:</b> ${lines[9]}°C<br>
+<!-- Battery & Power lines in same section -->
+<b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
+<b>Load:</b> ${lines[11]} mA<br>
+<b>Solar Voltage:</b> ${solarVoltageDisplay}<br>
+<b>Charge Current:</b> ${lines[13]} mA<br>
 <hr>
-<!-- Two-column: Wind data on left, Battery/Power on right -->
-<div class="wind-power">
-  <div class="wind-col">
-    <b>Wind Speed:</b> ${lines[2]} km/h<br>
-    <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
-    <b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
-    <b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
-    <b>Vector Wind Direction:</b> ${lines[16]}°<br>
-  </div>
-  <div class="power-col">
-    <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
-    <b>Load:</b> ${lines[11]} mA<br>
-    <b>Solar Voltage:</b> ${solarVoltageDisplay}<br>
-    <b>Charge Current:</b> ${lines[13]} mA<br>
-  </div>
-</div>
+<!-- Now the separate lines for Peak Wind Gust, Vector Speed, etc. -->
+<b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
+<b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
+<b>Vector Wind Direction:</b> ${lines[16]}°<br>
 <hr>
 <!-- Two-column: Moisture on left, Soil Temp on right -->
 <div class="soil-moisture">
@@ -335,7 +328,7 @@
               });
       }
 
-      // Auto-fetch on page load
+      // Automatically fetch on page load
       window.addEventListener("load", () => {
           fetchWeather();
       });
