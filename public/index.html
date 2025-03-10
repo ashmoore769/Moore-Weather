@@ -13,13 +13,13 @@
           font-family: "Helvetica Neue", Arial, sans-serif;
       }
 
-      /* Main container – same max width as data box */
+      /* Main Container – All content centered with max width 400px */
       .main-container {
           max-width: 400px;
           margin: 20px auto;
       }
 
-      /* Header Box with Royal Blue background and slightly rounded corners */
+      /* Header Box with Royal Blue background and rounded corners */
       .header-box {
           background-color: #4169E1;
           border-radius: 5px;
@@ -33,12 +33,12 @@
           color: white;
       }
 
-      /* Control section – contains the CURRENT READINGS button and Status text */
+      /* Control Section: Button on left, Status on right */
       .control-container {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;
+          margin-bottom: 4px;   /* Reduced to squash vertical space */
           padding: 0 10px;
       }
       .control-half {
@@ -46,12 +46,12 @@
           text-align: center;
       }
 
-      /* CURRENT READINGS Button – slimmer vertically */
+      /* CURRENT READINGS Button – Slimmer vertically */
       button {
           padding: 6px 16px;
           font-size: 14px;
           font-weight: bold;
-          background-color: #FFA500;
+          background-color: #FFA500;  /* Vibrant orange */
           color: black;
           border: none;
           border-radius: 10px;
@@ -124,7 +124,7 @@
           height: 60px;
       }
 
-      /* Horizontal divider */
+      /* Horizontal Divider */
       hr {
           border: none;
           border-top: 1px solid #ccc;
@@ -132,12 +132,21 @@
           clear: both;
       }
 
-      /* Two-column layout for Evaporation & Battery section */
+      /* Two-column layout for Evaporation & Battery Section */
       .evap-battery {
           display: flex;
           justify-content: space-between;
       }
       .evap-col, .battery-col {
+          width: 48%;
+      }
+
+      /* Two-column layout for Soil Temp and Moisture Section */
+      .soil-moisture {
+          display: flex;
+          justify-content: space-between;
+      }
+      .soiltemp-col, .moisture-col {
           width: 48%;
       }
   </style>
@@ -179,7 +188,7 @@
           return directions[Math.round(degrees / 22.5) % 16];
       }
 
-      // Convert date from "yyyy/mm/dd" to "dd/mm/yyyy (DayName)"
+      // Convert "yyyy/mm/dd" to "dd/mm/yyyy (DayName)"
       function formatDateString(dateStr) {
           const parts = dateStr.split("/");
           if (parts.length === 3) {
@@ -199,7 +208,7 @@
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
           
-          // Battery & Solar (now Solar Panel) logic:
+          // Battery & Solar Panel Logic
           const batteryVoltage = parseFloat(lines[10]);
           const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
           let rawSolarVoltage = parseFloat(lines[12]);
@@ -210,14 +219,14 @@
               solarVoltageDisplay = `${rawSolarVoltage} V (DAY)`;
           }
           
-          // Rain Gauge (renamed) logic:
+          // Rain Gauge Logic (renamed to "Rain In Last Min")
           let rainGaugeVal = parseFloat(lines[6]);
           let rainGaugeDisplay = `${rainGaugeVal.toFixed(1)} mm`;
           if (rainGaugeVal >= 0.2) {
               rainGaugeDisplay += " (NOW RAINING)";
           }
-
-          // Format date & time:
+          
+          // Format Date & Time (append AEST)
           const formattedDate = formatDateString(lines[0]);
           const displayTime = `${lines[1]} AEST`;
 
@@ -229,7 +238,7 @@
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
-<!-- Single-column Wind Section -->
+<!-- Single-column: Wind Speed, Wind Direction, Humidity, Temperature, Rain, Solar Radiation, Pressure, Garden Temp -->
 <b>Wind Speed:</b> ${lines[2]} km/h<br>
 <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
 <b>Humidity:</b> ${lines[4]}%<br>
@@ -239,7 +248,7 @@
 <b>Pressure:</b> ${lines[8]} hPa<br>
 <b>Garden Temp:</b> ${lines[9]}°C<br>
 <hr>
-<!-- Two-column Evaporation & Battery Section -->
+<!-- Two-column: Evaporation & Battery Section -->
 <div class="evap-battery">
   <div class="evap-col">
     <b>Evap Rate:</b> ${lines[18]} mm/h<br>
@@ -252,6 +261,27 @@
     <b>Load:</b> ${lines[11]} mA<br>
     <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
     <b>Charge:</b> ${lines[13]} mA<br>
+  </div>
+</div>
+<hr>
+<!-- Additional Sensor Section for Peak Wind & Vector Data -->
+<b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
+<b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
+<b>Vector Wind Direction:</b> ${lines[16]}°<br>
+<hr>
+<!-- Two-column: Soil Temperature and Moisture Section -->
+<div class="soil-moisture">
+  <div class="soiltemp-col">
+    <b>Soil Temp 10cm:</b> ${lines[22]}°C<br>
+    <b>Soil Temp 20cm:</b> ${lines[23]}°C<br>
+    <b>Soil Temp 30cm:</b> ${lines[24]}°C<br>
+    <b>Soil Temp 40cm:</b> ${lines[25]}°C<br>
+  </div>
+  <div class="moisture-col">
+    <b>Moisture 10cm:</b> ${lines[26]}%<br>
+    <b>Moisture 20cm:</b> ${lines[27]}%<br>
+    <b>Moisture 30cm:</b> ${lines[28]}%<br>
+    <b>Moisture 40cm:</b> ${lines[29]}%<br>
   </div>
 </div>
 <hr>
