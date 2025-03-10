@@ -6,24 +6,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
-      /* Basic Page Styles */
+      /* Basic Page & Body Styles */
       body {
           font-family: Arial, sans-serif;
           background-color: #f4f4f4;
           margin: 0;
           padding: 20px;
-          text-align: center; /* Center the header and button, but we'll left-align the data container internally */
+          text-align: center; /* Centered header & button, data container will be left-aligned inside. */
       }
 
       /* Main Heading */
       h2 {
-          font-weight: bold;
           margin: 0;
-          padding: 10px 0;
-          font-size: 20px; /* Increased font size for "Moore's LIVE Weather Data" */
+          font-size: 20px; /* Larger font for the main title */
+          font-weight: bold;
       }
 
-      /* Button */
+      /* We'll use margin spacing to ensure consistent vertical gaps:
+         - Between heading & button
+         - Between button & status
+         - Between status & data container
+      */
+      .header-section {
+          margin-bottom: 20px; /* Uniform spacing below the heading */
+      }
+      .button-section {
+          margin-bottom: 20px; /* Same spacing below the button */
+      }
+      .status-section {
+          margin-bottom: 20px; /* Same spacing below the status text */
+      }
+
+      /* CURRENT READINGS Button */
       button {
           padding: 12px;
           width: 220px;
@@ -34,8 +48,6 @@
           border: none;
           border-radius: 5px;
           cursor: pointer;
-          display: block;
-          margin: 10px auto;
           transition: background 0.3s;
       }
       button:hover {
@@ -49,7 +61,6 @@
       /* Status Text */
       #status {
           font-weight: bold;
-          margin: 10px 0;
       }
       .connected {
           color: #006400;
@@ -79,35 +90,33 @@
       }
 
       /* Data Container */
-      /* Using a <div> instead of <pre> to allow text to wrap around the floated icon */
+      /* Using a <div> to allow float-based wrapping for the icon. */
       #weatherData {
           background: white;
           padding: 15px;
           border-radius: 8px;
           max-width: 400px;
-          margin: 10px auto 30px auto; /* Center the container itself */
+          margin: 0 auto 30px auto; /* Center container horizontally, 30px bottom margin */
           box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
           font-size: 14px;
           color: #333;
-          text-align: left; /* Left-align content within this box */
+          text-align: left; /* Left-align text inside the container */
       }
 
       /* Address Title */
       .address-title {
           font-size: 16px;
           font-weight: bold;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
       }
 
       /* Weather Icon Floated Right */
       .weather-icon {
-          float: right;          /* Floats the icon to the right, letting text flow around it */
-          margin-left: 10px;     /* Spacing between icon and text */
-          margin-bottom: 10px;   /* Some spacing below icon */
-          height: 60px;          /* Adjust as desired to match your mockup */
-          /* If you want a slight angle, uncomment:
-             transform: rotate(-15deg);
-          */
+          float: right;          /* Floats icon to the right; text flows around it */
+          margin-left: 10px;     /* Gap to the left of the icon */
+          margin-bottom: 10px;   /* Some space under the icon before text flows below it */
+          height: 60px;          /* Increase if you want a larger icon */
+          /* transform: rotate(-15deg); */ /* Uncomment if you want it angled */
       }
 
       /* Horizontal Rules (dividers) */
@@ -115,7 +124,7 @@
           border: none;
           border-top: 1px solid #ccc;
           margin: 10px 0;
-          clear: both; /* Ensures each section starts below floated elements */
+          clear: both; /* Forces text to appear below the floated icon after each section */
       }
 
       @media (max-width: 600px) {
@@ -131,25 +140,33 @@
               font-size: 12px;
           }
           .weather-icon {
-              height: 50px; /* Slightly smaller icon on narrow screens */
+              height: 50px;
           }
       }
   </style>
 </head>
 <body>
-  <!-- Page Header -->
-  <h2>Moore's LIVE Weather Data</h2>
+  <!-- Header Section -->
+  <div class="header-section">
+    <h2>Moore's LIVE Weather Data</h2>
+  </div>
 
-  <!-- Button + Status -->
-  <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
-  <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
+  <!-- Button Section -->
+  <div class="button-section">
+    <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
+  </div>
+
+  <!-- Status Section -->
+  <div class="status-section">
+    <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
+  </div>
   
   <!-- Spinner -->
   <div id="spinnerContainer" class="spinner-container">
     <div class="spinner"></div>
   </div>
 
-  <!-- Data Output Container -->
+  <!-- Data Container -->
   <div id="weatherData"></div>
 
   <script>
@@ -175,7 +192,7 @@
           solarRadiation = Math.max(0, solarRadiation);
 
           // Build the HTML using normal <div>/<br> for line breaks
-          // The icon is floated right; text will wrap around it
+          // The icon is floated right; text flows around it
           return `
 <div class="address-title">13961 Cunningham Hwy</div>
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
@@ -191,6 +208,7 @@
 <b>Solar Radiation:</b> ${solarRadiation} W/m²<br>
 <b>Pressure:</b> ${lines[8]} hPa<br>
 <b>Garden Temp:</b> ${lines[9]}°C<br>
+<br>
 <b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
 <b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
 <b>Vector Wind Direction:</b> ${lines[16]}°<br>
@@ -204,10 +222,10 @@
 <b>Moisture 30cm:</b> ${lines[28]}%<br>
 <b>Moisture 40cm:</b> ${lines[29]}%<br>
 <hr>
-<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br>
 <b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
 <b>Daily Evaporation:</b> ${lines[20]} mm<br>
 <b>Dew Point:</b> ${lines[21]}°C<br>
+<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br>
 <hr>
 <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
 <b>Load:</b> ${lines[11]} mA<br>
