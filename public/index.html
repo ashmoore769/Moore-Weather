@@ -131,8 +131,14 @@
           data = data.replace(/r3\r?\n?/, "").trim();
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
+          
+          // Process battery voltage
           const batteryVoltage = parseFloat(lines[10]);
           const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
+          
+          // Process solar radiation and cap negative values to 0
+          let solarRadiation = parseFloat(lines[7]);
+          solarRadiation = Math.max(0, solarRadiation);
 
           return `
 <b>Date:</b> ${lines[0]}<br>
@@ -143,7 +149,7 @@
 <b>Humidity:</b> ${lines[4]}%<br>
 <b>Temperature:</b> ${lines[5]}°C<br>
 <b>Rain Since 9AM:</b> ${lines[17]} mm<br>
-<b>Solar Radiation:</b> ${lines[7]} W/m²<br>
+<b>Solar Radiation:</b> ${solarRadiation} W/m²<br>
 <b>Pressure:</b> ${lines[8]} hPa<br>
 <b>Garden Temp:</b> ${lines[9]}°C<br>
 <b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
@@ -195,7 +201,7 @@
               })
               .catch(error => {
                   if (attempt < 3) {
-                      // Retry after 5 seconds on first failure and 10 seconds on second.
+                      // Retry after 3 seconds on first failure and 8 seconds on second.
                       let delay = attempt === 1 ? 3000 : 8000;
                       statusText.innerText = `Status: Retrying in ${delay / 1000} seconds...`;
                       setTimeout(() => fetchWeather(attempt + 1), delay);
