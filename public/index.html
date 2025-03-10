@@ -4,24 +4,26 @@
   <link rel="apple-touch-icon" href="/Weather_Station_App.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Moore's Weather</title>
+  <title>Moore's LIVE Weather Data</title>
   <style>
+      /* Basic Page Styles */
       body {
           font-family: Arial, sans-serif;
-          text-align: center;
-          padding: 20px;
           background-color: #f4f4f4;
           margin: 0;
+          padding: 20px;
+          text-align: center; /* Center the header and button, but we'll left-align the data container internally */
       }
-      /* Header Title */
+
+      /* Main Heading */
       h2 {
           font-weight: bold;
           margin: 0;
           padding: 10px 0;
-          font-size: 16px;
+          font-size: 20px; /* Increased font size for "Moore's LIVE Weather Data" */
       }
 
-      /* Current Readings Button */
+      /* Button */
       button {
           padding: 12px;
           width: 220px;
@@ -56,20 +58,6 @@
           color: red;
       }
 
-      /* Data Container */
-      #weatherData {
-          background: white;
-          padding: 15px;
-          border-radius: 8px;
-          text-align: left;
-          max-width: 400px;
-          margin: 10px auto 30px auto;
-          box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-          font-size: 14px;
-          color: #333;
-          white-space: pre-wrap;
-      }
-
       /* Spinner Styles */
       .spinner-container {
           display: none; /* Hidden by default */
@@ -90,39 +78,49 @@
           100% { transform: rotate(360deg); }
       }
 
-      /* Data Header (Address, Date/Time + Icon) */
+      /* Data Container */
+      /* Using a <div> instead of <pre> to allow text to wrap around the floated icon */
+      #weatherData {
+          background: white;
+          padding: 15px;
+          border-radius: 8px;
+          max-width: 400px;
+          margin: 10px auto 30px auto; /* Center the container itself */
+          box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+          font-size: 14px;
+          color: #333;
+          text-align: left; /* Left-align content within this box */
+      }
+
+      /* Address Title */
       .address-title {
           font-size: 16px;
           font-weight: bold;
           margin-bottom: 8px;
       }
-      .data-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 8px;
-      }
-      .data-header div {
-          text-align: left;
-      }
+
+      /* Weather Icon Floated Right */
       .weather-icon {
-          max-height: 40px;
-          margin-left: 10px;
-          /* Uncomment to angle the icon if desired:
-          transform: rotate(-15deg);
+          float: right;          /* Floats the icon to the right, letting text flow around it */
+          margin-left: 10px;     /* Spacing between icon and text */
+          margin-bottom: 10px;   /* Some spacing below icon */
+          height: 60px;          /* Adjust as desired to match your mockup */
+          /* If you want a slight angle, uncomment:
+             transform: rotate(-15deg);
           */
       }
 
-      /* Dividers between sections */
+      /* Horizontal Rules (dividers) */
       hr {
           border: none;
           border-top: 1px solid #ccc;
           margin: 10px 0;
+          clear: both; /* Ensures each section starts below floated elements */
       }
 
       @media (max-width: 600px) {
           h2 {
-              font-size: 14px;
+              font-size: 18px;
           }
           button {
               width: 100%;
@@ -132,12 +130,15 @@
               max-width: 90%;
               font-size: 12px;
           }
+          .weather-icon {
+              height: 50px; /* Slightly smaller icon on narrow screens */
+          }
       }
   </style>
 </head>
 <body>
   <!-- Page Header -->
-  <h2>Moore's Weather</h2>
+  <h2>Moore's LIVE Weather Data</h2>
 
   <!-- Button + Status -->
   <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
@@ -149,7 +150,7 @@
   </div>
 
   <!-- Data Output Container -->
-  <pre id="weatherData"></pre>
+  <div id="weatherData"></div>
 
   <script>
       function getWindDirection(degrees) {
@@ -173,16 +174,14 @@
           let solarRadiation = parseFloat(lines[7]);
           solarRadiation = Math.max(0, solarRadiation);
 
-          // Build HTML
+          // Build the HTML using normal <div>/<br> for line breaks
+          // The icon is floated right; text will wrap around it
           return `
-<span class="address-title">13961 Cunningham Hwy</span>
-<div class="data-header">
-  <div>
-    <b>Date:</b> ${lines[0]} &nbsp;&nbsp;
-    <b>Time:</b> ${lines[1]}
-  </div>
-  <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-</div>
+<div class="address-title">13961 Cunningham Hwy</div>
+<img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
+
+<b>Date:</b> ${lines[0]}<br>
+<b>Time:</b> ${lines[1]}<br>
 <hr>
 <b>Wind Speed:</b> ${lines[2]} km/h<br>
 <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
@@ -205,10 +204,10 @@
 <b>Moisture 30cm:</b> ${lines[28]}%<br>
 <b>Moisture 40cm:</b> ${lines[29]}%<br>
 <hr>
+<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br>
 <b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
 <b>Daily Evaporation:</b> ${lines[20]} mm<br>
 <b>Dew Point:</b> ${lines[21]}°C<br>
-<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br>
 <hr>
 <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
 <b>Load:</b> ${lines[11]} mA<br>
