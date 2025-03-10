@@ -147,10 +147,7 @@
 
       function formatWeatherData(data) {
           if (!data) return "<b>Error:</b> No data received.";
-
-          // Remove any instance of "r3" and leading/trailing whitespace
           data = data.replace(/r3\r?\n?/, "").trim();
-
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
           const batteryVoltage = parseFloat(lines[10]);
@@ -168,10 +165,18 @@
 <b>Solar Radiation:</b> ${lines[7]} W/m²<br>
 <b>Pressure:</b> ${lines[8]} hPa<br>
 <b>Garden Temp:</b> ${lines[9]}°C<br>
-<b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
-<b>Daily Evaporation:</b> ${lines[20]} mm<br>
-<b>Dew Point:</b> ${lines[21]}°C<br>
-<b>Rain Gauge (Tot/Min):</b> ${lines[6]} mm<br>
+<b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
+<b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
+<b>Vector Wind Direction:</b> ${lines[16]}°<br>
+<hr>
+<b>Soil Temp 10cm:</b> ${lines[22]}°C<br>
+<b>Soil Temp 20cm:</b> ${lines[23]}°C<br>
+<b>Soil Temp 30cm:</b> ${lines[24]}°C<br>
+<b>Soil Temp 40cm:</b> ${lines[25]}°C<br>
+<b>Moisture 10cm:</b> ${lines[26]}%<br>
+<b>Moisture 20cm:</b> ${lines[27]}%<br>
+<b>Moisture 30cm:</b> ${lines[28]}%<br>
+<b>Moisture 40cm:</b> ${lines[29]}%<br>
 <hr>
 <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
 <b>Load:</b> ${lines[11]} mA<br>
