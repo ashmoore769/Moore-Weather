@@ -46,15 +46,15 @@
           text-align: center;
       }
 
-      /* CURRENT READINGS Button */
+      /* CURRENT READINGS Button: Skinnier vertically */
       button {
-          padding: 8px 16px;
-          font-size: 16px;
+          padding: 6px 16px;        /* Reduced top/bottom padding for a slimmer button */
+          font-size: 14px;          /* Slightly smaller font size for a modern look */
           font-weight: bold;
-          background-color: #FFA500;  /* Vibrant orange */
+          background-color: #FFA500; /* Vibrant orange */
           color: black;
           border: none;
-          border-radius: 10px;  /* More rounded corners */
+          border-radius: 10px;      /* More rounded corners */
           cursor: pointer;
           transition: background 0.3s;
           display: inline-block;
@@ -130,6 +130,18 @@
           border-top: 1px solid #ccc;
           margin: 10px 0;
           clear: both;
+      }
+
+      /* Two-column layout: 
+         Left: Wind Speed → Garden Temp
+         Right: Battery, Load, Solar Voltage, Charge Current
+      */
+      .wind-battery {
+          display: flex;
+          justify-content: space-between;
+      }
+      .wind-col, .battery-col {
+          width: 48%;
       }
 
       /* Two-column layout for Moisture vs. Soil Temp */
@@ -232,12 +244,9 @@
           /* ----------------------------
              Build HTML
           -----------------------------*/
-          // 
-          // WIND SPEED → GARDEN TEMP + BATTERY/POWER in one section
-          // Then new <hr> for Peak Wind Gust / Vector data
-          // Then soil moisture columns
-          // Then Rain Gauge etc.
-          //
+          // We create a two-column layout for:
+          //  Left column: Wind Speed → Garden Temp
+          //  Right column: Battery, Load, Solar Voltage, Charge Current
           return `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
@@ -245,25 +254,33 @@
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
-<b>Wind Speed:</b> ${lines[2]} km/h<br>
-<b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
-<b>Humidity:</b> ${lines[4]}%<br>
-<b>Temperature:</b> ${lines[5]}°C<br>
-<b>Rain Since 9AM:</b> ${lines[17]} mm<br>
-<b>Solar Radiation:</b> ${Math.max(0, parseFloat(lines[7]))} W/m²<br>
-<b>Pressure:</b> ${lines[8]} hPa<br>
-<b>Garden Temp:</b> ${lines[9]}°C<br>
-<!-- Battery & Power lines in same section -->
-<b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
-<b>Load:</b> ${lines[11]} mA<br>
-<b>Solar Voltage:</b> ${solarVoltageDisplay}<br>
-<b>Charge Current:</b> ${lines[13]} mA<br>
+
+<div class="wind-battery">
+  <div class="wind-col">
+    <b>Wind Speed:</b> ${lines[2]} km/h<br>
+    <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
+    <b>Humidity:</b> ${lines[4]}%<br>
+    <b>Temperature:</b> ${lines[5]}°C<br>
+    <b>Rain Since 9AM:</b> ${lines[17]} mm<br>
+    <b>Solar Radiation:</b> ${Math.max(0, parseFloat(lines[7]))} W/m²<br>
+    <b>Pressure:</b> ${lines[8]} hPa<br>
+    <b>Garden Temp:</b> ${lines[9]}°C<br>
+  </div>
+  <div class="battery-col">
+    <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
+    <b>Load:</b> ${lines[11]} mA<br>
+    <b>Solar Voltage:</b> ${solarVoltageDisplay}<br>
+    <b>Charge Current:</b> ${lines[13]} mA<br>
+  </div>
+</div>
+
 <hr>
-<!-- Now the separate lines for Peak Wind Gust, Vector Speed, etc. -->
+<!-- Separate section for Peak Wind Gust, Vector Wind, etc. -->
 <b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
 <b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
 <b>Vector Wind Direction:</b> ${lines[16]}°<br>
 <hr>
+
 <!-- Two-column: Moisture on left, Soil Temp on right -->
 <div class="soil-moisture">
   <div class="moisture-col">
@@ -279,6 +296,7 @@
     <b>Soil Temp 40cm:</b> ${lines[25]}°C<br>
   </div>
 </div>
+
 <hr>
 <b>Rain Gauge (Tot/Min):</b> ${rainGaugeDisplay}<br>
 <b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
