@@ -106,54 +106,15 @@
           return directions[index];
       }
 
-      function fetchWeather(retry = false) {
-          const statusText = document.getElementById("status");
-          const dataOutput = document.getElementById("weatherData");
-          const button = document.getElementById("fetchBtn");
-          const loadingMsg = document.getElementById("loadingMessage");
-
-          statusText.innerText = "Status: Fetching data...";
-          statusText.className = "connected";
-          button.disabled = true;
-          loadingMsg.style.display = "block";
-
-          fetch("/weather")
-              .then(response => {
-                  if (!response.ok) {
-                      throw new Error("Server responded with " + response.status);
-                  }
-                  return response.text();
-              })
-              .then(data => {
-                  dataOutput.innerHTML = formatWeatherData(data);
-                  statusText.innerText = "Status: Connected";
-                  statusText.className = "connected";
-              })
-              .catch(error => {
-                  if (!retry) {
-                      setTimeout(() => fetchWeather(true), 2000);
-                  } else {
-                      statusText.innerText = `Status: ${error.message || "Connection Failed"}`;
-                      statusText.className = "error";
-                      dataOutput.innerHTML = "<b>Error:</b> Could not retrieve weather data.";
-                      console.error("Fetch error:", error);
-                  }
-              })
-              .finally(() => {
-                  button.disabled = false;
-                  loadingMsg.style.display = "none";
-              });
-      }
-
       function formatWeatherData(data) {
-    if (!data) return "<b>Error:</b> No data received.";
-    data = data.replace(/r3\r?\n?/, "").trim();
-    const lines = data.split(",");
-    if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
-    const batteryVoltage = parseFloat(lines[10]);
-    const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
+          if (!data) return "<b>Error:</b> No data received.";
+          data = data.replace(/r3\r?\n?/, "").trim();
+          const lines = data.split(",");
+          if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
+          const batteryVoltage = parseFloat(lines[10]);
+          const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
 
-    return `
+          return `
 <b>Date:</b> ${lines[0]}<br>
 <b>Time:</b> ${lines[1]}<br>
 <hr>
@@ -186,8 +147,55 @@
 <b>Load:</b> ${lines[11]} mA<br>
 <b>Solar Voltage:</b> ${lines[12]} V<br>
 <b>Charge Current:</b> ${lines[13]} mA<br>
-    `;
-}
+          `;
+      }
+
+      function fetchWeather(attempt = 1) {
+          const statusText = document.getElementById("status");
+          const dataOutput = document.getElementById("weatherData");
+          const button = document.getElementById("fetchBtn");
+          const loadingMsg = document.getElementById("loadingMessage");
+
+          statusText.innerText = "Status: Fetching data...";
+          statusText.className = "connected";
+          button.disabled = true;
+          loadingMsg.style.display = "block";
+
+          fetch("/weather")
+              .then(response => {
+                  if (!response.ok) {
+                      throw new Error("Server responded with " + response.status);
+                  }
+                  return response.text();
+              })
+              .then(data => {
+                  dataOutput.innerHTML = formatWeatherData(data);
+                  statusText.innerText = "Status: Connected";
+                  statusText.className = "connected";
+              })
+              .catch(error => {
+                  if (attempt < 3) {
+                      // Retry after 5 seconds on first failure and 10 seconds on the second.
+                      let delay = attempt === 1 ? 5000 : 10000;
+                      statusText.innerText = `Status: Error encountered, retrying in ${delay / 1000} seconds...`;
+                      setTimeout(() => fetchWeather(attempt + 1), delay);
+                  } else {
+                      statusText.innerText = `Status: ${error.message || "Connection Failed"}`;
+                      statusText.className = "error";
+                      dataOutput.innerHTML = "<b>Error:</b> Could not retrieve weather data.";
+                      console.error("Fetch error:", error);
+                  }
+              })
+              .finally(() => {
+                  button.disabled = false;
+                  loadingMsg.style.display = "none";
+              });
+      }
+
+      // Automatically fetch weather data when the page loads.
+      window.addEventListener("load", () => {
+          fetchWeather();
+      });
   </script>
 </body>
 </html>
