@@ -8,38 +8,43 @@
   <style>
       /* Basic Page & Body Styles */
       body {
-          font-family: Arial, sans-serif;
-          background-color: #f4f4f4;
           margin: 0;
-          padding: 20px;
-          text-align: center; /* Center header; inner containers will handle alignment */
+          background-color: #f4f4f4;
       }
 
-      /* Main Heading: Royal blue with rounded corners */
-      h2 {
+      /* Centered Container for All Content (max 400px) */
+      .main-container {
+          max-width: 400px;
+          margin: 20px auto;  /* 20px top/bottom margin, auto left/right for centering */
+      }
+
+      /* Header Box with Blue Background & Rounded Corners */
+      .header-box {
+          background-color: #4169E1; /* Royal Blue */
+          border-radius: 5px;
+          padding: 10px 0;
+          text-align: center;
+      }
+      .header-box h2 {
           margin: 0;
           font-size: 20px;
           font-weight: bold;
-          background-color: #4169E1; /* Royal Blue */
           color: white;
-          padding: 10px 0;
-          border-radius: 5px;
       }
 
-      /* Control Container: Same width as data container (400px) and centered */
+      /* Control Section: Button on left, Status on right (50% each) */
       .control-container {
-          max-width: 400px;
-          margin: 10px auto; /* Vertical spacing and centered horizontally */
           display: flex;
           justify-content: space-between;
           align-items: center;
+          margin-bottom: 10px;
       }
       .control-half {
           width: 50%;
           text-align: center;
       }
 
-      /* CURRENT READINGS Button: Reduced padding for a less tall look and increased border radius */
+      /* CURRENT READINGS Button */
       button {
           padding: 8px 16px;
           font-size: 16px;
@@ -91,17 +96,16 @@
           100% { transform: rotate(360deg); }
       }
 
-      /* Data Container: White background, box shadow, left-aligned text */
+      /* Data Container */
       #weatherData {
           background: white;
           padding: 15px;
           border-radius: 8px;
-          max-width: 400px;
-          margin: 0 auto 30px auto;
           box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
           font-size: 14px;
           color: #333;
           text-align: left;
+          margin-bottom: 30px;
       }
 
       /* Address Title */
@@ -111,13 +115,12 @@
           margin-bottom: 6px;
       }
 
-      /* Weather Icon Floated Right, anchored to top-right */
+      /* Weather Icon Floated Right */
       .weather-icon {
           float: right;
           margin-left: 10px;
-          /* Remove margin-bottom so it stays top-aligned */
           height: 60px;
-          /* transform: rotate(-15deg); */ /* Uncomment if you want it angled */
+          /* transform: rotate(-15deg); */
       }
 
       /* Horizontal Rules (dividers) */
@@ -128,7 +131,7 @@
           clear: both;
       }
 
-      /* Soil Moisture and Temperature Section: Two-column layout */
+      /* Two-column layout for Moisture vs. Soil Temp */
       .soil-moisture {
           display: flex;
           justify-content: space-between;
@@ -137,8 +140,9 @@
           width: 48%;
       }
 
+      /* Mobile Adjustments */
       @media (max-width: 600px) {
-          h2 {
+          .header-box h2 {
               font-size: 18px;
           }
           .control-container {
@@ -146,14 +150,12 @@
           }
           .control-half {
               width: 100%;
-              text-align: center;
               margin: 4px 0;
           }
           button {
               font-size: 14px;
           }
           #weatherData {
-              max-width: 90%;
               font-size: 12px;
           }
           .weather-icon {
@@ -169,28 +171,34 @@
   </style>
 </head>
 <body>
-  <!-- Header Section -->
-  <div class="header-section">
-    <h2>Moore's LIVE Weather Data</h2>
-  </div>
 
-  <!-- Control Section: Button on left and Status on right -->
-  <div class="control-container">
-    <div class="control-half">
-      <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
-    </div>
-    <div class="control-half">
-      <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
-    </div>
-  </div>
-  
-  <!-- Spinner -->
-  <div id="spinnerContainer" class="spinner-container">
-    <div class="spinner"></div>
-  </div>
+  <!-- Main Container -->
+  <div class="main-container">
 
-  <!-- Data Container -->
-  <div id="weatherData"></div>
+    <!-- Header Box with Blue Background -->
+    <div class="header-box">
+      <h2>Moore's LIVE Weather Data</h2>
+    </div>
+
+    <!-- Control Section: Button on left, Status on right -->
+    <div class="control-container">
+      <div class="control-half">
+        <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
+      </div>
+      <div class="control-half">
+        <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
+      </div>
+    </div>
+
+    <!-- Spinner -->
+    <div id="spinnerContainer" class="spinner-container">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Data Container -->
+    <div id="weatherData"></div>
+
+  </div> <!-- End .main-container -->
 
   <script>
       function getWindDirection(degrees) {
@@ -232,8 +240,6 @@
           const formattedDate = formatDateString(lines[0]);
 
           // Build the HTML for weather data.
-          // The icon is placed first so that it floats to the top-right.
-          // The Soil Temp and Moisture section is split into two columns.
           return `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
