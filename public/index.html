@@ -6,22 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
-      /* Use a modern sans-serif font for all text */
+      /* Use a modern sans-serif font */
       body {
           margin: 0;
           background-color: #f4f4f4;
           font-family: "Helvetica Neue", Arial, sans-serif;
       }
 
-      /* Centered Container for All Content (max 400px) */
+      /* Main container – same max width as data box */
       .main-container {
           max-width: 400px;
-          margin: 20px auto;  /* 20px top/bottom margin, auto left/right for centering */
+          margin: 20px auto;
       }
 
-      /* Header Box with Blue Background */
+      /* Header Box with Royal Blue background and slightly rounded corners */
       .header-box {
-          background-color: #4169E1; /* Royal Blue */
+          background-color: #4169E1;
           border-radius: 5px;
           padding: 10px 0;
           text-align: center;
@@ -33,34 +33,34 @@
           color: white;
       }
 
-      /* Control Section: Button on left, Status on right (50% each) */
+      /* Control section – contains the CURRENT READINGS button and Status text */
       .control-container {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;   /* Reduced from 10px to squash height */
-          padding: 0 10px;      /* Adds left/right padding so button isn't flush against the edge */
+          margin-bottom: 4px;
+          padding: 0 10px;
       }
       .control-half {
           width: 50%;
           text-align: center;
       }
 
-      /* CURRENT READINGS Button: Skinnier vertically */
+      /* CURRENT READINGS Button – slimmer vertically */
       button {
-          padding: 6px 16px;        /* Reduced top/bottom padding for a slimmer button */
-          font-size: 14px;          /* Slightly smaller font size for a modern look */
+          padding: 6px 16px;
+          font-size: 14px;
           font-weight: bold;
-          background-color: #FFA500; /* Vibrant orange */
+          background-color: #FFA500;
           color: black;
           border: none;
-          border-radius: 10px;      /* More rounded corners */
+          border-radius: 10px;
           cursor: pointer;
           transition: background 0.3s;
           display: inline-block;
       }
       button:hover {
-          background-color: #e59400; /* Slightly darker orange */
+          background-color: #e59400;
       }
       button:disabled {
           background-color: gray;
@@ -78,7 +78,7 @@
           color: red;
       }
 
-      /* Spinner Styles */
+      /* Spinner */
       .spinner-container {
           display: none;
           margin: 20px auto;
@@ -124,7 +124,7 @@
           height: 60px;
       }
 
-      /* Horizontal Rules (dividers) */
+      /* Horizontal divider */
       hr {
           border: none;
           border-top: 1px solid #ccc;
@@ -132,24 +132,12 @@
           clear: both;
       }
 
-      /* Two-column layout: 
-         Left: Wind Speed → Garden Temp
-         Right: Battery, Load, Solar Voltage, Charge Current
-      */
-      .wind-battery {
+      /* Two-column layout for Evaporation & Battery section */
+      .evap-battery {
           display: flex;
           justify-content: space-between;
       }
-      .wind-col, .battery-col {
-          width: 48%;
-      }
-
-      /* Two-column layout for Moisture vs. Soil Temp */
-      .soil-moisture {
-          display: flex;
-          justify-content: space-between;
-      }
-      .moisture-col, .soiltemp-col {
+      .evap-col, .battery-col {
           width: 48%;
       }
   </style>
@@ -159,12 +147,12 @@
   <!-- Main Container -->
   <div class="main-container">
 
-    <!-- Header Box with Blue Background -->
+    <!-- Header -->
     <div class="header-box">
       <h2>Moore's LIVE Weather Data</h2>
     </div>
 
-    <!-- Control Section: Button on left, Status on right -->
+    <!-- Control Section -->
     <div class="control-container">
       <div class="control-half">
         <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
@@ -182,17 +170,16 @@
     <!-- Data Container -->
     <div id="weatherData"></div>
 
-  </div> <!-- End .main-container -->
+  </div> <!-- End main-container -->
 
   <script>
       function getWindDirection(degrees) {
           const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", 
                               "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-          const index = Math.round(degrees / 22.5) % 16;
-          return directions[index];
+          return directions[Math.round(degrees / 22.5) % 16];
       }
 
-      // Converts a date string from "yyyy/mm/dd" to "dd/mm/yyyy (DayName)"
+      // Convert date from "yyyy/mm/dd" to "dd/mm/yyyy (DayName)"
       function formatDateString(dateStr) {
           const parts = dateStr.split("/");
           if (parts.length === 3) {
@@ -212,12 +199,9 @@
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
           
-          /* ----------------------------
-             Battery & Solar Voltage Logic
-          -----------------------------*/
+          // Battery & Solar (now Solar Panel) logic:
           const batteryVoltage = parseFloat(lines[10]);
           const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
-
           let rawSolarVoltage = parseFloat(lines[12]);
           let solarVoltageDisplay;
           if (rawSolarVoltage < batteryVoltage) {
@@ -225,28 +209,19 @@
           } else {
               solarVoltageDisplay = `${rawSolarVoltage} V (DAY)`;
           }
-
-          /* ----------------------------
-             Rain Gauge Logic
-          -----------------------------*/
+          
+          // Rain Gauge (renamed) logic:
           let rainGaugeVal = parseFloat(lines[6]);
           let rainGaugeDisplay = `${rainGaugeVal.toFixed(1)} mm`;
           if (rainGaugeVal >= 0.2) {
               rainGaugeDisplay += " (NOW RAINING)";
           }
 
-          /* ----------------------------
-             Format Date & Time
-          -----------------------------*/
+          // Format date & time:
           const formattedDate = formatDateString(lines[0]);
-          const displayTime = `${lines[1]} AEST`;  // Append "AEST" to the time
+          const displayTime = `${lines[1]} AEST`;
 
-          /* ----------------------------
-             Build HTML
-          -----------------------------*/
-          // We create a two-column layout for:
-          //  Left column: Wind Speed → Garden Temp
-          //  Right column: Battery, Load, Solar Voltage, Charge Current
+          // Build HTML:
           return `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
@@ -254,54 +229,32 @@
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
-
-<div class="wind-battery">
-  <div class="wind-col">
-    <b>Wind Speed:</b> ${lines[2]} km/h<br>
-    <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
-    <b>Humidity:</b> ${lines[4]}%<br>
-    <b>Temperature:</b> ${lines[5]}°C<br>
-    <b>Rain Since 9AM:</b> ${lines[17]} mm<br>
-    <b>Solar Radiation:</b> ${Math.max(0, parseFloat(lines[7]))} W/m²<br>
-    <b>Pressure:</b> ${lines[8]} hPa<br>
-    <b>Garden Temp:</b> ${lines[9]}°C<br>
+<!-- Single-column Wind Section -->
+<b>Wind Speed:</b> ${lines[2]} km/h<br>
+<b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
+<b>Humidity:</b> ${lines[4]}%<br>
+<b>Temperature:</b> ${lines[5]}°C<br>
+<b>Rain Since 9AM:</b> ${lines[17]} mm<br>
+<b>Solar Radiation:</b> ${Math.max(0, parseFloat(lines[7]))} W/m²<br>
+<b>Pressure:</b> ${lines[8]} hPa<br>
+<b>Garden Temp:</b> ${lines[9]}°C<br>
+<hr>
+<!-- Two-column Evaporation & Battery Section -->
+<div class="evap-battery">
+  <div class="evap-col">
+    <b>Evap Rate:</b> ${lines[18]} mm/h<br>
+    <b>Daily Evap:</b> ${lines[20]} mm<br>
+    <b>Dew Point:</b> ${lines[21]}°C<br>
+    <b>Rain In Last Min:</b> ${rainGaugeDisplay}<br>
   </div>
   <div class="battery-col">
     <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
     <b>Load:</b> ${lines[11]} mA<br>
-    <b>Solar Voltage:</b> ${solarVoltageDisplay}<br>
-    <b>Charge Current:</b> ${lines[13]} mA<br>
+    <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
+    <b>Charge:</b> ${lines[13]} mA<br>
   </div>
 </div>
-
 <hr>
-<!-- Separate section for Peak Wind Gust, Vector Wind, etc. -->
-<b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
-<b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
-<b>Vector Wind Direction:</b> ${lines[16]}°<br>
-<hr>
-
-<!-- Two-column: Moisture on left, Soil Temp on right -->
-<div class="soil-moisture">
-  <div class="moisture-col">
-    <b>Moisture 10cm:</b> ${lines[26]}%<br>
-    <b>Moisture 20cm:</b> ${lines[27]}%<br>
-    <b>Moisture 30cm:</b> ${lines[28]}%<br>
-    <b>Moisture 40cm:</b> ${lines[29]}%<br>
-  </div>
-  <div class="soiltemp-col">
-    <b>Soil Temp 10cm:</b> ${lines[22]}°C<br>
-    <b>Soil Temp 20cm:</b> ${lines[23]}°C<br>
-    <b>Soil Temp 30cm:</b> ${lines[24]}°C<br>
-    <b>Soil Temp 40cm:</b> ${lines[25]}°C<br>
-  </div>
-</div>
-
-<hr>
-<b>Rain Gauge (Tot/Min):</b> ${rainGaugeDisplay}<br>
-<b>Evaporation Rate:</b> ${lines[18]} mm/h<br>
-<b>Daily Evaporation:</b> ${lines[20]} mm<br>
-<b>Dew Point:</b> ${lines[21]}°C<br>
           `;
       }
 
@@ -346,7 +299,6 @@
               });
       }
 
-      // Automatically fetch on page load
       window.addEventListener("load", () => {
           fetchWeather();
       });
