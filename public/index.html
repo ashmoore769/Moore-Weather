@@ -12,46 +12,45 @@
           background-color: #f4f4f4;
           margin: 0;
           padding: 20px;
-          text-align: center; /* Centered header & button, data container will be left-aligned inside. */
+          text-align: center; /* Center header & button; data container content will be left-aligned */
       }
 
-      /* Main Heading */
+      /* Main Heading: Blue background, white text, spans full width */
       h2 {
           margin: 0;
-          font-size: 20px; /* Larger font for the main title */
+          font-size: 20px;
           font-weight: bold;
+          background-color: #007bff;  /* Blue */
+          color: white;
+          padding: 10px 0;
       }
 
-      /* We'll use margin spacing to ensure consistent vertical gaps:
-         - Between heading & button
-         - Between button & status
-         - Between status & data container
-      */
+      /* Uniform spacing between sections */
       .header-section {
-          margin-bottom: 10px; /* Uniform spacing below the heading */
+          margin-bottom: 10px;
       }
       .button-section {
-          margin-bottom: 8px; /* Same spacing below the button */
+          margin-bottom: 8px;
       }
       .status-section {
-          margin-bottom: 10px; /* Same spacing below the status text */
+          margin-bottom: 10px;
       }
 
-      /* CURRENT READINGS Button */
+      /* CURRENT READINGS Button: Auto width with padding, vibrant orange with black text */
       button {
-          padding: 12px;
-          width: 220px;
+          padding: 12px 20px;
           font-size: 16px;
           font-weight: bold;
-          background-color: #007bff;
-          color: white;
+          background-color: #FFA500;  /* Vibrant orange */
+          color: black;
           border: none;
           border-radius: 5px;
           cursor: pointer;
           transition: background 0.3s;
+          display: inline-block;
       }
       button:hover {
-          background-color: #0056b3;
+          background-color: #e59400; /* Slightly darker orange */
       }
       button:disabled {
           background-color: gray;
@@ -71,7 +70,7 @@
 
       /* Spinner Styles */
       .spinner-container {
-          display: none; /* Hidden by default */
+          display: none;
           margin: 20px auto;
           width: 40px;
           height: 40px;
@@ -89,26 +88,17 @@
           100% { transform: rotate(360deg); }
       }
 
-      /* Data Container */
+      /* Data Container: White background, box shadow, left-aligned text */
       #weatherData {
           background: white;
           padding: 15px;
           border-radius: 8px;
           max-width: 400px;
-          margin: 0 auto 30px auto; /* Center container horizontally, 30px bottom margin */
+          margin: 0 auto 30px auto;
           box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
           font-size: 14px;
           color: #333;
-          text-align: left; /* Left-align text inside the container */
-      }
-
-      /* Weather Icon Floated Right */
-      .weather-icon {
-          float: right;          /* Floats icon to the right; text flows around it */
-          margin-left: 10px;     /* Gap to the left of the icon */
-          /* Remove margin-bottom so it stays top-aligned */
-          height: 60px;          /* Increase if you want a larger icon */
-          /* transform: rotate(-15deg); */ /* Uncomment if you want it angled */
+          text-align: left;
       }
 
       /* Address Title */
@@ -118,12 +108,22 @@
           margin-bottom: 6px;
       }
 
+      /* Weather Icon Floated Right, anchored to top-right */
+      .weather-icon {
+          float: right;
+          margin-left: 10px;
+          /* No margin-bottom so it stays top-aligned */
+          height: 60px;
+          /* Uncomment the next line to angle the icon if desired */
+          /* transform: rotate(-15deg); */
+      }
+
       /* Horizontal Rules (dividers) */
       hr {
           border: none;
           border-top: 1px solid #ccc;
           margin: 10px 0;
-          clear: both; /* Forces text to appear below the floated icon after each section */
+          clear: both;
       }
 
       @media (max-width: 600px) {
@@ -131,7 +131,6 @@
               font-size: 18px;
           }
           button {
-              width: 100%;
               font-size: 14px;
           }
           #weatherData {
@@ -176,6 +175,20 @@
           return directions[index];
       }
 
+      // Converts a date string from "yyyy/mm/dd" to "dd/mm/yyyy (DayName)"
+      function formatDateString(dateStr) {
+          const parts = dateStr.split("/");
+          if (parts.length === 3) {
+              const [year, month, day] = parts;
+              const formattedDate = `${day}/${month}/${year}`;
+              const dateObj = new Date(year, month - 1, day);
+              const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+              const dayOfWeek = dayNames[dateObj.getDay()];
+              return `${formattedDate} (${dayOfWeek})`;
+          }
+          return dateStr;
+      }
+
       function formatWeatherData(data) {
           if (!data) return "<b>Error:</b> No data received.";
           data = data.replace(/r3\r?\n?/, "").trim();
@@ -190,13 +203,14 @@
           let solarRadiation = parseFloat(lines[7]);
           solarRadiation = Math.max(0, solarRadiation);
 
-          // IMPORTANT: Place the icon *before* the text so it floats at the top right
+          // Format the date
+          const formattedDate = formatDateString(lines[0]);
+
+          // Build the HTML for weather data
           return `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-
 <div class="address-title">13961 Cunningham Hwy</div>
-
-<b>Date:</b> ${lines[0]}<br>
+<b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${lines[1]}<br>
 <hr>
 <b>Wind Speed:</b> ${lines[2]} km/h<br>
@@ -258,7 +272,6 @@
               })
               .catch(error => {
                   if (attempt < 3) {
-                      // Retry after 3 seconds on first failure and 8 seconds on second.
                       let delay = attempt === 1 ? 3000 : 8000;
                       statusText.innerText = `Status: Retrying in ${delay / 1000} seconds...`;
                       setTimeout(() => fetchWeather(attempt + 1), delay);
@@ -270,13 +283,11 @@
                   }
               })
               .finally(() => {
-                  // Hide spinner when the request is complete (either success or final failure)
                   spinnerContainer.style.display = "none";
                   button.disabled = false;
               });
       }
 
-      // Automatically fetch weather data when the page loads.
       window.addEventListener("load", () => {
           fetchWeather();
       });
