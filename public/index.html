@@ -68,11 +68,6 @@
           display: block;
           margin: 10px auto;
       }
-      .loading {
-          font-style: italic;
-          color: #555;
-          display: none;
-      }
       @media (max-width: 600px) {
           h2 {
               font-size: 14px;
@@ -86,6 +81,26 @@
               font-size: 12px;
           }
       }
+      
+      /* Spinner Styles */
+      .spinner-container {
+          display: none; /* Hidden by default */
+          margin: 20px auto;
+          width: 40px;
+          height: 40px;
+      }
+      .spinner {
+          width: 100%;
+          height: 100%;
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #007bff;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+      }
   </style>
 </head>
 <body>
@@ -95,7 +110,12 @@
 
   <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
   <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
-  <p id="loadingMessage" class="loading">Loading data...</p>
+  
+  <!-- Spinner -->
+  <div id="spinnerContainer" class="spinner-container">
+    <div class="spinner"></div>
+  </div>
+
   <pre id="weatherData"></pre>
 
   <script>
@@ -154,12 +174,12 @@
           const statusText = document.getElementById("status");
           const dataOutput = document.getElementById("weatherData");
           const button = document.getElementById("fetchBtn");
-          const loadingMsg = document.getElementById("loadingMessage");
+          const spinnerContainer = document.getElementById("spinnerContainer");
 
           statusText.innerText = "Status: Fetching data...";
           statusText.className = "connected";
           button.disabled = true;
-          loadingMsg.style.display = "block";
+          spinnerContainer.style.display = "block";
 
           fetch("/weather")
               .then(response => {
@@ -175,20 +195,21 @@
               })
               .catch(error => {
                   if (attempt < 3) {
-                      // Retry after 5 seconds on first failure and 10 seconds on the second.
-                      let delay = attempt === 1 ? 5000 : 10000;
-                      statusText.innerText = `Status: Error encountered, retrying in ${delay / 1000} seconds...`;
+                      // Retry after 5 seconds on first failure and 10 seconds on second.
+                      let delay = attempt === 1 ? 3000 : 8000;
+                      statusText.innerText = `Status: Retrying in ${delay / 1000} seconds...`;
                       setTimeout(() => fetchWeather(attempt + 1), delay);
                   } else {
-                      statusText.innerText = `Status: ${error.message || "Connection Failed"}`;
+                      statusText.innerText = "Status: Unable to retrieve weather data.";
                       statusText.className = "error";
                       dataOutput.innerHTML = "<b>Error:</b> Could not retrieve weather data.";
                       console.error("Fetch error:", error);
                   }
               })
               .finally(() => {
+                  // Hide spinner when the request is complete (either success or final failure)
+                  spinnerContainer.style.display = "none";
                   button.disabled = false;
-                  loadingMsg.style.display = "none";
               });
       }
 
