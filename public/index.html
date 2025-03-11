@@ -24,7 +24,7 @@
           position: sticky;
           top: 0;
           z-index: 100;
-          background: #f4f4f4;
+          background: #f4f4f4; /* Match page background so scrolling data doesn't show through */
       }
 
       /* Header Box with Royal Blue background and rounded corners */
@@ -59,7 +59,7 @@
           padding: 6px 16px;
           font-size: 14px;
           font-weight: bold;
-          background-color: #FFA500;
+          background-color: #FFA500;  /* Vibrant orange */
           color: black;
           border: none;
           border-radius: 10px;
@@ -124,8 +124,8 @@
       .address-title {
           font-size: 16px;
           font-weight: bold;
-          margin-bottom: 2px;
-          color: #00008B;
+          margin: 0;
+          color: #00008B;   /* Dark blue */
       }
 
       /* Weather Icon Floated Right */
@@ -143,33 +143,29 @@
           clear: both;
       }
 
-      /* 
-         Two-column layout specifically for the 
-         "Wind Speed → Garden Temp" vs. "Data Logger Model" 
-      */
-      .wind-logger-container {
+      /* Two-column layout for Environment Section */
+      .env-two-col {
           display: flex;
           justify-content: space-between;
-          gap: 10px; /* optional spacing between columns */
+          align-items: center; /* Center columns vertically */
+          gap: 10px; /* Optional space between columns */
       }
-      .wind-column {
+      .env-left {
           width: 60%;
       }
-      .logger-column {
+      .env-right {
           width: 40%;
+          display: flex;              /* So we can center vertically/horizontally */
+          flex-direction: column;
+          justify-content: center;    /* Vertical center */
+          align-items: center;        /* Horizontal center */
           text-align: center;
       }
-      .logger-column .logger-label {
-          font-size: 13px; /* smaller to fit nicely */
-          font-weight: bold;
-          margin-bottom: 4px;
-          display: block;
-      }
-      .logger-column .logger-image {
-          max-width: 100px; /* Force narrower image */
+      .logger-image {
+          max-width: 100%;
           height: auto;
           display: block;
-          margin: 0 auto;
+          margin-top: 6px; /* Extra space between text and image */
       }
 
       /* Two-column layout for Evaporation & Battery Section */
@@ -195,7 +191,7 @@
 
   <!-- Main Container -->
   <div class="main-container">
-    <!-- Freeze Pane -->
+    <!-- Freeze Pane: Header and Control remain fixed -->
     <div class="freeze-pane">
       <div class="header-box">
         <h2>Moore's LIVE Weather Data</h2>
@@ -210,14 +206,14 @@
       </div>
     </div>
 
-    <!-- Data Container -->
+    <!-- Data Container (scrolls if necessary) -->
     <div id="weatherData"></div>
 
     <!-- Spinner -->
     <div id="spinnerContainer" class="spinner-container">
       <div class="spinner"></div>
     </div>
-  </div>
+  </div> <!-- End main-container -->
 
   <script>
       function getWindDirection(degrees) {
@@ -245,7 +241,7 @@
           data = data.replace(/r3\r?\n?/, "").trim();
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
-
+          
           /* ---------------------------
              Battery & Solar Panel Logic
           ---------------------------*/
@@ -261,6 +257,8 @@
           
           /* ---------------------------
              Rain Gauge Logic
+             - "Rain Since 9AM" (line 17) with conditional formatting
+             - "Rain In Last Min" (line 6) with threshold 0.2 mm
           ---------------------------*/
           const rainSince9 = parseFloat(lines[17]).toFixed(1);
           let rainSince9Display = `${rainSince9} mm`;
@@ -279,29 +277,28 @@
           ---------------------------*/
           const solarRad = Math.max(0, parseFloat(lines[7]));
           let solarRadDisplay = `${solarRad.toFixed(1)} W/m²`;
-
+          
           /* ---------------------------
              Format Date & Time
           ---------------------------*/
           const formattedDate = formatDateString(lines[0]);
           const displayTime = `${lines[1]} AEST`;
-
+          
           /* ---------------------------
              Build HTML
           ---------------------------*/
-          // Address + Date/Time at the top
+          // We'll create two columns for just the sensor data (Wind Speed → Garden Temp) vs. the Data Logger Model.
+          // Address, Date, and Time remain at the top of the left column.
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-<div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
-<b>Date:</b> ${formattedDate}<br>
-<b>Time:</b> ${displayTime}<br>
-<hr>
-`;
 
-          // Now the wind/garden data vs. data logger in two columns
-          html += `
-<div class="wind-logger-container">
-  <div class="wind-column">
+<div class="env-two-col">
+  <!-- LEFT COLUMN: Address, Date/Time, Wind Speed → Garden Temp -->
+  <div class="env-left">
+    <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
+    <b>Date:</b> ${formattedDate}<br>
+    <b>Time:</b> ${displayTime}<br>
+    <hr>
     <b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
     <b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
     <b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
@@ -311,16 +308,16 @@
     <b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
     <b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
   </div>
-  <div class="logger-column">
-    <span class="logger-label">Data Logger Model:</span>
+
+  <!-- RIGHT COLUMN: Data Logger Model text and image, centered horizontally & vertically -->
+  <div class="env-right">
+    <b>Data Logger Model:</b>
     <img src="/Station_Label.png" alt="Data Logger Model" class="logger-image">
   </div>
 </div>
-<hr>
-`;
 
-          // Evap + Battery
-          html += `
+<hr>
+<!-- Evap + Battery two-column block -->
 <div class="evap-battery">
   <div class="evap-col">
     <b>Evap Rate:</b> ${parseFloat(lines[18]).toFixed(3)} mm/h<br>
@@ -329,11 +326,12 @@
     <b>Rain In Last Min:</b> ${rainInLastMinDisplay}<br>
   </div>
   <div class="battery-col">
-    <b>Battery:</b> <span style="color:${batteryColor};">${batteryVoltage} V</span><br>
+    <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
     <b>Load:</b> ${parseFloat(lines[11]).toFixed(1)} mA<br>
     <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
     <b>Charge:</b> `;
 
+          // Charge vs Load logic
           const chargeCurrent = parseFloat(lines[13]);
           const loadCurrent = parseFloat(lines[11]);
           let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
@@ -342,22 +340,19 @@
           } else {
               chargeDisplay = `<span style="color:red;">${chargeDisplay}</span>`;
           }
+
           html += `${chargeDisplay}<br>
   </div>
 </div>
 <hr>
-`;
 
-          // Peak Wind + Vector
-          html += `
+<!-- Additional sensors: Peak Wind & Vector Wind -->
 <b>Peak Wind Gust:</b> ${parseFloat(lines[14]).toFixed(1)} km/h<br>
 <b>Vector Wind Speed:</b> ${parseFloat(lines[15]).toFixed(1)} km/h<br>
 <b>Vector Wind Direction:</b> ${parseFloat(lines[16]).toFixed(1)}° (${getWindDirection(parseFloat(lines[16]))})<br>
 <hr>
-`;
 
-          // Soil Temp + Moisture
-          html += `
+<!-- Soil Temperature & Moisture two-column block -->
 <div class="soil-moisture">
   <div class="soiltemp-col">
     <b>Soil Temp 10cm:</b> ${parseFloat(lines[22]).toFixed(1)}°C<br>
@@ -388,7 +383,7 @@
           button.disabled = true;
           spinnerContainer.style.display = "block";
 
-          // Fade out for smooth update
+          // Fade out the data container for a smooth transition
           dataOutput.style.transition = "opacity 0.5s ease";
           dataOutput.style.opacity = 0;
 
@@ -401,8 +396,7 @@
               })
               .then(data => {
                   dataOutput.innerHTML = formatWeatherData(data);
-
-                  // Fade back in
+                  // Fade back in after updating the content
                   setTimeout(() => {
                       dataOutput.style.opacity = 1;
                   }, 100);
@@ -410,7 +404,7 @@
                   statusText.innerText = "Status: Connected";
                   statusText.className = "connected";
 
-                  // Auto-refresh: wait until 8 seconds after next minute boundary
+                  // Auto-refresh: Wait until 8 seconds after the next minute boundary using logger time (line 1)
                   const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
                   if (lines.length >= 2) {
                       const loggerTime = lines[1];
