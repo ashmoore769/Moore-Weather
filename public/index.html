@@ -143,25 +143,7 @@
           clear: both;
       }
 
-      /* Two-column layout for Evaporation & Battery Section */
-      .evap-battery {
-          display: flex;
-          justify-content: space-between;
-      }
-      .evap-col, .battery-col {
-          width: 48%;
-      }
-
-      /* Two-column layout for Soil Temp and Moisture Section */
-      .soil-moisture {
-          display: flex;
-          justify-content: space-between;
-      }
-      .soiltemp-col, .moisture-col {
-          width: 48%;
-      }
-
-      /* Two-column layout for Environment section */
+      /* Two-column layout for Environment Section */
       .env-two-col {
           display: flex;
           justify-content: space-between;
@@ -179,6 +161,24 @@
           height: auto;
           display: block;
           margin: 5px auto;
+      }
+
+      /* Two-column layout for Evaporation & Battery Section */
+      .evap-battery {
+          display: flex;
+          justify-content: space-between;
+      }
+      .evap-col, .battery-col {
+          width: 48%;
+      }
+
+      /* Two-column layout for Soil Temp and Moisture Section */
+      .soil-moisture {
+          display: flex;
+          justify-content: space-between;
+      }
+      .soiltemp-col, .moisture-col {
+          width: 48%;
       }
   </style>
 </head>
@@ -212,8 +212,7 @@
 
   <script>
       function getWindDirection(degrees) {
-          const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", 
-                              "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+          const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
           return directions[Math.round(degrees / 22.5) % 16];
       }
 
@@ -282,17 +281,15 @@
           /* ---------------------------
              Build HTML
           ---------------------------*/
-          // Split the environment section into two columns:
-          // Left column: Sensor readings (Wind Speed, Wind Direction, etc.)
-          // Right column: Data Logger Model text and image.
+          // Environment Section split into two columns
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-<div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
-<b>Date:</b> ${formattedDate}<br>
-<b>Time:</b> ${displayTime}<br>
-<hr>
 <div class="env-two-col">
   <div class="env-left">
+    <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
+    <b>Date:</b> ${formattedDate}<br>
+    <b>Time:</b> ${displayTime}<br>
+    <hr>
     <b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
     <b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
     <b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
