@@ -217,39 +217,38 @@
           /* ---------------------------
              Battery & Solar Panel Logic
           ---------------------------*/
-          const batteryVoltage = parseFloat(lines[10]);
-          const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
+          const batteryVoltage = parseFloat(lines[10]).toFixed(1);
+          const batteryColor = (parseFloat(lines[10]) < 12.5) ? "red" : "green";
           let rawSolarVoltage = parseFloat(lines[12]);
           let solarVoltageDisplay;
-          if (rawSolarVoltage < batteryVoltage) {
+          if (rawSolarVoltage < parseFloat(lines[10])) {
               solarVoltageDisplay = `0.0 V (NIGHT)`;
           } else {
-              solarVoltageDisplay = `${rawSolarVoltage} V (DAY)`;
+              solarVoltageDisplay = `${rawSolarVoltage.toFixed(1)} V (DAY)`;
           }
           
           /* ---------------------------
-             Rain Gauge Logic for "Rain Since 9AM"
+             Rain Gauge Logic
+             - "Rain Since 9AM" (cumulative from line 17) with conditional formatting
+             - "Rain In Last Min" (raw value from line 6) with conditional formatting threshold 0.2 mm
           ---------------------------*/
-          const rainSince9 = parseFloat(lines[17]);
+          const rainSince9 = parseFloat(lines[17]).toFixed(1);
           let rainSince9Display = `${rainSince9} mm`;
-          if (rainSince9 >= 0.4) {
+          if (parseFloat(lines[17]) >= 0.4) {
               rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
           }
           
-          /* ---------------------------
-             Rain Gauge Logic for "Rain In Last Min"
-          ---------------------------*/
-          const rainLastMinVal = parseFloat(lines[6]);
-          let rainLastMinDisplay = `${rainLastMinVal} mm`;
-          if (rainLastMinVal >= 0.2) {
-              rainLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainLastMinDisplay}</span>`;
+          const rainInLastMinRaw = parseFloat(lines[6]);
+          let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
+          if (rainInLastMinRaw >= 0.2) {
+              rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
           
           /* ---------------------------
              Solar Radiation Logic
           ---------------------------*/
           const solarRad = Math.max(0, parseFloat(lines[7]));
-          let solarRadDisplay = `${solarRad} W/m²`;
+          let solarRadDisplay = `${solarRad.toFixed(1)} W/m²`;
           if (solarRad < 30) {
               solarRadDisplay += " (NIGHT)";
           }
@@ -263,40 +262,40 @@
           /* ---------------------------
              Build HTML
           ---------------------------*/
-          // First Section: Environment (Wind & Cumulative Rain)
+          // First Section: Environment data
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
-<b>Wind Speed:</b> ${lines[2]} km/h<br>
-<b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
-<b>Humidity:</b> ${lines[4]}%<br>
-<b>Temperature:</b> ${lines[5]}°C<br>
+<b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
+<b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
+<b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
+<b>Temperature:</b> ${parseFloat(lines[5]).toFixed(1)}°C<br>
 <b>Rain Since 9AM:</b> ${rainSince9Display}<br>
 <b>Solar Radiation:</b> ${solarRadDisplay}<br>
-<b>Pressure:</b> ${lines[8]} hPa<br>
-<b>Garden Temp:</b> ${lines[9]}°C<br>
+<b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
+<b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
 <hr>
 `;
-          // Second Section: Two-column for Evaporation & Battery/Powers
+          // Second Section: Two-column for Evaporation & Battery
           html += `
 <div class="evap-battery">
   <div class="evap-col">
-    <b>Evap Rate:</b> ${lines[18]} mm/h<br>
-    <b>Daily Evap:</b> ${lines[20]} mm<br>
-    <b>Dew Point:</b> ${lines[21]}°C<br>
-    <b>Rain In Last Min:</b> ${rainLastMinDisplay}<br>
+    <b>Evap Rate:</b> ${parseFloat(lines[18]).toFixed(3)} mm/h<br>
+    <b>Daily Evap:</b> ${parseFloat(lines[20]).toFixed(3)} mm<br>
+    <b>Dew Point:</b> ${parseFloat(lines[21]).toFixed(1)}°C<br>
+    <b>Rain In Last Min:</b> ${rainInLastMinDisplay}<br>
   </div>
   <div class="battery-col">
     <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
-    <b>Load:</b> ${lines[11]} mA<br>
+    <b>Load:</b> ${parseFloat(lines[11]).toFixed(1)} mA<br>
     <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
     <b>Charge:</b> `;
           const chargeCurrent = parseFloat(lines[13]);
           const loadCurrent = parseFloat(lines[11]);
-          let chargeDisplay = `${chargeCurrent} mA`;
+          let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
           if (chargeCurrent > loadCurrent) {
               chargeDisplay = `<span style="color:green;">${chargeDisplay}</span>`;
           } else {
@@ -307,27 +306,27 @@
 </div>
 <hr>
 `;
-          // Third Section: Additional sensor data for Peak & Vector Wind
+          // Third Section: Additional sensors for Peak Wind & Vector Wind.
           html += `
-<b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
-<b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
-<b>Vector Wind Direction:</b> ${lines[16]}° (${getWindDirection(lines[16])})<br>
+<b>Peak Wind Gust:</b> ${parseFloat(lines[14]).toFixed(1)} km/h<br>
+<b>Vector Wind Speed:</b> ${parseFloat(lines[15]).toFixed(1)} km/h<br>
+<b>Vector Wind Direction:</b> ${parseFloat(lines[16]).toFixed(1)}° (${getWindDirection(parseFloat(lines[16]))})<br>
 <hr>
 `;
-          // Fourth Section: Two-column for Soil Temperature and Moisture
+          // Fourth Section: Two-column for Soil Temperature and Moisture.
           html += `
 <div class="soil-moisture">
   <div class="soiltemp-col">
-    <b>Soil Temp 10cm:</b> ${lines[22]}°C<br>
-    <b>Soil Temp 20cm:</b> ${lines[23]}°C<br>
-    <b>Soil Temp 30cm:</b> ${lines[24]}°C<br>
-    <b>Soil Temp 40cm:</b> ${lines[25]}°C<br>
+    <b>Soil Temp 10cm:</b> ${parseFloat(lines[22]).toFixed(1)}°C<br>
+    <b>Soil Temp 20cm:</b> ${parseFloat(lines[23]).toFixed(1)}°C<br>
+    <b>Soil Temp 30cm:</b> ${parseFloat(lines[24]).toFixed(1)}°C<br>
+    <b>Soil Temp 40cm:</b> ${parseFloat(lines[25]).toFixed(1)}°C<br>
   </div>
   <div class="moisture-col">
-    <b>Moisture 10cm:</b> ${lines[26]}%<br>
-    <b>Moisture 20cm:</b> ${lines[27]}%<br>
-    <b>Moisture 30cm:</b> ${lines[28]}%<br>
-    <b>Moisture 40cm:</b> ${lines[29]}%<br>
+    <b>Moisture 10cm:</b> ${parseFloat(lines[26]).toFixed(1)}%<br>
+    <b>Moisture 20cm:</b> ${parseFloat(lines[27]).toFixed(1)}%<br>
+    <b>Moisture 30cm:</b> ${parseFloat(lines[28]).toFixed(1)}%<br>
+    <b>Moisture 40cm:</b> ${parseFloat(lines[29]).toFixed(1)}%<br>
   </div>
 </div>
 <hr>
