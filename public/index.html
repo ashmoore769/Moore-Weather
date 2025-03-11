@@ -150,26 +150,28 @@
       .wind-logger-container {
           display: flex;
           justify-content: space-between;
-          gap: 10px; /* optional spacing between columns */
+          gap: 10px; /* Optional spacing between columns */
       }
       .wind-column {
           width: 60%;
       }
       .logger-column {
           width: 40%;
-          text-align: center;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
       }
       .logger-column .logger-label {
-          font-size: 13px; /* smaller to fit nicely */
+          font-size: 13px;
           font-weight: bold;
-          margin-bottom: 4px;
+          margin-bottom: 8px;
           display: block;
       }
       .logger-column .logger-image {
-          max-width: 100px; /* Force narrower image */
+          max-width: 100px;
           height: auto;
           display: block;
-          margin: 0 auto;
       }
 
       /* Two-column layout for Evaporation & Battery Section */
