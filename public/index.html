@@ -228,13 +228,21 @@
           }
           
           /* ---------------------------
-             Rain Gauge Logic – "Rain Since 9AM" becomes "Rain In Last Min"
+             Rain Gauge Logic for "Rain Since 9AM"
           ---------------------------*/
           const rainSince9 = parseFloat(lines[17]);
           let rainSince9Display = `${rainSince9} mm`;
-          // Make the value blue and bold if >= 0.4 mm
           if (rainSince9 >= 0.4) {
               rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
+          }
+          
+          /* ---------------------------
+             Rain Gauge Logic for "Rain In Last Min"
+          ---------------------------*/
+          const rainLastMinVal = parseFloat(lines[6]);
+          let rainLastMinDisplay = `${rainLastMinVal} mm`;
+          if (rainLastMinVal >= 0.2) {
+              rainLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainLastMinDisplay}</span>`;
           }
           
           /* ---------------------------
@@ -255,7 +263,7 @@
           /* ---------------------------
              Build HTML
           ---------------------------*/
-          // First section: Single-column for Wind & Environment
+          // First Section: Environment (Wind & Cumulative Rain)
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
@@ -272,21 +280,20 @@
 <b>Garden Temp:</b> ${lines[9]}°C<br>
 <hr>
 `;
-          // Second section: Two-column for Evaporation & Battery
+          // Second Section: Two-column for Evaporation & Battery/Powers
           html += `
 <div class="evap-battery">
   <div class="evap-col">
     <b>Evap Rate:</b> ${lines[18]} mm/h<br>
     <b>Daily Evap:</b> ${lines[20]} mm<br>
     <b>Dew Point:</b> ${lines[21]}°C<br>
-    <b>Rain In Last Min:</b> ${lines[6]} mm<br>
+    <b>Rain In Last Min:</b> ${rainLastMinDisplay}<br>
   </div>
   <div class="battery-col">
     <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
     <b>Load:</b> ${lines[11]} mA<br>
     <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
     <b>Charge:</b> `;
-          // Charge vs. Load logic
           const chargeCurrent = parseFloat(lines[13]);
           const loadCurrent = parseFloat(lines[11]);
           let chargeDisplay = `${chargeCurrent} mA`;
@@ -300,14 +307,14 @@
 </div>
 <hr>
 `;
-          // Third section: Additional sensor section for Peak Wind & Vector Wind
+          // Third Section: Additional sensor data for Peak & Vector Wind
           html += `
 <b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
 <b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
 <b>Vector Wind Direction:</b> ${lines[16]}° (${getWindDirection(lines[16])})<br>
 <hr>
 `;
-          // Fourth section: Two-column for Soil Temperature and Moisture
+          // Fourth Section: Two-column for Soil Temperature and Moisture
           html += `
 <div class="soil-moisture">
   <div class="soiltemp-col">
@@ -350,14 +357,14 @@
                   dataOutput.innerHTML = formatWeatherData(data);
                   statusText.innerText = "Status: Connected";
                   statusText.className = "connected";
-                  // Auto-refresh: Use the logger's time (assume HH:MM:SS) from line[1]
+                  // Auto-refresh: Wait until 8 seconds after the next minute boundary using logger time (line 1)
                   const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
                   if (lines.length >= 2) {
                       const loggerTime = lines[1];
                       const parts = loggerTime.split(":");
                       if (parts.length >= 3) {
                           const second = parseInt(parts[2]);
-                          const delay = (60 - second + 8) * 1000;  // wait until 8 sec after next minute boundary
+                          const delay = (60 - second + 8) * 1000;
                           setTimeout(() => { location.reload(); }, delay);
                       }
                   }
@@ -379,7 +386,7 @@
                   button.disabled = false;
               });
       }
- 
+
       window.addEventListener("load", () => {
           fetchWeather();
       });
