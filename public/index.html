@@ -19,7 +19,7 @@
           margin: 20px auto;
       }
 
-      /* Freeze Pane: Header and Control stay fixed at top */
+      /* Freeze Pane: Header and Control remain fixed at top */
       .freeze-pane {
           position: sticky;
           top: 0;
@@ -109,21 +109,22 @@
       /* Data Container */
       #weatherData {
           background: white;
-          padding: 12px; /* Reduced from 15px */
+          padding: 12px;
           border-radius: 8px;
           box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
           font-size: 14px;
           color: #333;
           text-align: left;
           margin-bottom: 30px;
+          opacity: 1;
+          transition: opacity 0.5s ease;
       }
 
       /* Address Title */
       .address-title {
           font-size: 16px;
           font-weight: bold;
-          margin-bottom: 2px; /* Reduced from 6px */
-          color: #00008B;   
+          margin-bottom: 2px;
       }
 
       /* Weather Icon Floated Right */
@@ -137,7 +138,7 @@
       hr {
           border: none;
           border-top: 1px solid #ccc;
-          margin: 5px 0; /* Reduced from 10px */
+          margin: 5px 0;
           clear: both;
       }
 
@@ -231,7 +232,7 @@
           /* ---------------------------
              Rain Gauge Logic
              - "Rain Since 9AM" (line 17) with conditional formatting
-             - "Rain In Last Min" (line 6) with threshold 0.2 mm
+             - "Rain In Last Min" (line 6) with conditional formatting if ≥ 0.2 mm
           ---------------------------*/
           const rainSince9 = parseFloat(lines[17]).toFixed(1);
           let rainSince9Display = `${rainSince9} mm`;
@@ -246,8 +247,7 @@
           }
           
           /* ---------------------------
-             Solar Radiation Logic
-             (No longer appending "(NIGHT)" if < 30)
+             Solar Radiation Logic (No appended text now)
           ---------------------------*/
           const solarRad = Math.max(0, parseFloat(lines[7]));
           let solarRadDisplay = `${solarRad.toFixed(1)} W/m²`;
@@ -264,8 +264,7 @@
           // First Section: Environment
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-<!-- In your HTML, update the address element: -->
-<div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
+<div class="address-title">13961 Cunningham Hwy</div>
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
@@ -345,6 +344,10 @@
           button.disabled = true;
           spinnerContainer.style.display = "block";
 
+          // Fade out the data container for a smooth transition
+          dataOutput.style.transition = "opacity 0.5s ease";
+          dataOutput.style.opacity = 0;
+
           fetch("/weather")
               .then(response => {
                   if (!response.ok) {
@@ -354,6 +357,10 @@
               })
               .then(data => {
                   dataOutput.innerHTML = formatWeatherData(data);
+                  // Fade back in after updating the content
+                  setTimeout(() => {
+                    dataOutput.style.opacity = 1;
+                  }, 100);
                   statusText.innerText = "Status: Connected";
                   statusText.className = "connected";
                   // Auto-refresh: Wait until 8 seconds after the next minute boundary using logger time (line 1)
@@ -364,7 +371,7 @@
                       if (parts.length >= 3) {
                           const second = parseInt(parts[2]);
                           const delay = (60 - second + 8) * 1000;
-                          setTimeout(() => { location.reload(); }, delay);
+                          setTimeout(() => { fetchWeather(); }, delay);
                       }
                   }
               })
