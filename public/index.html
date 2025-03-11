@@ -27,9 +27,9 @@
           background: #f4f4f4;
       }
 
-      /* Header Box with Royal Blue background and rounded corners */
+      /* Header Box with Dark Blue background (#00008B) and rounded corners */
       .header-box {
-          background-color: #4169E1;
+          background-color: #00008B; /* Changed from #4169E1 to #00008B */
           border-radius: 5px;
           padding: 10px 0;
           text-align: center;
@@ -143,14 +143,11 @@
           clear: both;
       }
 
-      /* 
-         Two-column layout specifically for the 
-         "Wind Speed → Garden Temp" vs. "Data Logger Model" 
-      */
+      /* Two-column layout for "Wind Speed → Garden Temp" vs. "Data Logger Model" */
       .wind-logger-container {
           display: flex;
           justify-content: space-between;
-          gap: 10px; /* Optional spacing between columns */
+          gap: 10px;
       }
       .wind-column {
           width: 60%;
@@ -159,8 +156,9 @@
           width: 40%;
           display: flex;
           flex-direction: column;
-          justify-content: center;
           align-items: center;
+          /* Add top margin so it starts around same row as "Wind Direction" */
+          margin-top: 22px; /* Adjust this to fine-tune vertical alignment */
       }
       .logger-column .logger-label {
           font-size: 13px;
@@ -223,7 +221,7 @@
 
   <script>
       function getWindDirection(degrees) {
-          const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", 
+          const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
                               "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
           return directions[Math.round(degrees / 22.5) % 16];
       }
@@ -248,9 +246,7 @@
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
 
-          /* ---------------------------
-             Battery & Solar Panel Logic
-          ---------------------------*/
+          // Battery & Solar Panel Logic
           const batteryVoltage = parseFloat(lines[10]).toFixed(1);
           const batteryColor = (parseFloat(lines[10]) < 12.5) ? "red" : "green";
           let rawSolarVoltage = parseFloat(lines[12]);
@@ -260,38 +256,30 @@
           } else {
               solarVoltageDisplay = `${rawSolarVoltage.toFixed(1)} V (DAY)`;
           }
-          
-          /* ---------------------------
-             Rain Gauge Logic
-          ---------------------------*/
+
+          // Rain Gauge Logic
           const rainSince9 = parseFloat(lines[17]).toFixed(1);
           let rainSince9Display = `${rainSince9} mm`;
           if (parseFloat(lines[17]) >= 0.4) {
               rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
           }
-          
+
           const rainInLastMinRaw = parseFloat(lines[6]);
           let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
           if (rainInLastMinRaw >= 0.2) {
               rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
-          
-          /* ---------------------------
-             Solar Radiation Logic
-          ---------------------------*/
+
+          // Solar Radiation Logic
           const solarRad = Math.max(0, parseFloat(lines[7]));
           let solarRadDisplay = `${solarRad.toFixed(1)} W/m²`;
 
-          /* ---------------------------
-             Format Date & Time
-          ---------------------------*/
+          // Format Date & Time
           const formattedDate = formatDateString(lines[0]);
           const displayTime = `${lines[1]} AEST`;
 
-          /* ---------------------------
-             Build HTML
-          ---------------------------*/
-          // Address + Date/Time at the top
+          // Build HTML
+          // Address + Date/Time
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
@@ -300,7 +288,7 @@
 <hr>
 `;
 
-          // Now the wind/garden data vs. data logger in two columns
+          // "Wind Speed → Garden Temp" vs. "Data Logger Model" in two columns
           html += `
 <div class="wind-logger-container">
   <div class="wind-column">
