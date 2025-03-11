@@ -46,7 +46,7 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;   /* Reduced vertical space */
+          margin-bottom: 4px;
           padding: 0 10px;
       }
       .control-half {
@@ -125,7 +125,7 @@
           font-size: 16px;
           font-weight: bold;
           margin-bottom: 2px; /* Reduced margin */
-          color: #00008B;   /* Dark blue */
+          color: #00008B;   /* Really dark blue */
       }
 
       /* Weather Icon Floated Right */
@@ -141,26 +141,6 @@
           border-top: 1px solid #ccc;
           margin: 5px 0; /* Reduced from 10px */
           clear: both;
-      }
-
-      /* Two-column layout for Environment Section */
-      .env-two-col {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-      }
-      .env-left {
-          width: 60%;
-      }
-      .env-right {
-          width: 40%;
-          text-align: center;
-      }
-      .logger-image {
-          max-width: 100%;
-          height: auto;
-          display: block;
-          margin: 5px auto;
       }
 
       /* Two-column layout for Evaporation & Battery Section */
@@ -179,6 +159,18 @@
       }
       .soiltemp-col, .moisture-col {
           width: 48%;
+      }
+
+      /* Logger model styling */
+      .logger-model {
+          text-align: center;
+          margin: 8px 0;
+      }
+      .logger-model img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 5px auto;
       }
   </style>
 </head>
@@ -212,7 +204,8 @@
 
   <script>
       function getWindDirection(degrees) {
-          const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+          const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", 
+                              "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
           return directions[Math.round(degrees / 22.5) % 16];
       }
 
@@ -281,29 +274,28 @@
           /* ---------------------------
              Build HTML
           ---------------------------*/
-          // Environment Section split into two columns
+          // First Section: Environment
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-<div class="env-two-col">
-  <div class="env-left">
-    <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
-    <b>Date:</b> ${formattedDate}<br>
-    <b>Time:</b> ${displayTime}<br>
-    <hr>
-    <b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
-    <b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
-    <b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
-    <b>Temperature:</b> ${parseFloat(lines[5]).toFixed(1)}°C<br>
-    <b>Rain Since 9AM:</b> ${rainSince9Display}<br>
-    <b>Solar Radiation:</b> ${solarRadDisplay}<br>
-    <b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
-    <b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
-  </div>
-  <div class="env-right">
-    <b>Data Logger Model:</b><br>
-    <img src="/Station_Label.png" alt="Data Logger Model" class="logger-image">
-  </div>
+<div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
+<b>Date:</b> ${formattedDate}<br>
+<b>Time:</b> ${displayTime}<br>
+<hr>
+<b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
+<b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
+<b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
+<b>Temperature:</b> ${parseFloat(lines[5]).toFixed(1)}°C<br>
+<b>Rain Since 9AM:</b> ${rainSince9Display}<br>
+<b>Solar Radiation:</b> ${solarRadDisplay}<br>
+<b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
+<b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
+
+<!-- Add the Data Logger Model section here if you want it in this block -->
+<div class="logger-model">
+  <b>Data Logger Model:</b>
+  <img src="/Station_Label.png" alt="Data Logger Model Label">
 </div>
+
 <hr>
 `;
           // Second Section: Two-column for Evaporation & Battery
@@ -420,7 +412,7 @@
                   button.disabled = false;
               });
       }
- 
+
       window.addEventListener("load", () => {
           fetchWeather();
       });
