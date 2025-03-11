@@ -6,17 +6,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
-      /* Use a modern sans-serif font */
+      /* Modern sans-serif font */
       body {
           margin: 0;
           background-color: #f4f4f4;
           font-family: "Helvetica Neue", Arial, sans-serif;
       }
 
-      /* Main Container – All content centered with max width 400px */
+      /* Main container centered with max-width 400px */
       .main-container {
           max-width: 400px;
           margin: 20px auto;
+      }
+
+      /* Freeze Pane: Header and Control stay fixed at top */
+      .freeze-pane {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background: #f4f4f4; /* Match page background so scrolling data doesn't show through */
       }
 
       /* Header Box with Royal Blue background and rounded corners */
@@ -38,7 +46,7 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;   /* Reduced to squash vertical space */
+          margin-bottom: 4px;   /* Reduced vertical space */
           padding: 0 10px;
       }
       .control-half {
@@ -46,7 +54,7 @@
           text-align: center;
       }
 
-      /* CURRENT READINGS Button – Slimmer vertically */
+      /* CURRENT READINGS Button – slimmer vertically */
       button {
           padding: 6px 16px;
           font-size: 14px;
@@ -155,30 +163,28 @@
 
   <!-- Main Container -->
   <div class="main-container">
-
-    <!-- Header -->
-    <div class="header-box">
-      <h2>Moore's LIVE Weather Data</h2>
+    <!-- Freeze Pane: Header and Control remain fixed -->
+    <div class="freeze-pane">
+      <div class="header-box">
+        <h2>Moore's LIVE Weather Data</h2>
+      </div>
+      <div class="control-container">
+        <div class="control-half">
+          <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
+        </div>
+        <div class="control-half">
+          <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
+        </div>
+      </div>
     </div>
 
-    <!-- Control Section -->
-    <div class="control-container">
-      <div class="control-half">
-        <button id="fetchBtn" onclick="fetchWeather()">CURRENT READINGS</button>
-      </div>
-      <div class="control-half">
-        <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
-      </div>
-    </div>
+    <!-- Data Container (scrolls if necessary) -->
+    <div id="weatherData"></div>
 
     <!-- Spinner -->
     <div id="spinnerContainer" class="spinner-container">
       <div class="spinner"></div>
     </div>
-
-    <!-- Data Container -->
-    <div id="weatherData"></div>
-
   </div> <!-- End main-container -->
 
   <script>
@@ -208,7 +214,9 @@
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
           
-          // Battery & Solar Panel Logic
+          /* ---------------------------
+             Battery & Solar Panel Logic
+          ---------------------------*/
           const batteryVoltage = parseFloat(lines[10]);
           const batteryColor = batteryVoltage < 12.5 ? "red" : "green";
           let rawSolarVoltage = parseFloat(lines[12]);
@@ -219,57 +227,88 @@
               solarVoltageDisplay = `${rawSolarVoltage} V (DAY)`;
           }
           
-          // Rain Gauge Logic (renamed to "Rain In Last Min")
-          let rainGaugeVal = parseFloat(lines[6]);
-          let rainGaugeDisplay = `${rainGaugeVal.toFixed(1)} mm`;
-          if (rainGaugeVal >= 0.2) {
-              rainGaugeDisplay += " (NOW RAINING)";
+          /* ---------------------------
+             Rain Gauge Logic – "Rain Since 9AM" becomes "Rain In Last Min"
+          ---------------------------*/
+          const rainSince9 = parseFloat(lines[17]);
+          let rainSince9Display = `${rainSince9} mm`;
+          // Make the value blue and bold if >= 0.4 mm
+          if (rainSince9 >= 0.4) {
+              rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
           }
           
-          // Format Date & Time (append AEST)
+          /* ---------------------------
+             Solar Radiation Logic
+          ---------------------------*/
+          const solarRad = Math.max(0, parseFloat(lines[7]));
+          let solarRadDisplay = `${solarRad} W/m²`;
+          if (solarRad < 30) {
+              solarRadDisplay += " (NIGHT)";
+          }
+          
+          /* ---------------------------
+             Format Date & Time
+          ---------------------------*/
           const formattedDate = formatDateString(lines[0]);
           const displayTime = `${lines[1]} AEST`;
-
-          // Build HTML:
-          return `
+          
+          /* ---------------------------
+             Build HTML
+          ---------------------------*/
+          // First section: Single-column for Wind & Environment
+          let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
-
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
-<!-- Single-column: Wind Speed, Wind Direction, Humidity, Temperature, Rain, Solar Radiation, Pressure, Garden Temp -->
 <b>Wind Speed:</b> ${lines[2]} km/h<br>
 <b>Wind Direction:</b> ${lines[3]}° (${getWindDirection(lines[3])})<br>
 <b>Humidity:</b> ${lines[4]}%<br>
 <b>Temperature:</b> ${lines[5]}°C<br>
-<b>Rain Since 9AM:</b> ${lines[17]} mm<br>
-<b>Solar Radiation:</b> ${Math.max(0, parseFloat(lines[7]))} W/m²<br>
+<b>Rain Since 9AM:</b> ${rainSince9Display}<br>
+<b>Solar Radiation:</b> ${solarRadDisplay}<br>
 <b>Pressure:</b> ${lines[8]} hPa<br>
 <b>Garden Temp:</b> ${lines[9]}°C<br>
 <hr>
-<!-- Two-column: Evaporation & Battery Section -->
+`;
+          // Second section: Two-column for Evaporation & Battery
+          html += `
 <div class="evap-battery">
   <div class="evap-col">
-    <b>Rain In Last Min:</b> ${rainGaugeDisplay}<br>
     <b>Evap Rate:</b> ${lines[18]} mm/h<br>
     <b>Daily Evap:</b> ${lines[20]} mm<br>
     <b>Dew Point:</b> ${lines[21]}°C<br>
+    <b>Rain In Last Min:</b> ${lines[6]} mm<br>
   </div>
   <div class="battery-col">
     <b>Battery:</b> <span style="color: ${batteryColor};">${batteryVoltage} V</span><br>
     <b>Load:</b> ${lines[11]} mA<br>
     <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
-    <b>Charge:</b> ${lines[13]} mA<br>
+    <b>Charge:</b> `;
+          // Charge vs. Load logic
+          const chargeCurrent = parseFloat(lines[13]);
+          const loadCurrent = parseFloat(lines[11]);
+          let chargeDisplay = `${chargeCurrent} mA`;
+          if (chargeCurrent > loadCurrent) {
+              chargeDisplay = `<span style="color:green;">${chargeDisplay}</span>`;
+          } else {
+              chargeDisplay = `<span style="color:red;">${chargeDisplay}</span>`;
+          }
+          html += `${chargeDisplay}<br>
   </div>
 </div>
 <hr>
-<!-- Additional Sensor Section for Peak Wind & Vector Data -->
+`;
+          // Third section: Additional sensor section for Peak Wind & Vector Wind
+          html += `
 <b>Peak Wind Gust:</b> ${lines[14]} km/h<br>
 <b>Vector Wind Speed:</b> ${lines[15]} km/h<br>
-<b>Vector Wind Direction:</b> ${lines[16]}°<br>
+<b>Vector Wind Direction:</b> ${lines[16]}° (${getWindDirection(lines[16])})<br>
 <hr>
-<!-- Two-column: Soil Temperature and Moisture Section -->
+`;
+          // Fourth section: Two-column for Soil Temperature and Moisture
+          html += `
 <div class="soil-moisture">
   <div class="soiltemp-col">
     <b>Soil Temp 10cm:</b> ${lines[22]}°C<br>
@@ -285,7 +324,8 @@
   </div>
 </div>
 <hr>
-          `;
+`;
+          return html;
       }
 
       function fetchWeather(attempt = 1) {
@@ -310,6 +350,17 @@
                   dataOutput.innerHTML = formatWeatherData(data);
                   statusText.innerText = "Status: Connected";
                   statusText.className = "connected";
+                  // Auto-refresh: Use the logger's time (assume HH:MM:SS) from line[1]
+                  const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
+                  if (lines.length >= 2) {
+                      const loggerTime = lines[1];
+                      const parts = loggerTime.split(":");
+                      if (parts.length >= 3) {
+                          const second = parseInt(parts[2]);
+                          const delay = (60 - second + 8) * 1000;  // wait until 8 sec after next minute boundary
+                          setTimeout(() => { location.reload(); }, delay);
+                      }
+                  }
               })
               .catch(error => {
                   if (attempt < 3) {
