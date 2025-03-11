@@ -46,7 +46,7 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;   /* Reduced vertical space */
+          margin-bottom: 4px;
           padding: 0 10px;
       }
       .control-half {
@@ -159,6 +159,18 @@
       }
       .soiltemp-col, .moisture-col {
           width: 48%;
+      }
+
+      /* Logger model styling */
+      .logger-model {
+          text-align: center;
+          margin: 8px 0;
+      }
+      .logger-model img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 5px auto;
       }
   </style>
 </head>
@@ -277,6 +289,13 @@
 <b>Solar Radiation:</b> ${solarRadDisplay}<br>
 <b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
 <b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
+
+<!-- Add the Data Logger Model section here if you want it in this block -->
+<div class="logger-model">
+  <b>Data Logger Model:</b>
+  <img src="/Station_Label.png" alt="Data Logger Model Label">
+</div>
+
 <hr>
 `;
           // Second Section: Two-column for Evaporation & Battery
@@ -360,7 +379,7 @@
                   dataOutput.innerHTML = formatWeatherData(data);
                   // Fade back in after updating the content
                   setTimeout(() => {
-                    dataOutput.style.opacity = 1;
+                      dataOutput.style.opacity = 1;
                   }, 100);
                   statusText.innerText = "Status: Connected";
                   statusText.className = "connected";
