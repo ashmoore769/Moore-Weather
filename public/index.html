@@ -46,7 +46,7 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;   /* Reduced vertical space */
+          margin-bottom: 4px;
           padding: 0 10px;
       }
       .control-half {
@@ -109,7 +109,7 @@
       /* Data Container */
       #weatherData {
           background: white;
-          padding: 15px;
+          padding: 12px; /* Reduced from 15px */
           border-radius: 8px;
           box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
           font-size: 14px;
@@ -122,7 +122,7 @@
       .address-title {
           font-size: 16px;
           font-weight: bold;
-          margin-bottom: 6px;
+          margin-bottom: 2px; /* Reduced from 6px */
       }
 
       /* Weather Icon Floated Right */
@@ -136,7 +136,7 @@
       hr {
           border: none;
           border-top: 1px solid #ccc;
-          margin: 10px 0;
+          margin: 5px 0; /* Reduced from 10px */
           clear: both;
       }
 
@@ -229,8 +229,8 @@
           
           /* ---------------------------
              Rain Gauge Logic
-             - "Rain Since 9AM" (cumulative from line 17) with conditional formatting
-             - "Rain In Last Min" (raw value from line 6) with conditional formatting threshold 0.2 mm
+             - "Rain Since 9AM" (line 17) with conditional formatting
+             - "Rain In Last Min" (line 6) with threshold 0.2 mm
           ---------------------------*/
           const rainSince9 = parseFloat(lines[17]).toFixed(1);
           let rainSince9Display = `${rainSince9} mm`;
@@ -246,12 +246,10 @@
           
           /* ---------------------------
              Solar Radiation Logic
+             (No longer appending "(NIGHT)" if < 30)
           ---------------------------*/
           const solarRad = Math.max(0, parseFloat(lines[7]));
           let solarRadDisplay = `${solarRad.toFixed(1)} W/m²`;
-          if (solarRad < 30) {
-              solarRadDisplay += " (NIGHT)";
-          }
           
           /* ---------------------------
              Format Date & Time
@@ -262,7 +260,7 @@
           /* ---------------------------
              Build HTML
           ---------------------------*/
-          // First Section: Environment data
+          // First Section: Environment
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 Cunningham Hwy</div>
