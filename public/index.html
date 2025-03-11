@@ -19,7 +19,7 @@
           margin: 20px auto;
       }
 
-      /* Freeze Pane: Header and Control remain fixed at top */
+      /* Freeze Pane: Header and Control stay fixed at top */
       .freeze-pane {
           position: sticky;
           top: 0;
@@ -46,7 +46,7 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;
+          margin-bottom: 4px;   /* Reduced vertical space */
           padding: 0 10px;
       }
       .control-half {
@@ -109,7 +109,7 @@
       /* Data Container */
       #weatherData {
           background: white;
-          padding: 12px;
+          padding: 12px; /* Reduced from 15px */
           border-radius: 8px;
           box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
           font-size: 14px;
@@ -124,7 +124,8 @@
       .address-title {
           font-size: 16px;
           font-weight: bold;
-          margin-bottom: 2px;
+          margin-bottom: 2px; /* Reduced margin */
+          color: #00008B;   /* Really dark blue */
       }
 
       /* Weather Icon Floated Right */
@@ -138,7 +139,7 @@
       hr {
           border: none;
           border-top: 1px solid #ccc;
-          margin: 5px 0;
+          margin: 5px 0; /* Reduced from 10px */
           clear: both;
       }
 
@@ -247,7 +248,7 @@
           }
           
           /* ---------------------------
-             Solar Radiation Logic (No appended text now)
+             Solar Radiation Logic
           ---------------------------*/
           const solarRad = Math.max(0, parseFloat(lines[7]));
           let solarRadDisplay = `${solarRad.toFixed(1)} W/m²`;
@@ -264,7 +265,7 @@
           // First Section: Environment
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-<div class="address-title">13961 Cunningham Hwy</div>
+<div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
