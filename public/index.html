@@ -120,9 +120,10 @@
 
       /* Address Title */
       .address-title {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: bold;
           margin-bottom: 2px; /* Reduced from 6px */
+          color: #00008B;   
       }
 
       /* Weather Icon Floated Right */
@@ -263,7 +264,8 @@
           // First Section: Environment
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-<div class="address-title">13961 Cunningham Hwy</div>
+<!-- In your HTML, update the address element: -->
+<div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
