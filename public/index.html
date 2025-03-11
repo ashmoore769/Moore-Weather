@@ -46,7 +46,7 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;
+          margin-bottom: 4px;   /* Reduced vertical space */
           padding: 0 10px;
       }
       .control-half {
@@ -125,7 +125,7 @@
           font-size: 16px;
           font-weight: bold;
           margin-bottom: 2px; /* Reduced margin */
-          color: #00008B;   /* Really dark blue */
+          color: #00008B;   /* Dark blue */
       }
 
       /* Weather Icon Floated Right */
@@ -161,12 +161,20 @@
           width: 48%;
       }
 
-      /* Logger model styling */
-      .logger-model {
-          text-align: center;
-          margin: 8px 0;
+      /* Two-column layout for Environment section */
+      .env-two-col {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
       }
-      .logger-model img {
+      .env-left {
+          width: 60%;
+      }
+      .env-right {
+          width: 40%;
+          text-align: center;
+      }
+      .logger-image {
           max-width: 100%;
           height: auto;
           display: block;
@@ -274,28 +282,31 @@
           /* ---------------------------
              Build HTML
           ---------------------------*/
-          // First Section: Environment
+          // Split the environment section into two columns:
+          // Left column: Sensor readings (Wind Speed, Wind Direction, etc.)
+          // Right column: Data Logger Model text and image.
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
 <b>Date:</b> ${formattedDate}<br>
 <b>Time:</b> ${displayTime}<br>
 <hr>
-<b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
-<b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
-<b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
-<b>Temperature:</b> ${parseFloat(lines[5]).toFixed(1)}°C<br>
-<b>Rain Since 9AM:</b> ${rainSince9Display}<br>
-<b>Solar Radiation:</b> ${solarRadDisplay}<br>
-<b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
-<b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
-
-<!-- Add the Data Logger Model section here if you want it in this block -->
-<div class="logger-model">
-  <b>Data Logger Model:</b>
-  <img src="/Station_Label.png" alt="Data Logger Model Label">
+<div class="env-two-col">
+  <div class="env-left">
+    <b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
+    <b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
+    <b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
+    <b>Temperature:</b> ${parseFloat(lines[5]).toFixed(1)}°C<br>
+    <b>Rain Since 9AM:</b> ${rainSince9Display}<br>
+    <b>Solar Radiation:</b> ${solarRadDisplay}<br>
+    <b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
+    <b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
+  </div>
+  <div class="env-right">
+    <b>Data Logger Model:</b><br>
+    <img src="/Station_Label.png" alt="Data Logger Model" class="logger-image">
+  </div>
 </div>
-
 <hr>
 `;
           // Second Section: Two-column for Evaporation & Battery
