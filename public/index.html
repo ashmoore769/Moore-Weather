@@ -46,7 +46,7 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 4px;
+          margin-bottom: 4px;   /* Reduced vertical space */
           padding: 0 10px;
       }
       .control-half {
@@ -109,7 +109,7 @@
       /* Data Container */
       #weatherData {
           background: white;
-          padding: 12px; /* Reduced from 15px */
+          padding: 12px;
           border-radius: 8px;
           box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
           font-size: 14px;
@@ -124,8 +124,8 @@
       .address-title {
           font-size: 16px;
           font-weight: bold;
-          margin-bottom: 2px; /* Reduced margin */
-          color: #00008B;   /* Really dark blue */
+          margin: 0; /* No extra margin to keep alignment consistent */
+          color: #00008B;   /* Dark blue */
       }
 
       /* Weather Icon Floated Right */
@@ -139,8 +139,29 @@
       hr {
           border: none;
           border-top: 1px solid #ccc;
-          margin: 5px 0; /* Reduced from 10px */
+          margin: 5px 0;
           clear: both;
+      }
+
+      /* Two-column layout for Environment Section (Wind Speed → Garden Temp vs. Data Logger Model) */
+      .env-two-col {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 10px; /* optional gap between columns */
+      }
+      .env-left {
+          width: 60%;
+      }
+      .env-right {
+          width: 40%;
+          text-align: center;
+      }
+      .logger-image {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 5px auto;
       }
 
       /* Two-column layout for Evaporation & Battery Section */
@@ -159,18 +180,6 @@
       }
       .soiltemp-col, .moisture-col {
           width: 48%;
-      }
-
-      /* Logger model styling */
-      .logger-model {
-          text-align: center;
-          margin: 8px 0;
-      }
-      .logger-model img {
-          max-width: 100%;
-          height: auto;
-          display: block;
-          margin: 5px auto;
       }
   </style>
 </head>
@@ -245,7 +254,7 @@
           /* ---------------------------
              Rain Gauge Logic
              - "Rain Since 9AM" (line 17) with conditional formatting
-             - "Rain In Last Min" (line 6) with conditional formatting if ≥ 0.2 mm
+             - "Rain In Last Min" (line 6) with threshold 0.2 mm
           ---------------------------*/
           const rainSince9 = parseFloat(lines[17]).toFixed(1);
           let rainSince9Display = `${rainSince9} mm`;
@@ -274,32 +283,35 @@
           /* ---------------------------
              Build HTML
           ---------------------------*/
-          // First Section: Environment
+          // Address & Date/Time at the top (not in columns)
+          // Then we split just the "Wind Speed → Garden Temp" into two columns vs. "Data Logger Model"
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-<div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
-<b>Date:</b> ${formattedDate}<br>
-<b>Time:</b> ${displayTime}<br>
-<hr>
-<b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
-<b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
-<b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
-<b>Temperature:</b> ${parseFloat(lines[5]).toFixed(1)}°C<br>
-<b>Rain Since 9AM:</b> ${rainSince9Display}<br>
-<b>Solar Radiation:</b> ${solarRadDisplay}<br>
-<b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
-<b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
 
-<!-- Add the Data Logger Model section here if you want it in this block -->
-<div class="logger-model">
-  <b>Data Logger Model:</b>
-  <img src="/Station_Label.png" alt="Data Logger Model Label">
+<!-- TWO COLUMN LAYOUT for left-sensor data, right-logger model -->
+<div class="env-two-col">
+  <div class="env-left">
+    <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
+    <b>Date:</b> ${formattedDate}<br>
+    <b>Time:</b> ${displayTime}<br>
+    <hr>
+    <b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
+    <b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
+    <b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
+    <b>Temperature:</b> ${parseFloat(lines[5]).toFixed(1)}°C<br>
+    <b>Rain Since 9AM:</b> ${rainSince9Display}<br>
+    <b>Solar Radiation:</b> ${solarRadDisplay}<br>
+    <b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
+    <b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
+  </div>
+  <div class="env-right">
+    <b>Data Logger Model:</b><br>
+    <img src="/Station_Label.png" alt="Data Logger Model" class="logger-image">
+  </div>
 </div>
 
 <hr>
-`;
-          // Second Section: Two-column for Evaporation & Battery
-          html += `
+<!-- Evap + Battery two-column block -->
 <div class="evap-battery">
   <div class="evap-col">
     <b>Evap Rate:</b> ${parseFloat(lines[18]).toFixed(3)} mm/h<br>
@@ -312,6 +324,8 @@
     <b>Load:</b> ${parseFloat(lines[11]).toFixed(1)} mA<br>
     <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
     <b>Charge:</b> `;
+
+          // Charge vs Load logic
           const chargeCurrent = parseFloat(lines[13]);
           const loadCurrent = parseFloat(lines[11]);
           let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
@@ -320,20 +334,19 @@
           } else {
               chargeDisplay = `<span style="color:red;">${chargeDisplay}</span>`;
           }
+
           html += `${chargeDisplay}<br>
   </div>
 </div>
 <hr>
-`;
-          // Third Section: Additional sensors for Peak Wind & Vector Wind.
-          html += `
+
+<!-- Additional sensors: Peak Wind & Vector Wind -->
 <b>Peak Wind Gust:</b> ${parseFloat(lines[14]).toFixed(1)} km/h<br>
 <b>Vector Wind Speed:</b> ${parseFloat(lines[15]).toFixed(1)} km/h<br>
 <b>Vector Wind Direction:</b> ${parseFloat(lines[16]).toFixed(1)}° (${getWindDirection(parseFloat(lines[16]))})<br>
 <hr>
-`;
-          // Fourth Section: Two-column for Soil Temperature and Moisture.
-          html += `
+
+<!-- Soil Temperature & Moisture two-column block -->
 <div class="soil-moisture">
   <div class="soiltemp-col">
     <b>Soil Temp 10cm:</b> ${parseFloat(lines[22]).toFixed(1)}°C<br>
@@ -381,8 +394,10 @@
                   setTimeout(() => {
                       dataOutput.style.opacity = 1;
                   }, 100);
+
                   statusText.innerText = "Status: Connected";
                   statusText.className = "connected";
+
                   // Auto-refresh: Wait until 8 seconds after the next minute boundary using logger time (line 1)
                   const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
                   if (lines.length >= 2) {
