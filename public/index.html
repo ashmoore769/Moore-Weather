@@ -305,43 +305,20 @@
               rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
 
-          // Solar Radiation Logic with color ranges + vertical-align
+          // Solar Radiation Logic (color dark orange for >850 W/m²)
           const solarRad = Math.max(0, parseFloat(lines[7]));
-          let solarRadColor = "";
-          if (solarRad === 0) {
-            // Exactly 0.0 W/m²: VERY dark navy.
-            solarRadColor = "#000033";
-          } else if (solarRad <= 100) {
-            // 5–100 W/m²: Deep Navy.
-            solarRadColor = "#000080";
-          } else if (solarRad <= 300) {
-            solarRadColor = "#4169E1"; // Royal Blue.
-          } else if (solarRad <= 600) {
-            solarRadColor = "#FFD700"; // Gold.
-          } else if (solarRad <= 900) {
-            solarRadColor = "#FFA500"; // Orange.
-          } else if (solarRad <= 1100) {
-            solarRadColor = "#FF8C00"; // Dark Orange.
-          } else {
-            // 1101–1300 W/m²: Red.
-            solarRadColor = "#FF0000";
+          let solarRadDisplay = `${solarRad.toFixed(1)} W/m²`;
+          if (solarRad > 850) {
+              solarRadDisplay = `<span style="color:#FF8C00; font-weight:bold;">${solarRadDisplay}</span>`;
           }
-          let solarRadDisplay = `
-            <span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
-              ${solarRad.toFixed(1)} W/m²
-            </span>
-          `;
 
-          // Pressure Logic (≥1020 hPa in green + fish icon) + vertical-align
+          // Pressure Logic (>=1020 hPa in green + fish icon)
           const pressureVal = parseFloat(lines[8]);
           const pressure = pressureVal.toFixed(1);
           let pressureDisplay = `${pressure} hPa`;
           if (pressureVal >= 1020) {
-              pressureDisplay = `
-                <span style="color:green; font-weight:bold; vertical-align: middle;">
-                  ${pressure} hPa 🐟
-                </span>
-              `;
+              // Add fish emoji next to the pressure reading
+              pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
           }
 
           // Format Date & Time
@@ -413,14 +390,15 @@
           let chargeDisplay = "";
           // If battery is full (>=13.80V), show charge current without turning red even if lower than load current.
           if (batteryVoltageVal >= 13.80) {
-              chargeDisplay = `<span>${chargeCurrent.toFixed(1)} mA</span>`;
-          } else {
-              if (chargeCurrent > loadCurrent) {
-                  chargeDisplay = `<span style="color:green;">${chargeCurrent.toFixed(1)} mA</span>`;
-              } else {
-                  chargeDisplay = `<span style="color:red;">${chargeCurrent.toFixed(1)} mA</span>`;
-              }
-          }
+    chargeDisplay = `<span>${chargeCurrent.toFixed(1)} mA</span>`;
+} else {
+    if (chargeCurrent > loadCurrent) {
+        chargeDisplay = `<span style="color:green;">${chargeCurrent.toFixed(1)} mA</span>`;
+    } else {
+        chargeDisplay = `<span style="color:red;">${chargeCurrent.toFixed(1)} mA</span>`;
+    }
+}
+
           html += `${chargeDisplay}<br>
   </div>
 </div>
