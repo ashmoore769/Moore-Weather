@@ -307,10 +307,27 @@
 
           // Solar Radiation Logic (color dark orange for >850 W/m²)
           const solarRad = Math.max(0, parseFloat(lines[7]));
-          let solarRadDisplay = `${solarRad.toFixed(1)} W/m²`;
-          if (solarRad > 850) {
-              solarRadDisplay = `<span style="color:#FF8C00; font-weight:bold;">${solarRadDisplay}</span>`;
-          }
+let solarRadColor = "";
+if (solarRad === 0) {
+  // Exactly 0.0 W/m²: VERY dark navy.
+  solarRadColor = "#000033";
+} else if (solarRad <= 100) {
+  // 5–100 W/m²: Deep Navy.
+  solarRadColor = "#000080";
+} else if (solarRad <= 300) {
+  solarRadColor = "#4169E1"; // Royal Blue.
+} else if (solarRad <= 600) {
+  solarRadColor = "#FFD700"; // Gold.
+} else if (solarRad <= 900) {
+  solarRadColor = "#FFA500"; // Orange.
+} else if (solarRad <= 1100) {
+  solarRadColor = "#FF8C00"; // Dark Orange.
+} else {
+  // 1101–1300 W/m²: Red.
+  solarRadColor = "#FF0000";
+}
+let solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor};">${solarRad.toFixed(1)} W/m²</span>`;
+
 
           // Pressure Logic (>=1020 hPa in green + fish icon)
           const pressureVal = parseFloat(lines[8]);
