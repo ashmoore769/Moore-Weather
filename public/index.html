@@ -29,7 +29,7 @@
 
       /* Header Box with Dark Blue background (#00008B) and rounded corners */
       .header-box {
-          background-color: #00008B; /* Changed from #4169E1 to #00008B */
+          background-color: #00008B;
           border-radius: 5px;
           padding: 10px 0;
           text-align: center;
@@ -157,9 +157,8 @@
           display: flex;
           flex-direction: column;
           align-items: center;
-          /* Add top margin so it starts around same row as "Wind Direction" */
-          margin-top: 18px; /* Adjust this to fine-tune vertical alignment */
-          margin-left: -40px; /* This line moves the content to the left */
+          margin-top: 18px;
+          margin-left: -40px;
       }
       .logger-column .logger-label {
           font-size: 13px;
@@ -171,7 +170,7 @@
           max-width: 100px;
           height: auto;
           display: block;
-          border-radius: 10px; /* Added this line for rounded corners */
+          border-radius: 10px;
       }
 
       /* Two-column layout for Evaporation & Battery Section */
@@ -222,6 +221,7 @@
   </div>
 
   <script>
+      // Helper function for wind direction
       function getWindDirection(degrees) {
           const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
                               "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
@@ -242,6 +242,33 @@
           return dateStr;
       }
 
+      // Helper function to assign temperature color and description based on the range
+      function getTemperatureColorAndDesc(temp) {
+          let color, desc;
+          if (temp >= -10 && temp <= -1) {
+              color = "#0000FF"; desc = "Extremely cold";
+          } else if (temp >= 0 && temp <= 5) {
+              color = "#1E90FF"; desc = "Very cold";
+          } else if (temp >= 6 && temp <= 10) {
+              color = "#87CEEB"; desc = "Cold";
+          } else if (temp >= 11 && temp <= 15) {
+              color = "#90EE90"; desc = "Cool";
+          } else if (temp >= 16 && temp <= 20) {
+              color = "#00FF00"; desc = "Mild";
+          } else if (temp >= 21 && temp <= 25) {
+              color = "#FFFF00"; desc = "Warm";
+          } else if (temp >= 26 && temp <= 30) {
+              color = "#FFA500"; desc = "Hot";
+          } else if (temp >= 31 && temp <= 35) {
+              color = "#FF4500"; desc = "Very hot";
+          } else if (temp >= 36 && temp <= 40) {
+              color = "#FF0000"; desc = "Extremely hot";
+          } else {
+              color = "#000000"; desc = "";
+          }
+          return { color, desc };
+      }
+
       function formatWeatherData(data) {
           if (!data) return "<b>Error:</b> No data received.";
           data = data.replace(/r3\r?\n?/, "").trim();
@@ -249,20 +276,22 @@
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
 
           // Battery & Solar Panel Logic
-          const batteryVoltage = parseFloat(lines[10]).toFixed(1);
-          const batteryColor = (parseFloat(lines[10]) < 12.5) ? "red" : "green";
+          const batteryVoltageVal = parseFloat(lines[10]);
+          const batteryVoltage = batteryVoltageVal.toFixed(1);
+          const batteryColor = (batteryVoltageVal < 12.5) ? "red" : "green";
+
           let rawSolarVoltage = parseFloat(lines[12]);
           let solarVoltageDisplay;
-          if (rawSolarVoltage < parseFloat(lines[10])) {
+          if (rawSolarVoltage < batteryVoltageVal) {
               solarVoltageDisplay = `0.0 V (NIGHT)`;
           } else {
               solarVoltageDisplay = `${rawSolarVoltage.toFixed(1)} V (DAY)`;
           }
 
-          // Rain Gauge Logic
+          // Rain Gauge Logic (threshold now at 0.2 mm)
           const rainSince9 = parseFloat(lines[17]).toFixed(1);
           let rainSince9Display = `${rainSince9} mm`;
-          if (parseFloat(lines[17]) >= 0.4) {
+          if (parseFloat(lines[17]) >= 0.2) {
               rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
           }
 
@@ -272,10 +301,21 @@
               rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
 
-          // Solar Radiation Logic
+          // Solar Radiation Logic (color dark orange for >850 W/m²)
           const solarRad = Math.max(0, parseFloat(lines[7]));
           let solarRadDisplay = `${solarRad.toFixed(1)} W/m²`;
- 
+          if (solarRad > 850) {
+              solarRadDisplay = `<span style="color:#FF8C00; font-weight:bold;">${solarRadDisplay}</span>`;
+          }
+
+          // Pressure Logic (>=1020 hPa in green)
+          const pressureVal = parseFloat(lines[8]);
+          const pressure = pressureVal.toFixed(1);
+          let pressureDisplay = pressure + " hPa";
+          if (pressureVal >= 1020) {
+              pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay}</span>`;
+          }
+
           // Format Date & Time
           const formattedDate = formatDateString(lines[0]);
           const displayTime = `${lines[1]} AEST`;
@@ -297,10 +337,18 @@
     <b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
     <b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
     <b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
-    <b>Temperature:</b> ${parseFloat(lines[5]).toFixed(1)}°C<br>
+`;
+
+          // Temperature Logic: Always bold with color & description appended
+          const tempVal = parseFloat(lines[5]);
+          const temperature = tempVal.toFixed(1);
+          const tempData = getTemperatureColorAndDesc(tempVal);
+          html += `<b>Temperature:</b> <span style="color:${tempData.color}; font-weight:bold;">${temperature}°C</span> (${tempData.desc})<br>`;
+
+          html += `
     <b>Rain Since 9AM:</b> ${rainSince9Display}<br>
     <b>Solar Radiation:</b> ${solarRadDisplay}<br>
-    <b>Pressure:</b> ${parseFloat(lines[8]).toFixed(1)} hPa<br>
+    <b>Pressure:</b> ${pressureDisplay}<br>
     <b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
   </div>
   <div class="logger-column">
@@ -311,7 +359,7 @@
 <hr>
 `;
 
-          // Evap + Battery
+          // Evaporation & Battery Section
           html += `
 <div class="evap-battery">
   <div class="evap-col">
@@ -325,14 +373,19 @@
     <b>Load:</b> ${parseFloat(lines[11]).toFixed(1)} mA<br>
     <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
     <b>Charge:</b> `;
-
+          
           const chargeCurrent = parseFloat(lines[13]);
           const loadCurrent = parseFloat(lines[11]);
-          let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
-          if (chargeCurrent > loadCurrent) {
-              chargeDisplay = `<span style="color:green;">${chargeDisplay}</span>`;
+          let chargeDisplay = "";
+          // If battery is full (>=13.80V), show charge current without turning red even if lower than load current.
+          if (batteryVoltageVal >= 13.80) {
+              chargeDisplay = `<span style="font-weight:bold;">${chargeCurrent.toFixed(1)} mA</span>`;
           } else {
-              chargeDisplay = `<span style="color:red;">${chargeDisplay}</span>`;
+              if (chargeCurrent > loadCurrent) {
+                  chargeDisplay = `<span style="color:green; font-weight:bold;">${chargeCurrent.toFixed(1)} mA</span>`;
+              } else {
+                  chargeDisplay = `<span style="color:red; font-weight:bold;">${chargeCurrent.toFixed(1)} mA</span>`;
+              }
           }
           html += `${chargeDisplay}<br>
   </div>
@@ -340,15 +393,43 @@
 <hr>
 `;
 
-          // Peak Wind + Vector
+          // Peak Wind Gust & Vector Wind
+          const peakWindGustVal = parseFloat(lines[14]);
+          let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
+          if (peakWindGustVal > 25) {
+              peakWindGustDisplay = `<span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>`;
+          } else if (peakWindGustVal > 10) {
+              peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
+          }
           html += `
-<b>Peak Wind Gust:</b> ${parseFloat(lines[14]).toFixed(1)} km/h<br>
+<b>Peak Wind Gust:</b> ${peakWindGustDisplay}<br>
 <b>Vector Wind Speed:</b> ${parseFloat(lines[15]).toFixed(1)} km/h<br>
 <b>Vector Wind Direction:</b> ${parseFloat(lines[16]).toFixed(1)}° (${getWindDirection(parseFloat(lines[16]))})<br>
 <hr>
 `;
 
-          // Soil Temp + Moisture
+          // Soil Temp & Moisture Section
+          // For soil moisture, if the value is below 20% then color dark orange.
+          const moisture10Val = parseFloat(lines[26]);
+          let moisture10Display = moisture10Val.toFixed(1) + "%";
+          if (moisture10Val < 20) {
+              moisture10Display = `<span style="color:#FF8C00; font-weight:bold;">${moisture10Display}</span>`;
+          }
+          const moisture20Val = parseFloat(lines[27]);
+          let moisture20Display = moisture20Val.toFixed(1) + "%";
+          if (moisture20Val < 20) {
+              moisture20Display = `<span style="color:#FF8C00; font-weight:bold;">${moisture20Display}</span>`;
+          }
+          const moisture30Val = parseFloat(lines[28]);
+          let moisture30Display = moisture30Val.toFixed(1) + "%";
+          if (moisture30Val < 20) {
+              moisture30Display = `<span style="color:#FF8C00; font-weight:bold;">${moisture30Display}</span>`;
+          }
+          const moisture40Val = parseFloat(lines[29]);
+          let moisture40Display = moisture40Val.toFixed(1) + "%";
+          if (moisture40Val < 20) {
+              moisture40Display = `<span style="color:#FF8C00; font-weight:bold;">${moisture40Display}</span>`;
+          }
           html += `
 <div class="soil-moisture">
   <div class="soiltemp-col">
@@ -358,10 +439,10 @@
     <b>Soil Temp 40cm:</b> ${parseFloat(lines[25]).toFixed(1)}°C<br>
   </div>
   <div class="moisture-col">
-    <b>Moisture 10cm:</b> ${parseFloat(lines[26]).toFixed(1)}%<br>
-    <b>Moisture 20cm:</b> ${parseFloat(lines[27]).toFixed(1)}%<br>
-    <b>Moisture 30cm:</b> ${parseFloat(lines[28]).toFixed(1)}%<br>
-    <b>Moisture 40cm:</b> ${parseFloat(lines[29]).toFixed(1)}%<br>
+    <b>Moisture 10cm:</b> ${moisture10Display}<br>
+    <b>Moisture 20cm:</b> ${moisture20Display}<br>
+    <b>Moisture 30cm:</b> ${moisture30Display}<br>
+    <b>Moisture 40cm:</b> ${moisture40Display}<br>
   </div>
 </div>
 <hr>
