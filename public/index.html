@@ -11,6 +11,10 @@
           margin: 0;
           background-color: #f4f4f4;
           font-family: "Helvetica Neue", Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;    /* Smooths font edges on WebKit */
+          -moz-osx-font-smoothing: grayscale;     /* Smooths font edges on macOS Firefox */
+          text-rendering: optimizeLegibility;      /* Improves text rendering */
+          font-weight: 400;                        /* Ensures consistent weight */
       }
 
       /* Main container centered with max-width 400px */
@@ -254,7 +258,7 @@
           } else if (temp >= 11 && temp <= 15) {
               color = "#90EE90"; desc = "Cool";
           } else if (temp >= 16 && temp <= 20) {
-              color = "#248768"; desc = "Mild";
+              color = "#4CAF50"; desc = "Mild"; /* Updated color here */
           } else if (temp >= 21 && temp <= 25) {
               color = "#FFFF00"; desc = "Warm";
           } else if (temp >= 26 && temp <= 30) {
@@ -288,7 +292,7 @@
               solarVoltageDisplay = `${rawSolarVoltage.toFixed(1)} V (DAY)`;
           }
 
-          // Rain Gauge Logic (threshold now at 0.2 mm)
+          // Rain Gauge Logic (threshold at 0.2 mm)
           const rainSince9 = parseFloat(lines[17]).toFixed(1);
           let rainSince9Display = `${rainSince9} mm`;
           if (parseFloat(lines[17]) >= 0.2) {
@@ -343,7 +347,13 @@
           const tempVal = parseFloat(lines[5]);
           const temperature = tempVal.toFixed(1);
           const tempData = getTemperatureColorAndDesc(tempVal);
-          html += `<b>Temperature:</b> <span style="color:${tempData.color}; font-weight:bold;">${temperature}°C</span> (${tempData.desc})<br>`;
+          html += `
+    <b>Temperature:</b>
+    <span style="color:${tempData.color}; font-weight:bold;">
+      ${temperature}°C
+    </span>
+    (${tempData.desc})<br>
+`;
 
           html += `
     <b>Rain Since 9AM:</b> ${rainSince9Display}<br>
@@ -505,7 +515,7 @@
                       statusText.className = "error";
                       dataOutput.innerHTML = "<b>Error:</b> Could not retrieve weather data.";
                       console.error("Fetch error:", error);
-                  } 
+                  }
               })
               .finally(() => {
                   spinnerContainer.style.display = "none";
