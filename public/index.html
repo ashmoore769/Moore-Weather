@@ -11,10 +11,10 @@
           margin: 0;
           background-color: #f4f4f4;
           font-family: "Helvetica Neue", Arial, sans-serif;
-          -webkit-font-smoothing: antialiased;    /* Smooths font edges on WebKit */
-          -moz-osx-font-smoothing: grayscale;     /* Smooths font edges on macOS Firefox */
-          text-rendering: optimizeLegibility;      /* Improves text rendering */
-          font-weight: 400;                        /* Ensures consistent weight */
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          text-rendering: optimizeLegibility;
+          font-weight: 400;
       }
 
       /* Main container centered with max-width 400px */
@@ -258,7 +258,7 @@
           } else if (temp >= 11 && temp <= 15) {
               color = "#90EE90"; desc = "Cool";
           } else if (temp >= 16 && temp <= 20) {
-              color = "#4CAF50"; desc = "Mild"; /* Updated color here */
+              color = "#4CAF50"; desc = "Mild"; /* More muted green */
           } else if (temp >= 21 && temp <= 25) {
               color = "#FFFF00"; desc = "Warm";
           } else if (temp >= 26 && temp <= 30) {
@@ -312,12 +312,13 @@
               solarRadDisplay = `<span style="color:#FF8C00; font-weight:bold;">${solarRadDisplay}</span>`;
           }
 
-          // Pressure Logic (>=1020 hPa in green)
+          // Pressure Logic (>=1020 hPa in green + fish icon)
           const pressureVal = parseFloat(lines[8]);
           const pressure = pressureVal.toFixed(1);
-          let pressureDisplay = pressure + " hPa";
+          let pressureDisplay = `${pressure} hPa`;
           if (pressureVal >= 1020) {
-              pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay}</span>`;
+              // Add fish emoji next to the pressure reading
+              pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
           }
 
           // Format Date & Time
