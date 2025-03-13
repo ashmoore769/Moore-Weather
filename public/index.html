@@ -194,12 +194,6 @@
       .soiltemp-col, .moisture-col {
           width: 48%;
       }
-
-      /* Visitor Counter styling */
-      #visitorCounter {
-          text-align: center;
-          margin-top: 20px;
-      }
   </style>
 </head>
 <body>
@@ -227,13 +221,6 @@
     <!-- Spinner -->
     <div id="spinnerContainer" class="spinner-container">
       <div class="spinner"></div>
-    </div>
-
-    <!-- Visitor Counter (placed below the Soil Temp/Moisture section) -->
-    <div id="visitorCounter">
-      <a href="https://www.free-counters.org/">free HitCounter</a>
-      <script type="text/javascript" src="https://www.freevisitorcounters.com/auth.php?id=c808ad5f6e1eaef66889e56faf30682b33d40459"></script>
-      <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1314931/t/2"></script>
     </div>
   </div>
 
@@ -318,13 +305,15 @@
               rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
 
-          // Solar Radiation Logic with full colour conditioning, bold, and vertical-align
+          // Solar Radiation Logic with full colour conditioning and bold, vertical-aligned
           const solarRad = Math.max(0, parseFloat(lines[7]));
           let solarRadColor = "";
           if (solarRad === 0) {
-              solarRadColor = "#000033"; // Exactly 0.0 W/m²: VERY dark navy.
+              // Exactly 0.0 W/m²: VERY dark navy.
+              solarRadColor = "#000033";
           } else if (solarRad <= 100) {
-              solarRadColor = "#000080"; // 0–100 W/m²: Deep navy.
+              // 0–100 W/m²: Deep navy.
+              solarRadColor = "#000080";
           } else if (solarRad <= 300) {
               solarRadColor = "#4169E1"; // Royal Blue.
           } else if (solarRad <= 600) {
@@ -334,7 +323,8 @@
           } else if (solarRad <= 1100) {
               solarRadColor = "#FF8C00"; // Dark Orange.
           } else {
-              solarRadColor = "#FF0000"; // 1101–1300 W/m²: Red.
+              // 1101–1300 W/m²: Red.
+              solarRadColor = "#FF0000";
           }
           let solarRadDisplay = `
             <span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
@@ -359,6 +349,7 @@
           const displayTime = `${lines[1]} AEST`;
 
           // Build HTML
+          // Address + Date/Time
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
@@ -367,6 +358,7 @@
 <hr>
 `;
 
+          // "Wind Speed → Garden Temp" vs. "Data Logger Model" in two columns
           html += `
 <div class="wind-logger-container">
   <div class="wind-column">
@@ -375,6 +367,7 @@
     <b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
 `;
 
+          // Temperature Logic: Always bold with colour & description appended
           const tempVal = parseFloat(lines[5]);
           const temperature = tempVal.toFixed(1);
           const tempData = getTemperatureColorAndDesc(tempVal);
@@ -418,6 +411,7 @@
           const chargeCurrent = parseFloat(lines[13]);
           const loadCurrent = parseFloat(lines[11]);
           let chargeDisplay = "";
+          // If battery is full (>=13.80V), show charge current without turning red even if lower than load current.
           if (batteryVoltageVal >= 13.80) {
               chargeDisplay = `<span>${chargeCurrent.toFixed(1)} mA</span>`;
           } else {
@@ -433,6 +427,7 @@
 <hr>
 `;
 
+          // Peak Wind Gust & Vector Wind
           const peakWindGustVal = parseFloat(lines[14]);
           let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
           if (peakWindGustVal > 25) {
@@ -448,6 +443,7 @@
 `;
 
           // Soil Temp & Moisture Section
+          // For soil moisture, if the value is below 20% then color dark orange.
           const moisture10Val = parseFloat(lines[26]);
           let moisture10Display = moisture10Val.toFixed(1) + "%";
           if (moisture10Val < 20) {
@@ -493,12 +489,6 @@
           const dataOutput = document.getElementById("weatherData");
           const button = document.getElementById("fetchBtn");
           const spinnerContainer = document.getElementById("spinnerContainer");
-          const visitorCounter = document.getElementById("visitorCounter");
-
-          // Hide visitor counter during fetch
-          if (visitorCounter) {
-              visitorCounter.style.display = "none";
-          }
 
           statusText.innerText = "Status: Fetching data...";
           statusText.className = "connected";
@@ -526,11 +516,6 @@
 
                   statusText.innerText = "Status: Connected";
                   statusText.className = "connected";
-
-                  // Show visitor counter after fetch completes
-                  if (visitorCounter) {
-                      visitorCounter.style.display = "block";
-                  }
 
                   // Auto-refresh: wait until 8 seconds after next minute boundary
                   const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
