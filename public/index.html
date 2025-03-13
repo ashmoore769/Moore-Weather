@@ -390,14 +390,15 @@
           let chargeDisplay = "";
           // If battery is full (>=13.80V), show charge current without turning red even if lower than load current.
           if (batteryVoltageVal >= 13.80) {
-              chargeDisplay = `<span style="font-weight:bold;">${chargeCurrent.toFixed(1)} mA</span>`;
-          } else {
-              if (chargeCurrent > loadCurrent) {
-                  chargeDisplay = `<span style="color:green; font-weight:bold;">${chargeCurrent.toFixed(1)} mA</span>`;
-              } else {
-                  chargeDisplay = `<span style="color:red; font-weight:bold;">${chargeCurrent.toFixed(1)} mA</span>`;
-              }
-          }
+    chargeDisplay = `<span>${chargeCurrent.toFixed(1)} mA</span>`;
+} else {
+    if (chargeCurrent > loadCurrent) {
+        chargeDisplay = `<span style="color:green;">${chargeCurrent.toFixed(1)} mA</span>`;
+    } else {
+        chargeDisplay = `<span style="color:red;">${chargeCurrent.toFixed(1)} mA</span>`;
+    }
+}
+
           html += `${chargeDisplay}<br>
   </div>
 </div>
