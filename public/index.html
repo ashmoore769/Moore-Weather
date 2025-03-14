@@ -331,15 +331,13 @@
               ${solarRad.toFixed(1)} W/m²
             </span>
           `;
-
           let pressureVal = parseFloat(lines[8]);
-const pressure = pressureVal.toFixed(1);
-const adjustedPressure = pressureVal - 1.9;
-let pressureDisplay = `${pressure} hPa`;
+let adjustedPressure = pressureVal - 1.9;
+let pressureDisplay = `${adjustedPressure.toFixed(1)} hPa`;
 if (adjustedPressure >= 1020) {
     pressureDisplay = `
       <span style="color:green; font-weight:bold; vertical-align: middle;">
-        ${pressure} hPa 🐟
+        ${adjustedPressure.toFixed(1)} hPa 🐟
       </span>
     `;
 }
