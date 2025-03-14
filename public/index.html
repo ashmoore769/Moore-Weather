@@ -248,30 +248,30 @@
 
       // Helper function to assign temperature color and description based on the range
       function getTemperatureColorAndDesc(temp) {
-          let color, desc;
-          if (temp >= -10 && temp <= -1) {
-              color = "#0000FF"; desc = "Extremely cold";
-          } else if (temp >= 0 && temp <= 5) {
-              color = "#1E90FF"; desc = "Very cold";
-          } else if (temp >= 6 && temp <= 10) {
-              color = "#87CEEB"; desc = "Cold";
-          } else if (temp >= 11 && temp <= 15) {
-              color = "#90EE90"; desc = "Cool";
-          } else if (temp >= 16 && temp <= 20) {
-              color = "#4CAF50"; desc = "Mild"; /* More muted green */
-          } else if (temp >= 21 && temp <= 25) {
-              color = "#FFFF00"; desc = "Warm";
-          } else if (temp >= 26 && temp <= 30) {
-              color = "#FFA500"; desc = "Hot";
-          } else if (temp >= 31 && temp <= 35) {
-              color = "#FF4500"; desc = "Very hot";
-          } else if (temp >= 36 && temp <= 40) {
-              color = "#FF0000"; desc = "Extremely hot";
-          } else {
-              color = "#000000"; desc = "";
-          }
-          return { color, desc };
-      }
+    let color, desc;
+    if (temp >= -10 && temp <= -1) {
+        color = "#00008B"; desc = "Extremely cold";
+    } else if (temp >= 0 && temp <= 5) {
+        color = "#104E8B"; desc = "Very cold";
+    } else if (temp >= 6 && temp <= 10) {
+        color = "#4682B4"; desc = "Cold";
+    } else if (temp >= 11 && temp <= 15) {
+        color = "#32CD32"; desc = "Cool";
+    } else if (temp >= 16 && temp <= 20) {
+        color = "#228B22"; desc = "Mild";
+    } else if (temp >= 21 && temp <= 24) {
+        color = "#D4A017"; desc = "Warm";
+    } else if (temp >= 25 && temp <= 29) {
+        color = "#FF8C00"; desc = "Very warm";
+    } else if (temp >= 30 && temp <= 35) {
+        color = "#FF4500"; desc = "Hot";
+    } else if (temp >= 36 && temp <= 40) {
+        color = "#B22222"; desc = "Extremely hot";
+    } else {
+        color = "#000000"; desc = "";
+    }
+    return { color, desc };
+}
 
       function formatWeatherData(data) {
           if (!data) return "<b>Error:</b> No data received.";
@@ -335,6 +335,7 @@
           // Pressure Logic (>=1020 hPa in green + fish icon)
           const pressureVal = parseFloat(lines[8]);
           const pressure = pressureVal.toFixed(1);
+          const pressureVal = parseFloat(lines[8]) - 1.9;
           let pressureDisplay = `${pressure} hPa`;
           if (pressureVal >= 1020) {
               pressureDisplay = `
