@@ -282,10 +282,10 @@
               desc = "Hot";
           } else if (temp < 41) {
               color = "#B22222"; 
-              desc = "Extremely hot";
+              desc = "Very hot";
           } else if (temp <= 60) {
               color = "#8B0000"; // DarkRed
-              desc = "Dangerously hot";
+              desc = "Extremely hot";
           } else {
               color = "#000000"; // Above scale
               desc = "";
@@ -294,19 +294,19 @@
       }
 
       // Helper function for humidity description
-function getHumidityDesc(humidity) {
-  if (humidity <= 20) {
-    return "Extremely Dry";
-  } else if (humidity <= 40) {
-    return "Dry";
-  } else if (humidity <= 60) {
-    return "Comfortable/Optimal";
-  } else if (humidity <= 80) {
-    return "Humid";
-  } else {
-    return "Extremely Humid";
-  }
-}
+      function getHumidityDesc(humidity) {
+          if (humidity <= 20) {
+              return "Extremely Dry";
+          } else if (humidity <= 40) {
+              return "Dry";
+          } else if (humidity <= 60) {
+              return "Comfortable/Optimal";
+          } else if (humidity <= 80) {
+              return "Humid";
+          } else {
+              return "Extremely Humid";
+          }
+      }
 
       function formatWeatherData(data) {
           if (!data) return "<b>Error:</b> No data received.";
@@ -314,17 +314,16 @@ function getHumidityDesc(humidity) {
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
 
+          // Battery & Solar Panel Logic
           const batteryVoltageVal = parseFloat(lines[10]);
-const batteryVoltage = batteryVoltageVal.toFixed(1);
-const batteryColor = (batteryVoltageVal < 12.5) ? "red" : "green";
-
-let batteryVoltageDisplay;
-if (batteryVoltageVal >= 13.8) {
-    batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
-} else {
-    batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
-}
-
+          const batteryVoltage = batteryVoltageVal.toFixed(1);
+          const batteryColor = (batteryVoltageVal < 12.5) ? "red" : "green";
+          let batteryVoltageDisplay;
+          if (batteryVoltageVal >= 13.8) {
+              batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
+          } else {
+              batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
+          }
 
           let rawSolarVoltage = parseFloat(lines[12]);
           let solarVoltageDisplay;
@@ -347,43 +346,34 @@ if (batteryVoltageVal >= 13.8) {
               rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
 
-// Solar Radiation Logic with adjusted gradient and vertical-align
-const solarRad = Math.max(0, parseFloat(lines[7]));
-let solarRadColor = "";
-if (solarRad === 0) {
-    // Exactly 0.0 W/m²: VERY dark navy.
-    solarRadColor = "#000033";
-} else if (solarRad <= 100) {
-    // 0–100 W/m²: Deep navy.
-    solarRadColor = "#000080";
-} else if (solarRad <= 300) {
-    // 101–300 W/m²: Darker royal blue.
-    solarRadColor = "#27408B";
-} else if (solarRad <= 600) {
-    // 301–600 W/m²: Dark goldenrod (yellow).
-    solarRadColor = "#DAA520";
-} else if (solarRad <= 800) {
-    // 601–800 W/m²: Softer orange.
-    solarRadColor = "#FF9933";
-} else if (solarRad <= 1100) {
-    // 801–1100 W/m²: Darker orange.
-    solarRadColor = "#BF360C";
-} else {
-    // 1101–1300 W/m²: Dark red.
-    solarRadColor = "#B71C1C";
-}
-
-let solarRadDisplay;
-if (solarRad === 0) {
-    solarRadDisplay = `<span style="color:${solarRadColor}; vertical-align: middle;">
-        ${solarRad.toFixed(1)} W/m²
-    </span>`;
-} else {
-    solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
-        ${solarRad.toFixed(1)} W/m²
-    </span>`;
-}
-
+          // Solar Radiation Logic with adjusted gradient and vertical-align
+          const solarRad = Math.max(0, parseFloat(lines[7]));
+          let solarRadColor = "";
+          if (solarRad === 0) {
+              solarRadColor = "#000033"; // Very dark navy.
+          } else if (solarRad <= 100) {
+              solarRadColor = "#000080"; // Deep navy.
+          } else if (solarRad <= 300) {
+              solarRadColor = "#27408B"; // Darker royal blue.
+          } else if (solarRad <= 600) {
+              solarRadColor = "#DAA520"; // Dark goldenrod (yellow).
+          } else if (solarRad <= 800) {
+              solarRadColor = "#FF9933"; // Softer orange.
+          } else if (solarRad <= 1100) {
+              solarRadColor = "#BF360C"; // Darker orange.
+          } else {
+              solarRadColor = "#B71C1C"; // Dark red.
+          }
+          let solarRadDisplay;
+          if (solarRad === 0) {
+              solarRadDisplay = `<span style="color:${solarRadColor}; vertical-align: middle;">
+                  ${solarRad.toFixed(1)} W/m²
+              </span>`;
+          } else {
+              solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
+                  ${solarRad.toFixed(1)} W/m²
+              </span>`;
+          }
 
           // Adjusted Pressure Logic
           let pressureVal = parseFloat(lines[8]);
@@ -397,12 +387,16 @@ if (solarRad === 0) {
               `;
           }
 
+          // Calculate Humidity
+          const humidityVal = parseFloat(lines[4]);
+          const humidity = humidityVal.toFixed(1);
+          const humidityDesc = getHumidityDesc(humidityVal);
+
           // Format Date & Time
           const formattedDate = formatDateString(lines[0]);
           const displayTime = `${lines[1]} AEST`;
 
           // Build HTML
-          // Address + Date/Time
           let html = `
 <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
 <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
@@ -417,14 +411,8 @@ if (solarRad === 0) {
   <div class="wind-column">
     <b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
     <b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
-const humidityVal = parseFloat(lines[4]);
-const humidity = humidityVal.toFixed(1);
-const humidityDesc = getHumidityDesc(humidityVal);
-...
-// In your HTML output:
-<b>Humidity:</b> ${humidity}% (${humidityDesc})<br>
+    <b>Humidity:</b> ${humidity}% (${humidityDesc})<br>
 `;
-
           // Temperature Logic: Always bold with colour & description appended
           const tempVal = parseFloat(lines[5]);
           const temperature = tempVal.toFixed(1);
@@ -461,7 +449,7 @@ const humidityDesc = getHumidityDesc(humidityVal);
     <b>Rain In Last Min:</b> ${rainInLastMinDisplay}<br>
   </div>
   <div class="battery-col">
-  <b>Battery:</b> ${batteryVoltageDisplay}<br>
+    <b>Battery:</b> ${batteryVoltageDisplay}<br>
     <b>Load:</b> ${parseFloat(lines[11]).toFixed(1)} mA<br>
     <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
     <b>Charge:</b> `;
@@ -469,7 +457,6 @@ const humidityDesc = getHumidityDesc(humidityVal);
           const chargeCurrent = parseFloat(lines[13]);
           const loadCurrent = parseFloat(lines[11]);
           let chargeDisplay = "";
-          // If battery is full (>=13.80V), show charge current without turning red even if lower than load current.
           if (batteryVoltageVal >= 13.80) {
               chargeDisplay = `<span>${chargeCurrent.toFixed(1)} mA</span>`;
           } else {
@@ -501,7 +488,6 @@ const humidityDesc = getHumidityDesc(humidityVal);
 `;
 
           // Soil Temp & Moisture Section
-          // For soil moisture, if the value is below 20% then color dark orange.
           const moisture10Val = parseFloat(lines[26]);
           let moisture10Display = moisture10Val.toFixed(1) + "%";
           if (moisture10Val < 20) {
@@ -553,7 +539,6 @@ const humidityDesc = getHumidityDesc(humidityVal);
           button.disabled = true;
           spinnerContainer.style.display = "block";
 
-          // Fade out for smooth update
           dataOutput.style.transition = "opacity 0.5s ease";
           dataOutput.style.opacity = 0;
 
@@ -566,16 +551,12 @@ const humidityDesc = getHumidityDesc(humidityVal);
               })
               .then(data => {
                   dataOutput.innerHTML = formatWeatherData(data);
-
-                  // Fade back in
                   setTimeout(() => {
                       dataOutput.style.opacity = 1;
                   }, 100);
-
                   statusText.innerText = "Status: Connected";
                   statusText.className = "connected";
 
-                  // Auto-refresh: wait until 4 seconds after next minute boundary
                   const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
                   if (lines.length >= 2) {
                       const loggerTime = lines[1];
