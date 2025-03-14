@@ -147,7 +147,7 @@
           clear: both;
       }
 
-      /* Two-column layout for "Wind Speed → Garden Temp" vs. "Data Logger Model" */
+      /* Two-column layout for "Wind Speed → Garden Bed Temp" vs. "Data Logger Model" */
       .wind-logger-container {
           display: flex;
           justify-content: space-between;
@@ -325,37 +325,43 @@
               rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
 
-          // Solar Radiation Logic with full colour conditioning and vertical-align
-          const solarRad = Math.max(0, parseFloat(lines[7]));
-          let solarRadColor = "";
-          if (solarRad === 0) {
-              // Exactly 0.0 W/m²: VERY dark navy.
-              solarRadColor = "#000033";
-          } else if (solarRad <= 100) {
-              // 0–100 W/m²: Deep navy.
-              solarRadColor = "#000080";
-          } else if (solarRad <= 300) {
-              solarRadColor = "#4169E1"; // Royal Blue.
-          } else if (solarRad <= 600) {
-              solarRadColor = "#FFD700"; // Gold.
-          } else if (solarRad <= 900) {
-              solarRadColor = "#FFA500"; // Orange.
-          } else if (solarRad <= 1100) {
-              solarRadColor = "#FF8C00"; // Dark Orange.
-          } else {
-              // 1101–1300 W/m²: Red.
-              solarRadColor = "#FF0000";
-          }
-          let solarRadDisplay;
-          if (solarRad === 0) {
-              solarRadDisplay = `<span style="color:${solarRadColor}; vertical-align: middle;">
-                  ${solarRad.toFixed(1)} W/m²
-              </span>`;
-          } else {
-              solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
-                  ${solarRad.toFixed(1)} W/m²
-              </span>`;
-          }
+// Solar Radiation Logic with full colour conditioning and vertical-align
+const solarRad = Math.max(0, parseFloat(lines[7]));
+let solarRadColor = "";
+if (solarRad === 0) {
+    // Exactly 0.0 W/m²: VERY dark navy.
+    solarRadColor = "#000033";
+} else if (solarRad <= 100) {
+    // 0–100 W/m²: Deep navy.
+    solarRadColor = "#000080";
+} else if (solarRad <= 300) {
+    // 101–300 W/m²: Darker royal blue.
+    solarRadColor = "#27408B";
+} else if (solarRad <= 600) {
+    // 301–600 W/m²: Dark goldenrod.
+    solarRadColor = "#B8860B";
+} else if (solarRad <= 900) {
+    // 601–900 W/m²: Deep orange.
+    solarRadColor = "#E65100";
+} else if (solarRad <= 1100) {
+    // 901–1100 W/m²: Dark orange (more saturated).
+    solarRadColor = "#BF360C";
+} else {
+    // 1101–1300 W/m²: Dark red.
+    solarRadColor = "#B71C1C";
+}
+
+let solarRadDisplay;
+if (solarRad === 0) {
+    solarRadDisplay = `<span style="color:${solarRadColor}; vertical-align: middle;">
+        ${solarRad.toFixed(1)} W/m²
+    </span>`;
+} else {
+    solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
+        ${solarRad.toFixed(1)} W/m²
+    </span>`;
+}
+
 
           // Adjusted Pressure Logic
           let pressureVal = parseFloat(lines[8]);
@@ -383,7 +389,7 @@
 <hr>
 `;
 
-          // "Wind Speed → Garden Temp" vs. "Data Logger Model" in two columns
+          // "Wind Speed → Garden Bed Temp" vs. "Data Logger Model" in two columns
           html += `
 <div class="wind-logger-container">
   <div class="wind-column">
@@ -407,7 +413,7 @@
           html += `
     <b>Rain Since 9AM:</b> ${rainSince9Display}<br>
     <b>Solar Radiation:</b> ${solarRadDisplay}<br>
-    <b>Garden Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
+    <b>Garden Bed Temp:</b> ${parseFloat(lines[9]).toFixed(1)}°C<br>
     <b>Pressure:</b> ${pressureDisplay}<br>
   </div>
   <div class="logger-column">
