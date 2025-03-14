@@ -305,32 +305,37 @@
               rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
 
-          // Solar Radiation Logic with full colour conditioning and bold, vertical-aligned
-          const solarRad = Math.max(0, parseFloat(lines[7]));
-          let solarRadColor = "";
-          if (solarRad === 0) {
-              // Exactly 0.0 W/m²: VERY dark navy.
-              solarRadColor = "#000033";
-          } else if (solarRad <= 100) {
-              // 0–100 W/m²: Deep navy.
-              solarRadColor = "#000080";
-          } else if (solarRad <= 300) {
-              solarRadColor = "#4169E1"; // Royal Blue.
-          } else if (solarRad <= 600) {
-              solarRadColor = "#FFD700"; // Gold.
-          } else if (solarRad <= 900) {
-              solarRadColor = "#FFA500"; // Orange.
-          } else if (solarRad <= 1100) {
-              solarRadColor = "#FF8C00"; // Dark Orange.
-          } else {
-              // 1101–1300 W/m²: Red.
-              solarRadColor = "#FF0000";
-          }
-          let solarRadDisplay = `
-            <span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
-              ${solarRad.toFixed(1)} W/m²
-            </span>
-          `;
+// Solar Radiation Logic with full colour conditioning and vertical-align
+const solarRad = Math.max(0, parseFloat(lines[7]));
+let solarRadColor = "";
+if (solarRad === 0) {
+    // Exactly 0.0 W/m²: VERY dark navy.
+    solarRadColor = "#000033";
+} else if (solarRad <= 100) {
+    // 0–100 W/m²: Deep navy.
+    solarRadColor = "#000080";
+} else if (solarRad <= 300) {
+    solarRadColor = "#4169E1"; // Royal Blue.
+} else if (solarRad <= 600) {
+    solarRadColor = "#FFD700"; // Gold.
+} else if (solarRad <= 900) {
+    solarRadColor = "#FFA500"; // Orange.
+} else if (solarRad <= 1100) {
+    solarRadColor = "#FF8C00"; // Dark Orange.
+} else {
+    // 1101–1300 W/m²: Red.
+    solarRadColor = "#FF0000";
+}
+let solarRadDisplay;
+if (solarRad === 0) {
+    solarRadDisplay = `<span style="color:${solarRadColor}; vertical-align: middle;">
+        ${solarRad.toFixed(1)} W/m²
+    </span>`;
+} else {
+    solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
+        ${solarRad.toFixed(1)} W/m²
+    </span>`;
+}
           let pressureVal = parseFloat(lines[8]);
 let adjustedPressure = pressureVal - 1.9;
 let pressureDisplay = `${adjustedPressure.toFixed(1)} hPa`;
@@ -522,7 +527,7 @@ if (adjustedPressure >= 1020) {
                       const parts = loggerTime.split(":");
                       if (parts.length >= 3) {
                           const second = parseInt(parts[2]);
-                          const delay = (60 - second + 8) * 1000;
+                          const delay = (60 - second + 4) * 1000;
                           setTimeout(() => { fetchWeather(); }, delay);
                       }
                   }
