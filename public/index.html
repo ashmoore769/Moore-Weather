@@ -299,10 +299,17 @@
           const lines = data.split(",");
           if (lines.length < 30) return "<b>Error:</b> Invalid response format.";
 
-          // Battery & Solar Panel Logic
           const batteryVoltageVal = parseFloat(lines[10]);
-          const batteryVoltage = batteryVoltageVal.toFixed(1);
-          const batteryColor = (batteryVoltageVal < 12.5) ? "red" : "green";
+const batteryVoltage = batteryVoltageVal.toFixed(1);
+const batteryColor = (batteryVoltageVal < 12.5) ? "red" : "green";
+
+let batteryVoltageDisplay;
+if (batteryVoltageVal >= 13.8) {
+    batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
+} else {
+    batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
+}
+
 
           let rawSolarVoltage = parseFloat(lines[12]);
           let solarVoltageDisplay;
@@ -434,7 +441,7 @@ if (solarRad === 0) {
     <b>Rain In Last Min:</b> ${rainInLastMinDisplay}<br>
   </div>
   <div class="battery-col">
-    <b>Battery:</b> <span style="color:${batteryColor};">${batteryVoltage} V</span><br>
+  <b>Battery:</b> ${batteryVoltageDisplay}<br>
     <b>Load:</b> ${parseFloat(lines[11]).toFixed(1)} mA<br>
     <b>Solar Panel:</b> ${solarVoltageDisplay}<br>
     <b>Charge:</b> `;
