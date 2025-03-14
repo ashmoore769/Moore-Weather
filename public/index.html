@@ -247,31 +247,51 @@
       }
 
       // Helper function to assign temperature color and description based on the range
+      // Covers -20°C up to 60°C. Values below -20 or above 60 default to black, no description.
       function getTemperatureColorAndDesc(temp) {
-    let color, desc;
-    if (temp >= -10 && temp <= -1) {
-        color = "#00008B"; desc = "Extremely cold";
-    } else if (temp >= 0 && temp <= 5) {
-        color = "#104E8B"; desc = "Very cold";
-    } else if (temp >= 6 && temp <= 10) {
-        color = "#4682B4"; desc = "Cold";
-    } else if (temp >= 11 && temp <= 15) {
-        color = "#32CD32"; desc = "Cool";
-    } else if (temp >= 16 && temp <= 20) {
-        color = "#228B22"; desc = "Mild";
-    } else if (temp >= 21 && temp <= 24) {
-        color = "#D4A017"; desc = "Warm";
-    } else if (temp >= 25 && temp <= 29) {
-        color = "#FF8C00"; desc = "Very warm";
-    } else if (temp >= 30 && temp <= 35) {
-        color = "#FF4500"; desc = "Hot";
-    } else if (temp >= 36 && temp <= 40) {
-        color = "#B22222"; desc = "Extremely hot";
-    } else {
-        color = "#000000"; desc = "";
-    }
-    return { color, desc };
-}
+          let color, desc;
+          if (temp < -20) {
+              color = "#000000"; // Below scale
+              desc = "";
+          } else if (temp < -10) {
+              color = "#191970"; // midnightblue
+              desc = "Severely cold";
+          } else if (temp < 0) {
+              color = "#00008B"; 
+              desc = "Extremely cold";
+          } else if (temp < 6) {
+              color = "#104E8B"; 
+              desc = "Very cold";
+          } else if (temp < 11) {
+              color = "#4682B4"; 
+              desc = "Cold";
+          } else if (temp < 16) {
+              color = "#32CD32"; 
+              desc = "Cool";
+          } else if (temp < 21) {
+              color = "#228B22"; 
+              desc = "Mild";
+          } else if (temp < 25) {
+              color = "#D4A017"; 
+              desc = "Warm";
+          } else if (temp < 30) {
+              color = "#FF8C00"; 
+              desc = "Very warm";
+          } else if (temp < 36) {
+              color = "#FF4500"; 
+              desc = "Hot";
+          } else if (temp < 41) {
+              color = "#B22222"; 
+              desc = "Extremely hot";
+          } else if (temp <= 60) {
+              color = "#8B0000"; // DarkRed
+              desc = "Dangerously hot";
+          } else {
+              color = "#000000"; // Above scale
+              desc = "";
+          }
+          return { color, desc };
+      }
 
       function formatWeatherData(data) {
           if (!data) return "<b>Error:</b> No data received.";
@@ -305,47 +325,49 @@
               rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
 
-// Solar Radiation Logic with full colour conditioning and vertical-align
-const solarRad = Math.max(0, parseFloat(lines[7]));
-let solarRadColor = "";
-if (solarRad === 0) {
-    // Exactly 0.0 W/m²: VERY dark navy.
-    solarRadColor = "#000033";
-} else if (solarRad <= 100) {
-    // 0–100 W/m²: Deep navy.
-    solarRadColor = "#000080";
-} else if (solarRad <= 300) {
-    solarRadColor = "#4169E1"; // Royal Blue.
-} else if (solarRad <= 600) {
-    solarRadColor = "#FFD700"; // Gold.
-} else if (solarRad <= 900) {
-    solarRadColor = "#FFA500"; // Orange.
-} else if (solarRad <= 1100) {
-    solarRadColor = "#FF8C00"; // Dark Orange.
-} else {
-    // 1101–1300 W/m²: Red.
-    solarRadColor = "#FF0000";
-}
-let solarRadDisplay;
-if (solarRad === 0) {
-    solarRadDisplay = `<span style="color:${solarRadColor}; vertical-align: middle;">
-        ${solarRad.toFixed(1)} W/m²
-    </span>`;
-} else {
-    solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
-        ${solarRad.toFixed(1)} W/m²
-    </span>`;
-}
+          // Solar Radiation Logic with full colour conditioning and vertical-align
+          const solarRad = Math.max(0, parseFloat(lines[7]));
+          let solarRadColor = "";
+          if (solarRad === 0) {
+              // Exactly 0.0 W/m²: VERY dark navy.
+              solarRadColor = "#000033";
+          } else if (solarRad <= 100) {
+              // 0–100 W/m²: Deep navy.
+              solarRadColor = "#000080";
+          } else if (solarRad <= 300) {
+              solarRadColor = "#4169E1"; // Royal Blue.
+          } else if (solarRad <= 600) {
+              solarRadColor = "#FFD700"; // Gold.
+          } else if (solarRad <= 900) {
+              solarRadColor = "#FFA500"; // Orange.
+          } else if (solarRad <= 1100) {
+              solarRadColor = "#FF8C00"; // Dark Orange.
+          } else {
+              // 1101–1300 W/m²: Red.
+              solarRadColor = "#FF0000";
+          }
+          let solarRadDisplay;
+          if (solarRad === 0) {
+              solarRadDisplay = `<span style="color:${solarRadColor}; vertical-align: middle;">
+                  ${solarRad.toFixed(1)} W/m²
+              </span>`;
+          } else {
+              solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor}; vertical-align: middle;">
+                  ${solarRad.toFixed(1)} W/m²
+              </span>`;
+          }
+
+          // Adjusted Pressure Logic
           let pressureVal = parseFloat(lines[8]);
-let adjustedPressure = pressureVal - 1.9;
-let pressureDisplay = `${adjustedPressure.toFixed(1)} hPa`;
-if (adjustedPressure >= 1020) {
-    pressureDisplay = `
-      <span style="color:green; font-weight:bold; vertical-align: middle;">
-        ${adjustedPressure.toFixed(1)} hPa 🐟
-      </span>
-    `;
-}
+          let adjustedPressure = pressureVal - 1.9;
+          let pressureDisplay = `${adjustedPressure.toFixed(1)} hPa`;
+          if (adjustedPressure >= 1020) {
+              pressureDisplay = `
+                <span style="color:green; font-weight:bold; vertical-align: middle;">
+                  ${adjustedPressure.toFixed(1)} hPa 🐟
+                </span>
+              `;
+          }
 
           // Format Date & Time
           const formattedDate = formatDateString(lines[0]);
@@ -520,7 +542,7 @@ if (adjustedPressure >= 1020) {
                   statusText.innerText = "Status: Connected";
                   statusText.className = "connected";
 
-                  // Auto-refresh: wait until 8 seconds after next minute boundary
+                  // Auto-refresh: wait until 4 seconds after next minute boundary
                   const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
                   if (lines.length >= 2) {
                       const loggerTime = lines[1];
