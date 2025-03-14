@@ -417,7 +417,12 @@ if (solarRad === 0) {
   <div class="wind-column">
     <b>Wind Speed:</b> ${parseFloat(lines[2]).toFixed(1)} km/h<br>
     <b>Wind Direction:</b> ${parseFloat(lines[3]).toFixed(1)}° (${getWindDirection(parseFloat(lines[3]))})<br>
-  <b>Humidity:</b> ${parseFloat(lines[4]).toFixed(1)}%<br>
+const humidityVal = parseFloat(lines[4]);
+const humidity = humidityVal.toFixed(1);
+const humidityDesc = getHumidityDesc(humidityVal);
+...
+// In your HTML output:
+<b>Humidity:</b> ${humidity}% (${humidityDesc})<br>
 `;
 
           // Temperature Logic: Always bold with colour & description appended
