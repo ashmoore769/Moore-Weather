@@ -332,18 +332,17 @@
             </span>
           `;
 
-          // Pressure Logic (>=1020 hPa in green + fish icon)
-          const pressureVal = parseFloat(lines[8]);
-          const pressure = pressureVal.toFixed(1);
-          const pressureVal = parseFloat(lines[8]) - 1.9;
-          let pressureDisplay = `${pressure} hPa`;
-          if (pressureVal >= 1020) {
-              pressureDisplay = `
-                <span style="color:green; font-weight:bold; vertical-align: middle;">
-                  ${pressure} hPa 🐟
-                </span>
-              `;
-          }
+          let pressureVal = parseFloat(lines[8]);
+const pressure = pressureVal.toFixed(1);
+const adjustedPressure = pressureVal - 1.9;
+let pressureDisplay = `${pressure} hPa`;
+if (adjustedPressure >= 1020) {
+    pressureDisplay = `
+      <span style="color:green; font-weight:bold; vertical-align: middle;">
+        ${pressure} hPa 🐟
+      </span>
+    `;
+}
 
           // Format Date & Time
           const formattedDate = formatDateString(lines[0]);
