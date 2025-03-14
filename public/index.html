@@ -332,7 +332,7 @@ if (batteryVoltageVal >= 13.8) {
               rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
           }
 
-// Solar Radiation Logic with full colour conditioning and vertical-align
+// Solar Radiation Logic with adjusted gradient and vertical-align
 const solarRad = Math.max(0, parseFloat(lines[7]));
 let solarRadColor = "";
 if (solarRad === 0) {
@@ -345,13 +345,13 @@ if (solarRad === 0) {
     // 101–300 W/m²: Darker royal blue.
     solarRadColor = "#27408B";
 } else if (solarRad <= 600) {
-    // 301–600 W/m²: Dark goldenrod.
-    solarRadColor = "#B8860B";
-} else if (solarRad <= 900) {
-    // 601–900 W/m²: Deep orange.
-    solarRadColor = "#E65100";
+    // 301–600 W/m²: Dark goldenrod (yellow).
+    solarRadColor = "#DAA520";
+} else if (solarRad <= 800) {
+    // 601–800 W/m²: Softer orange.
+    solarRadColor = "#FF9933";
 } else if (solarRad <= 1100) {
-    // 901–1100 W/m²: Dark orange (more saturated).
+    // 801–1100 W/m²: Darker orange.
     solarRadColor = "#BF360C";
 } else {
     // 1101–1300 W/m²: Dark red.
