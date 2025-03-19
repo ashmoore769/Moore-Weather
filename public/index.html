@@ -79,11 +79,11 @@
           cursor: not-allowed;
       }
 
-      /* Status Text (keeps on one line, fully visible) */
+      /* Status Text (always fully visible on one line) */
       #status {
           font-weight: bold;
           display: inline-block;
-          white-space: nowrap; /* prevent wrapping */
+          white-space: nowrap;
       }
       .connected {
           color: #006400;
@@ -153,7 +153,7 @@
           clear: both;
       }
 
-      /* Two-column layout for "Wind Speed → Garden Bed Temp" vs. "Data Logger Model" */
+      /* Two-column layout for Wind/Garden vs. Data Logger */
       .wind-logger-container {
           display: flex;
           justify-content: space-between;
@@ -221,7 +221,7 @@
       </div>
     </div>
 
-    <!-- Data Container with placeholders -->
+    <!-- Data Container with static icons in labels -->
     <div id="weatherData">
       <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
       <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
@@ -231,20 +231,14 @@
 
       <div class="wind-logger-container">
         <div class="wind-column">
-          <p><b>Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
-          <p><b>Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
-          <p><b>Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
-          <!-- Temperature now has a gauge emoji appended in the JS below -->
-          <p><b>Temperature:</b> 
-            <span id="tempVal" style="font-weight:bold;">--</span> 
-            (<span id="tempDescVal">--</span>)
-          </p>
-          <!-- Rain since 9AM with cloud if >= 0.2 mm -->
-          <p><b>Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
-          <!-- Solar radiation unchanged but you can add an emoji if you wish -->
-          <p><b>Solar Radiation:</b> <span id="solarRadVal">--</span></p>
-          <p><b>Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
-          <p><b>Pressure:</b> <span id="pressureVal">--</span></p>
+          <p><b>Wind Speed:</b> 💨 <span id="windSpeedVal">--</span> km/h</p>
+          <p><b>Wind Direction:</b> 🧭 <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
+          <p><b>Humidity:</b> 💦 <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
+          <p><b>Temperature:</b> 🌡️ <span id="tempVal" style="font-weight:bold;">--</span> (<span id="tempDescVal">--</span>)</p>
+          <p><b>Rain Since 9AM:</b> 🌧️ <span id="rainSince9Val">--</span></p>
+          <p><b>Solar Radiation:</b> ☀️ <span id="solarRadVal">--</span></p>
+          <p><b>Garden Bed Temp:</b> 🌱 <span id="gardenBedTempVal">--</span>°C</p>
+          <p><b>Pressure:</b> ⏲ <span id="pressureVal">--</span></p>
         </div>
         <div class="logger-column">
           <span class="logger-label">Data Logger</span>
@@ -258,8 +252,7 @@
           <p><b>Evap Rate:</b> <span id="evapRateVal">--</span> mm/h</p>
           <p><b>Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
           <p><b>Dew Point:</b> <span id="dewPointVal">--</span>°C</p>
-          <!-- Rain in last minute with cloud if >= 0.2 mm -->
-          <p><b>Rain In Last Min:</b> <span id="rainInLastMinVal">--</span></p>
+          <p><b>Rain In Last Min:</b> 🌧️ <span id="rainInLastMinVal">--</span></p>
         </div>
         <div class="battery-col">
           <p><b>Battery:</b> <span id="batteryVal">--</span></p>
@@ -272,10 +265,7 @@
 
       <p><b>Peak Wind Gust:</b> <span id="peakWindGustVal">--</span></p>
       <p><b>Vector Wind Speed:</b> <span id="vectorWindSpeedVal">--</span> km/h</p>
-      <p><b>Vector Wind Direction:</b> 
-        <span id="vectorWindDirDegVal">--</span>° 
-        (<span id="vectorWindDirTextVal">--</span>)
-      </p>
+      <p><b>Vector Wind Direction:</b> 🧭 <span id="vectorWindDirDegVal">--</span>° (<span id="vectorWindDirTextVal">--</span>)</p>
       <hr>
 
       <div class="soil-moisture">
@@ -286,10 +276,10 @@
           <p><b>Soil Temp 40cm:</b> <span id="soilTemp40Val">--</span>°C</p>
         </div>
         <div class="moisture-col">
-          <p><b>Moisture 10cm:</b> <span id="moisture10Val">--</span>%</p>
-          <p><b>Moisture 20cm:</b> <span id="moisture20Val">--</span>%</p>
-          <p><b>Moisture 30cm:</b> <span id="moisture30Val">--</span>%</p>
-          <p><b>Moisture 40cm:</b> <span id="moisture40Val">--</span>%</p>
+          <p><b>Soil Moisture 10cm:</b> 💧 <span id="moisture10Val">--</span>%</p>
+          <p><b>Soil Moisture 20cm:</b> 💧 <span id="moisture20Val">--</span>%</p>
+          <p><b>Soil Moisture 30cm:</b> 💧 <span id="moisture30Val">--</span>%</p>
+          <p><b>Soil Moisture 40cm:</b> 💧 <span id="moisture40Val">--</span>%</p>
         </div>
       </div>
       <hr>
@@ -333,7 +323,7 @@
         color = "#000000"; // Below scale
         desc = "";
       } else if (temp < -10) {
-        color = "#191970"; // midnightblue
+        color = "#191970";
         desc = "Severely cold";
       } else if (temp < 0) {
         color = "#00008B";
@@ -363,10 +353,10 @@
         color = "#B22222";
         desc = "Very hot";
       } else if (temp <= 60) {
-        color = "#8B0000"; // DarkRed
+        color = "#8B0000";
         desc = "Extremely hot";
       } else {
-        color = "#000000"; // Above scale
+        color = "#000000";
         desc = "";
       }
       return { color, desc };
@@ -400,72 +390,59 @@
       }
 
       // Extract fields
-      const dateStr          = lines[0];
-      const timeStr          = lines[1];
-      const windSpeed        = parseFloat(lines[2]);
-      const windDirDeg       = parseFloat(lines[3]);
-      const humidityRaw      = parseFloat(lines[4]);
-      const temperatureRaw   = parseFloat(lines[5]);
-      const rainInLastMinRaw = parseFloat(lines[6]);
-      const solarRadRaw      = parseFloat(lines[7]);
-      const pressureRaw      = parseFloat(lines[8]);
-      const gardenBedTemp    = parseFloat(lines[9]);
-      const batteryVoltageVal= parseFloat(lines[10]);
-      const loadCurrent      = parseFloat(lines[11]);
-      const rawSolarVoltage  = parseFloat(lines[12]);
-      const chargeCurrent    = parseFloat(lines[13]);
-      const peakWindGustVal  = parseFloat(lines[14]);
-      const vectorWindSpeedVal = parseFloat(lines[15]);
-      const vectorWindDirVal = parseFloat(lines[16]);
-      const rainSince9       = parseFloat(lines[17]);
-      const evapRate         = parseFloat(lines[18]);
+      const dateStr           = lines[0];
+      const timeStr           = lines[1];
+      const windSpeed         = parseFloat(lines[2]);
+      const windDirDeg        = parseFloat(lines[3]);
+      const humidityRaw       = parseFloat(lines[4]);
+      const temperatureRaw    = parseFloat(lines[5]);
+      const rainInLastMinRaw  = parseFloat(lines[6]);
+      const solarRadRaw       = parseFloat(lines[7]);
+      const pressureRaw       = parseFloat(lines[8]);
+      const gardenBedTemp     = parseFloat(lines[9]);
+      const batteryVoltageVal = parseFloat(lines[10]);
+      const loadCurrent       = parseFloat(lines[11]);
+      const rawSolarVoltage   = parseFloat(lines[12]);
+      const chargeCurrent     = parseFloat(lines[13]);
+      const peakWindGustVal   = parseFloat(lines[14]);
+      const vectorWindSpeedVal= parseFloat(lines[15]);
+      const vectorWindDirVal  = parseFloat(lines[16]);
+      const rainSince9        = parseFloat(lines[17]);
+      const evapRate          = parseFloat(lines[18]);
       // lines[19] might be unused
-      const dailyEvap        = parseFloat(lines[20]);
-      const dewPoint         = parseFloat(lines[21]);
-      const soilTemp10       = parseFloat(lines[22]);
-      const soilTemp20       = parseFloat(lines[23]);
-      const soilTemp30       = parseFloat(lines[24]);
-      const soilTemp40       = parseFloat(lines[25]);
-      const moisture10Val    = parseFloat(lines[26]);
-      const moisture20Val    = parseFloat(lines[27]);
-      const moisture30Val    = parseFloat(lines[28]);
-      const moisture40Val    = parseFloat(lines[29]);
+      const dailyEvap         = parseFloat(lines[20]);
+      const dewPoint          = parseFloat(lines[21]);
+      const soilTemp10        = parseFloat(lines[22]);
+      const soilTemp20        = parseFloat(lines[23]);
+      const soilTemp30        = parseFloat(lines[24]);
+      const soilTemp40        = parseFloat(lines[25]);
+      const moisture10Val     = parseFloat(lines[26]);
+      const moisture20Val     = parseFloat(lines[27]);
+      const moisture30Val     = parseFloat(lines[28]);
+      const moisture40Val     = parseFloat(lines[29]);
 
-      // Date & Time
+      // Update Date & Time
       document.getElementById("dateVal").textContent = formatDateString(dateStr);
       document.getElementById("timeVal").textContent = timeStr + " AEST";
 
       // Wind
-      document.getElementById("windSpeedVal").textContent   = windSpeed.toFixed(1);
-      document.getElementById("windDirDegVal").textContent  = windDirDeg.toFixed(1);
+      document.getElementById("windSpeedVal").textContent = windSpeed.toFixed(1);
+      document.getElementById("windDirDegVal").textContent = windDirDeg.toFixed(1);
       document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
 
       // Humidity
-      document.getElementById("humidityVal").textContent     = humidityRaw.toFixed(1);
+      document.getElementById("humidityVal").textContent = humidityRaw.toFixed(1);
       document.getElementById("humidityDescVal").textContent = getHumidityDesc(humidityRaw);
 
-      // Temperature with color + gauge emoji
+      // Temperature (emoji already in label)
       const tempData = getTemperatureColorAndDesc(temperatureRaw);
-      // Combine reading + emoji in one string
-      const temperatureReading = `${temperatureRaw.toFixed(1)}°C 🌡`;
       const tempSpan = document.getElementById("tempVal");
-      tempSpan.innerHTML = temperatureReading;        // Use .innerHTML to include the emoji
+      tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
       tempSpan.style.color = tempData.color;
       document.getElementById("tempDescVal").textContent = tempData.desc;
 
-      // Rain since 9AM (highlight if ≥ 0.2 mm) + cloud after
-      let rainSince9Display = `${rainSince9.toFixed(1)} mm`;
-      if (rainSince9 >= 0.2) {
-        rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display} 🌧</span>`;
-      }
-      document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
-
-      // Rain in last minute (highlight if ≥ 0.2 mm) + cloud after
-      let rainInLastMinDisplay = `${rainInLastMinRaw.toFixed(1)} mm`;
-      if (rainInLastMinRaw >= 0.2) {
-        rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay} 🌧</span>`;
-      }
-      document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
+      // Rain Since 9AM
+      document.getElementById("rainSince9Val").textContent = rainSince9.toFixed(1) + " mm";
 
       // Solar Radiation
       const solarRad = Math.max(0, solarRadRaw);
@@ -493,41 +470,39 @@
       }
       document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
 
-      // Adjusted Pressure (fish after if ≥ 1020)
+      // Garden Bed Temp
+      document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
+
+      // Pressure (always shows ⏲ in label; append fish if high)
       let adjustedPressure = pressureRaw - 1.9;
       let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
       if (adjustedPressure >= 1020) {
-        pressureDisplay = `<span style="color:green; font-weight:bold;">${adjustedPressure.toFixed(1)} hPa 🐟</span>`;
+        pressureDisplay += " 🐟";
       }
-      document.getElementById("pressureVal").innerHTML = pressureDisplay;
-
-      // Garden Bed Temp
-      document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
+      document.getElementById("pressureVal").textContent = pressureDisplay;
 
       // Battery Voltage
       const batteryVoltage = batteryVoltageVal.toFixed(1);
       let batteryColor = (batteryVoltageVal < 12.5) ? "red" : "green";
-      let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
+      let batteryVoltageDisplay = batteryVoltage + " V";
       if (batteryVoltageVal >= 13.8) {
-        batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
+        batteryVoltageDisplay = batteryVoltage + " V";
       }
-      document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
+      document.getElementById("batteryVal").innerHTML = `<span style="color:${batteryColor};">${batteryVoltageDisplay}</span>`;
 
       // Load Current
       document.getElementById("loadVal").textContent = loadCurrent.toFixed(1);
 
       // Solar Panel
-      let solarPanelDisplay = `${rawSolarVoltage.toFixed(1)} V (DAY)`;
+      let solarPanelDisplay = rawSolarVoltage.toFixed(1) + " V (DAY)";
       if (rawSolarVoltage < batteryVoltageVal) {
         solarPanelDisplay = "0.0 V (NIGHT)";
       }
       document.getElementById("solarPanelVal").textContent = solarPanelDisplay;
 
       // Charge
-      let chargeDisplay = `${chargeCurrent.toFixed(1)} mA`;
-      if (batteryVoltageVal >= 13.80) {
-        // no color
-      } else {
+      let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
+      if (batteryVoltageVal < 13.80) {
         if (chargeCurrent > loadCurrent) {
           chargeDisplay = `<span style="color:green;">${chargeDisplay}</span>`;
         } else {
@@ -545,34 +520,27 @@
       }
       document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
 
-      // Vector wind
+      // Vector Wind
       document.getElementById("vectorWindSpeedVal").textContent = vectorWindSpeedVal.toFixed(1);
       document.getElementById("vectorWindDirDegVal").textContent = vectorWindDirVal.toFixed(1);
       document.getElementById("vectorWindDirTextVal").textContent = getWindDirection(vectorWindDirVal);
 
-      // Evap
+      // Evaporation & Dew Point
       document.getElementById("evapRateVal").textContent = evapRate.toFixed(3);
       document.getElementById("dailyEvapVal").textContent = dailyEvap.toFixed(3);
       document.getElementById("dewPointVal").textContent = dewPoint.toFixed(1);
 
-      // Soil temps
+      // Soil Temperatures
       document.getElementById("soilTemp10Val").textContent = soilTemp10.toFixed(1);
       document.getElementById("soilTemp20Val").textContent = soilTemp20.toFixed(1);
       document.getElementById("soilTemp30Val").textContent = soilTemp30.toFixed(1);
       document.getElementById("soilTemp40Val").textContent = soilTemp40.toFixed(1);
 
-      // Soil moisture with color
-      function colorMoisture(val) {
-        let display = val.toFixed(1) + "%";
-        if (val < 20) {
-          display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`;
-        }
-        return display;
-      }
-      document.getElementById("moisture10Val").innerHTML = colorMoisture(moisture10Val);
-      document.getElementById("moisture20Val").innerHTML = colorMoisture(moisture20Val);
-      document.getElementById("moisture30Val").innerHTML = colorMoisture(moisture30Val);
-      document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
+      // Soil Moisture (ensure single percentage sign)
+      document.getElementById("moisture10Val").textContent = moisture10Val.toFixed(1);
+      document.getElementById("moisture20Val").textContent = moisture20Val.toFixed(1);
+      document.getElementById("moisture30Val").textContent = moisture30Val.toFixed(1);
+      document.getElementById("moisture40Val").textContent = moisture40Val.toFixed(1);
     }
 
     /*****************************
@@ -584,7 +552,6 @@
       const button = document.getElementById("fetchBtn");
       const spinnerContainer = document.getElementById("spinnerContainer");
 
-      // Short messages to avoid big jumps in length
       statusText.innerText = "Status: Fetching";
       statusText.className = "connected";
       button.disabled = true;
@@ -633,7 +600,7 @@
         });
     }
 
-    // Start once page loads
+    // Start the fetch process when the page loads
     window.addEventListener("load", () => {
       fetchWeather();
     });
