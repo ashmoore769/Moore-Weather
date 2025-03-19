@@ -82,6 +82,12 @@
       /* Status Text */
       #status {
           font-weight: bold;
+          /* Keep status on a single line so it doesn't expand or wrap */
+          display: inline-block;
+          width: 130px; /* Adjust if needed */
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
       }
       .connected {
           color: #006400;
@@ -120,6 +126,12 @@
           color: #333;
           text-align: left;
           margin-bottom: 30px;
+      }
+
+      /* Tighter spacing for lines */
+      #weatherData p {
+          margin: 2px 0;
+          line-height: 1.2;
       }
 
       /* Address Title */
@@ -290,7 +302,10 @@
   </div>
 
   <script>
-    // 1) Helper Functions
+    /********************
+     * HELPER FUNCTIONS *
+     ********************/
+
     function getWindDirection(degrees) {
       const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
                           "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
@@ -311,6 +326,7 @@
       return dateStr;
     }
 
+    // Assign temperature color & description
     function getTemperatureColorAndDesc(temp) {
       let color, desc;
       if (temp < -20) {
@@ -320,31 +336,31 @@
         color = "#191970"; // midnightblue
         desc = "Severely cold";
       } else if (temp < 0) {
-        color = "#00008B"; 
+        color = "#00008B";
         desc = "Extremely cold";
       } else if (temp < 6) {
-        color = "#104E8B"; 
+        color = "#104E8B";
         desc = "Very cold";
       } else if (temp < 11) {
-        color = "#4682B4"; 
+        color = "#4682B4";
         desc = "Cold";
       } else if (temp < 16) {
-        color = "#32CD32"; 
+        color = "#32CD32";
         desc = "Cool";
       } else if (temp < 21) {
-        color = "#228B22"; 
+        color = "#228B22";
         desc = "Mild";
       } else if (temp < 28) {
-        color = "#D4A017"; 
+        color = "#D4A017";
         desc = "Warm";
       } else if (temp < 32) {
-        color = "#FF8C00"; 
+        color = "#FF8C00";
         desc = "Very warm";
       } else if (temp < 36) {
-        color = "#FF4500"; 
+        color = "#FF4500";
         desc = "Hot";
       } else if (temp < 41) {
-        color = "#B22222"; 
+        color = "#B22222";
         desc = "Very hot";
       } else if (temp <= 60) {
         color = "#8B0000"; // DarkRed
@@ -356,9 +372,10 @@
       return { color, desc };
     }
 
+    // Humidity description
     function getHumidityDesc(humidity) {
       if (humidity <= 20) {
-        return "Very Dry";
+        return "Extremely Dry";
       } else if (humidity <= 40) {
         return "Dry";
       } else if (humidity <= 60) {
@@ -366,13 +383,15 @@
       } else if (humidity <= 80) {
         return "Humid";
       } else {
-        return "Very Humid";
+        return "Extremely Humid";
       }
     }
 
-    // 2) Update placeholders in the HTML
+    /*************************************
+     * UPDATE PLACEHOLDERS IN THE HTML  *
+     *************************************/
+
     function updateWeatherData(data) {
-      // Remove any trailing "r3"
       data = data.replace(/r3\r?\n?/, "").trim();
       const lines = data.split(",");
       if (lines.length < 30) {
@@ -380,7 +399,7 @@
         return;
       }
 
-      // Parse relevant fields
+      // Extract fields
       const dateStr          = lines[0];
       const timeStr          = lines[1];
       const windSpeed        = parseFloat(lines[2]);
@@ -412,10 +431,11 @@
       const moisture30Val    = parseFloat(lines[28]);
       const moisture40Val    = parseFloat(lines[29]);
 
-      // Fill placeholders
+      // Date & Time
       document.getElementById("dateVal").textContent = formatDateString(dateStr);
       document.getElementById("timeVal").textContent = timeStr + " AEST";
 
+      // Wind
       document.getElementById("windSpeedVal").textContent   = windSpeed.toFixed(1);
       document.getElementById("windDirDegVal").textContent  = windDirDeg.toFixed(1);
       document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
@@ -447,7 +467,7 @@
 
       // Solar Radiation
       const solarRad = Math.max(0, solarRadRaw);
-      let solarRadColor = "#000033"; 
+      let solarRadColor = "#000033";
       if (solarRad === 0) {
         solarRadColor = "#000033";
       } else if (solarRad <= 100) {
@@ -553,13 +573,17 @@
       document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
     }
 
-    // 3) Fetch logic
+    /*****************************
+     * FETCH & AUTO-REFRESH LOGIC *
+     *****************************/
+
     function fetchWeather(attempt = 1) {
       const statusText = document.getElementById("status");
       const button = document.getElementById("fetchBtn");
       const spinnerContainer = document.getElementById("spinnerContainer");
 
-      statusText.innerText = "Status: Fetching data...";
+      // Use shorter status messages so it doesn't expand the container
+      statusText.innerText = "Status: Fetching";
       statusText.className = "connected";
       button.disabled = true;
       spinnerContainer.style.display = "block";
@@ -589,15 +613,16 @@
           }
         })
         .catch(error => {
-          // Retry logic
+          // Retry logic with short messages
           if (attempt < 3) {
             let delay = attempt === 1 ? 3000 : 8000;
-            statusText.innerText = `Status: Retrying in ${delay / 1000} seconds...`;
+            statusText.innerText = `Status: Retry(${delay/1000}s)`;
             setTimeout(() => fetchWeather(attempt + 1), delay);
           } else {
-            statusText.innerText = "Status: Unable to retrieve weather data.";
+            statusText.innerText = "Status: Error";
             statusText.className = "error";
-            document.getElementById("weatherData").innerHTML = "<b>Error:</b> Could not retrieve weather data.";
+            document.getElementById("weatherData").innerHTML =
+              "<b>Error:</b> Could not retrieve weather data.";
             console.error("Fetch error:", error);
           }
         })
@@ -607,7 +632,7 @@
         });
     }
 
-    // 4) Start once page loads
+    // Start once page loads
     window.addEventListener("load", () => {
       fetchWeather();
     });
