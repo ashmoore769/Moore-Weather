@@ -234,11 +234,14 @@
           <p><b>Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
           <p><b>Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
           <p><b>Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
+          <!-- Temperature now has a gauge emoji appended in the JS below -->
           <p><b>Temperature:</b> 
             <span id="tempVal" style="font-weight:bold;">--</span> 
             (<span id="tempDescVal">--</span>)
           </p>
+          <!-- Rain since 9AM with cloud if >= 0.2 mm -->
           <p><b>Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
+          <!-- Solar radiation unchanged but you can add an emoji if you wish -->
           <p><b>Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>Pressure:</b> <span id="pressureVal">--</span></p>
@@ -255,6 +258,7 @@
           <p><b>Evap Rate:</b> <span id="evapRateVal">--</span> mm/h</p>
           <p><b>Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
           <p><b>Dew Point:</b> <span id="dewPointVal">--</span>°C</p>
+          <!-- Rain in last minute with cloud if >= 0.2 mm -->
           <p><b>Rain In Last Min:</b> <span id="rainInLastMinVal">--</span></p>
         </div>
         <div class="battery-col">
@@ -440,24 +444,26 @@
       document.getElementById("humidityVal").textContent     = humidityRaw.toFixed(1);
       document.getElementById("humidityDescVal").textContent = getHumidityDesc(humidityRaw);
 
-      // Temperature with color
+      // Temperature with color + gauge emoji
       const tempData = getTemperatureColorAndDesc(temperatureRaw);
+      // Combine reading + emoji in one string
+      const temperatureReading = `${temperatureRaw.toFixed(1)}°C 🌡`;
       const tempSpan = document.getElementById("tempVal");
-      tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
+      tempSpan.innerHTML = temperatureReading;        // Use .innerHTML to include the emoji
       tempSpan.style.color = tempData.color;
       document.getElementById("tempDescVal").textContent = tempData.desc;
 
-      // Rain since 9AM
-      let rainSince9Display = rainSince9.toFixed(1) + " mm";
+      // Rain since 9AM (highlight if ≥ 0.2 mm) + cloud after
+      let rainSince9Display = `${rainSince9.toFixed(1)} mm`;
       if (rainSince9 >= 0.2) {
-        rainSince9Display = `🌧 ${rainSince9Display}`;
+        rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display} 🌧</span>`;
       }
       document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
 
-      // Rain in last minute
-      let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
+      // Rain in last minute (highlight if ≥ 0.2 mm) + cloud after
+      let rainInLastMinDisplay = `${rainInLastMinRaw.toFixed(1)} mm`;
       if (rainInLastMinRaw >= 0.2) {
-        rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
+        rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay} 🌧</span>`;
       }
       document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
 
@@ -487,7 +493,7 @@
       }
       document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
 
-      // Adjusted Pressure
+      // Adjusted Pressure (fish after if ≥ 1020)
       let adjustedPressure = pressureRaw - 1.9;
       let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
       if (adjustedPressure >= 1020) {
@@ -578,7 +584,7 @@
       const button = document.getElementById("fetchBtn");
       const spinnerContainer = document.getElementById("spinnerContainer");
 
-      // Slightly shorter messages to avoid big jumps in length
+      // Short messages to avoid big jumps in length
       statusText.innerText = "Status: Fetching";
       statusText.className = "connected";
       button.disabled = true;
