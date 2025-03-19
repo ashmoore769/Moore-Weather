@@ -79,15 +79,11 @@
           cursor: not-allowed;
       }
 
-      /* Status Text */
+      /* Status Text (keeps on one line, fully visible) */
       #status {
           font-weight: bold;
-          /* Keep status on a single line so it doesn't expand or wrap */
           display: inline-block;
-          width: 130px; /* Adjust if needed */
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: nowrap; /* prevent wrapping */
       }
       .connected {
           color: #006400;
@@ -582,7 +578,7 @@
       const button = document.getElementById("fetchBtn");
       const spinnerContainer = document.getElementById("spinnerContainer");
 
-      // Use shorter status messages so it doesn't expand the container
+      // Slightly shorter messages to avoid big jumps in length
       statusText.innerText = "Status: Fetching";
       statusText.className = "connected";
       button.disabled = true;
@@ -613,10 +609,9 @@
           }
         })
         .catch(error => {
-          // Retry logic with short messages
           if (attempt < 3) {
             let delay = attempt === 1 ? 3000 : 8000;
-            statusText.innerText = `Status: Retry(${delay/1000}s)`;
+            statusText.innerText = `Status: Retry(${(delay/1000)}s)`;
             setTimeout(() => fetchWeather(attempt + 1), delay);
           } else {
             statusText.innerText = "Status: Error";
