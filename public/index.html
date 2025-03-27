@@ -357,7 +357,7 @@
       const solarRad = Math.max(0, solarRadRaw);
       let solarRadColor = solarRad === 0 ? "#000033" :
                           solarRad <= 100 ? "#000080" :
-                          solarRad <= 301 ? "#27408B" :
+                          solarRad <= 300 ? "#27408B" :
                           solarRad <= 600 ? "#DAA520" :
                           solarRad <= 800 ? "#FF9933" :
                           solarRad <= 1100 ? "#BF360C" : "#B71C1C";
@@ -420,8 +420,11 @@
       document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
     }
 
-    // Automatic fetch of weather data based on schedule
+    // Automatic fetch of weather data with retry logic
     let refreshTimeout;
+    let retryAttempts = 0;
+    const MAX_RETRY_ATTEMPTS = 3;
+
     function fetchWeather() {
       const statusText = document.getElementById("status");
       const spinnerContainer = document.getElementById("spinnerContainer");
@@ -438,6 +441,7 @@
         .then(data => {
           updateWeatherData(data);
           statusText.innerText = "Status: Connected";
+          retryAttempts = 0; // Reset retry counter on success
 
           // Schedule next fetch at 20 seconds past the minute (after cache update at 15 sec)
           const now = new Date();
@@ -453,6 +457,13 @@
           console.error("Fetch error:", error);
           statusText.innerText = "Status: Error";
           statusText.className = "error";
+          retryAttempts++;
+          if (retryAttempts <= MAX_RETRY_ATTEMPTS) {
+            console.log(`Retry attempt ${retryAttempts} in 5 seconds...`);
+            refreshTimeout = setTimeout(fetchWeather, 5000);
+          } else {
+            console.log("Max retry attempts reached. Manual intervention may be required.");
+          }
         })
         .finally(() => {
           spinnerContainer.style.display = "none";
@@ -460,7 +471,6 @@
     }
 
     // Manual fetch triggered by the "CURRENT READINGS" button.
-    // This still uses the cached data.
     function manualFetch() {
       if (refreshTimeout) {
         clearTimeout(refreshTimeout);
