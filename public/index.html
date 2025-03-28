@@ -124,13 +124,18 @@
       border-top: 1px solid #ccc;
       margin: 5px 0;
       clear: both;
+      width: 100%;
     }
+    /* Flex container for left and right columns */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
       gap: 10px;
     }
-    .wind-column { width: 60%; }
+    .wind-column {
+      width: 60%;
+      /* The wind column now has two sections: upper data and rain container */
+    }
     .logger-column {
       width: 40%;
       display: flex;
@@ -150,6 +155,14 @@
       height: auto;
       display: block;
       border-radius: 10px;
+    }
+    /* New rain container inside left column */
+    .rain-container {
+      margin-top: 10px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: #f9f9f9;
     }
     .evap-battery {
       display: flex;
@@ -184,6 +197,7 @@
       <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
       <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
       <hr>
+      <!-- Flex container with two columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
           <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
@@ -193,10 +207,12 @@
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
-          <hr>
-          <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
-          <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal">--</span></p>
-          <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
+          <!-- New rain container inserted below the above data in the left column -->
+          <div class="rain-container">
+            <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
+            <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal">--</span></p>
+            <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
+          </div>
         </div>
         <div class="logger-column">
           <span class="logger-label">Data Logger</span>
@@ -310,9 +326,9 @@
      * MAIN UPDATE FUNCTION      *
      *****************************/
     function updateWeatherData(data) {
-      console.log("Raw CSV data:", data);  // Debug logging
+      console.log("Raw CSV data:", data);
       const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
-      console.log("Parsed lines array:", lines);  // Debug logging
+      console.log("Parsed lines array:", lines);
 
       if (lines.length < 30) {
         document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
@@ -323,35 +339,35 @@
       // Date: [0], Time: [1]
       // Rain Since 9AM: index 17
       // Rain/Last Min: index 6
-      const dateStr       = lines[0];
-      const timeStr       = lines[1];
-      const windSpeed     = parseFloat(lines[2]);
-      const windDirDeg    = parseFloat(lines[3]);
-      const humidityRaw   = parseFloat(lines[4]);
-      const temperatureRaw = parseFloat(lines[5]);
-      let rainInLastMinRaw = parseFloat(lines[6]);
-      const solarRadRaw   = parseFloat(lines[7]);
-      const pressureRaw   = parseFloat(lines[8]);
-      const gardenBedTemp = parseFloat(lines[9]);
-      const batteryVoltageVal = parseFloat(lines[10]);
-      const loadCurrent   = parseFloat(lines[11]);
-      const rawSolarVoltage = parseFloat(lines[12]);
-      const chargeCurrent = parseFloat(lines[13]);
-      const peakWindGustVal = parseFloat(lines[14]);
-      const vectorWindSpeedVal = parseFloat(lines[15]);
-      const vectorWindDirVal = parseFloat(lines[16]);
-      const rainSince9    = parseFloat(lines[17]);
-      const evapRate      = parseFloat(lines[18]);
-      const dailyEvap     = parseFloat(lines[20]);
-      const dewPoint      = parseFloat(lines[21]);
-      const soilTemp10    = parseFloat(lines[22]);
-      const soilTemp20    = parseFloat(lines[23]);
-      const soilTemp30    = parseFloat(lines[24]);
-      const soilTemp40    = parseFloat(lines[25]);
-      const moisture10Val = parseFloat(lines[26]);
-      const moisture20Val = parseFloat(lines[27]);
-      const moisture30Val = parseFloat(lines[28]);
-      const moisture40Val = parseFloat(lines[29]);
+      const dateStr             = lines[0];
+      const timeStr             = lines[1];
+      const windSpeed           = parseFloat(lines[2]);
+      const windDirDeg          = parseFloat(lines[3]);
+      const humidityRaw         = parseFloat(lines[4]);
+      const temperatureRaw      = parseFloat(lines[5]);
+      let rainInLastMinRaw      = parseFloat(lines[6]);
+      const solarRadRaw         = parseFloat(lines[7]);
+      const pressureRaw         = parseFloat(lines[8]);
+      const gardenBedTemp       = parseFloat(lines[9]);
+      const batteryVoltageVal   = parseFloat(lines[10]);
+      const loadCurrent         = parseFloat(lines[11]);
+      const rawSolarVoltage     = parseFloat(lines[12]);
+      const chargeCurrent       = parseFloat(lines[13]);
+      const peakWindGustVal     = parseFloat(lines[14]);
+      const vectorWindSpeedVal  = parseFloat(lines[15]);
+      const vectorWindDirVal    = parseFloat(lines[16]);
+      const rainSince9          = parseFloat(lines[17]);
+      const evapRate            = parseFloat(lines[18]);
+      const dailyEvap           = parseFloat(lines[20]);
+      const dewPoint            = parseFloat(lines[21]);
+      const soilTemp10          = parseFloat(lines[22]);
+      const soilTemp20          = parseFloat(lines[23]);
+      const soilTemp30          = parseFloat(lines[24]);
+      const soilTemp40          = parseFloat(lines[25]);
+      const moisture10Val       = parseFloat(lines[26]);
+      const moisture20Val       = parseFloat(lines[27]);
+      const moisture30Val       = parseFloat(lines[28]);
+      const moisture40Val       = parseFloat(lines[29]);
 
       // DATE & TIME
       document.getElementById("dateVal").textContent = formatDateString(dateStr);
