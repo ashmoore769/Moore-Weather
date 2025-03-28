@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
-    /* CSS styling */
     body {
       margin: 0;
       background-color: #f4f4f4;
@@ -125,12 +124,16 @@
       margin: 5px 0;
       clear: both;
     }
+
+    /* Container for the left column (wind + solar + garden bed + pressure) and the right column (logger + rain). */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
       gap: 10px;
     }
-    .wind-column { width: 60%; }
+    .wind-column {
+      width: 60%;
+    }
     .logger-column {
       width: 40%;
       display: flex;
@@ -151,6 +154,13 @@
       display: block;
       border-radius: 10px;
     }
+    /* Place the three rain lines below the logger in the right column */
+    .rain-container {
+      margin-top: 8px;
+      text-align: left;
+      width: 100%;
+    }
+
     .evap-battery {
       display: flex;
       justify-content: space-between;
@@ -184,15 +194,15 @@
       <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
       <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
       <hr>
+
+      <!-- Left column: wind, humidity, temperature, solar, garden bed temp, pressure
+           Right column: Data Logger + 3 Rain lines -->
       <div class="wind-logger-container">
         <div class="wind-column">
           <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
           <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
           <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
           <p><b>🌡️ Temperature:</b> <span id="tempVal" style="font-weight:bold;">--</span> (<span id="tempDescVal">--</span>)</p>
-          <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
-          <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal">--</span></p>
-          <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
@@ -200,9 +210,17 @@
         <div class="logger-column">
           <span class="logger-label">Data Logger</span>
           <img src="/Station_Label.png" alt="Data Logger Model" class="logger-image">
+          <!-- Three Rain lines below the logger -->
+          <div class="rain-container">
+            <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
+            <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal">--</span></p>
+            <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
+          </div>
         </div>
       </div>
       <hr>
+
+      <!-- Next rows: Evap/Battery, Peak Wind, Vector, Soil, etc. -->
       <div class="evap-battery">
         <div class="evap-col">
           <p><b>⤴️ Evap/Hr:</b> <span id="evapRateVal">--</span> mm/h</p>
@@ -217,10 +235,12 @@
         </div>
       </div>
       <hr>
+
       <p><b>🌬️ Peak Wind Gust:</b> <span id="peakWindGustVal">--</span></p>
       <p><b>🍃 Vector Wind Speed:</b> <span id="vectorWindSpeedVal">--</span> km/h</p>
       <p><b>🧭 Vector Wind Direction:</b> <span id="vectorWindDirDegVal">--</span>° (<span id="vectorWindDirTextVal">--</span>)</p>
       <hr>
+
       <div class="soil-moisture">
         <div class="soiltemp-col">
           <p><b>🌡️ S. Temp 10cm:</b> <span id="soilTemp10Val">--</span>°C</p>
@@ -309,48 +329,51 @@
      * MAIN UPDATE FUNCTION      *
      *****************************/
     function updateWeatherData(data) {
-      console.log("Raw CSV data:", data);  // Debug logging
+      console.log("Raw CSV data:", data);
       const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
-      console.log("Parsed lines array:", lines);  // Debug logging
+      console.log("Parsed lines array:", lines);
 
       if (lines.length < 30) {
         document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
         return;
       }
 
-      // Indices assumptions:
-      // Date: [0], Time: [1]
-      // Rain Since 9AM: index 17
-      // Rain/Last Min: index 6
-      const dateStr       = lines[0];
-      const timeStr       = lines[1];
-      const windSpeed     = parseFloat(lines[2]);
-      const windDirDeg    = parseFloat(lines[3]);
-      const humidityRaw   = parseFloat(lines[4]);
-      const temperatureRaw = parseFloat(lines[5]);
-      let rainInLastMinRaw = parseFloat(lines[6]);
-      const solarRadRaw   = parseFloat(lines[7]);
-      const pressureRaw   = parseFloat(lines[8]);
-      const gardenBedTemp = parseFloat(lines[9]);
-      const batteryVoltageVal = parseFloat(lines[10]);
-      const loadCurrent   = parseFloat(lines[11]);
-      const rawSolarVoltage = parseFloat(lines[12]);
-      const chargeCurrent = parseFloat(lines[13]);
-      const peakWindGustVal = parseFloat(lines[14]);
-      const vectorWindSpeedVal = parseFloat(lines[15]);
-      const vectorWindDirVal = parseFloat(lines[16]);
-      const rainSince9    = parseFloat(lines[17]);
-      const evapRate      = parseFloat(lines[18]);
-      const dailyEvap     = parseFloat(lines[20]);
-      const dewPoint      = parseFloat(lines[21]);
-      const soilTemp10    = parseFloat(lines[22]);
-      const soilTemp20    = parseFloat(lines[23]);
-      const soilTemp30    = parseFloat(lines[24]);
-      const soilTemp40    = parseFloat(lines[25]);
-      const moisture10Val = parseFloat(lines[26]);
-      const moisture20Val = parseFloat(lines[27]);
-      const moisture30Val = parseFloat(lines[28]);
-      const moisture40Val = parseFloat(lines[29]);
+      // Indices:
+      // [0] dateStr, [1] timeStr, [2] windSpeed, [3] windDirDeg, [4] humidityRaw, [5] temperatureRaw
+      // [6] rainInLastMin, [7] solarRadRaw, [8] pressureRaw, [9] gardenBedTemp
+      // [10] batteryVoltageVal, [11] loadCurrent, [12] rawSolarVoltage, [13] chargeCurrent
+      // [14] peakWindGustVal, [15] vectorWindSpeedVal, [16] vectorWindDirVal, [17] rainSince9, [18] evapRate
+      // [20] dailyEvap, [21] dewPoint, [22..25] soilTemps, [26..29] moisture
+      const dateStr             = lines[0];
+      const timeStr             = lines[1];
+      const windSpeed           = parseFloat(lines[2]);
+      const windDirDeg          = parseFloat(lines[3]);
+      const humidityRaw         = parseFloat(lines[4]);
+      const temperatureRaw      = parseFloat(lines[5]);
+      let rainInLastMinRaw      = parseFloat(lines[6]);
+      const solarRadRaw         = parseFloat(lines[7]);
+      const pressureRaw         = parseFloat(lines[8]);
+      const gardenBedTemp       = parseFloat(lines[9]);
+      const batteryVoltageVal   = parseFloat(lines[10]);
+      const loadCurrent         = parseFloat(lines[11]);
+      const rawSolarVoltage     = parseFloat(lines[12]);
+      const chargeCurrent       = parseFloat(lines[13]);
+      const peakWindGustVal     = parseFloat(lines[14]);
+      const vectorWindSpeedVal  = parseFloat(lines[15]);
+      const vectorWindDirVal    = parseFloat(lines[16]);
+      const rainSince9          = parseFloat(lines[17]);
+      const evapRate            = parseFloat(lines[18]);
+      // lines[19] might be unused
+      const dailyEvap           = parseFloat(lines[20]);
+      const dewPoint            = parseFloat(lines[21]);
+      const soilTemp10          = parseFloat(lines[22]);
+      const soilTemp20          = parseFloat(lines[23]);
+      const soilTemp30          = parseFloat(lines[24]);
+      const soilTemp40          = parseFloat(lines[25]);
+      const moisture10Val       = parseFloat(lines[26]);
+      const moisture20Val       = parseFloat(lines[27]);
+      const moisture30Val       = parseFloat(lines[28]);
+      const moisture40Val       = parseFloat(lines[29]);
 
       // DATE & TIME
       document.getElementById("dateVal").textContent = formatDateString(dateStr);
@@ -496,7 +519,7 @@
         })
         .then(data => {
           updateWeatherData(data);
-          fetchRainYesterday(); // Update "Rain Yesterday" as well
+          fetchRainYesterday(); // Also fetch the "Rain Yesterday" snapshot
           statusText.innerText = "Status: Connected";
           statusText.className = "connected";
           retryAttempts = 0;
