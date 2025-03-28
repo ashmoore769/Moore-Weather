@@ -124,6 +124,7 @@
       border-top: 1px solid #ccc;
       margin: 5px 0;
       clear: both;
+      width: 100%;  /* This ensures the line extends full width */
     }
     .wind-logger-container {
       display: flex;
@@ -193,14 +194,14 @@
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
-          <hr>
-          <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
-          <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal">--</span></p>
-          <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
         </div>
         <div class="logger-column">
           <span class="logger-label">Data Logger</span>
           <img src="/Station_Label.png" alt="Data Logger Model" class="logger-image">
+          <hr>
+          <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
+          <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal">--</span></p>
+          <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
         </div>
       </div>
       <hr>
@@ -310,9 +311,9 @@
      * MAIN UPDATE FUNCTION      *
      *****************************/
     function updateWeatherData(data) {
-      console.log("Raw CSV data:", data);  // Debug logging
+      console.log("Raw CSV data:", data);
       const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
-      console.log("Parsed lines array:", lines);  // Debug logging
+      console.log("Parsed lines array:", lines);
 
       if (lines.length < 30) {
         document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
