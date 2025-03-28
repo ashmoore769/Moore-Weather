@@ -293,6 +293,9 @@
       return display;
     }
 
+    // Flag to track if initial load was successful
+    let initialLoadComplete = false;
+
     // Update the UI with weather data from the cache
     function updateWeatherData(data) {
       data = data.replace(/r3\r?\n?/, "").trim();
@@ -441,8 +444,11 @@
         .then(data => {
           updateWeatherData(data);
           statusText.innerText = "Status: Connected";
-          retryAttempts = 0; // Reset retry counter on success
-
+          retryAttempts = 0; 
+          // Mark that initial load is complete after a successful fetch
+          if (!initialLoadComplete) {
+            initialLoadComplete = true;
+          }
           // Schedule next fetch at 20 seconds past the minute (after cache update at 15 sec)
           const now = new Date();
           let delay;
@@ -457,12 +463,16 @@
           console.error("Fetch error:", error);
           statusText.innerText = "Status: Error";
           statusText.className = "error";
-          retryAttempts++;
-          if (retryAttempts <= MAX_RETRY_ATTEMPTS) {
-            console.log(`Retry attempt ${retryAttempts} in 5 seconds...`);
-            refreshTimeout = setTimeout(fetchWeather, 5000);
+          // For the very first load, retry rapidly every 1 second until data is obtained.
+          if (!initialLoadComplete) {
+            refreshTimeout = setTimeout(fetchWeather, 1000);
           } else {
-            console.log("Max retry attempts reached. Manual intervention may be required.");
+            retryAttempts++;
+            if (retryAttempts <= MAX_RETRY_ATTEMPTS) {
+              refreshTimeout = setTimeout(fetchWeather, 5000);
+            } else {
+              console.log("Max retry attempts reached. Manual intervention may be required.");
+            }
           }
         })
         .finally(() => {
