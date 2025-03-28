@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
-    /* Same CSS as before */
+    /* CSS styling */
     body {
       margin: 0;
       background-color: #f4f4f4;
@@ -181,11 +181,9 @@
     <div id="weatherData">
       <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
       <div class="address-title">13961 CUNNINGHAM HWY, WARWICK</div>
-
       <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
       <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
       <hr>
-
       <div class="wind-logger-container">
         <div class="wind-column">
           <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
@@ -194,9 +192,7 @@
           <p><b>🌡️ Temperature:</b> <span id="tempVal" style="font-weight:bold;">--</span> (<span id="tempDescVal">--</span>)</p>
           <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
           <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal">--</span></p>
-          <!-- If you have "Rain Yesterday," place it here, for example:
-          <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p> 
-          -->
+          <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
@@ -212,7 +208,6 @@
           <p><b>⤴️ Evap/Hr:</b> <span id="evapRateVal">--</span> mm/h</p>
           <p><b>⬆️ Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
           <p><b>💧 Dew Point:</b> <span id="dewPointVal">--</span>°C</p>
-          <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal2">--</span></p>
         </div>
         <div class="battery-col">
           <p><b>🔋 Battery:</b>  <span id="batteryVal">--</span></p>
@@ -314,52 +309,48 @@
      * MAIN UPDATE FUNCTION      *
      *****************************/
     function updateWeatherData(data) {
-      console.log("Raw CSV data:", data);  // <-- NEW debug logging
+      console.log("Raw CSV data:", data);  // Debug logging
       const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
-      console.log("Parsed lines array:", lines);  // <-- NEW debug logging
+      console.log("Parsed lines array:", lines);  // Debug logging
 
-      // Make sure we have enough fields
       if (lines.length < 30) {
         document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
         return;
       }
 
-      // Pull fields by index (adjust if needed):
-      const dateStr           = lines[0];
-      const timeStr           = lines[1];
-      const windSpeed         = parseFloat(lines[2]);
-      const windDirDeg        = parseFloat(lines[3]);
-      const humidityRaw       = parseFloat(lines[4]);
-      const temperatureRaw    = parseFloat(lines[5]);
-      // Rain in last minute (GUESSING it's index 6)
-      let rainInLastMinRawVal = parseFloat(lines[6]);
-
-      // If the logger actually sends "Rain/Last Min" at a different index, change the above line accordingly!
-      // For example: parseFloat(lines[19]) if the logs show it's at position 20.
-
-      const solarRadRaw       = parseFloat(lines[7]);
-      const pressureRaw       = parseFloat(lines[8]);
-      const gardenBedTemp     = parseFloat(lines[9]);
+      // Indices assumptions:
+      // Date: [0], Time: [1]
+      // Rain Since 9AM: index 17
+      // Rain/Last Min: index 6
+      const dateStr       = lines[0];
+      const timeStr       = lines[1];
+      const windSpeed     = parseFloat(lines[2]);
+      const windDirDeg    = parseFloat(lines[3]);
+      const humidityRaw   = parseFloat(lines[4]);
+      const temperatureRaw = parseFloat(lines[5]);
+      let rainInLastMinRaw = parseFloat(lines[6]);
+      const solarRadRaw   = parseFloat(lines[7]);
+      const pressureRaw   = parseFloat(lines[8]);
+      const gardenBedTemp = parseFloat(lines[9]);
       const batteryVoltageVal = parseFloat(lines[10]);
-      const loadCurrent       = parseFloat(lines[11]);
-      const rawSolarVoltage   = parseFloat(lines[12]);
-      const chargeCurrent     = parseFloat(lines[13]);
-      const peakWindGustVal   = parseFloat(lines[14]);
-      const vectorWindSpeedVal= parseFloat(lines[15]);
-      const vectorWindDirVal  = parseFloat(lines[16]);
-      const rainSince9        = parseFloat(lines[17]);
-      const evapRate          = parseFloat(lines[18]);
-      // lines[19] might exist or be unused
-      const dailyEvap         = parseFloat(lines[20]);
-      const dewPoint          = parseFloat(lines[21]);
-      const soilTemp10        = parseFloat(lines[22]);
-      const soilTemp20        = parseFloat(lines[23]);
-      const soilTemp30        = parseFloat(lines[24]);
-      const soilTemp40        = parseFloat(lines[25]);
-      const moisture10Val     = parseFloat(lines[26]);
-      const moisture20Val     = parseFloat(lines[27]);
-      const moisture30Val     = parseFloat(lines[28]);
-      const moisture40Val     = parseFloat(lines[29]);
+      const loadCurrent   = parseFloat(lines[11]);
+      const rawSolarVoltage = parseFloat(lines[12]);
+      const chargeCurrent = parseFloat(lines[13]);
+      const peakWindGustVal = parseFloat(lines[14]);
+      const vectorWindSpeedVal = parseFloat(lines[15]);
+      const vectorWindDirVal = parseFloat(lines[16]);
+      const rainSince9    = parseFloat(lines[17]);
+      const evapRate      = parseFloat(lines[18]);
+      const dailyEvap     = parseFloat(lines[20]);
+      const dewPoint      = parseFloat(lines[21]);
+      const soilTemp10    = parseFloat(lines[22]);
+      const soilTemp20    = parseFloat(lines[23]);
+      const soilTemp30    = parseFloat(lines[24]);
+      const soilTemp40    = parseFloat(lines[25]);
+      const moisture10Val = parseFloat(lines[26]);
+      const moisture20Val = parseFloat(lines[27]);
+      const moisture30Val = parseFloat(lines[28]);
+      const moisture40Val = parseFloat(lines[29]);
 
       // DATE & TIME
       document.getElementById("dateVal").textContent = formatDateString(dateStr);
@@ -389,12 +380,12 @@
       document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
 
       // RAIN IN LAST MINUTE
-      if (isNaN(rainInLastMinRawVal)) {
-        console.warn("Rain/Last Min is NaN at index [6]. Check your logger's CSV or correct the index!");
-        rainInLastMinRawVal = 0.0; // fallback to 0.0
+      if (isNaN(rainInLastMinRaw)) {
+        console.warn("Rain/Last Min is NaN at index [6]. Defaulting to 0.0 mm");
+        rainInLastMinRaw = 0.0;
       }
-      let rainInLastMinDisplay = rainInLastMinRawVal.toFixed(1) + " mm";
-      if (rainInLastMinRawVal >= 0.2) {
+      let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
+      if (rainInLastMinRaw >= 0.2) {
         rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
       }
       document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
@@ -505,14 +496,13 @@
         })
         .then(data => {
           updateWeatherData(data);
+          fetchRainYesterday(); // Update "Rain Yesterday" as well
           statusText.innerText = "Status: Connected";
+          statusText.className = "connected";
           retryAttempts = 0;
           if (!initialLoadComplete) {
             initialLoadComplete = true;
           }
-          // If you have "Rain Yesterday," you could fetch it here:
-          // fetchRainYesterday();
-
           // Schedule next fetch at 20 seconds past the minute
           const now = new Date();
           let delay;
@@ -528,7 +518,6 @@
           statusText.innerText = "Status: Error";
           statusText.className = "error";
           if (!initialLoadComplete) {
-            // Retry quickly until we get the first successful load
             refreshTimeout = setTimeout(fetchWeather, 1000);
           } else {
             retryAttempts++;
@@ -544,12 +533,13 @@
         });
     }
 
-    // If you have "Rain Yesterday," implement fetchRainYesterday() here:
-    /*
+    // Fetch the "Rain Yesterday" value from the server
     function fetchRainYesterday() {
       fetch("/rainYesterday")
         .then(response => {
-          if (!response.ok) { throw new Error("Server responded with " + response.status); }
+          if (!response.ok) {
+            throw new Error("Server responded with " + response.status);
+          }
           return response.text();
         })
         .then(data => {
@@ -560,7 +550,6 @@
           document.getElementById("rainYesterdayVal").textContent = "--";
         });
     }
-    */
 
     function manualFetch() {
       if (refreshTimeout) {
