@@ -407,21 +407,24 @@
       }
       document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
 
-      // SOLAR RADIATION
-      const solarRad = Math.max(0, solarRadRaw);
-      let solarRadColor = solarRad === 0 ? "#000033" :
-                          solarRad <= 100 ? "#000080" :
-                          solarRad <= 300 ? "#27408B" :
-                          solarRad <= 600 ? "#DAA520" :
-                          solarRad <= 800 ? "#FF9933" :
-                          solarRad <= 1100 ? "#BF360C" : "#B71C1C";
-      let solarRadDisplay = solarRad.toFixed(1) + " W/m² 🌙";
-      if (solarRad > 0) {
-        solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor};">${solarRadDisplay}</span>`;
-      } else {
-        solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
-      }
-      document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
+// SOLAR RADIATION
+const solarRad = Math.max(0, solarRadRaw);
+let solarRadColor = solarRad === 0 ? "#000033" :
+                    solarRad <= 100 ? "#000080" :
+                    solarRad <= 300 ? "#27408B" :
+                    solarRad <= 600 ? "#DAA520" :
+                    solarRad <= 800 ? "#FF9933" :
+                    solarRad <= 1100 ? "#BF360C" : "#B71C1C";
+let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
+if (solarRad < 10) {
+  solarRadDisplay += " 🌙"; // Append the moon only when solarRad is below 10
+}
+if (solarRad > 0) {
+  solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor};">${solarRadDisplay}</span>`;
+} else {
+  solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
+}
+document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
 
       // GARDEN BED TEMP
       document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
