@@ -190,6 +190,8 @@
           <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
           <p><b>🌡️ Temperature:</b> <span id="tempVal" style="font-weight:bold;">--</span> (<span id="tempDescVal">--</span>)</p>
           <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
+          <!-- New Rain Yesterday line -->
+          <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
@@ -353,10 +355,6 @@
       if (rainSince9 >= 0.2) { rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`; }
       document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
 
-      let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
-      if (rainInLastMinRaw >= 0.2) { rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`; }
-      document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
-
       const solarRad = Math.max(0, solarRadRaw);
       let solarRadColor = solarRad === 0 ? "#000033" :
                           solarRad <= 100 ? "#000080" :
@@ -445,10 +443,11 @@
           updateWeatherData(data);
           statusText.innerText = "Status: Connected";
           retryAttempts = 0; 
-          // Mark that initial load is complete after a successful fetch
           if (!initialLoadComplete) {
             initialLoadComplete = true;
           }
+          // Also fetch Rain Yesterday data
+          fetchRainYesterday();
           // Schedule next fetch at 20 seconds past the minute (after cache update at 15 sec)
           const now = new Date();
           let delay;
@@ -463,7 +462,6 @@
           console.error("Fetch error:", error);
           statusText.innerText = "Status: Error";
           statusText.className = "error";
-          // For the very first load, retry rapidly every 1 second until data is obtained.
           if (!initialLoadComplete) {
             refreshTimeout = setTimeout(fetchWeather, 1000);
           } else {
@@ -477,6 +475,22 @@
         })
         .finally(() => {
           spinnerContainer.style.display = "none";
+        });
+    }
+
+    // Function to fetch the Rain Yesterday value from the server
+    function fetchRainYesterday() {
+      fetch("/rainYesterday")
+        .then(response => {
+          if (!response.ok) { throw new Error("Server responded with " + response.status); }
+          return response.text();
+        })
+        .then(data => {
+          document.getElementById("rainYesterdayVal").textContent = data;
+        })
+        .catch(error => {
+          console.error("Rain Yesterday fetch error:", error);
+          document.getElementById("rainYesterdayVal").textContent = "--";
         });
     }
 
