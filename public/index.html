@@ -132,17 +132,9 @@
       justify-content: space-between;
       gap: 10px;
     }
-    /* Left column will hold two containers */
     .wind-column {
       width: 60%;
-    }
-    /* Data container style applied to both wind data and rain gauge sections */
-    .data-container {
-      margin-top: 10px;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      background: #f9f9f9;
+      /* The wind column now has two sections: upper data and rain container */
     }
     .logger-column {
       width: 40%;
@@ -163,6 +155,14 @@
       height: auto;
       display: block;
       border-radius: 10px;
+    }
+    /* New rain container inside left column */
+    .rain-container {
+      margin-top: 10px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: #f9f9f9;
     }
     .evap-battery {
       display: flex;
@@ -197,21 +197,18 @@
       <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
       <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
       <hr>
-      <!-- Flex container for left and right columns -->
+      <!-- Flex container with two columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
-          <!-- Wind & other data container -->
-          <div class="data-container">
-            <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
-            <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
-            <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
-            <p><b>🌡️ Temperature:</b> <span id="tempVal" style="font-weight:bold;">--</span> (<span id="tempDescVal">--</span>)</p>
-            <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
-            <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
-            <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
-          </div>
-          <!-- Rain gauge container -->
-          <div class="data-container">
+          <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
+          <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
+          <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
+          <p><b>🌡️ Temperature:</b> <span id="tempVal" style="font-weight:bold;">--</span> (<span id="tempDescVal">--</span>)</p>
+          <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
+          <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
+          <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
+          <!-- New rain container inserted below the above data in the left column -->
+          <div class="rain-container">
             <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
             <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal">--</span></p>
             <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
@@ -376,54 +373,30 @@
       document.getElementById("dateVal").textContent = formatDateString(dateStr);
       document.getElementById("timeVal").textContent = timeStr + " AEST";
 
-      // WIND & RELATED DATA (inside data-container)
-      let windContainer = document.querySelector(".wind-column .data-container.wind-data");
-      if (!windContainer) {
-        // If it doesn't exist (first time), create it and insert at the top of wind-column.
-        windContainer = document.createElement("div");
-        windContainer.className = "data-container wind-data";
-        // Insert before any existing child nodes of the wind column.
-        document.querySelector(".wind-column").prepend(windContainer);
-      }
-      windContainer.innerHTML = `
-          <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
-          <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
-          <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
-          <p><b>🌡️ Temperature:</b> <span id="tempVal" style="font-weight:bold;">--</span> (<span id="tempDescVal">--</span>)</p>
-          <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
-          <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
-          <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
-      `;
-
-      // RAIN DATA (inside its own container)
-      let rainContainer = document.querySelector(".wind-column .data-container.rain-data");
-      if (!rainContainer) {
-        rainContainer = document.createElement("div");
-        rainContainer.className = "data-container rain-data";
-        // Append after the wind data container
-        document.querySelector(".wind-column").appendChild(rainContainer);
-      }
-      rainContainer.innerHTML = `
-          <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
-          <p><b>🌧️ Rain/Last Min:</b> <span id="rainInLastMinVal">--</span></p>
-          <p><b>🌧️ Rain Yesterday:</b> <span id="rainYesterdayVal">--</span></p>
-      `;
-
-      // Now update the values in the DOM as before:
-      // (The following assumes that your updateWeatherData() function continues to update the same IDs.)
+      // WIND
       document.getElementById("windSpeedVal").textContent = windSpeed.toFixed(1);
       document.getElementById("windDirDegVal").textContent = windDirDeg.toFixed(1);
       document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
+
+      // HUMIDITY
       document.getElementById("humidityVal").textContent = humidityRaw.toFixed(1);
       document.getElementById("humidityDescVal").textContent = getHumidityDesc(humidityRaw);
-      document.getElementById("tempVal").textContent = temperatureRaw.toFixed(1) + "°C";
-      document.getElementById("tempVal").style.color = getTemperatureColorAndDesc(temperatureRaw).color;
-      document.getElementById("tempDescVal").textContent = getTemperatureColorAndDesc(temperatureRaw).desc;
+
+      // TEMPERATURE
+      const tempData = getTemperatureColorAndDesc(temperatureRaw);
+      const tempSpan = document.getElementById("tempVal");
+      tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
+      tempSpan.style.color = tempData.color;
+      document.getElementById("tempDescVal").textContent = tempData.desc;
+
+      // RAIN SINCE 9AM
       let rainSince9Display = rainSince9.toFixed(1) + " mm";
       if (rainSince9 >= 0.2) {
         rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
       }
       document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
+
+      // RAIN IN LAST MINUTE
       if (isNaN(rainInLastMinRaw)) {
         console.warn("Rain/Last Min is NaN at index [6]. Defaulting to 0.0 mm");
         rainInLastMinRaw = 0.0;
@@ -433,6 +406,8 @@
         rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
       }
       document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
+
+      // SOLAR RADIATION
       const solarRad = Math.max(0, solarRadRaw);
       let solarRadColor = solarRad === 0 ? "#000033" :
                           solarRad <= 100 ? "#000080" :
@@ -447,13 +422,19 @@
         solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
       }
       document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
+
+      // GARDEN BED TEMP
       document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
+
+      // PRESSURE
       let adjustedPressure = pressureRaw - 1.9;
       let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
       if (adjustedPressure >= 1020) {
         pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
       }
       document.getElementById("pressureVal").innerHTML = pressureDisplay;
+
+      // BATTERY
       const batteryVoltage = batteryVoltageVal.toFixed(1);
       let batteryColor = batteryVoltageVal < 12.5 ? "red" : "green";
       let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
@@ -461,12 +442,18 @@
         batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
       }
       document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
+
+      // LOAD
       document.getElementById("loadVal").textContent = loadCurrent.toFixed(1);
+
+      // SOLAR PANEL
       let solarPanelDisplay = rawSolarVoltage.toFixed(1) + " V ☀️";
       if (rawSolarVoltage < batteryVoltageVal) {
         solarPanelDisplay = "0.0 V 🌙";
       }
       document.getElementById("solarPanelVal").textContent = solarPanelDisplay;
+
+      // CHARGE
       let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
       if (batteryVoltageVal < 13.80) {
         chargeDisplay = chargeCurrent > loadCurrent
@@ -474,6 +461,8 @@
           : `<span style="color:red;">${chargeDisplay}</span>`;
       }
       document.getElementById("chargeVal").innerHTML = chargeDisplay;
+
+      // PEAK WIND GUST
       let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
       if (peakWindGustVal > 25) {
         peakWindGustDisplay = `<span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>`;
@@ -481,16 +470,23 @@
         peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
       }
       document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
+
+      // VECTOR WIND
       document.getElementById("vectorWindSpeedVal").textContent = vectorWindSpeedVal.toFixed(1);
       document.getElementById("vectorWindDirDegVal").textContent = vectorWindDirVal.toFixed(1);
       document.getElementById("vectorWindDirTextVal").textContent = getWindDirection(vectorWindDirVal);
+
+      // EVAP & DEW POINT
       document.getElementById("evapRateVal").textContent = evapRate.toFixed(3);
       document.getElementById("dailyEvapVal").textContent = dailyEvap.toFixed(3);
       document.getElementById("dewPointVal").textContent = dewPoint.toFixed(1);
+
+      // SOIL TEMPS & MOISTURE
       document.getElementById("soilTemp10Val").textContent = soilTemp10.toFixed(1);
       document.getElementById("soilTemp20Val").textContent = soilTemp20.toFixed(1);
       document.getElementById("soilTemp30Val").textContent = soilTemp30.toFixed(1);
       document.getElementById("soilTemp40Val").textContent = soilTemp40.toFixed(1);
+
       document.getElementById("moisture10Val").innerHTML = colorMoisture(moisture10Val);
       document.getElementById("moisture20Val").innerHTML = colorMoisture(moisture20Val);
       document.getElementById("moisture30Val").innerHTML = colorMoisture(moisture30Val);
@@ -503,6 +499,7 @@
     function fetchWeather() {
       const statusText = document.getElementById("status");
       const spinnerContainer = document.getElementById("spinnerContainer");
+
       statusText.innerText = "Status: Fetching";
       statusText.className = "connected";
       spinnerContainer.style.display = "block";
