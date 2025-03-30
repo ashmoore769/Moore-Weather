@@ -261,16 +261,10 @@
       .header-box {
         padding: 0;
       }
-      .control-container {
-        flex-direction: column;
-        align-items: center;
-      }
-      .control-half {
-        width: 100%;
-        margin: 2px 0;
-      }
-      /* Note: The wind-logger-container is no longer forced to stack vertically,
-               ensuring the big temperature remains in the right column on mobile. */
+      /* 
+         Removed the stacking rules for the control-container.
+         The default row-based layout is maintained on mobile.
+      */
     }
   </style>
 </head>
