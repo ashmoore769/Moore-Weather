@@ -114,36 +114,30 @@
       clear: both;
       width: 100%;
     }
-    /* Top header: address on left, two logos on right */
-    .top-header {
+    /* New header row for address, time and logos */
+    .header-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
+      align-items: flex-end; /* Align bottom edges */
+      margin-bottom: 8px;
     }
-    .address-container {
-      /* Left side text */
+    .info-container {
+      display: flex;
+      align-items: flex-end; /* Align time data and logos along their bottom edges */
+      gap: 20px;
     }
-    .address-title {
-      font-size: 16.5px;
-      font-weight: bold;
+    .time-data p {
       margin: 0;
-      color: #00008B;
+      line-height: 1.3;
     }
     .logo-container {
-  display: flex;
-  align-items: center; /* Keeps images vertically aligned with each other */
-  gap: 10px;
-  position: relative;  /* Add this to enable shifting */
-  top: 6px;          /* Add this to push the container down. Adjust '6px' slightly if needed for perfect alignment. */
-}
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
     .logo-container img {
       height: 60px;
       width: auto;
-    }
-    /* Date/time row below the top header */
-    .date-time {
-      margin-bottom: 8px;
     }
     /* Flex container for left and right columns */
     .wind-logger-container {
@@ -154,14 +148,12 @@
     .wind-column {
       width: 60%;
     }
-    /* Right column now holds just the big temp box at the top */
     .logger-column {
       width: 40%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      /* Remove the extra top margin since we'll show only the big temp */
       margin-top: 0;
     }
     .big-temp-box {
@@ -219,20 +211,21 @@
     </div>
 
     <div id="weatherData">
-      <!-- Top header row with address on left and two logos on right -->
-      <div class="top-header">
+      <!-- New header row: address on the left; time & logos on the right -->
+      <div class="header-row">
         <div class="address-container">
           <div class="address-title">WEST WARWICK, QLD</div>
         </div>
-        <div class="logo-container">
-          <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-          <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+        <div class="info-container">
+          <div class="time-data">
+            <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+            <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+          </div>
+          <div class="logo-container">
+            <img src="/Weather_Station_App.png" alt="Weather Station Icon">
+            <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+          </div>
         </div>
-      </div>
-      <!-- Date and Time row -->
-      <div class="date-time">
-        <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-        <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
       </div>
       <hr>
       <!-- Flex container for main data -->
@@ -254,7 +247,6 @@
           </div>
         </div>
         <div class="logger-column">
-          <!-- Big temperature box (now at the top of the right column) -->
           <div class="big-temp-box">
             <span id="bigTempVal">--</span>
           </div>
