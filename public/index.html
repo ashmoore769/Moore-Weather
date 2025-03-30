@@ -134,7 +134,7 @@
       border: none;
       border-top: 1px solid #ccc;
       margin: 10px 0;
-      clear: both;
+      clear: both    ;
       width: 100%;
     }
 
@@ -178,7 +178,7 @@
       height: 60px;
       width: auto;
       margin: 0;
-      display: block;
+      display: flex;
     }
 
     /* --- Main Data Layout --- */
@@ -190,15 +190,15 @@
     }
 
     .wind-column {
-      width: 60%;
+      width: 50%;
     }
 
     .logger-column {
-      width: 40%;
+      width: 30%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: start;
     }
 
     .big-temp-box {
@@ -212,8 +212,8 @@
       font-weight: bold;
       color: #FF8C00;
       text-align: center;
-      min-width: 75px;
-      margin: 5px 0;
+      max-width: 100px;
+      min-height: 40px;
     }
 
     .rain-container {
@@ -221,22 +221,22 @@
       padding: 1px;
       border: 1px solid #ccc;
       border-radius: 5px;
-      background: #f9f9f9;
+      background: #f9f9;
       margin: 5px 0;
     }
 
     .evap-battery {
       display: flex;
       justify-content: space-between;
-      margin: 10px 0;
+      margin: 0 10px;
     }
 
     .evap-col {
-      width: 52%;
+      width: 1;
     }
 
     .battery-col {
-      width: 48%;
+      width: 1;
     }
 
     .soil-moisture {
@@ -249,29 +249,6 @@
       width: 48%;
     }
 
-    /* Add some media queries to optimize for mobile devices */
-    @media only screen and (max-width: 600px) {
-      .main-container {
-        padding: 0 10px;
-      }
-      .header-box {
-        padding: 5px;
-      }
-      .control-container {
-        flex-direction: column;
-        align-items: center;
-      }
-      .control-half {
-        width: 100%;
-        margin: 5px 0;
-      }
-      .wind-logger-container {
-        flex-direction: column;
-      }
-      .wind-column, .logger-column {
-        width: 100%;
-      }
-    }
   </style>
 </head>
 <body>
@@ -298,34 +275,33 @@
         <div class="title-date-container">
           <div class="address-title">WEST WARWICK, QLD</div>
           <div class="date-time">
-            <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-            <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+            <p><b>?</b> <span id="dateVal">--</span></p>
+            <p><b></b> <span id="timeVal">--</span></p>
+          </div>
+          <div class="logo-container">
+            <img src="/Weather_Station_App.png" alt="Weather Station Icon">
+            <img src="/Station_Label.png" alt="Environdata Weather Maestro">
           </div>
         </div>
-        <div class="logo-container">
-          <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-          <img src="/Station_Label.png" alt="Environdata Weather Maestro">
-        </div>
-      </div>
-      <hr>
+        <hr>
       
       <!-- Main Data Columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
-          <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
-          <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
+          <p><b> 💨  Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
+          <p> <b> 🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
           <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
-          <p>
-            <b>🌡️ Temperature:</b>
+          <p> 
+            <b> 🌡️ Temperature:</b>
             <span id="tempVal" style="font-weight:bold;">--</span>
             (<span id="tempDescVal">--</span>)
           </p>
-          <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
-          <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
-          <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
+          <p><b> ☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
+          <p><b> 🌱  Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
+          <p> <b> Pressure:</b> <span id="pressureVal">--</span></p>
           <div class="rain-container">
-            <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
-            <p><b>🌧️ Rain /Last Min:</b> <span id="rainInLastMinVal">--</span></p>
+            <p><b> 🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
+            <p><b> 🌧️ Rain /Last Min:</b> <span id="rainInLastMinVal">--</span></p>
           </div>
         </div>
         <div class="logger-column">
@@ -338,38 +314,38 @@
       <!-- Evaporation and Battery Section -->
       <div class="evap-battery">
         <div class="evap-col">
-          <p><b>⤴️ Evap/Hr:</b> <span id="evapRateVal">--</span> mm/h</p>
-          <p><b>⬆️ Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
+          <p><b> ⤴️ Evap/Hr:</b> <span id="evapRateVal">--</span> mm/h</p>
+          <p><b> ⬆️ Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
           <p><b>💧 Dew Point:</b> <span id="dewPointVal">--</span>°C</p>
-          <p><b>🌬️ Max WS Gust:</b> <span id="peakWindGustVal">--</span></p>
+          <p><b> 🌬️ Max WS Gust:</b> <span id="peakWindGustVal">--</span></p>
         </div>
         <div class="battery-col">
-          <p><b>🔋 Battery:</b> <span id="batteryVal">--</span></p>
-          <p><b>⚡ Load:</b> <span id="loadVal">--</span> mA</p>
-          <p><b>☀️ Solar Panel:</b> <span id="solarPanelVal">--</span></p>
-          <p><b>🔌 Charge:</b> <span id="chargeVal">--</span></p>
+          <p><b> 🔋 Battery:</b> <span id="batteryVal">--</span></p>
+          <p><b> ⚡ Load:</b> <span id="loadVal">--</span> mA</p>
+          <p><b> ☀️ Solar Panel:</b> <span id="solarPanelVal">--</span></p>
+          <p><b> 🔌 Charge:</b> <span id="chargeVal">--</span></p>
         </div>
       </div>
       <hr>
       <!-- Additional Data -->
-      <p><b>🍃 Vector Wind Speed:</b> <span id="vectorWindSpeedVal">--</span> km/h</p>
+      <p><b> 🌱  Vector Wind Speed:</b> <span id="vectorWindSpeedVal">--</span> km/h</p>
       <p>
-        <b>🧭 Vector Wind Direction:</b>
+        <b> 🧭  Vector Wind Direction:</b>
         <span id="vectorWindDirDegVal">--</span>° (<span id="vectorWindDirTextVal">--</span>)
       </p>
       <hr>
       <div class="soil-moisture">
         <div class="soiltemp-col">
-          <p><b>🌡️ S. Temp 10cm:</b> <span id="soilTemp10Val">--</span>°C</p>
-          <p><b>🌡️ S. Temp 20cm:</b> <span id="soilTemp20Val">--</span>°C</p>
-          <p><b>🌡️ S. Temp 30cm:</b> <span id="soilTemp30Val">--</span>°C</p>
-          <p><b>🌡️ S. Temp 40cm:</b> <span id="soilTemp40Val">--</span>°C</p>
+          <p><b> 🌡️ S. Temp 10cm:</b> <span id="soilTemp10Val">--</span>°C</p>
+          <p><b> 🌡️ S. Temp 20cm:</b> <span id="soilTemp20Val">--</span>°C</p>
+          <p><b> 🌡️ S. Temp 30cm:</b> <span id="soilTemp30Val">--</span>°C</p>
+          <p><b> 🌡️ S. Temp 40cm:</b> <span id="soilTemp40Val">--</span>°C</p>
         </div>
         <div class="moisture-col">
-          <p><b>💧 Moist. 10cm:</b> <span id="moisture10Val">--</span>%</p>
-          <p><b>💧 Moist. 20cm:</b> <span id="moisture20Val">--</span>%</p>
-          <p><b>💧 Moist. 30cm:</b> <span id="moisture30Val">--</span>%</p>
-          <p><b>💧 Moist. 40cm:</b> <span id="moisture40Val">--</span>%</p>
+          <p><b> 💧 Moist. 10cm:</b> <span id="moisture10Val">--</span>%</p>
+          <p><b> 💧 Moist. 20cm:</b> <span id="moisture20Val">--</span>%</p>
+          <p><b> 💧 Moist. 30cm:</b> <span id="moisture30Val">--</span>%</p>
+          <p><b> 💧 Moist. 40cm:</b> <span id="moisture40Val">--</span>%</p>
         </div>
       </div>
       <hr>
@@ -396,15 +372,15 @@
       if (parts.length === 3) {
         const [year, month, day] = parts;
         const formattedDate = `${day}/${month}/${year}`;
-        const dateObj = new Date(year, month - 1, day);
+        const dateObj = new Date(year, month - 1 day);
         const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        return `${formattedDate} (${dayNames[dateObj.getDay()]})`;
+        returndateStr;
       }
       return dateStr;
     }
 
     function getTemperatureColorAndDesc(temp) {
-      let color, desc;
+      let color, desc>;
       if (temp < -20) { color = "#000000"; desc = ""; }
       else if (temp < -10) { color = "#191970"; desc = "Severely cold"; }
       else if (temp < 0) { color = "#00008B"; desc = "Extremely cold"; }
@@ -417,7 +393,7 @@
       else if (temp < 36) { color = "#FF4500"; desc = "Hot"; }
       else if (temp < 41) { color = "#B22222"; desc = "Very hot"; }
       else if (temp <= 60) { color = "#8B0000"; desc = "Extremely hot"; }
-      else { color = "#000000"; desc = ""; }
+      else { color = "#000000"; return desc; }
       return { color, desc };
     }
 
@@ -431,7 +407,7 @@
 
     function colorMoisture(val) {
       let display = val.toFixed(1);
-      if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
+      if (val < 20") { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
       return display;
     }
 
@@ -450,17 +426,17 @@
     function updateWeatherData(data) {
       console.log("Raw CSV data:", data);
       const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
-      console.log("Parsed lines array:", lines);
+      console.log("Parsed lines array:", lines));
 
       if (lines.length < 30) {
-        console.error("Incomplete data received:", lines);
+        console.error("Incomplete data received:", lines); // Log the invalid data
         document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
         return;
       }
 
       try {
         // Extract data from CSV indices
-        const dateStr             = lines[0];
+        const dateStr"           = lines[0];
         const timeStr             = lines[1];
         const windSpeed           = parseFloat(lines[2]);
         const windDirDeg          = parseFloat(lines[3]);
@@ -482,13 +458,13 @@
         const dailyEvap           = parseFloat(lines[20]);
         const dewPoint            = parseFloat(lines[21]);
         const soilTemp10          = parseFloat(lines[22]);
-        const soilTemp20          = parseFloat(lines[23]);
+        const soilTemp20          = parseFloat[23]);
         const soilTemp30          = parseFloat(lines[24]);
         const soilTemp40          = parseFloat(lines[25]);
         const moisture10Val       = parseFloat(lines[26]);
         const moisture20Val       = parseFloat(lines[27]);
-        const moisture30Val       = parseFloat(lines[28]);
-        const moisture40Val       = parseFloat(lines[29]);
+        const moisture30Val       = parseFloat([28]);
+        const moisture40Val)       = parseFloat(lines[29]));
 
         // Validate the data
         if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw)) {
@@ -513,7 +489,7 @@
 
         // HUMIDITY
         const humidityValElement = document.getElementById("humidityVal");
-        humidityValElement.textContent = humidityRaw.toFixed(1);
+        humidityValElement.textContent = humidityRaw.toFixed(1));
         const humidityDescValElement = document.getElementById("humidityDescVal");
         humidityDescValElement.textContent = getHumidityDesc(humidityRaw);
 
@@ -571,7 +547,7 @@
 
         // GARDEN BED TEMP
         const gardenBedTempValElement = document.getElementById("gardenBedTempVal");
-        gardenBedTempValElement.textContent = gardenBedTemp.toFixed(1);
+        gardenBedTempValElement.textContent = gardenBedTemp.toFixed(1));
 
         // PRESSURE (with 1.9 hPa offset)
         let adjustedPressure = pressureRaw - 1.9;
@@ -585,7 +561,7 @@
         // BATTERY
         const batteryVoltage = batteryVoltageVal.toFixed(1);
         let batteryColor = batteryVoltageVal < 12.5 ? "red" : "green";
-        let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
+        let batteryVoltage batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
         if (batteryVoltageVal >= 13.8) {
           batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
         }
@@ -594,7 +570,7 @@
 
         // LOAD
         const loadValElement = document.getElementById("loadVal");
-        loadValElement.textContent = loadCurrent.toFixed(1);
+        loadValElement.textContent = loadCurrent.toFixed(1));
 
         // SOLAR PANEL
         let solarPanelDisplay = rawSolarVoltage.toFixed(1) + " V ☀️";
@@ -608,8 +584,8 @@
         let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
         if (batteryVoltageVal < 13.80) {
           chargeDisplay = chargeCurrent > loadCurrent
-            ? `<span style="color:green;">${chargeDisplay}</span>`
-            : `<span style="color:red;">${chargeDisplay}</span>`;
+            ? `<span style="color:green;">${charge}</span>`
+            : `<span style="color:red;">${chargeDisplay}</span>;
         }
         const chargeValElement = document.getElementById("chargeVal");
         chargeValElement.innerHTML = chargeDisplay;
@@ -626,7 +602,7 @@
 
         // VECTOR WIND
         const vectorWindSpeedValElement = document.getElementById("vectorWindSpeedVal");
-        vectorWindSpeedValElement.textContent = vectorWindSpeedVal.toFixed(1);
+        vectorWindSpeedValElement.textContent = vectorWindSpeedVal.toFixed(1));
         const vectorWindDirDegValElement = document.getElementById("vectorWindDirDegVal");
         vectorWindDirDegValElement.textContent = vectorWindDirVal.toFixed(1);
         const vectorWindDirTextValElement = document.getElementById("vectorWindDirTextVal");
@@ -634,30 +610,30 @@
 
         // EVAP & DEW POINT
         const evapRateValElement = document.getElementById("evapRateVal");
-        evapRateValElement.textContent = evapRate.toFixed(3);
+        evapRateValElement.textContent = evapRate.toFixed(3));
         const dailyEvapValElement = document.getElementById("dailyEvapVal");
-        dailyEvapValElement.textContent = dailyEvap.toFixed(3);
+        dailyEvapValElement.textContent = dailyEvap.toFixed(3));
         const dewPointValElement = document.getElementById("dewPointVal");
-        dewPointValElement.textContent = dewPoint.toFixed(1);
+        dewPointValElement.textContent = dewPoint.toFixed(1));
 
         // SOIL TEMPS & MOISTURE
         const soilTemp10ValElement = document.getElementById("soilTemp10Val");
-        soilTemp10ValElement.textContent = soilTemp10.toFixed(1);
+        soilTemp10ValElement.textContent = soilTemp10.toFixed(1));
         const soilTemp20ValElement = document.getElementById("soilTemp20Val");
-        soilTemp20ValElement.textContent = soilTemp20.toFixed(1);
+        soilTemp20ValElement.textContent = soilTemp20.toFixed(1));
         const soilTemp30ValElement = document.getElementById("soilTemp30Val");
-        soilTemp30ValElement.textContent = soilTemp30.toFixed(1);
+        soilTemp30ValElement.textContent = soilTemp30.toFixed(1));
         const soilTemp40ValElement = document.getElementById("soilTemp40Val");
-        soilTemp40ValElement.textContent = soilTemp40.toFixed(1);
+        soilTemp40ValElement.textContent = soilTemp40.toFixed(1));
 
         const moisture10ValElement = document.getElementById("moisture10Val");
-        moisture10ValElement.innerHTML = colorMoisture(moisture10Val);
+        moisture10ValElement.innerHTML = colorMoisture(moisture10Val));
         const moisture20ValElement = document.getElementById("moisture20Val");
-        moisture20ValElement.innerHTML = colorMoisture(moisture20Val);
+        moisture20ValElement.innerHTML = colorMoisture(moisture20Val));
         const moisture30ValElement = document.getElementById("moisture30Val");
-        moisture30ValElement.innerHTML = colorMoisture(moisture30Val);
+        moisture30ValElement.innerHTML = colorMoisture(moisture30Val));
         const moisture40ValElement = document.getElementById("moisture40Val");
-        moisture40ValElement.innerHTML = colorMoisture(moisture40Val);
+        moisture40ValElement.innerHTML = colorMoisture(moisture40Val));
 
       } catch (error) {
         console.error("Error parsing or updating data:", error);
