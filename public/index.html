@@ -103,9 +103,8 @@
       text-align: left;
       margin-bottom: 30px;
     }
-    /* Slightly reduced line-height to save space */
     #weatherData p {
-      margin: 2px 0; /* Tighter vertical spacing */
+      margin: 2px 0;  /* Tighter vertical spacing */
       line-height: 1.2;
     }
     hr {
@@ -115,10 +114,9 @@
       clear: both;
       width: 100%;
     }
-
     /* --- Top Header Layout --- */
     .address-row {
-      margin-bottom: 0; /* No gap below "WEST WARWICK, QLD" */
+      margin-bottom: 0;
     }
     .address-title {
       font-size: 16.5px;
@@ -126,31 +124,27 @@
       margin: 0;
       color: #00008B;
     }
-
-    /* Date/Time & Logos in one row, top-aligned, minimal margin */
     .date-time-logo-row {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 4px; /* Halved from 8px */
+      align-items: flex-start; /* Align everything to the top */
+      margin-bottom: 4px;
     }
-
-    /* 2px gap between address and date/time */
+    /* Remove margin from date-time block so it doesn't push the logos down */
     .date-time {
-      margin-top: 2px;
+      margin-top: 0;
     }
-    /* Zero margin for date/time paragraphs, smaller line-height */
     .date-time p {
       margin: 0;
       line-height: 1.2;
     }
-
-    /* Logos: smaller gap between images */
+    /* Explicitly align the logo container to the top */
     .logo-container {
       display: flex;
-      gap: 5px; /* Reduced from 10px */
+      gap: 5px;
       margin: 0;
       padding: 0;
+      align-self: flex-start;
     }
     .logo-container img {
       height: 60px;
@@ -158,8 +152,7 @@
       margin: 0;
       display: block;
     }
-
-    /* Main Data Layout */
+    /* --- Main Data Layout --- */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
@@ -176,7 +169,7 @@
       justify-content: flex-start;
     }
     .big-temp-box {
-      margin-top: 4px;  /* Slight top margin for the temperature box */
+      margin-top: 4px;
       margin-bottom: 8px;
       padding: 6px 12px;
       border: 2px solid #FFA500;
@@ -233,13 +226,13 @@
 
     <!-- Weather Data Section -->
     <div id="weatherData">
-      <!-- Address Row (No bottom margin) -->
+      <!-- Address Row -->
       <div class="address-row">
         <div class="address-container">
           <div class="address-title">WEST WARWICK, QLD</div>
         </div>
       </div>
-      <!-- Date/Time & Logos Row, top-aligned, minimal margin -->
+      <!-- Date/Time & Logos Row -->
       <div class="date-time-logo-row">
         <div class="date-time">
           <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
@@ -373,9 +366,7 @@
 
     function colorMoisture(val) {
       let display = val.toFixed(1);
-      if (val < 20) {
-        display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`;
-      }
+      if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
       return display;
     }
 
@@ -400,7 +391,7 @@
         return;
       }
 
-      // Indices for CSV data
+      // Extract data from CSV indices
       const dateStr             = lines[0];
       const timeStr             = lines[1];
       const windSpeed           = parseFloat(lines[2]);
