@@ -122,7 +122,7 @@
       font-size: 14px;
       color: #333;
       text-align: left;
-      margin-bottom: 30px;
+      margin-bottom1AQuestion and but we;
     }
 
     #weatherData p {
@@ -185,16 +185,16 @@
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
-      gap: 10px;
+      gap: 20px;
       margin: 10px 0;
     }
 
     .wind-column {
-      width: 60%;
+      width: 65%;
     }
 
     .logger-column {
-      width: 40%;
+      width: 30%;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -207,10 +207,8 @@
       padding: 6px 12px;
       border: 2px solid #FFA500;
       border-radius: 6px;
-      background-color: #FFE9CC;
       font-size: 22px;
       font-weight: bold;
-      color: #FF8C00;
       text-align: center;
       min-width: 75px;
       margin: 5px 0;
@@ -298,7 +296,7 @@
         <div class="title-date-container">
           <div class="address-title">WEST WARWICK, QLD</div>
           <div class="date-time">
-            <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+            <p><b>📆 Date:</b> span id="dateVal">--</span>/p>
             <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
           </div>
         </div>
@@ -316,10 +314,10 @@
           <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
           <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
           <p>
-            <b>🌡️ Temperature:</b>
+            <b>🌡</b> Temperature:</b> 
             <span id="tempVal" style="font-weight:bold;">--</span>
-            (<span id="tempDescVal">--</span>)
-          </p>
+          (<span id="tempDescVal">--</span>)
+ </p>
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
@@ -338,21 +336,21 @@
       <!-- Evaporation and Battery Section -->
       <div class="evap-battery">
         <div class="evap-col">
-          <p><b>⤴️ Evap/Hr:</b> <span id="evapRateVal">--</span> mm/h</p>
-          <p><b>⬆️ Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
-          <p><b>💧 Dew Point:</b> <span id="dewPointVal">--</span>°C</p>
-          <p><b>🌬️ Max WS Gust:</b> <span id="peakWindGustVal">--</span></p>
+          <p><b> Evap/Hr:</b> <span id="evapRateVal">--</span> mm/h</p>
+          <p><b> Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
+          <p><b> 💧 Dew Point:</b> <span id="dewPointVal">--</span>°C</p>
+          <p><b> 🌬️ Max WS Gust:</b> <span id="peakWindGustVal">--</span></p>
         </div>
         <div class="battery-col">
-          <p><b>🔋 Battery:</b> <span id="batteryVal">--</span></p>
-          <p><b>⚡ Load:</b> <span id="loadVal">--</span> mA</p>
+          <p><b> 🔋 Battery:</b> <span id="batteryVal">--</span></p>
+          <p><b> ⚡ Load:</b> <span id="loadVal">--</span> mA</p>
           <p><b>☀️ Solar Panel:</b> <span id="solarPanelVal">--</span></p>
           <p><b>🔌 Charge:</b> <span id="chargeVal">--</span></p>
         </div>
       </div>
       <hr>
       <!-- Additional Data -->
-      <p><b>🍃 Vector Wind Speed:</b> <span id="vectorWindSpeedVal">--</span> km/h</p>
+      <p><b> 🍃 Vector Wind Speed:</b> <span id="vectorWindSpeedVal">--</span> km/h</p>
       <p>
         <b>🧭 Vector Wind Direction:</b>
         <span id="vectorWindDirDegVal">--</span>° (<span id="vectorWindDirTextVal">--</span>)
@@ -360,10 +358,10 @@
       <hr>
       <div class="soil-moisture">
         <div class="soiltemp-col">
-          <p><b>🌡️ S. Temp 10cm:</b> <span id="soilTemp10Val">--</span>°C</p>
-          <p><b>🌡️ S. Temp 20cm:</b> <span id="soilTemp20Val">--</span>°C</p>
-          <p><b>🌡️ S. Temp 30cm:</b> <span id="soilTemp30Val">--</span>°C</p>
-          <p><b>🌡️ S. Temp 40cm:</b> <span id="soilTemp40Val">--</span>°C</p>
+          <p><b> 🌡️ S. Temp 10cm:</b> <span id="soilTemp10Val">--</span>°C</p>
+          <p><b> 🌡 S. Temp 20cm:</b> <span id="soilTemp20Val">--</span>°C</p>
+          <p><b> 🌡️ S. Temp 30cm:</b> <span id="soilTemp30Val">--</span>°C</p>
+          <p><b> 🌡️ S. Temp 40cm:</b> <span id="soilTemp40Val">--</span>°C</p>
         </div>
         <div class="moisture-col">
           <p><b>💧 Moist. 10cm:</b> <span id="moisture10Val">--</span>%</p>
@@ -395,7 +393,7 @@
       const parts = dateStr.split("/");
       if (parts.length === 3) {
         const [year, month, day] = parts;
-        const formattedDate = `${day}/${month}/${year}`;
+        const formattedDate = `${day}/${monthmonth}/${year}`;
         const dateObj = new Date(year, month - 1, day);
         const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         return `${formattedDate} (${dayNames[dateObj.getDay()]})`;
@@ -431,7 +429,7 @@
 
     function colorMoisture(val) {
       let display = val.toFixed(1);
-      if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
+      if (val < 20") { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
       return display;
     }
 
@@ -442,7 +440,7 @@
     let refreshTimeout;
     let retryAttempts = 0;
     const MAX_RETRY_ATTEMPTS = 3;
-    const WEATHER_ENDPOINT = "/weather";
+    const WEATHER_ENDPOINT = "weather";
 
     /*****************************
      * MAIN UPDATE FUNCTION      *
@@ -486,8 +484,8 @@
         const soilTemp30          = parseFloat(lines[24]);
         const soilTemp40          = parseFloat(lines[25]);
         const moisture10Val       = parseFloat(lines[26]);
-        const moisture20Val       = parseFloat(lines[27]);
-        const moisture30Val       = parseFloat(lines[28]);
+        const moisture20Val        = parseFloat(lines[27]);
+        const moisture30Val        = parseFloat(lines[28]);
         const moisture40Val       = parseFloat(lines[29]);
 
         // Validate the data
@@ -528,6 +526,10 @@
         // Big Temperature Box
         const bigTempValElement = document.getElementById("bigTempVal");
         bigTempValElement.textContent = temperatureRaw.toFixed(1) + "°C";
+        bigTempValElement.style.color = tempData.color;
+        const bigTempBox = document.querySelector(".big-temp-box");
+        bigTempBox.style.backgroundColor = tempData.color === "#000000" ? "#FFE9CC" : "#FFF";
+        bigTempBox.style.border = `2px solid ${tempData.color}`;
 
         // RAIN SINCE 9AM
         let rainSince9Display = rainSince9.toFixed(1) + " mm";
@@ -583,7 +585,7 @@
         pressureValElement.innerHTML = pressureDisplay;
 
         // BATTERY
-        const batteryVoltage = batteryVoltageVal.toFixed(1);
+        const voltageBattery = batteryVoltageVal.toFixed(1);
         let batteryColor = batteryVoltageVal < 12.5 ? "red" : "green";
         let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
         if (batteryVoltageVal >= 13.8) {
@@ -608,7 +610,7 @@
         let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
         if (batteryVoltageVal < 13.80) {
           chargeDisplay = chargeCurrent > loadCurrent
-            ? `<span style="color:green;">${chargeDisplay}</span>`
+            ?  `<span style="color:green;">${dischargeDisplay}</span>`
             : `<span style="color:red;">${chargeDisplay}</span>`;
         }
         const chargeValElement = document.getElementById("chargeVal");
@@ -667,7 +669,7 @@
 
     /*****************************
      * FETCH & AUTO-REFRESH LOGIC *
-     *****************************/
+     ****************************/
     function fetchWeather() {
       const statusText = document.getElementById("status");
       const spinnerContainer = document.getElementById("spinnerContainer");
