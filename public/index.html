@@ -104,7 +104,7 @@
       margin-bottom: 30px;
     }
     #weatherData p {
-      margin: 2px 0;
+      margin: 2px 0;  /* Tighter vertical spacing */
       line-height: 1.2;
     }
     hr {
@@ -114,55 +114,96 @@
       clear: both;
       width: 100%;
     }
-    /* New Combined Header Info Container */
-    .header-info {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 5px;
-      padding: 0 10px;
-    }
-    .header-left, .header-right {
-      width: 50%;
-      margin: 0;
-      padding: 0;
-    }
-    /* Logo column on the left */
-    .header-left {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    /* Title and Date/Time column on the right */
-    .header-right {
-      border-left: 1px solid #ccc;
-      padding-left: 10px;
+    /* --- Top Header Layout --- */
+    .address-row {
+      margin-bottom: 0;
     }
     .address-title {
       font-size: 16.5px;
       font-weight: bold;
-      margin: 0 0 5px 0;
+      margin: 0;
       color: #00008B;
+    }
+    .date-time-logo-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start; /* Align everything to the top */
+      margin-bottom: 4px;
+    }
+    /* Remove margin from date-time block so it doesn't push the logos down */
+    .date-time {
+      margin-top: 0;
     }
     .date-time p {
       margin: 0;
-      padding: 0;
-      line-height: 1.1;
-      font-size: 14px; /* Matches the data below */
+      line-height: 1.2;
     }
+    /* Explicitly align the logo container to the top */
     .logo-container {
       display: flex;
       gap: 5px;
       margin: 0;
       padding: 0;
-      align-items: center;
+      align-self: flex-start;
     }
     .logo-container img {
       height: 60px;
       width: auto;
       margin: 0;
       display: block;
+    }
+    /* --- Main Data Layout --- */
+    .wind-logger-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .wind-column {
+      width: 60%;
+    }
+    .logger-column {
+      width: 40%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .big-temp-box {
+      margin-top: 4px;
+      margin-bottom: 8px;
+      padding: 6px 12px;
+      border: 2px solid #FFA500;
+      border-radius: 6px;
+      background-color: #FFE9CC;
+      font-size: 22px;
+      font-weight: bold;
+      color: #FF8C00;
+      text-align: center;
+      min-width: 75px;
+    }
+    .rain-container {
+      margin-top: 2px;
+      padding: 1px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    .evap-battery {
+      display: flex;
+      justify-content: space-between;
+    }
+    .evap-col {
+      width: 52%;
+    }
+    .battery-col {
+      width: 48%;
+    }
+    .soil-moisture {
+      display: flex;
+      justify-content: space-between;
+    }
+    .soiltemp-col, .moisture-col {
+      width: 48%;
     }
   </style>
 </head>
@@ -181,26 +222,27 @@
           <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
         </div>
       </div>
-      <!-- Combined Header Info -->
-      <div class="header-info">
-        <div class="header-left">
-          <div class="logo-container">
-            <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-            <img src="/Station_Label.png" alt="Environdata Weather Maestro">
-          </div>
-        </div>
-        <div class="header-right">
-          <div class="address-title">WEST WARWICK, QLD</div>
-          <div class="date-time">
-            <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-            <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Weather Data Section -->
     <div id="weatherData">
+      <!-- Address Row -->
+      <div class="address-row">
+        <div class="address-container">
+          <div class="address-title">WEST WARWICK, QLD</div>
+        </div>
+      </div>
+      <!-- Date/Time & Logos Row -->
+      <div class="date-time-logo-row">
+        <div class="date-time">
+          <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+          <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+        </div>
+        <div class="logo-container">
+          <img src="/Weather_Station_App.png" alt="Weather Station Icon">
+          <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+        </div>
+      </div>
       <hr>
       <!-- Main Data Columns -->
       <div class="wind-logger-container">
@@ -288,10 +330,10 @@
       const parts = dateStr.split("/");
       if (parts.length === 3) {
         const [year, month, day] = parts;
-        const formattedDate = `${day}/${month}/${year}`;
+        const formattedDate = ${day}/${month}/${year};
         const dateObj = new Date(year, month - 1, day);
         const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        return `${formattedDate} (${dayNames[dateObj.getDay()]})`;
+        return ${formattedDate} (${dayNames[dateObj.getDay()]});
       }
       return dateStr;
     }
@@ -324,7 +366,7 @@
 
     function colorMoisture(val) {
       let display = val.toFixed(1);
-      if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
+      if (val < 20) { display = <span style="color:#FF8C00; font-weight:bold;">${display}</span>; }
       return display;
     }
 
@@ -406,7 +448,7 @@
       // RAIN SINCE 9AM
       let rainSince9Display = rainSince9.toFixed(1) + " mm";
       if (rainSince9 >= 0.2) {
-        rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
+        rainSince9Display = <span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>;
       }
       document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
 
@@ -417,7 +459,7 @@
       }
       let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
       if (rainInLastMinRaw >= 0.2) {
-        rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
+        rainInLastMinDisplay = <span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>;
       }
       document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
 
@@ -434,9 +476,9 @@
         solarRadDisplay += " 🌙";
       }
       if (solarRad > 0) {
-        solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor};">${solarRadDisplay}</span>`;
+        solarRadDisplay = <span style="font-weight:bold; color:${solarRadColor};">${solarRadDisplay}</span>;
       } else {
-        solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
+        solarRadDisplay = <span style="color:${solarRadColor};">${solarRadDisplay}</span>;
       }
       document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
 
@@ -447,16 +489,16 @@
       let adjustedPressure = pressureRaw - 1.9;
       let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
       if (adjustedPressure >= 1020) {
-        pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
+        pressureDisplay = <span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>;
       }
       document.getElementById("pressureVal").innerHTML = pressureDisplay;
 
       // BATTERY
       const batteryVoltage = batteryVoltageVal.toFixed(1);
       let batteryColor = batteryVoltageVal < 12.5 ? "red" : "green";
-      let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
+      let batteryVoltageDisplay = <span style="color:${batteryColor};">${batteryVoltage} V</span>;
       if (batteryVoltageVal >= 13.8) {
-        batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
+        batteryVoltageDisplay = <span style="color:green; font-weight:bold;">${batteryVoltage} V</span>;
       }
       document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
 
@@ -474,17 +516,17 @@
       let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
       if (batteryVoltageVal < 13.80) {
         chargeDisplay = chargeCurrent > loadCurrent
-          ? `<span style="color:green;">${chargeDisplay}</span>`
-          : `<span style="color:red;">${chargeDisplay}</span>`;
+          ? <span style="color:green;">${chargeDisplay}</span>
+          : <span style="color:red;">${chargeDisplay}</span>;
       }
       document.getElementById("chargeVal").innerHTML = chargeDisplay;
 
       // PEAK WIND GUST
       let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
       if (peakWindGustVal > 25) {
-        peakWindGustDisplay = `<span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>`;
+        peakWindGustDisplay = <span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>;
       } else if (peakWindGustVal > 10) {
-        peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
+        peakWindGustDisplay = <span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>;
       }
       document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
 
