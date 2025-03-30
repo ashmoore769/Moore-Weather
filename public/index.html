@@ -107,35 +107,17 @@
       margin: 2.5px 0;
       line-height: 1.3;
     }
-    /* New top header: address on the left, logos on the right */
-    .top-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
-    }
-    .address-container {
-      /* Address text container */
-    }
     .address-title {
       font-size: 16.5px;
       font-weight: bold;
-      margin: 0;
+      margin-top: 0px;
+      margin-bottom: 7px;
       color: #00008B;
     }
-    .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .logo-container img {
-      /* Adjust size as needed */
+    .weather-icon {
+      float: right;
+      margin-left: 10px;
       height: 60px;
-      width: auto;
-    }
-    /* Date/time placed below the top header */
-    .date-time {
-      margin-bottom: 8px;
     }
     hr {
       border: none;
@@ -144,7 +126,7 @@
       clear: both;
       width: 100%;
     }
-    /* Flex container for left and right columns below date/time */
+    /* Flex container for left and right columns */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
@@ -152,27 +134,24 @@
     }
     .wind-column {
       width: 60%;
+      /* The wind column now has two sections: upper data and rain container */
     }
-    /* Right column holds the big temp box at the top */
     .logger-column {
       width: 40%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      margin-top: 18px;
+      margin-left: -40px;
     }
-    .big-temp-box {
-      margin-bottom: 8px;
-      padding: 6px 12px;
-      border: 2px solid #FFA500;
-      border-radius: 6px;
-      background-color: #FFE9CC;
-      font-size: 22px;
-      font-weight: bold;
-      color: #FF8C00;
-      text-align: center;
-      min-width: 75px;
+    /* Removed the .logger-label span so it won't display "Data Logger" */
+    .logger-column .logger-image {
+      max-width: 100px;
+      height: auto;
+      display: block;
+      border-radius: 10px;
     }
+    /* New rain container inside left column */
     .rain-container {
       margin-top: 2px;
       padding: 1px;
@@ -184,6 +163,8 @@
       display: flex;
       justify-content: space-between;
     }
+    /* Increase the width of the left (evap) column
+       and decrease the width of the right (battery) column. */
     .evap-col {
       width: 52%;
     }
@@ -196,6 +177,20 @@
     }
     .soiltemp-col, .moisture-col {
       width: 48%;
+    }
+
+    /* Add a big temperature box under the logger image */
+    .big-temp-box {
+      margin-top: 8px;
+      padding: 6px 12px;
+      border: 2px solid #FFA500;
+      border-radius: 6px;
+      background-color: #FFE9CC;
+      font-size: 22px;
+      font-weight: bold;
+      color: #FF8C00;
+      text-align: center;
+      min-width: 75px; /* ensures some width for single-digit temps */
     }
   </style>
 </head>
@@ -216,22 +211,12 @@
     </div>
 
     <div id="weatherData">
-      <!-- Top header: Address and logos on the same line -->
-      <div class="top-header">
-        <div class="address-container">
-          <div class="address-title">WEST WARWICK, QLD</div>
-        </div>
-        <div class="logo-container">
-          <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-          <img src="/Station_Label.png" alt="Environdata Weather Maestro">
-        </div>
-      </div>
-      <!-- Date and Time below the top header -->
-      <div class="date-time">
-        <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-        <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
-      </div>
+      <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
+      <div class="address-title">WEST WARWICK, QLD</div>
+      <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+      <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
       <hr>
+
       <!-- Flex container with two columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
@@ -245,18 +230,23 @@
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
+
           <div class="rain-container">
             <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
             <p><b>🌧️ Rain /Last Min:</b> <span id="rainInLastMinVal">--</span></p>
           </div>
         </div>
+
         <div class="logger-column">
-          <!-- Big temperature box moved to the top of the right column -->
+          <!-- Removed the "Data Logger" label -->
+          <img src="/Station_Label.png" alt="Environdata Weather Maestro" class="logger-image">
+          <!-- Big temperature box that mirrors the main temperature -->
           <div class="big-temp-box">
             <span id="bigTempVal">--</span>
           </div>
         </div>
       </div>
+
       <hr>
       <div class="evap-battery">
         <div class="evap-col">
@@ -376,7 +366,8 @@
 
       // Indices assumptions:
       // Date: [0], Time: [1]
-      // Rain Since 9AM: index 17, Rain/Last Min: index 6
+      // Rain Since 9AM: index 17
+      // Rain/Last Min: index 6
       const dateStr             = lines[0];
       const timeStr             = lines[1];
       const windSpeed           = parseFloat(lines[2]);
@@ -420,14 +411,14 @@
       document.getElementById("humidityVal").textContent = humidityRaw.toFixed(1);
       document.getElementById("humidityDescVal").textContent = getHumidityDesc(humidityRaw);
 
-      // TEMPERATURE (main display)
+      // TEMPERATURE
       const tempData = getTemperatureColorAndDesc(temperatureRaw);
       const tempSpan = document.getElementById("tempVal");
       tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
       tempSpan.style.color = tempData.color;
       document.getElementById("tempDescVal").textContent = tempData.desc;
 
-      // Big temperature box in right column
+      // Also set the big temperature box in the right column
       document.getElementById("bigTempVal").textContent = temperatureRaw.toFixed(1) + "°C";
 
       // RAIN SINCE 9AM
@@ -457,7 +448,7 @@
                           solarRad <= 800 ? "#FF9933" :
                           solarRad <= 1100 ? "#BF360C" : "#B71C1C";
       let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
-      if (solarRad < 10) {  
+      if (solarRad < 10) {
         solarRadDisplay += " 🌙";
       }
       if (solarRad > 0) {
@@ -563,6 +554,7 @@
           if (!initialLoadComplete) {
             initialLoadComplete = true;
           }
+          // Schedule next fetch at 20 seconds past the minute
           const now = new Date();
           let delay;
           if (now.getSeconds() < 20) {
