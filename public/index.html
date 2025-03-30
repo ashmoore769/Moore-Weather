@@ -15,7 +15,8 @@
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
       font-size: 14px; /* increased from 12px */
-      line-height: 1.3;
+      line-height: 1.3; /* slightly more breathing room */
+      /* Support for iOS safe areas */
       padding-top: env(safe-area-inset-top, 0);
     }
 
@@ -42,10 +43,10 @@
 
     .header-box h2 {
       margin: 0;
-      font-size: 16px;
+      font-size: 16px; /* slightly increased */
       font-weight: bold;
       color: white;
-      padding: 10px 0; /* increased padding for thicker header */
+      padding: 0;
       white-space: nowrap;
     }
 
@@ -54,7 +55,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 0 5px;
-      margin-bottom: 2px; /* reduced margin for minimal spacing */
+      margin-bottom: 10px;
     }
 
     .control-half {
@@ -65,7 +66,7 @@
 
     button {
       padding: 4px 8px;
-      font-size: 12px;
+      font-size: 12px; /* increased from 10px */
       font-weight: bold;
       background-color: #FFA500;
       color: black;
@@ -123,7 +124,7 @@
       padding: 10px 10px 15px 10px;
       border-radius: 10px;
       box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-      font-size: 14px;
+      font-size: 14px; /* increased from 12px */
       color: #333;
       text-align: left;
       margin-bottom: 20px;
@@ -159,7 +160,7 @@
     }
 
     .address-title {
-      font-size: 20px; /* increased for a more prominent title */
+      font-size: 14px;
       font-weight: bold;
       margin: 0 0 2px 0;
       color: #00008B;
@@ -189,7 +190,6 @@
       width: auto;
       margin: 0;
       display: block;
-      border-radius: 8px; /* added rounded corners */
     }
 
     /* --- Main Data Layout --- */
@@ -221,10 +221,11 @@
       padding: 4px 8px;
       border: 2px solid #FFA500;
       border-radius: 6px;
-      /* Background color will be set dynamically by JS based on temperature */
-      font-size: 20px;
+      background-color: #FFE9CC;
+      font-size: 20px; /* increased from 16px */
       font-weight: bold;
-      color: #FF8C00; /* default; updated dynamically */
+      /* The default text color here will be overridden by JS logic */
+      color: #FF8C00;
       text-align: center;
       min-width: 60px;
       margin: 2px 0;
@@ -280,6 +281,7 @@
       .header-box {
         padding: 0;
       }
+      /* The control section remains side-by-side */
     }
   </style>
 </head>
@@ -317,10 +319,25 @@
         </div>
       </div>
       <hr>
+
       <!-- Main Data Columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
-          <!-- (Other data remains unchanged) -->
+          <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
+          <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
+          <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
+          <p>
+            <b>🌡️ Temperature:</b>
+            <span id="tempVal" style="font-weight:bold;">--</span>
+            (<span id="tempDescVal">--</span>)
+          </p>
+          <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
+          <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
+          <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
+          <div class="rain-container">
+            <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
+            <p><b>🌧️ Rain /Last Min:</b> <span id="rainInLastMinVal">--</span></p>
+          </div>
         </div>
         <div class="logger-column">
           <div class="big-temp-box">
@@ -329,7 +346,44 @@
         </div>
       </div>
       <hr>
-      <!-- (Remaining sections unchanged) -->
+      <!-- Evaporation and Battery Section -->
+      <div class="evap-battery">
+        <div class="evap-col">
+          <p><b>⤴️ Evap/Hr:</b> <span id="evapRateVal">--</span> mm/h</p>
+          <p><b>⬆️ Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
+          <p><b>💧 Dew Point:</b> <span id="dewPointVal">--</span>°C</p>
+          <p><b>🌬️ Max WS Gust:</b> <span id="peakWindGustVal">--</span></p>
+        </div>
+        <div class="battery-col">
+          <p><b>🔋 Battery:</b> <span id="batteryVal">--</span></p>
+          <p><b>⚡ Load:</b> <span id="loadVal">--</span> mA</p>
+          <p><b>☀️ Solar Panel:</b> <span id="solarPanelVal">--</span></p>
+          <p><b>🔌 Charge:</b> <span id="chargeVal">--</span></p>
+        </div>
+      </div>
+      <hr>
+      <!-- Additional Data -->
+      <p><b>🍃 Vector Wind Speed:</b> <span id="vectorWindSpeedVal">--</span> km/h</p>
+      <p>
+        <b>🧭 Vector Wind Direction:</b>
+        <span id="vectorWindDirDegVal">--</span>° (<span id="vectorWindDirTextVal">--</span>)
+      </p>
+      <hr>
+      <div class="soil-moisture">
+        <div class="soiltemp-col">
+          <p><b>🌡️ S. Temp 10cm:</b> <span id="soilTemp10Val">--</span>°C</p>
+          <p><b>🌡️ S. Temp 20cm:</b> <span id="soilTemp20Val">--</span>°C</p>
+          <p><b>🌡️ S. Temp 30cm:</b> <span id="soilTemp30Val">--</span>°C</p>
+          <p><b>🌡️ S. Temp 40cm:</b> <span id="soilTemp40Val">--</span>°C</p>
+        </div>
+        <div class="moisture-col">
+          <p><b>💧 Moist. 10cm:</b> <span id="moisture10Val">--</span>%</p>
+          <p><b>💧 Moist. 20cm:</b> <span id="moisture20Val">--</span>%</p>
+          <p><b>💧 Moist. 30cm:</b> <span id="moisture30Val">--</span>%</p>
+          <p><b>💧 Moist. 40cm:</b> <span id="moisture40Val">--</span>%</p>
+        </div>
+      </div>
+      <hr>
     </div>
 
     <!-- Spinner -->
@@ -447,6 +501,7 @@
         const moisture30Val = parseFloat(lines[28]);
         const moisture40Val = parseFloat(lines[29]);
 
+        // Validate the data
         if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw)) {
           console.error("Invalid data received:", lines);
           document.getElementById("weatherData").innerHTML = "<b>Error:</b> Invalid data values.";
@@ -473,12 +528,10 @@
         tempSpan.style.color = tempData.color;
         document.getElementById("tempDescVal").textContent = tempData.desc;
 
-        // Big Temperature Box: update text and container background color dynamically
+        // Big Temperature Box: update text and color to match temperature logic
         const bigTempElement = document.getElementById("bigTempVal");
         bigTempElement.textContent = temperatureRaw.toFixed(1) + "°C";
-        const bigTempContainer = document.querySelector('.big-temp-box');
-        bigTempContainer.style.backgroundColor = tempData.color;
-        bigTempElement.style.color = "#FFF";
+        bigTempElement.style.color = tempData.color;
 
         // RAIN SINCE 9AM
         let rainSince9Display = rainSince9.toFixed(1) + " mm";
@@ -498,9 +551,93 @@
         }
         document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
 
-        // SOLAR RADIATION, GARDEN BED TEMP, PRESSURE, BATTERY, LOAD, SOLAR PANEL, CHARGE,
-        // PEAK WIND GUST, VECTOR WIND, EVAP & DEW POINT, SOIL TEMPS & MOISTURE update logic remains unchanged
-        // ...
+        // SOLAR RADIATION
+        const solarRad = Math.max(0, solarRadRaw);
+        let solarRadColor = solarRad === 0 ? "#000033" :
+          solarRad <= 100 ? "#000080" :
+          solarRad <= 299 ? "#27408B" :
+          solarRad <= 600 ? "#DAA520" :
+          solarRad <= 800 ? "#FF9933" :
+          solarRad <= 1100 ? "#BF360C" : "#B71C1C";
+        let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
+        if (solarRad < 10) {
+          solarRadDisplay += " 🌙";
+        }
+        if (solarRad > 0) {
+          solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor};">${solarRadDisplay}</span>`;
+        } else {
+          solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
+        }
+        document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
+
+        // GARDEN BED TEMP
+        document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
+
+        // PRESSURE (with 1.9 hPa offset)
+        let adjustedPressure = pressureRaw - 1.9;
+        let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
+        if (adjustedPressure >= 1020) {
+          pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
+        }
+        document.getElementById("pressureVal").innerHTML = pressureDisplay;
+
+        // BATTERY
+        const batteryVoltage = batteryVoltageVal.toFixed(1);
+        let batteryColor = batteryVoltageVal < 12.5 ? "red" : "green";
+        let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
+        if (batteryVoltageVal >= 13.8) {
+          batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
+        }
+        document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
+
+        // LOAD
+        document.getElementById("loadVal").textContent = loadCurrent.toFixed(1);
+
+        // SOLAR PANEL
+        let solarPanelDisplay = rawSolarVoltage.toFixed(1) + " V ☀️";
+        if (rawSolarVoltage < batteryVoltageVal) {
+          solarPanelDisplay = "0.0 V 🌙";
+        }
+        document.getElementById("solarPanelVal").textContent = solarPanelDisplay;
+
+        // CHARGE
+        let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
+        if (batteryVoltageVal < 13.80) {
+          chargeDisplay = chargeCurrent > loadCurrent
+            ? `<span style="color:green;">${chargeDisplay}</span>`
+            : `<span style="color:red;">${chargeDisplay}</span>`;
+        }
+        document.getElementById("chargeVal").innerHTML = chargeDisplay;
+
+        // PEAK WIND GUST
+        let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
+        if (peakWindGustVal > 25) {
+          peakWindGustDisplay = `<span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>`;
+        } else if (peakWindGustVal > 10) {
+          peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
+        }
+        document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
+
+        // VECTOR WIND
+        document.getElementById("vectorWindSpeedVal").textContent = vectorWindSpeedVal.toFixed(1);
+        document.getElementById("vectorWindDirDegVal").textContent = vectorWindDirVal.toFixed(1);
+        document.getElementById("vectorWindDirTextVal").textContent = getWindDirection(vectorWindDirVal);
+
+        // EVAP & DEW POINT
+        document.getElementById("evapRateVal").textContent = evapRate.toFixed(3);
+        document.getElementById("dailyEvapVal").textContent = dailyEvap.toFixed(3);
+        document.getElementById("dewPointVal").textContent = dewPoint.toFixed(1);
+
+        // SOIL TEMPS & MOISTURE
+        document.getElementById("soilTemp10Val").textContent = soilTemp10.toFixed(1);
+        document.getElementById("soilTemp20Val").textContent = soilTemp20.toFixed(1);
+        document.getElementById("soilTemp30Val").textContent = soilTemp30.toFixed(1);
+        document.getElementById("soilTemp40Val").textContent = soilTemp40.toFixed(1);
+
+        document.getElementById("moisture10Val").innerHTML = colorMoisture(moisture10Val);
+        document.getElementById("moisture20Val").innerHTML = colorMoisture(moisture20Val);
+        document.getElementById("moisture30Val").innerHTML = colorMoisture(moisture30Val);
+        document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
 
       } catch (error) {
         console.error("Error parsing or updating data:", error);
