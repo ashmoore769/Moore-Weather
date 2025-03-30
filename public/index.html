@@ -144,12 +144,7 @@
       margin-top: 18px;
       margin-left: -40px;
     }
-    .logger-column .logger-label {
-      font-size: 13px;
-      font-weight: bold;
-      margin-bottom: 8px;
-      display: block;
-    }
+    /* Removed the .logger-label span so it won't display "Data Logger" */
     .logger-column .logger-image {
       max-width: 100px;
       height: auto;
@@ -165,24 +160,38 @@
       background: #f9f9f9;
     }
     .evap-battery {
-  display: flex;
-  justify-content: space-between;
-}
-
-/* Increase the width of the left (evap) column
-   and decrease the width of the right (battery) column. */
-.evap-col {
-  width: 52%;
-}
-
-.battery-col {
-  width: 48%;
-}
+      display: flex;
+      justify-content: space-between;
+    }
+    /* Increase the width of the left (evap) column
+       and decrease the width of the right (battery) column. */
+    .evap-col {
+      width: 52%;
+    }
+    .battery-col {
+      width: 48%;
+    }
     .soil-moisture {
       display: flex;
       justify-content: space-between;
     }
-    .soiltemp-col, .moisture-col { width: 48%; }
+    .soiltemp-col, .moisture-col {
+      width: 48%;
+    }
+
+    /* Add a big temperature box under the logger image */
+    .big-temp-box {
+      margin-top: 8px;
+      padding: 6px 12px;
+      border: 2px solid #FFA500;
+      border-radius: 6px;
+      background-color: #FFE9CC;
+      font-size: 22px;
+      font-weight: bold;
+      color: #FF8C00;
+      text-align: center;
+      min-width: 75px; /* ensures some width for single-digit temps */
+    }
   </style>
 </head>
 <body>
@@ -200,33 +209,44 @@
         </div>
       </div>
     </div>
+
     <div id="weatherData">
       <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
       <div class="address-title">WEST WARWICK, QLD</div>
       <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
       <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
       <hr>
+
       <!-- Flex container with two columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
           <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
           <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
           <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
-          <p><b>🌡️ Temperature:</b> <span id="tempVal" style="font-weight:bold;">--</span> (<span id="tempDescVal">--</span>)</p>
+          <p><b>🌡️ Temperature:</b> 
+            <span id="tempVal" style="font-weight:bold;">--</span> 
+            (<span id="tempDescVal">--</span>)
+          </p>
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
-          <!-- New rain container inserted below the above data in the left column -->
+
           <div class="rain-container">
             <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
             <p><b>🌧️ Rain /Last Min:</b> <span id="rainInLastMinVal">--</span></p>
           </div>
         </div>
+
         <div class="logger-column">
-          <span class="logger-label">Data Logger</span>
-          <img src="/Station_Label.png" alt="Data Logger Model" class="logger-image">
+          <!-- Removed the "Data Logger" label -->
+          <img src="/Station_Label.png" alt="Environdata Weather Maestro" class="logger-image">
+          <!-- Big temperature box that mirrors the main temperature -->
+          <div class="big-temp-box">
+            <span id="bigTempVal">--</span>
+          </div>
         </div>
       </div>
+
       <hr>
       <div class="evap-battery">
         <div class="evap-col">
@@ -262,6 +282,7 @@
       </div>
       <hr>
     </div>
+
     <div id="spinnerContainer" class="spinner-container">
       <div class="spinner"></div>
     </div>
@@ -397,6 +418,9 @@
       tempSpan.style.color = tempData.color;
       document.getElementById("tempDescVal").textContent = tempData.desc;
 
+      // Also set the big temperature box in the right column
+      document.getElementById("bigTempVal").textContent = temperatureRaw.toFixed(1) + "°C";
+
       // RAIN SINCE 9AM
       let rainSince9Display = rainSince9.toFixed(1) + " mm";
       if (rainSince9 >= 0.2) {
@@ -424,7 +448,7 @@
                           solarRad <= 800 ? "#FF9933" :
                           solarRad <= 1100 ? "#BF360C" : "#B71C1C";
       let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
-      if (solarRad < 10) {  
+      if (solarRad < 10) {
         solarRadDisplay += " 🌙";
       }
       if (solarRad > 0) {
