@@ -104,7 +104,7 @@
       margin-bottom: 30px;
     }
     #weatherData p {
-      margin: 2px 0;  /* Tighter vertical spacing */
+      margin: 2px 0;
       line-height: 1.2;
     }
     hr {
@@ -114,111 +114,53 @@
       clear: both;
       width: 100%;
     }
-    /* --- Top Header Layout --- */
-    .address-row {
-      margin-bottom: 0;
+    /* New Combined Header Info Container */
+    .header-info {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      padding: 0 10px;
+    }
+    .header-left, .header-right {
+      width: 50%;
+      margin: 0;
+      padding: 0;
+    }
+    .header-left {
+      border-right: 1px solid #ccc;
+      padding-right: 10px;
+    }
+    .header-right {
+      padding-left: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .address-title {
       font-size: 16.5px;
       font-weight: bold;
-      margin: 0;
+      margin: 0 0 5px 0;
       color: #00008B;
     }
-/* Remove or reduce default margin on the row */
-.date-time-logo-row {
-  display: flex;
-  justify-content: space-between;
-  /* If you want the tops aligned exactly: */
-  align-items: flex-start; 
-  /* Remove bottom margin so there's no extra gap */
-  margin-bottom: 0; 
-  padding: 0;
-}
-
-/* Tighten up the date/time text */
-.date-time {
-  margin: 0; /* ensure no extra margin around the container */
-  padding: 0;
-}
-.date-time p {
-  margin: 0;
-  padding: 0;
-  line-height: 1.1; /* or 1.0, to reduce vertical space */
-}
-
-/* Ensure the images don’t have extra margins/padding */
-.logo-container {
-  display: flex;
-  gap: 0px;
-  margin: 0;
-  padding: 0;
-  /* If you want the top of the images exactly aligned with the text top: */
-  align-items: flex-start; 
-}
-.logo-container img {
-  margin: 0;
-  padding: 0;
-  display: block; /* ensures no extra inline spacing */
-  height: 40px; /* or whatever height you prefer */
-  width: auto;
-}
-
-/* If needed, reduce HR margins so it doesn’t create extra space below */
-hr {
-  margin: 2px 0; /* smaller top/bottom spacing */
-}
-    /* --- Main Data Layout --- */
-    .wind-logger-container {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
+    .date-time p {
+      margin: 0;
+      padding: 0;
+      line-height: 1.1;
     }
-    .wind-column {
-      width: 60%;
-    }
-    .logger-column {
-      width: 40%;
+    .logo-container {
       display: flex;
-      flex-direction: column;
+      gap: 5px;
+      margin: 0;
+      padding: 0;
       align-items: center;
-      justify-content: flex-start;
     }
-    .big-temp-box {
-      margin-top: 4px;
-      margin-bottom: 8px;
-      padding: 6px 12px;
-      border: 2px solid #FFA500;
-      border-radius: 6px;
-      background-color: #FFE9CC;
-      font-size: 22px;
-      font-weight: bold;
-      color: #FF8C00;
-      text-align: center;
-      min-width: 75px;
-    }
-    .rain-container {
-      margin-top: 2px;
-      padding: 1px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      background: #f9f9f9;
-    }
-    .evap-battery {
-      display: flex;
-      justify-content: space-between;
-    }
-    .evap-col {
-      width: 52%;
-    }
-    .battery-col {
-      width: 48%;
-    }
-    .soil-moisture {
-      display: flex;
-      justify-content: space-between;
-    }
-    .soiltemp-col, .moisture-col {
-      width: 48%;
+    .logo-container img {
+      height: 60px;
+      width: auto;
+      margin: 0;
+      display: block;
     }
   </style>
 </head>
@@ -237,27 +179,26 @@ hr {
           <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
         </div>
       </div>
+      <!-- Combined Header Info -->
+      <div class="header-info">
+        <div class="header-left">
+          <div class="address-title">WEST WARWICK, QLD</div>
+          <div class="date-time">
+            <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+            <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="logo-container">
+            <img src="/Weather_Station_App.png" alt="Weather Station Icon">
+            <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Weather Data Section -->
     <div id="weatherData">
-      <!-- Address Row -->
-      <div class="address-row">
-        <div class="address-container">
-          <div class="address-title">WEST WARWICK, QLD</div>
-        </div>
-      </div>
-      <!-- Date/Time & Logos Row -->
-      <div class="date-time-logo-row">
-        <div class="date-time">
-          <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-          <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
-        </div>
-        <div class="logo-container">
-          <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-          <img src="/Station_Label.png" alt="Environdata Weather Maestro">
-        </div>
-      </div>
       <hr>
       <!-- Main Data Columns -->
       <div class="wind-logger-container">
