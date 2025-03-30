@@ -43,10 +43,10 @@
 
     .header-box h2 {
       margin: 0;
-      font-size: 16px; /* slightly increased */
+      font-size: 16px;
       font-weight: bold;
       color: white;
-      padding: 0;
+      padding: 10px 0; /* increased vertical padding for a thicker header */
       white-space: nowrap;
     }
 
@@ -55,7 +55,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 0 5px;
-      margin-bottom: 10px;
+      margin-bottom: 2px; /* reduced margin for minimal spacing */
     }
 
     .control-half {
@@ -124,7 +124,7 @@
       padding: 10px 10px 15px 10px;
       border-radius: 10px;
       box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-      font-size: 14px; /* increased from 12px */
+      font-size: 14px;
       color: #333;
       text-align: left;
       margin-bottom: 20px;
@@ -160,7 +160,7 @@
     }
 
     .address-title {
-      font-size: 14px;
+      font-size: 20px; /* increased for a more prominent title */
       font-weight: bold;
       margin: 0 0 2px 0;
       color: #00008B;
@@ -190,6 +190,7 @@
       width: auto;
       margin: 0;
       display: block;
+      border-radius: 8px; /* added for rounded corners */
     }
 
     /* --- Main Data Layout --- */
@@ -221,11 +222,10 @@
       padding: 4px 8px;
       border: 2px solid #FFA500;
       border-radius: 6px;
-      background-color: #FFE9CC;
-      font-size: 20px; /* increased from 16px */
+      /* Background color will be set dynamically by JS based on temperature */
+      font-size: 20px;
       font-weight: bold;
-      /* The default text color here will be overridden by JS logic */
-      color: #FF8C00;
+      color: #FF8C00; /* default; will be updated dynamically */
       text-align: center;
       min-width: 60px;
       margin: 2px 0;
@@ -281,7 +281,6 @@
       .header-box {
         padding: 0;
       }
-      /* The control section remains side-by-side */
     }
   </style>
 </head>
@@ -528,10 +527,12 @@
         tempSpan.style.color = tempData.color;
         document.getElementById("tempDescVal").textContent = tempData.desc;
 
-        // Big Temperature Box: update text and color to match temperature logic
+        // Big Temperature Box: update text and container background color dynamically
         const bigTempElement = document.getElementById("bigTempVal");
         bigTempElement.textContent = temperatureRaw.toFixed(1) + "°C";
-        bigTempElement.style.color = tempData.color;
+        const bigTempContainer = document.querySelector('.big-temp-box');
+        bigTempContainer.style.backgroundColor = tempData.color;
+        bigTempElement.style.color = "#FFF";
 
         // RAIN SINCE 9AM
         let rainSince9Display = rainSince9.toFixed(1) + " mm";
