@@ -165,10 +165,19 @@
       background: #f9f9f9;
     }
     .evap-battery {
-      display: flex;
-      justify-content: space-between;
-    }
-    .evap-col, .battery-col { width: 48%; }
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Increase the width of the left (evap) column
+   and decrease the width of the right (battery) column. */
+.evap-col {
+  width: 52%;
+}
+
+.battery-col {
+  width: 48%;
+}
     .soil-moisture {
       display: flex;
       justify-content: space-between;
