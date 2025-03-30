@@ -103,9 +103,10 @@
       text-align: left;
       margin-bottom: 30px;
     }
+    /* Slightly reduced line-height to save space */
     #weatherData p {
-      margin: 2.5px 0;
-      line-height: 1.3;
+      margin: 2px 0; /* Tighter vertical spacing */
+      line-height: 1.2;
     }
     hr {
       border: none;
@@ -114,10 +115,10 @@
       clear: both;
       width: 100%;
     }
+
     /* --- Top Header Layout --- */
-    /* Remove extra bottom margin so there's no gap below address */
     .address-row {
-      margin-bottom: 0;
+      margin-bottom: 0; /* No gap below "WEST WARWICK, QLD" */
     }
     .address-title {
       font-size: 16.5px;
@@ -125,25 +126,29 @@
       margin: 0;
       color: #00008B;
     }
-    /* Date/Time & Logos in one row, top-aligned */
+
+    /* Date/Time & Logos in one row, top-aligned, minimal margin */
     .date-time-logo-row {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start; /* Align at the top, removing extra gap above logos */
-      margin-bottom: 8px;
+      align-items: flex-start;
+      margin-bottom: 4px; /* Halved from 8px */
     }
-    /* 4px gap between address and date/time */
+
+    /* 2px gap between address and date/time */
     .date-time {
-      margin-top: 4px; 
+      margin-top: 2px;
     }
-    /* Minimal spacing in the date/time paragraphs */
+    /* Zero margin for date/time paragraphs, smaller line-height */
     .date-time p {
       margin: 0;
-      line-height: 1.3;
+      line-height: 1.2;
     }
+
+    /* Logos: smaller gap between images */
     .logo-container {
       display: flex;
-      gap: 10px;
+      gap: 5px; /* Reduced from 10px */
       margin: 0;
       padding: 0;
     }
@@ -153,6 +158,7 @@
       margin: 0;
       display: block;
     }
+
     /* Main Data Layout */
     .wind-logger-container {
       display: flex;
@@ -233,7 +239,7 @@
           <div class="address-title">WEST WARWICK, QLD</div>
         </div>
       </div>
-      <!-- Date/Time & Logos Row, top-aligned -->
+      <!-- Date/Time & Logos Row, top-aligned, minimal margin -->
       <div class="date-time-logo-row">
         <div class="date-time">
           <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
@@ -367,7 +373,9 @@
 
     function colorMoisture(val) {
       let display = val.toFixed(1);
-      if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
+      if (val < 20) {
+        display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`;
+      }
       return display;
     }
 
@@ -392,7 +400,7 @@
         return;
       }
 
-      // Extract data from CSV indices
+      // Indices for CSV data
       const dateStr             = lines[0];
       const timeStr             = lines[1];
       const windSpeed           = parseFloat(lines[2]);
