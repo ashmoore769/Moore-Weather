@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
-    /* -- Reset/Minimal spacing -- */
+    /* Minimal reset */
     * {
       margin: 0;
       padding: 0;
@@ -21,33 +21,31 @@
       font-weight: 400;
     }
 
-    /* -- Container with minimal margin top/bottom -- */
+    /* Container around entire content */
     .main-container {
       max-width: 400px;
-      margin: 10px auto; /* Reduced from 20px to 10px */
+      margin: 10px auto;
     }
 
+    /* Sticky top bar with heading & controls */
     .freeze-pane {
       position: sticky;
       top: 0;
       z-index: 100;
       background: #f4f4f4;
     }
-
-    /* -- Header box with reduced padding -- */
     .header-box {
       background-color: #00008B;
       border-radius: 5px;
-      padding: 6px 0; /* Reduced from 10px to 6px */
       text-align: center;
+      padding: 6px 0; /* Tighter padding */
     }
     .header-box h2 {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: bold;
-      color: white;
+      color: #fff;
+      margin: 0;
     }
-
-    /* -- Top controls -- */
     .control-container {
       display: flex;
       justify-content: space-between;
@@ -60,7 +58,7 @@
       text-align: center;
     }
     button {
-      padding: 4px 12px; /* Slightly smaller button padding */
+      padding: 4px 12px;
       font-size: 14px;
       font-weight: bold;
       background-color: #FFA500;
@@ -85,7 +83,7 @@
     .connected { color: #006400; }
     .error { color: red; }
 
-    /* -- Spinner -- */
+    /* Spinner styling */
     .spinner-container {
       display: none;
       margin: 10px auto;
@@ -105,65 +103,62 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* -- Main weather data container with minimal padding -- */
+    /* Main content box */
     #weatherData {
-      background: white;
-      padding: 4px 8px; /* Less padding than before */
+      background: #fff;
+      padding: 8px 10px; /* Keep it fairly tight */
       border-radius: 10px;
-      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       font-size: 14px;
       color: #333;
       margin-bottom: 20px;
     }
-
     #weatherData p {
-      margin: 2px 0;  /* Minimal vertical margin for paragraphs */
-      line-height: 1.2;
+      margin: 3px 0;
+      line-height: 1.3;
     }
-
     hr {
       border: none;
       border-top: 1px solid #ccc;
-      margin: 4px 0; /* Minimal margin around HR */
+      margin: 6px 0;
       clear: both;
       width: 100%;
     }
 
-    /* -- Address row with no margin -- */
-    .address-row {
-      margin: 0;
+    /* Top row: location on left, logos on right */
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start; /* So the text starts at top */
+      gap: 10px;
+    }
+    .location-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px; /* small gap between lines */
     }
     .address-title {
-      font-size: 16px; /* Slightly smaller font size */
+      font-size: 16px;
       font-weight: bold;
       color: #00008B;
     }
-
-    /* -- Date/time and logos in the same row, baseline alignment -- */
-    .date-time-logo-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline; /* Align the bottom of text & images */
-    }
-    .date-time p {
-      margin: 0;
-      line-height: 1.2;
-    }
     .logo-container {
       display: flex;
-      gap: 5px; /* Less horizontal gap between images */
+      flex-direction: column;
+      align-items: flex-end; /* Right align the logos */
+      gap: 5px;
     }
     .logo-container img {
-      height: 60px;
+      height: 50px;
       width: auto;
-      display: block; /* Ensures no extra line space under images */
+      display: block;
     }
 
-    /* -- Main data columns -- */
+    /* Two-column layout for main data + big temp box */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
     }
     .wind-column {
       width: 60%;
@@ -175,11 +170,9 @@
       align-items: center;
       justify-content: flex-start;
     }
-
-    /* -- Big temperature box -- */
     .big-temp-box {
-      margin-bottom: 6px;
-      padding: 6px 12px;
+      margin-bottom: 8px;
+      padding: 6px 10px;
       border: 2px solid #FFA500;
       border-radius: 6px;
       background-color: #FFE9CC;
@@ -187,21 +180,23 @@
       font-weight: bold;
       color: #FF8C00;
       text-align: center;
-      min-width: 75px;
+      min-width: 65px;
     }
 
+    /* Rain container styling */
     .rain-container {
-      margin-top: 2px;
-      padding: 1px;
+      margin-top: 4px;
+      padding: 4px;
       border: 1px solid #ccc;
       border-radius: 5px;
       background: #f9f9f9;
     }
 
-    /* -- Evap & Battery row -- */
+    /* Evap & Battery row */
     .evap-battery {
       display: flex;
       justify-content: space-between;
+      gap: 10px;
     }
     .evap-col {
       width: 52%;
@@ -210,10 +205,11 @@
       width: 48%;
     }
 
-    /* -- Soil moisture row -- */
+    /* Soil moisture row */
     .soil-moisture {
       display: flex;
       justify-content: space-between;
+      gap: 10px;
     }
     .soiltemp-col, .moisture-col {
       width: 48%;
@@ -222,6 +218,7 @@
 </head>
 <body>
   <div class="main-container">
+    <!-- Sticky top header -->
     <div class="freeze-pane">
       <div class="header-box">
         <h2>Moore's LIVE Weather Data</h2>
@@ -236,16 +233,20 @@
       </div>
     </div>
 
+    <!-- Main Weather Data Section -->
     <div id="weatherData">
-      <!-- Address (no extra bottom margin) -->
-      <div class="address-row">
-        <div class="address-title">WEST WARWICK, QLD</div>
-      </div>
-      <!-- Date/Time and Logos, aligned at baseline -->
-      <div class="date-time-logo-row">
-        <div class="date-time">
-          <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-          <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+      <!-- Top row: Location + Date/Time on left, Logos on right -->
+      <div class="top-row">
+        <div class="location-info">
+          <div class="address-title">WEST WARWICK, QLD</div>
+          <div>
+            <p style="margin-bottom: 0;">
+              <b>📆 Date:</b> <span id="dateVal">--</span>
+            </p>
+            <p style="margin-top: 0;">
+              <b>⏰ Time:</b> <span id="timeVal">--</span>
+            </p>
+          </div>
         </div>
         <div class="logo-container">
           <img src="/Weather_Station_App.png" alt="Weather Station Icon">
@@ -253,7 +254,7 @@
         </div>
       </div>
       <hr>
-      <!-- Flex container for main data -->
+      <!-- Main data columns: left for wind/humidity, right for big temp -->
       <div class="wind-logger-container">
         <div class="wind-column">
           <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
@@ -313,6 +314,7 @@
       <hr>
     </div>
 
+    <!-- Spinner -->
     <div id="spinnerContainer" class="spinner-container">
       <div class="spinner"></div>
     </div>
@@ -335,8 +337,8 @@
         const formattedDate = `${day}/${month}/${year}`;
         const dateObj = new Date(year, month - 1, day);
         const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const dayOfWeek = dayNames[dateObj.getDay()];
-        return `${formattedDate} (${dayOfWeek})`;
+        const dayOfWeek = dateObj.getDay() >= 0 ? dayNames[dateObj.getDay()] : "";
+        return `${formattedDate}${dayOfWeek ? " (" + dayOfWeek + ")" : ""}`;
       }
       return dateStr;
     }
@@ -397,8 +399,13 @@
       }
 
       // Indices assumptions:
-      // Date: [0], Time: [1]
-      // Rain Since 9AM: index 17, Rain/Last Min: index 6
+      // [0] = Date, [1] = Time
+      // [2] = Wind Speed, [3] = Wind Dir, [4] = Humidity, [5] = Temperature
+      // [6] = Rain/Last Min, [7] = Solar, [8] = Pressure, [9] = GardenBedTemp
+      // [10] = Battery, [11] = Load, [12] = SolarPanelVoltage, [13] = ChargeCurrent
+      // [14] = PeakWindGust, [15] = VectorWindSpeed, [16] = VectorWindDir, [17] = RainSince9
+      // [18] = EvapRate, [20] = DailyEvap, [21] = DewPoint
+      // [22..25] = SoilTemps, [26..29] = Moistures
       const dateStr             = lines[0];
       const timeStr             = lines[1];
       const windSpeed           = parseFloat(lines[2]);
@@ -492,7 +499,7 @@
       // GARDEN BED TEMP
       document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
 
-      // PRESSURE
+      // PRESSURE (minus 1.9 hPa offset if needed)
       let adjustedPressure = pressureRaw - 1.9;
       let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
       if (adjustedPressure >= 1020) {
@@ -560,7 +567,7 @@
     }
 
     /*****************************
-     * FETCH & AUTO-REFRESH LOGIC *
+     * FETCH & AUTO-REFRESH LOGIC
      *****************************/
     function fetchWeather() {
       const statusText = document.getElementById("status");
