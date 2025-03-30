@@ -124,34 +124,49 @@
       margin: 0;
       color: #00008B;
     }
-    .date-time-logo-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start; /* Align everything to the top */
-      margin-bottom: 4px;
-    }
-    /* Remove margin from date-time block so it doesn't push the logos down */
-    .date-time {
-      margin-top: 0;
-    }
-    .date-time p {
-      margin: 0;
-      line-height: 1.2;
-    }
-    /* Explicitly align the logo container to the top */
-    .logo-container {
-      display: flex;
-      gap: 5px;
-      margin: 0;
-      padding: 0;
-      align-self: flex-start;
-    }
-    .logo-container img {
-      height: 60px;
-      width: auto;
-      margin: 0;
-      display: block;
-    }
+/* Remove or reduce default margin on the row */
+.date-time-logo-row {
+  display: flex;
+  justify-content: space-between;
+  /* If you want the tops aligned exactly: */
+  align-items: flex-start; 
+  /* Remove bottom margin so there's no extra gap */
+  margin-bottom: 0; 
+  padding: 0;
+}
+
+/* Tighten up the date/time text */
+.date-time {
+  margin: 0; /* ensure no extra margin around the container */
+  padding: 0;
+}
+.date-time p {
+  margin: 0;
+  padding: 0;
+  line-height: 1.1; /* or 1.0, to reduce vertical space */
+}
+
+/* Ensure the images don’t have extra margins/padding */
+.logo-container {
+  display: flex;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  /* If you want the top of the images exactly aligned with the text top: */
+  align-items: flex-start; 
+}
+.logo-container img {
+  margin: 0;
+  padding: 0;
+  display: block; /* ensures no extra inline spacing */
+  height: 60px; /* or whatever height you prefer */
+  width: auto;
+}
+
+/* If needed, reduce HR margins so it doesn’t create extra space below */
+hr {
+  margin: 2px 0; /* smaller top/bottom spacing */
+}
     /* --- Main Data Layout --- */
     .wind-logger-container {
       display: flex;
