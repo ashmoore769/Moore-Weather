@@ -114,46 +114,50 @@
       clear: both;
       width: 100%;
     }
-    /* --- Top Header Layout --- */
-    .address-row {
-      margin-bottom: 0;
-      margin-top: 4px;
+    
+    /* --- New Header Layout --- */
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin: 4px 0;
     }
+    
+    .title-date-container {
+      display: flex;
+      flex-direction: column;
+    }
+    
     .address-title {
       font-size: 16.5px;
       font-weight: bold;
-      margin: 0;
+      margin: 0 0 4px 0;
       color: #00008B;
     }
-    .date-time-logo-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0;
-    }
+    
     .date-time {
-      margin-top: 0;
-      margin-bottom: 0;
+      margin: 0;
     }
+    
     .date-time p {
       margin: 0;
       line-height: 1.2;
     }
+    
     .logo-container {
       display: flex;
       gap: 5px;
       margin: 0;
       padding: 0;
-      align-self: flex-start;
-      margin-top: 0;
     }
+    
     .logo-container img {
       height: 60px;
       width: auto;
       margin: 0;
       display: block;
-      vertical-align: top;
     }
+    
     /* --- Main Data Layout --- */
     .wind-logger-container {
       display: flex;
@@ -228,17 +232,14 @@
 
     <!-- Weather Data Section -->
     <div id="weatherData">
-      <!-- Address Row -->
-      <div class="address-row">
-        <div class="address-container">
+      <!-- Modified Header Section -->
+      <div class="header-content">
+        <div class="title-date-container">
           <div class="address-title">WEST WARWICK, QLD</div>
-        </div>
-      </div>
-      <!-- Date/Time & Logos Row -->
-      <div class="date-time-logo-row">
-        <div class="date-time">
-          <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-          <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+          <div class="date-time">
+            <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+            <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+          </div>
         </div>
         <div class="logo-container">
           <img src="/Weather_Station_App.png" alt="Weather Station Icon">
@@ -246,6 +247,7 @@
         </div>
       </div>
       <hr>
+      
       <!-- Main Data Columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
