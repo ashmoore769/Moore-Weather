@@ -6,9 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
-    /* CSS styling */
-    body {
+    /* -- Reset/Minimal spacing -- */
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
       background-color: #f4f4f4;
       font-family: "Helvetica Neue", Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -16,41 +20,47 @@
       text-rendering: optimizeLegibility;
       font-weight: 400;
     }
+
+    /* -- Container with minimal margin top/bottom -- */
     .main-container {
       max-width: 400px;
-      margin: 20px auto;
+      margin: 10px auto; /* Reduced from 20px to 10px */
     }
+
     .freeze-pane {
       position: sticky;
       top: 0;
       z-index: 100;
       background: #f4f4f4;
     }
+
+    /* -- Header box with reduced padding -- */
     .header-box {
       background-color: #00008B;
       border-radius: 5px;
-      padding: 10px 0;
+      padding: 6px 0; /* Reduced from 10px to 6px */
       text-align: center;
     }
     .header-box h2 {
-      margin: 0;
       font-size: 20px;
       font-weight: bold;
       color: white;
     }
+
+    /* -- Top controls -- */
     .control-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 4px;
       padding: 0 10px;
+      margin-bottom: 4px;
     }
     .control-half {
       width: 50%;
       text-align: center;
     }
     button {
-      padding: 6px 16px;
+      padding: 4px 12px; /* Slightly smaller button padding */
       font-size: 14px;
       font-weight: bold;
       background-color: #FFA500;
@@ -59,7 +69,6 @@
       border-radius: 10px;
       cursor: pointer;
       transition: background 0.3s;
-      display: inline-block;
     }
     button:hover {
       background-color: #e59400;
@@ -75,9 +84,11 @@
     }
     .connected { color: #006400; }
     .error { color: red; }
+
+    /* -- Spinner -- */
     .spinner-container {
       display: none;
-      margin: 20px auto;
+      margin: 10px auto;
       width: 40px;
       height: 40px;
     }
@@ -93,59 +104,62 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* -- Main weather data container with minimal padding -- */
     #weatherData {
       background: white;
-      padding: 6px 12px 12px 10px;
+      padding: 4px 8px; /* Less padding than before */
       border-radius: 10px;
       box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
       font-size: 14px;
       color: #333;
-      text-align: left;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
+
     #weatherData p {
-      margin: 2.5px 0;
-      line-height: 1.3;
+      margin: 2px 0;  /* Minimal vertical margin for paragraphs */
+      line-height: 1.2;
     }
+
     hr {
       border: none;
       border-top: 1px solid #ccc;
-      margin: 5px 0;
+      margin: 4px 0; /* Minimal margin around HR */
       clear: both;
       width: 100%;
     }
-    /* --- Header Layout --- */
-    /* Address row now has no bottom margin */
+
+    /* -- Address row with no margin -- */
     .address-row {
-      margin-bottom: 0; /* Changed from 8px to 0 */
-    }
-    .address-container {}
-    .address-title {
-      font-size: 16.5px;
-      font-weight: bold;
       margin: 0;
+    }
+    .address-title {
+      font-size: 16px; /* Slightly smaller font size */
+      font-weight: bold;
       color: #00008B;
     }
-    /* Row for Date/Time and Logos */
+
+    /* -- Date/time and logos in the same row, baseline alignment -- */
     .date-time-logo-row {
       display: flex;
       justify-content: space-between;
-      align-items: flex-end; /* Aligns the bottom edges */
-      margin-bottom: 8px;
+      align-items: baseline; /* Align the bottom of text & images */
     }
     .date-time p {
       margin: 0;
-      line-height: 1.3;
+      line-height: 1.2;
     }
     .logo-container {
       display: flex;
-      gap: 10px;
+      gap: 5px; /* Less horizontal gap between images */
     }
     .logo-container img {
       height: 60px;
       width: auto;
+      display: block; /* Ensures no extra line space under images */
     }
-    /* Flex container for left and right columns (weather data) */
+
+    /* -- Main data columns -- */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
@@ -160,20 +174,22 @@
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      margin-top: 0;
     }
+
+    /* -- Big temperature box -- */
     .big-temp-box {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       padding: 6px 12px;
       border: 2px solid #FFA500;
       border-radius: 6px;
       background-color: #FFE9CC;
-      font-size: 22px;
+      font-size: 20px;
       font-weight: bold;
       color: #FF8C00;
       text-align: center;
       min-width: 75px;
     }
+
     .rain-container {
       margin-top: 2px;
       padding: 1px;
@@ -181,6 +197,8 @@
       border-radius: 5px;
       background: #f9f9f9;
     }
+
+    /* -- Evap & Battery row -- */
     .evap-battery {
       display: flex;
       justify-content: space-between;
@@ -191,6 +209,8 @@
     .battery-col {
       width: 48%;
     }
+
+    /* -- Soil moisture row -- */
     .soil-moisture {
       display: flex;
       justify-content: space-between;
@@ -217,13 +237,11 @@
     </div>
 
     <div id="weatherData">
-      <!-- First row: Address -->
+      <!-- Address (no extra bottom margin) -->
       <div class="address-row">
-        <div class="address-container">
-          <div class="address-title">WEST WARWICK, QLD</div>
-        </div>
+        <div class="address-title">WEST WARWICK, QLD</div>
       </div>
-      <!-- Second row: Date/Time and Logos -->
+      <!-- Date/Time and Logos, aligned at baseline -->
       <div class="date-time-logo-row">
         <div class="date-time">
           <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
@@ -351,7 +369,9 @@
 
     function colorMoisture(val) {
       let display = val.toFixed(1);
-      if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
+      if (val < 20) {
+        display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`;
+      }
       return display;
     }
 
@@ -422,14 +442,14 @@
       document.getElementById("humidityVal").textContent = humidityRaw.toFixed(1);
       document.getElementById("humidityDescVal").textContent = getHumidityDesc(humidityRaw);
 
-      // TEMPERATURE (main display)
+      // TEMPERATURE
       const tempData = getTemperatureColorAndDesc(temperatureRaw);
       const tempSpan = document.getElementById("tempVal");
       tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
       tempSpan.style.color = tempData.color;
       document.getElementById("tempDescVal").textContent = tempData.desc;
 
-      // Big temperature box in right column
+      // Big temperature box
       document.getElementById("bigTempVal").textContent = temperatureRaw.toFixed(1) + "°C";
 
       // RAIN SINCE 9AM
