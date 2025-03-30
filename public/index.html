@@ -10,45 +10,56 @@
     body {
       margin: 0;
       background-color: #f4f4f4;
-      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
       font-weight: 400;
+      line-height: 1.5;
     }
+
     .main-container {
       max-width: 400px;
       margin: 20px auto;
+      padding: 0 10px;
     }
+
     .freeze-pane {
       position: sticky;
       top: 0;
       z-index: 100;
       background: #f4f4f4;
+      padding: 10px 0;
     }
+
     .header-box {
       background-color: #00008B;
       border-radius: 5px;
-      padding: 10px 0;
+      padding: 10px 10px;
       text-align: center;
     }
+
     .header-box h2 {
       margin: 0;
       font-size: 20px;
       font-weight: bold;
       color: white;
+      padding: 5px 0;
     }
+
     .control-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 0 10px;
-      margin-bottom: 4px;
+      margin-bottom: 10px;
     }
+
     .control-half {
       width: 50%;
       text-align: center;
     }
+
     button {
       padding: 6px 16px;
       font-size: 14px;
@@ -60,26 +71,34 @@
       cursor: pointer;
       transition: background 0.3s;
       display: inline-block;
+      margin: 5px 0;
     }
+
     button:hover {
       background-color: #e59400;
     }
+
     button:disabled {
       background-color: gray;
       cursor: not-allowed;
     }
+
     #status {
       font-weight: bold;
       white-space: nowrap;
+      padding: 5px 0;
     }
+
     .connected { color: #006400; }
     .error { color: red; }
+
     .spinner-container {
       display: none;
       margin: 20px auto;
       width: 40px;
       height: 40px;
     }
+
     .spinner {
       width: 100%;
       height: 100%;
@@ -88,14 +107,16 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
     /* Weather Data Container */
     #weatherData {
       background: white;
-      padding: 6px 12px 12px 10px;
+      padding: 15px 15px 20px 15px;
       border-radius: 10px;
       box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
       font-size: 14px;
@@ -103,70 +124,75 @@
       text-align: left;
       margin-bottom: 30px;
     }
+
     #weatherData p {
-      margin: 2px 0;
+      margin: 5px 0;
       line-height: 1.2;
     }
+
     hr {
       border: none;
       border-top: 1px solid #ccc;
-      margin: 0;
+      margin: 10px 0;
       clear: both;
       width: 100%;
     }
-    
+
     /* --- New Header Layout --- */
     .header-content {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin: 4px 0;
+      margin: 10px 0;
     }
-    
+
     .title-date-container {
       display: flex;
       flex-direction: column;
     }
-    
+
     .address-title {
       font-size: 16.5px;
       font-weight: bold;
       margin: 0 0 4px 0;
       color: #00008B;
     }
-    
+
     .date-time {
       margin: 0;
     }
-    
+
     .date-time p {
       margin: 0;
       line-height: 1.2;
     }
-    
+
     .logo-container {
       display: flex;
       gap: 5px;
       margin: 0;
       padding: 0;
     }
-    
+
     .logo-container img {
       height: 60px;
       width: auto;
       margin: 0;
       display: block;
     }
-    
+
     /* --- Main Data Layout --- */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
       gap: 10px;
+      margin: 10px 0;
     }
+
     .wind-column {
       width: 60%;
     }
+
     .logger-column {
       width: 40%;
       display: flex;
@@ -174,6 +200,7 @@
       align-items: center;
       justify-content: flex-start;
     }
+
     .big-temp-box {
       margin-top: 4px;
       margin-bottom: 8px;
@@ -186,30 +213,64 @@
       color: #FF8C00;
       text-align: center;
       min-width: 75px;
+      margin: 5px 0;
     }
+
     .rain-container {
       margin-top: 2px;
       padding: 1px;
       border: 1px solid #ccc;
       border-radius: 5px;
       background: #f9f9f9;
+      margin: 5px 0;
     }
+
     .evap-battery {
       display: flex;
       justify-content: space-between;
+      margin: 10px 0;
     }
+
     .evap-col {
       width: 52%;
     }
+
     .battery-col {
       width: 48%;
     }
+
     .soil-moisture {
       display: flex;
       justify-content: space-between;
+      margin: 10px 0;
     }
+
     .soiltemp-col, .moisture-col {
       width: 48%;
+    }
+
+    /* Add some media queries to optimize for mobile devices */
+    @media only screen and (max-width: 600px) {
+      .main-container {
+        padding: 0 10px;
+      }
+      .header-box {
+        padding: 5px;
+      }
+      .control-container {
+        flex-direction: column;
+        align-items: center;
+      }
+      .control-half {
+        width: 100%;
+        margin: 5px 0;
+      }
+      .wind-logger-container {
+        flex-direction: column;
+      }
+      .wind-column, .logger-column {
+        width: 100%;
+      }
     }
   </style>
 </head>
