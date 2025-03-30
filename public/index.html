@@ -89,6 +89,7 @@
 
     #status {
       font-weight: bold;
+      font-size: 16px; /* increased font size */
       white-space: nowrap;
       padding: 0;
     }
@@ -217,16 +218,17 @@
 
     .big-temp-box {
       margin: 2px auto; /* center horizontally */
-      padding: 4px 8px;
+      padding: 10px 12px; /* increased padding for a more robust look */
       border: 2px solid grey; /* grey border */
-      border-radius: 12px; /* softer rounded corners */
-      /* Background color set dynamically via JS */
-      font-size: 20px;
+      border-radius: 12px; /* softer, more rounded corners */
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* subtle dashboard-style shadow */
+      font-size: 28px; /* larger, dashboard-style font */
       font-weight: bold;
-      color: #FF8C00; /* default; updated dynamically */
       text-align: center;
+      color: #FF8C00; /* default; updated dynamically by JS */
       min-width: 60px;
       white-space: nowrap;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* added text shadow for depth */
     }
 
     .rain-container {
