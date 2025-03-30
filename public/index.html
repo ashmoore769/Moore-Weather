@@ -1,67 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
   <link rel="apple-touch-icon" href="/Weather_Station_App.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
   <style>
     /* Base Styles */
     body {
       margin: 0;
       background-color: #f4f4f4;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: "Helvetica Neue", Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
       font-weight: 400;
-      line-height: 1.5;
     }
-
     .main-container {
       max-width: 400px;
       margin: 20px auto;
-      padding: 0 10px;
     }
-
     .freeze-pane {
       position: sticky;
       top: 0;
       z-index: 100;
       background: #f4f4f4;
-      padding: 10px 0;
     }
-
     .header-box {
       background-color: #00008B;
       border-radius: 5px;
-      padding: 10px 10px;
+      padding: 10px 0;
       text-align: center;
     }
-
     .header-box h2 {
       margin: 0;
       font-size: 20px;
       font-weight: bold;
       color: white;
-      padding: 5px 0;
     }
-
     .control-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 0 10px;
-      margin-bottom: 10px;
+      margin-bottom: 4px;
     }
-
     .control-half {
       width: 50%;
       text-align: center;
     }
-
     button {
       padding: 6px 16px;
       font-size: 14px;
@@ -73,34 +60,26 @@
       cursor: pointer;
       transition: background 0.3s;
       display: inline-block;
-      margin: 5px 0;
     }
-
     button:hover {
       background-color: #e59400;
     }
-
     button:disabled {
       background-color: gray;
       cursor: not-allowed;
     }
-
     #status {
       font-weight: bold;
       white-space: nowrap;
-      padding: 5px 0;
     }
-
     .connected { color: #006400; }
     .error { color: red; }
-
     .spinner-container {
       display: none;
       margin: 20px auto;
       width: 40px;
       height: 40px;
     }
-
     .spinner {
       width: 100%;
       height: 100%;
@@ -109,16 +88,14 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-
     /* Weather Data Container */
     #weatherData {
       background: white;
-      padding: 15px 15px 20px 15px;
+      padding: 6px 12px 12px 10px;
       border-radius: 10px;
       box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
       font-size: 14px;
@@ -126,75 +103,68 @@
       text-align: left;
       margin-bottom: 30px;
     }
-
     #weatherData p {
-      margin: 5px 0;
+      margin: 2px 0;
       line-height: 1.2;
     }
-
     hr {
       border: none;
       border-top: 1px solid #ccc;
-      margin: 10px 0;
+      margin: 0;
       clear: both;
       width: 100%;
     }
-
-    /* --- New Header Layout --- */
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin: 10px 0;
+    /* --- Top Header Layout --- */
+    .address-row {
+      margin-bottom: 0;
+      margin-top: 4px;
     }
-
-    .title-date-container {
-      display: flex;
-      flex-direction: column;
-    }
-
     .address-title {
       font-size: 16.5px;
       font-weight: bold;
-      margin: 0 0 4px 0;
+      margin: 0;
       color: #00008B;
     }
-
-    .date-time {
-      margin: 0;
+    .date-time-logo-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0;
     }
-
+    .date-time {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      margin-top: 0;
+      margin-bottom: 0;
+    }
     .date-time p {
       margin: 0;
       line-height: 1.2;
     }
-
     .logo-container {
       display: flex;
       gap: 5px;
       margin: 0;
       padding: 0;
+      align-self: flex-start;
+      margin-top: 0;
     }
-
     .logo-container img {
       height: 60px;
       width: auto;
       margin: 0;
       display: block;
     }
-
     /* --- Main Data Layout --- */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
       gap: 10px;
-      margin: 10px 0;
     }
-
     .wind-column {
       width: 60%;
     }
-
     .logger-column {
       width: 40%;
       display: flex;
@@ -202,7 +172,6 @@
       align-items: center;
       justify-content: flex-start;
     }
-
     .big-temp-box {
       margin-top: 4px;
       margin-bottom: 8px;
@@ -215,83 +184,30 @@
       color: #FF8C00;
       text-align: center;
       min-width: 75px;
-      margin: 5px 0;
     }
-
     .rain-container {
       margin-top: 2px;
       padding: 1px;
       border: 1px solid #ccc;
       border-radius: 5px;
       background: #f9f9f9;
-      margin: 5px 0;
     }
-
     .evap-battery {
       display: flex;
       justify-content: space-between;
-      margin: 10px 0;
     }
-
     .evap-col {
       width: 52%;
     }
-
     .battery-col {
       width: 48%;
     }
-
     .soil-moisture {
       display: flex;
       justify-content: space-between;
-      margin: 10px 0;
     }
-
     .soiltemp-col, .moisture-col {
       width: 48%;
-    }
-
-    /* Add some media queries to optimize for mobile devices */
-    @media (max-width: 768px) {
-      .main-container {
-        padding: 10px;
-      }
-      .header-box {
-        padding: 10px;
-      }
-      .control-container {
-        flex-direction: column;
-        align-items: center;
-      }
-      .control-half {
-        width: 100%;
-        margin: 5px 0;
-      }
-      .wind-logger-container {
-        flex-direction: column;
-      }
-      .wind-column, .logger-column {
-        width: 100%;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .main-container {
-        padding: 5px;
-      }
-      .header-box {
-        padding: 5px;
-      }
-      .control-container {
-        padding: 5px;
-      }
-      .wind-logger-container {
-        margin: 5px 0;
-      }
-      .big-temp-box {
-        margin: 2px;
-        padding: 4px 8px;
-      }
     }
   </style>
 </head>
@@ -314,14 +230,17 @@
 
     <!-- Weather Data Section -->
     <div id="weatherData">
-      <!-- Modified Header Section -->
-      <div class="header-content">
-        <div class="title-date-container">
+      <!-- Address Row -->
+      <div class="address-row">
+        <div class="address-container">
           <div class="address-title">WEST WARWICK, QLD</div>
-          <div class="date-time">
-            <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-            <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
-          </div>
+        </div>
+      </div>
+      <!-- Date/Time & Logos Row -->
+      <div class="date-time-logo-row">
+        <div class="date-time">
+          <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+          <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
         </div>
         <div class="logo-container">
           <img src="/Weather_Station_App.png" alt="Weather Station Icon">
@@ -329,7 +248,6 @@
         </div>
       </div>
       <hr>
-      
       <!-- Main Data Columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
@@ -341,7 +259,7 @@
             <span id="tempVal" style="font-weight:bold;">--</span>
             (<span id="tempDescVal">--</span>)
           </p>
-          <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
+          <p><b ☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
           <div class="rain-container">
@@ -362,7 +280,7 @@
           <p><b>⤴️ Evap/Hr:</b> <span id="evapRateVal">--</span> mm/h</p>
           <p><b>⬆️ Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
           <p><b>💧 Dew Point:</b> <span id="dewPointVal">--</span>°C</p>
-          <p><b>🌬️ Max WS Gust:</b> <span id="peakWindGustVal">--</span></p>
+          <p><b 🌬️ Max WS Gust:</b> <span id="peakWindGustVal">--</span></p>
         </div>
         <div class="battery-col">
           <p><b>🔋 Battery:</b> <span id="batteryVal">--</span></p>
@@ -376,7 +294,7 @@
       <p><b>🍃 Vector Wind Speed:</b> <span id="vectorWindSpeedVal">--</span> km/h</p>
       <p>
         <b>🧭 Vector Wind Direction:</b>
-        <span id="vectorWindDirDegVal">--</span>° (<span id="vectorWindDirTextVal">--</span>)
+        <span id="vectorWindDirDegVal">--</span>° (<span id="vectorWindDirTextVal">--)</span>
       </p>
       <hr>
       <div class="soil-moisture">
@@ -424,7 +342,7 @@
       return dateStr;
     }
 
-    function getTemperatureColorAndDesc(temp) {
+    function getTemperatureColorAndDesc(temp) => {
       let color, desc;
       if (temp < -20) { color = "#000000"; desc = ""; }
       else if (temp < -10) { color = "#191970"; desc = "Severely cold"; }
@@ -504,8 +422,8 @@
         const dewPoint            = parseFloat(lines[21]);
         const soilTemp10          = parseFloat(lines[22]);
         const soilTemp20          = parseFloat(lines[23]);
-        const soilTemp30          = parseFloat(lines[24]);
-        const soilTemp40          = parseFloat(lines[25]);
+        const soilTemp30]          = parseFloat(lines[24]);
+        const soilTemp40           = parseFloat(lines[25]);
         const moisture10Val       = parseFloat(lines[26]);
         const moisture20Val       = parseFloat(lines[27]);
         const moisture30Val       = parseFloat(lines[28]);
@@ -513,9 +431,9 @@
 
         // Validate the data
         if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw)) {
-            console.error("Invalid data received:", lines); // Log the invalid data
-            document.getElementById("weatherData").innerHTML = "<b>Error:</b> Invalid data values.";
-            return;
+          console.error("Invalid data received:", lines); // Log the invalid data
+          document.getElementById("weatherData").innerHTML = "<b>Error:</b> Invalid data values.";
+          return;
         }
 
         // DATE & TIME
@@ -573,11 +491,11 @@
         // SOLAR RADIATION
         const solarRad = Math.max(0, solarRadRaw);
         let solarRadColor = solarRad === 0 ? "#000033" :
-                            solarRad <= 100 ? "#000080" :
-                            solarRad <= 299 ? "#27408B" :
-                            solarRad <= 600 ? "#DAA520" :
-                            solarRad <= 800 ? "#FF9933" :
-                            solarRad <= 1100 ? "#BF360C" : "#B71C1C";
+                              solarRad <= 100 ? "#000080" :
+                              solarRad <= 299 ? "#27408B" :
+                              solarRad <= 600 ? "#DAA520" :
+                              solarRad <= 800 ? "#FF9933" :
+                              solarRad <= 1100 ? "#BF360C" : "#B71C1C";
         let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
         if (solarRad < 10) {
           solarRadDisplay += " 🌙";
@@ -605,7 +523,7 @@
 
         // BATTERY
         const batteryVoltage = batteryVoltageVal.toFixed(1);
-        let batteryColor = batteryVoltageVal < 12.5 ? "red" : "green";
+        let batteryColor = batteryVoltageVal < 2.5 ? "red" : "green";
         let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
         if (batteryVoltageVal >= 13.8) {
           batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
@@ -629,7 +547,7 @@
         let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
         if (batteryVoltageVal < 13.80) {
           chargeDisplay = chargeCurrent > loadCurrent
-            ? `<span style="color:green;">${chargeDisplay}</span>`
+            ? `<span style="color:green;">${charge}</span>`
             : `<span style="color:red;">${chargeDisplay}</span>`;
         }
         const chargeValElement = document.getElementById("chargeVal");
@@ -639,13 +557,13 @@
         let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
         if (peakWindGustVal > 25) {
           peakWindGustDisplay = `<span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>`;
-        } else if (peakWindGustVal > 10) {
+        } else  if (peakWindGustVal > 10) {
           peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
         }
         const peakWindGustValElement = document.getElementById("peakWindGustVal");
         peakWindGustValElement.innerHTML = peakWindGustDisplay;
 
-        // VECTOR WIND
+        // VECTOW WIND
         const vectorWindSpeedValElement = document.getElementById("vectorWindSpeedVal");
         vectorWindSpeedValElement.textContent = vectorWindSpeedVal.toFixed(1);
         const vectorWindDirDegValElement = document.getElementById("vectorWindDirDegVal");
@@ -663,13 +581,13 @@
 
         // SOIL TEMPS & MOISTURE
         const soilTemp10ValElement = document.getElementById("soilTemp10Val");
-        soilTemp10ValElement.textContent = soilTemp10.toFixed(1);
+        soilTemp10ValElement.textContent = soilTemp10.toFixed(1));
         const soilTemp20ValElement = document.getElementById("soilTemp20Val");
-        soilTemp20ValElement.textContent = soilTemp20.toFixed(1);
+        soilTemp20ValElement.textContent = soilTemp20.toFixed(1));
         const soilTemp30ValElement = document.getElementById("soilTemp30Val");
-        soilTemp30ValElement.textContent = soilTemp30.toFixed(1);
+        soilTemp30ValElement.textContent = soilTemp30.toFixed(1));
         const soilTemp40ValElement = document.getElementById("soilTemp40Val");
-        soilTemp40ValElement.textContent = soilTemp40.toFixed(1);
+        soilTemp40ValElement.textContent = soilTemp40.toFixed(1));
 
         const moisture10ValElement = document.getElementById("moisture10Val");
         moisture10ValElement.innerHTML = colorMoisture(moisture10Val);
@@ -702,44 +620,45 @@
           if (!response.ok) {
             throw new Error("Server responded with " + response.status);
           }
-          return response.text();
-        })
-        .then(data => {
-          updateWeatherData(data);
-          statusText.innerText = "Status: Connected";
-          statusText.className = "connected";
-          retryAttempts = 0;
-          if (!initialLoadComplete) {
-            initialLoadComplete = true;
-          }
-          // Schedule next fetch at 20 seconds past the minute
-          const now = new Date();
-          let delay;
-          if (now.getSeconds() < 20) {
-            delay = (20 - now.getSeconds()) * 1000;
+        }
+        return response.text();
+      })
+      .then(data => {
+        updateWeatherData(data);
+        statusText.innerText = "Status: Connected";
+        statusText.className = "connected";
+        retryAttempts = 0;
+        if (!initialLoadComplete) {
+          initialLoadComplete = true;
+        }
+        // Schedule next fetch at 20 seconds past the minute
+        const now = new Date();
+        let delay;
+        if (now.getSeconds() < 20) {
+          delay = (20 - now.getSeconds()) * 1000;
+        } else {
+          delay = ((60 - now.getSeconds()) + 20) * 1000;
+        }
+        refreshTimeout = setTimeout(fetchWeather, delay);
+      })
+      .catch(error => {
+        console.error("Fetch error:", error);
+        statusText.innerText = "Status: Error";
+        statusText.className = "error";
+        if (!initialLoadComplete) {
+          refreshTimeout = setTimeout(fetchWeather, 1000);
+        } else {
+          retryAttempts++;
+          if (retryAttempts <= MAX_RETRY_ATTEMPTS) {
+            refreshTimeout = setTimeout(fetchWeather, 5000);
           } else {
-            delay = ((60 - now.getSeconds()) + 20) * 1000;
+            console.log("Max retry attempts reached. Manual intervention may be required.");
           }
-          refreshTimeout = setTimeout(fetchWeather, delay);
-        })
-        .catch(error => {
-          console.error("Fetch error:", error);
-          statusText.innerText = "Status: Error";
-          statusText.className = "error";
-          if (!initialLoadComplete) {
-            refreshTimeout = setTimeout(fetchWeather, 1000);
-          } else {
-            retryAttempts++;
-            if (retryAttempts <= MAX_RETRY_ATTEMPTS) {
-              refreshTimeout = setTimeout(fetchWeather, 5000);
-            } else {
-              console.log("Max retry attempts reached. Manual intervention may be required.");
-            }
-          }
-        })
-        .finally(() => {
-          spinnerContainer.style.display = "none";
-        });
+        }
+      })
+      .finally(() => {
+        spinnerContainer.style.display = "none";
+      });
     }
 
     function manualFetch() {
@@ -751,5 +670,6 @@
 
     window.addEventListener("load", () => fetchWeather());
   </script>
+
 </body>
 </html>
