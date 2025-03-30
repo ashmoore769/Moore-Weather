@@ -114,15 +114,15 @@
       clear: both;
       width: 100%;
     }
-    /* NEW TOP ROW: Address and Logos */
-    .top-row {
+    /* Top header: address on left, two logos on right */
+    .top-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;  /* Align bottom edges */
+      align-items: center;
       margin-bottom: 4px;
     }
     .address-container {
-      /* Left side container for address and later date/time if needed */
+      /* Left side text */
     }
     .address-title {
       font-size: 16.5px;
@@ -132,14 +132,14 @@
     }
     .logo-container {
       display: flex;
+      align-items: center;
       gap: 10px;
-      /* No extra top margin so logos align by their bottom */
     }
     .logo-container img {
       height: 60px;
       width: auto;
     }
-    /* Date/time row below the top row */
+    /* Date/time row below the top header */
     .date-time {
       margin-bottom: 8px;
     }
@@ -151,27 +151,19 @@
     }
     .wind-column {
       width: 60%;
-      /* The wind column with various weather data */
     }
+    /* Right column now holds just the big temp box at the top */
     .logger-column {
       width: 40%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      /* Removed extra top margin so that the big temp box sits at the top */
+      justify-content: flex-start;
+      /* Remove the extra top margin since we'll show only the big temp */
       margin-top: 0;
-      margin-left: -40px;
     }
-    /* Removed .logger-label so no "Data Logger" text */
-    .logger-column .logger-image {
-      max-width: 100px;
-      height: auto;
-      display: block;
-      border-radius: 10px;
-    }
-    /* Big temperature box under (or as part of) the right column */
     .big-temp-box {
-      margin-top: 8px;
+      margin-bottom: 8px;
       padding: 6px 12px;
       border: 2px solid #FFA500;
       border-radius: 6px;
@@ -181,9 +173,7 @@
       color: #FF8C00;
       text-align: center;
       min-width: 75px;
-      margin-bottom: 8px;
     }
-    /* Existing rain container inside left column */
     .rain-container {
       margin-top: 2px;
       padding: 1px;
@@ -227,14 +217,14 @@
     </div>
 
     <div id="weatherData">
-      <!-- Top row with address on left and logos on right (logos reversed) -->
-      <div class="top-row">
+      <!-- Top header row with address on left and two logos on right -->
+      <div class="top-header">
         <div class="address-container">
           <div class="address-title">WEST WARWICK, QLD</div>
         </div>
         <div class="logo-container">
-          <img src="/Station_Label.png" alt="Environdata Weather Maestro">
           <img src="/Weather_Station_App.png" alt="Weather Station Icon">
+          <img src="/Station_Label.png" alt="Environdata Weather Maestro">
         </div>
       </div>
       <!-- Date and Time row -->
@@ -249,8 +239,8 @@
           <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
           <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
           <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
-          <p><b>🌡️ Temperature:</b>
-            <span id="tempVal" style="font-weight:bold;">--</span>
+          <p><b>🌡️ Temperature:</b> 
+            <span id="tempVal" style="font-weight:bold;">--</span> 
             (<span id="tempDescVal">--</span>)
           </p>
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
@@ -262,9 +252,7 @@
           </div>
         </div>
         <div class="logger-column">
-          <!-- In the right column, first show the logger image (if you still need it) -->
-          <img src="/Station_Label.png" alt="Environdata Weather Maestro" class="logger-image">
-          <!-- Then the big temperature box -->
+          <!-- Big temperature box (now at the top of the right column) -->
           <div class="big-temp-box">
             <span id="bigTempVal">--</span>
           </div>
@@ -312,7 +300,9 @@
   </div>
 
   <script>
-    /* HELPER FUNCTIONS */
+    /********************
+     * HELPER FUNCTIONS *
+     ********************/
     function getWindDirection(degrees) {
       const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
                           "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
@@ -364,22 +354,30 @@
       return display;
     }
 
-    /* GLOBAL STATE */
+    /*****************************
+     * GLOBAL STATE & RETRIES    *
+     *****************************/
     let initialLoadComplete = false;
     let refreshTimeout;
     let retryAttempts = 0;
     const MAX_RETRY_ATTEMPTS = 3;
 
-    /* MAIN UPDATE FUNCTION */
+    /*****************************
+     * MAIN UPDATE FUNCTION      *
+     *****************************/
     function updateWeatherData(data) {
       console.log("Raw CSV data:", data);
       const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
       console.log("Parsed lines array:", lines);
+
       if (lines.length < 30) {
         document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
         return;
       }
-      // Parse data
+
+      // Indices assumptions:
+      // Date: [0], Time: [1]
+      // Rain Since 9AM: index 17, Rain/Last Min: index 6
       const dateStr             = lines[0];
       const timeStr             = lines[1];
       const windSpeed           = parseFloat(lines[2]);
@@ -410,25 +408,37 @@
       const moisture30Val       = parseFloat(lines[28]);
       const moisture40Val       = parseFloat(lines[29]);
 
-      // Update DOM elements
+      // DATE & TIME
       document.getElementById("dateVal").textContent = formatDateString(dateStr);
       document.getElementById("timeVal").textContent = timeStr + " AEST";
+
+      // WIND
       document.getElementById("windSpeedVal").textContent = windSpeed.toFixed(1);
       document.getElementById("windDirDegVal").textContent = windDirDeg.toFixed(1);
       document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
+
+      // HUMIDITY
       document.getElementById("humidityVal").textContent = humidityRaw.toFixed(1);
       document.getElementById("humidityDescVal").textContent = getHumidityDesc(humidityRaw);
+
+      // TEMPERATURE (main display)
       const tempData = getTemperatureColorAndDesc(temperatureRaw);
       const tempSpan = document.getElementById("tempVal");
       tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
       tempSpan.style.color = tempData.color;
       document.getElementById("tempDescVal").textContent = tempData.desc;
+
+      // Big temperature box in right column
       document.getElementById("bigTempVal").textContent = temperatureRaw.toFixed(1) + "°C";
+
+      // RAIN SINCE 9AM
       let rainSince9Display = rainSince9.toFixed(1) + " mm";
       if (rainSince9 >= 0.2) {
         rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
       }
       document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
+
+      // RAIN IN LAST MINUTE
       if (isNaN(rainInLastMinRaw)) {
         console.warn("Rain/Last Min is NaN at index [6]. Defaulting to 0.0 mm");
         rainInLastMinRaw = 0.0;
@@ -438,6 +448,8 @@
         rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
       }
       document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
+
+      // SOLAR RADIATION
       const solarRad = Math.max(0, solarRadRaw);
       let solarRadColor = solarRad === 0 ? "#000033" :
                           solarRad <= 100 ? "#000080" :
@@ -446,7 +458,7 @@
                           solarRad <= 800 ? "#FF9933" :
                           solarRad <= 1100 ? "#BF360C" : "#B71C1C";
       let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
-      if (solarRad < 10) {
+      if (solarRad < 10) {  
         solarRadDisplay += " 🌙";
       }
       if (solarRad > 0) {
@@ -455,13 +467,19 @@
         solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
       }
       document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
+
+      // GARDEN BED TEMP
       document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
+
+      // PRESSURE
       let adjustedPressure = pressureRaw - 1.9;
       let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
       if (adjustedPressure >= 1020) {
         pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
       }
       document.getElementById("pressureVal").innerHTML = pressureDisplay;
+
+      // BATTERY
       const batteryVoltage = batteryVoltageVal.toFixed(1);
       let batteryColor = batteryVoltageVal < 12.5 ? "red" : "green";
       let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
@@ -469,12 +487,18 @@
         batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
       }
       document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
+
+      // LOAD
       document.getElementById("loadVal").textContent = loadCurrent.toFixed(1);
+
+      // SOLAR PANEL
       let solarPanelDisplay = rawSolarVoltage.toFixed(1) + " V ☀️";
       if (rawSolarVoltage < batteryVoltageVal) {
         solarPanelDisplay = "0.0 V 🌙";
       }
       document.getElementById("solarPanelVal").textContent = solarPanelDisplay;
+
+      // CHARGE
       let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
       if (batteryVoltageVal < 13.80) {
         chargeDisplay = chargeCurrent > loadCurrent
@@ -482,6 +506,8 @@
           : `<span style="color:red;">${chargeDisplay}</span>`;
       }
       document.getElementById("chargeVal").innerHTML = chargeDisplay;
+
+      // PEAK WIND GUST
       let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
       if (peakWindGustVal > 25) {
         peakWindGustDisplay = `<span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>`;
@@ -489,28 +515,40 @@
         peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
       }
       document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
+
+      // VECTOR WIND
       document.getElementById("vectorWindSpeedVal").textContent = vectorWindSpeedVal.toFixed(1);
       document.getElementById("vectorWindDirDegVal").textContent = vectorWindDirVal.toFixed(1);
       document.getElementById("vectorWindDirTextVal").textContent = getWindDirection(vectorWindDirVal);
+
+      // EVAP & DEW POINT
       document.getElementById("evapRateVal").textContent = evapRate.toFixed(3);
       document.getElementById("dailyEvapVal").textContent = dailyEvap.toFixed(3);
       document.getElementById("dewPointVal").textContent = dewPoint.toFixed(1);
+
+      // SOIL TEMPS & MOISTURE
       document.getElementById("soilTemp10Val").textContent = soilTemp10.toFixed(1);
       document.getElementById("soilTemp20Val").textContent = soilTemp20.toFixed(1);
       document.getElementById("soilTemp30Val").textContent = soilTemp30.toFixed(1);
       document.getElementById("soilTemp40Val").textContent = soilTemp40.toFixed(1);
+
       document.getElementById("moisture10Val").innerHTML = colorMoisture(moisture10Val);
       document.getElementById("moisture20Val").innerHTML = colorMoisture(moisture20Val);
       document.getElementById("moisture30Val").innerHTML = colorMoisture(moisture30Val);
       document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
     }
 
+    /*****************************
+     * FETCH & AUTO-REFRESH LOGIC *
+     *****************************/
     function fetchWeather() {
       const statusText = document.getElementById("status");
       const spinnerContainer = document.getElementById("spinnerContainer");
+
       statusText.innerText = "Status: Fetching";
       statusText.className = "connected";
       spinnerContainer.style.display = "block";
+
       fetch("/weather")
         .then(response => {
           if (!response.ok) {
@@ -526,6 +564,7 @@
           if (!initialLoadComplete) {
             initialLoadComplete = true;
           }
+          // Schedule next fetch at 20 seconds past the minute
           const now = new Date();
           let delay;
           if (now.getSeconds() < 20) {
