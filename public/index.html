@@ -118,7 +118,7 @@
     .header-info {
       display: flex;
       flex-direction: row;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
       margin-bottom: 5px;
       padding: 0 10px;
@@ -128,15 +128,16 @@
       margin: 0;
       padding: 0;
     }
+    /* Logo column on the left */
     .header-left {
-      border-right: 1px solid #ccc;
-      padding-right: 10px;
-    }
-    .header-right {
-      padding-left: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+    /* Title and Date/Time column on the right */
+    .header-right {
+      border-left: 1px solid #ccc;
+      padding-left: 10px;
     }
     .address-title {
       font-size: 16.5px;
@@ -148,6 +149,7 @@
       margin: 0;
       padding: 0;
       line-height: 1.1;
+      font-size: 14px; /* Matches the data below */
     }
     .logo-container {
       display: flex;
@@ -182,16 +184,16 @@
       <!-- Combined Header Info -->
       <div class="header-info">
         <div class="header-left">
+          <div class="logo-container">
+            <img src="/Weather_Station_App.png" alt="Weather Station Icon">
+            <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+          </div>
+        </div>
+        <div class="header-right">
           <div class="address-title">WEST WARWICK, QLD</div>
           <div class="date-time">
             <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
             <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
-          </div>
-        </div>
-        <div class="header-right">
-          <div class="logo-container">
-            <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-            <img src="/Station_Label.png" alt="Environdata Weather Maestro">
           </div>
         </div>
       </div>
