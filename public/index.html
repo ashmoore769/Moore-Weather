@@ -14,9 +14,8 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
-      font-size: 14px; /* increased from 12px */
-      line-height: 1.3; /* slightly more breathing room */
-      /* Support for iOS safe areas */
+      font-size: 14px;
+      line-height: 1.3;
       padding-top: env(safe-area-inset-top, 0);
     }
 
@@ -46,7 +45,7 @@
       font-size: 16px;
       font-weight: bold;
       color: white;
-      padding: 10px 0; /* increased vertical padding for a thicker header */
+      padding: 10px 0; /* thicker header */
       white-space: nowrap;
     }
 
@@ -55,7 +54,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 0 5px;
-      margin-bottom: 2px; /* reduced margin for minimal spacing */
+      margin-bottom: 2px; /* minimal spacing */
     }
 
     .control-half {
@@ -65,13 +64,13 @@
     }
 
     button {
-      padding: 4px 8px;
-      font-size: 12px; /* increased from 10px */
+      padding: 6px 12px; /* increased padding */
+      font-size: 14px;   /* increased font size */
       font-weight: bold;
       background-color: #FFA500;
       color: black;
       border: none;
-      border-radius: 5px;
+      border-radius: 10px; /* softer rounded corners */
       cursor: pointer;
       transition: background 0.3s;
       display: inline-block;
@@ -160,7 +159,7 @@
     }
 
     .address-title {
-      font-size: 20px; /* increased for a more prominent title */
+      font-size: 18px; /* slightly reduced from 20px */
       font-weight: bold;
       margin: 0 0 2px 0;
       color: #00008B;
@@ -190,7 +189,7 @@
       width: auto;
       margin: 0;
       display: block;
-      border-radius: 8px; /* added for rounded corners */
+      border-radius: 8px;
     }
 
     /* --- Main Data Layout --- */
@@ -220,12 +219,12 @@
       margin-top: 2px;
       margin-bottom: 4px;
       padding: 4px 8px;
-      border: 2px solid #FFA500;
+      border: 2px solid grey; /* changed from orange to grey */
       border-radius: 6px;
-      /* Background color will be set dynamically by JS based on temperature */
+      /* Background color set dynamically via JS */
       font-size: 20px;
       font-weight: bold;
-      color: #FF8C00; /* default; will be updated dynamically */
+      color: #FF8C00; /* default; updated dynamically */
       text-align: center;
       min-width: 60px;
       margin: 2px 0;
