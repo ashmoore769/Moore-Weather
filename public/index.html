@@ -110,14 +110,8 @@
     .address-title {
       font-size: 16.5px;
       font-weight: bold;
-      margin-top: 0px;
-      margin-bottom: 7px;
+      margin: 0 0 7px 0;
       color: #00008B;
-    }
-    .weather-icon {
-      float: right;
-      margin-left: 10px;
-      height: 60px;
     }
     hr {
       border: none;
@@ -125,6 +119,22 @@
       margin: 5px 0;
       clear: both;
       width: 100%;
+    }
+    /* New container for the two logos side by side */
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .logo-container img {
+      /* Adjust sizes as needed */
+      height: 60px;
+      width: auto;
+    }
+    /* Container for address info */
+    .address-container {
+      margin-bottom: 8px;
     }
     /* Flex container for left and right columns */
     .wind-logger-container {
@@ -134,24 +144,29 @@
     }
     .wind-column {
       width: 60%;
-      /* The wind column now has two sections: upper data and rain container */
     }
+    /* Right column now holds just the big temp value at the top */
     .logger-column {
       width: 40%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-top: 18px;
-      margin-left: -40px;
+      justify-content: flex-start;
     }
-    /* Removed the .logger-label span so it won't display "Data Logger" */
-    .logger-column .logger-image {
-      max-width: 100px;
-      height: auto;
-      display: block;
-      border-radius: 10px;
+    /* Big temperature box styling (moved to top of right column) */
+    .big-temp-box {
+      margin-bottom: 8px;
+      padding: 6px 12px;
+      border: 2px solid #FFA500;
+      border-radius: 6px;
+      background-color: #FFE9CC;
+      font-size: 22px;
+      font-weight: bold;
+      color: #FF8C00;
+      text-align: center;
+      min-width: 75px;
     }
-    /* New rain container inside left column */
+    /* Existing rain container in left column */
     .rain-container {
       margin-top: 2px;
       padding: 1px;
@@ -163,8 +178,6 @@
       display: flex;
       justify-content: space-between;
     }
-    /* Increase the width of the left (evap) column
-       and decrease the width of the right (battery) column. */
     .evap-col {
       width: 52%;
     }
@@ -175,23 +188,7 @@
       display: flex;
       justify-content: space-between;
     }
-    .soiltemp-col, .moisture-col {
-      width: 48%;
-    }
-
-    /* Add a big temperature box under the logger image */
-    .big-temp-box {
-      margin-top: 8px;
-      padding: 6px 12px;
-      border: 2px solid #FFA500;
-      border-radius: 6px;
-      background-color: #FFE9CC;
-      font-size: 22px;
-      font-weight: bold;
-      color: #FF8C00;
-      text-align: center;
-      min-width: 75px; /* ensures some width for single-digit temps */
-    }
+    .soiltemp-col, .moisture-col { width: 48%; }
   </style>
 </head>
 <body>
@@ -211,12 +208,18 @@
     </div>
 
     <div id="weatherData">
-      <img src="/Weather_Station_App.png" class="weather-icon" alt="Weather Station Icon">
-      <div class="address-title">WEST WARWICK, QLD</div>
-      <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-      <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+      <!-- New logo container: Both logos side by side -->
+      <div class="logo-container">
+        <img src="/Weather_Station_App.png" alt="Weather Station Icon" class="weather-icon">
+        <img src="/Station_Label.png" alt="Environdata Weather Maestro" class="logger-image">
+      </div>
+      <!-- Address info -->
+      <div class="address-container">
+        <div class="address-title">WEST WARWICK, QLD</div>
+        <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+        <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+      </div>
       <hr>
-
       <!-- Flex container with two columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
@@ -230,23 +233,18 @@
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
-
           <div class="rain-container">
             <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
             <p><b>🌧️ Rain /Last Min:</b> <span id="rainInLastMinVal">--</span></p>
           </div>
         </div>
-
         <div class="logger-column">
-          <!-- Removed the "Data Logger" label -->
-          <img src="/Station_Label.png" alt="Environdata Weather Maestro" class="logger-image">
-          <!-- Big temperature box that mirrors the main temperature -->
+          <!-- Big temperature box moved to the top of the right column -->
           <div class="big-temp-box">
             <span id="bigTempVal">--</span>
           </div>
         </div>
       </div>
-
       <hr>
       <div class="evap-battery">
         <div class="evap-col">
@@ -448,7 +446,7 @@
                           solarRad <= 800 ? "#FF9933" :
                           solarRad <= 1100 ? "#BF360C" : "#B71C1C";
       let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
-      if (solarRad < 10) {
+      if (solarRad < 10) {  
         solarRadDisplay += " 🌙";
       }
       if (solarRad > 0) {
