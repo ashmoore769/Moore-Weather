@@ -114,10 +114,9 @@
       clear: both;
       width: 100%;
     }
-    /* --- Top Header Layout --- */
-    /* Address row with minimal gap */
+    /* Top Header Layout */
     .address-row {
-      margin-bottom: 4px;  /* A 4px gap between the address and the next row */
+      margin-bottom: 4px;  /* 4px gap below the address */
     }
     .address-title {
       font-size: 16.5px;
@@ -125,15 +124,19 @@
       margin: 0;
       color: #00008B;
     }
-    /* Date/Time and Logos Row */
     .date-time-logo-row {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;  /* Align bottom edges */
       margin-bottom: 8px;
+      /* Ensure no extra top margin */
+      margin-top: 0;
+    }
+    .date-time {
+      margin-top: 0;
     }
     .date-time p {
-      margin: 2px 0;  /* Minimal vertical spacing (2px) between Date and Time */
+      margin: 2px 0;  /* 2px vertical spacing for each line */
       line-height: 1.3;
     }
     .logo-container {
@@ -145,7 +148,7 @@
       width: auto;
       margin: 0;
     }
-    /* --- Main Data Layout --- */
+    /* Main Data Layout */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
@@ -162,7 +165,7 @@
       justify-content: flex-start;
     }
     .big-temp-box {
-      margin-top: 4px;  /* Slight top margin to nudge it downward */
+      margin-top: 4px;  /* Slight top margin for the temperature box */
       margin-bottom: 8px;
       padding: 6px 12px;
       border: 2px solid #FFA500;
