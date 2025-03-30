@@ -147,7 +147,7 @@
     .header-content {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center; /* center vertically */
       margin: 5px 0;
       white-space: nowrap;
     }
@@ -159,7 +159,7 @@
     }
 
     .address-title {
-      font-size: 18px; /* slightly reduced from 20px */
+      font-size: 18px; /* slightly reduced from previous 20px */
       font-weight: bold;
       margin: 0 0 2px 0;
       color: #00008B;
@@ -185,7 +185,7 @@
     }
 
     .logo-container img {
-      height: 40px;
+      height: 60px; /* increased image size */
       width: auto;
       margin: 0;
       display: block;
@@ -211,23 +211,21 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: center; /* center vertically within logger column */
       white-space: nowrap;
     }
 
     .big-temp-box {
-      margin-top: 2px;
-      margin-bottom: 4px;
+      margin: 2px auto; /* center horizontally */
       padding: 4px 8px;
-      border: 2px solid grey; /* changed from orange to grey */
-      border-radius: 6px;
+      border: 2px solid grey; /* grey border */
+      border-radius: 12px; /* softer rounded corners */
       /* Background color set dynamically via JS */
       font-size: 20px;
       font-weight: bold;
       color: #FF8C00; /* default; updated dynamically */
       text-align: center;
       min-width: 60px;
-      margin: 2px 0;
       white-space: nowrap;
     }
 
