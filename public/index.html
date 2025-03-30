@@ -16,6 +16,8 @@
       text-rendering: optimizeLegibility;
       font-size: 12px;
       line-height: 1.2;
+      /* Support for iOS safe areas */
+      padding-top: env(safe-area-inset-top, 0);
     }
 
     .main-container {
@@ -26,7 +28,8 @@
 
     .freeze-pane {
       position: sticky;
-      top: 0;
+      /* Use safe-area inset if available */
+      top: env(safe-area-inset-top, 0);
       z-index: 100;
       background: #f4f4f4;
       padding: 5px 0;
@@ -249,10 +252,12 @@
       width: 48%;
     }
 
-    /* Add some media queries to optimize for mobile devices */
+    /* Media Queries for Mobile Devices */
     @media only screen and (max-width: 600px) {
       .main-container {
-        padding: 0;
+        max-width: 100%;  /* Allow container to use full width */
+        margin: 0;
+        padding: 0 5px;
       }
       .header-box {
         padding: 0;
@@ -384,7 +389,7 @@
   <script>
     /********************
     * HELPER FUNCTIONS *
-   ********************/
+    ********************/
     function getWindDirection(degrees) {
       const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
         "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
@@ -492,50 +497,40 @@
 
         // Validate the data
         if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw)) {
-          console.error("Invalid data received:", lines); // Log the invalid data
+          console.error("Invalid data received:", lines);
           document.getElementById("weatherData").innerHTML = "<b>Error:</b> Invalid data values.";
           return;
         }
 
         // DATE & TIME
-        const dateValElement = document.getElementById("dateVal");
-        dateValElement.textContent = formatDateString(dateStr);
-        const timeValElement = document.getElementById("timeVal");
-        timeValElement.textContent = timeStr + " AEST";
+        document.getElementById("dateVal").textContent = formatDateString(dateStr);
+        document.getElementById("timeVal").textContent = timeStr + " AEST";
 
         // WIND
-        const windSpeedValElement = document.getElementById("windSpeedVal");
-        windSpeedValElement.textContent = windSpeed.toFixed(1);
-        const windDirDegValElement = document.getElementById("windDirDegVal");
-        windDirDegValElement.textContent = windDirDeg.toFixed(1);
-        const windDirTextValElement = document.getElementById("windDirTextVal");
-        windDirTextValElement.textContent = getWindDirection(windDirDeg);
+        document.getElementById("windSpeedVal").textContent = windSpeed.toFixed(1);
+        document.getElementById("windDirDegVal").textContent = windDirDeg.toFixed(1);
+        document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
 
         // HUMIDITY
-        const humidityValElement = document.getElementById("humidityVal");
-        humidityValElement.textContent = humidityRaw.toFixed(1);
-        const humidityDescValElement = document.getElementById("humidityDescVal");
-        humidityDescValElement.textContent = getHumidityDesc(humidityRaw);
+        document.getElementById("humidityVal").textContent = humidityRaw.toFixed(1);
+        document.getElementById("humidityDescVal").textContent = getHumidityDesc(humidityRaw);
 
         // TEMPERATURE
         const tempData = getTemperatureColorAndDesc(temperatureRaw);
         const tempSpan = document.getElementById("tempVal");
         tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
         tempSpan.style.color = tempData.color;
-        const tempDescValElement = document.getElementById("tempDescVal");
-        tempDescValElement.textContent = tempData.desc;
+        document.getElementById("tempDescVal").textContent = tempData.desc;
 
         // Big Temperature Box
-        const bigTempValElement = document.getElementById("bigTempVal");
-        bigTempValElement.textContent = temperatureRaw.toFixed(1) + "°C";
+        document.getElementById("bigTempVal").textContent = temperatureRaw.toFixed(1) + "°C";
 
         // RAIN SINCE 9AM
         let rainSince9Display = rainSince9.toFixed(1) + " mm";
         if (rainSince9 >= 0.2) {
           rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
         }
-        const rainSince9ValElement = document.getElementById("rainSince9Val");
-        rainSince9ValElement.innerHTML = rainSince9Display;
+        document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
 
         // RAIN IN LAST MINUTE
         if (isNaN(rainInLastMinRaw)) {
@@ -546,17 +541,16 @@
         if (rainInLastMinRaw >= 0.2) {
           rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
         }
-        const rainInLastMinValElement = document.getElementById("rainInLastMinVal");
-        rainInLastMinValElement.innerHTML = rainInLastMinDisplay;
+        document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
 
         // SOLAR RADIATION
         const solarRad = Math.max(0, solarRadRaw);
         let solarRadColor = solarRad === 0 ? "#000033" :
           solarRad <= 100 ? "#000080" :
-            solarRad <= 299 ? "#27408B" :
-              solarRad <= 600 ? "#DAA520" :
-                solarRad <= 800 ? "#FF9933" :
-                  solarRad <= 1100 ? "#BF360C" : "#B71C1C";
+          solarRad <= 299 ? "#27408B" :
+          solarRad <= 600 ? "#DAA520" :
+          solarRad <= 800 ? "#FF9933" :
+          solarRad <= 1100 ? "#BF360C" : "#B71C1C";
         let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
         if (solarRad < 10) {
           solarRadDisplay += " 🌙";
@@ -566,12 +560,10 @@
         } else {
           solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
         }
-        const solarRadValElement = document.getElementById("solarRadVal");
-        solarRadValElement.innerHTML = solarRadDisplay;
+        document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
 
         // GARDEN BED TEMP
-        const gardenBedTempValElement = document.getElementById("gardenBedTempVal");
-        gardenBedTempValElement.textContent = gardenBedTemp.toFixed(1);
+        document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
 
         // PRESSURE (with 1.9 hPa offset)
         let adjustedPressure = pressureRaw - 1.9;
@@ -579,8 +571,7 @@
         if (adjustedPressure >= 1020) {
           pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
         }
-        const pressureValElement = document.getElementById("pressureVal");
-        pressureValElement.innerHTML = pressureDisplay;
+        document.getElementById("pressureVal").innerHTML = pressureDisplay;
 
         // BATTERY
         const batteryVoltage = batteryVoltageVal.toFixed(1);
@@ -589,20 +580,17 @@
         if (batteryVoltageVal >= 13.8) {
           batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
         }
-        const batteryValElement = document.getElementById("batteryVal");
-        batteryValElement.innerHTML = batteryVoltageDisplay;
+        document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
 
         // LOAD
-        const loadValElement = document.getElementById("loadVal");
-        loadValElement.textContent = loadCurrent.toFixed(1);
+        document.getElementById("loadVal").textContent = loadCurrent.toFixed(1);
 
         // SOLAR PANEL
         let solarPanelDisplay = rawSolarVoltage.toFixed(1) + " V ☀️";
         if (rawSolarVoltage < batteryVoltageVal) {
           solarPanelDisplay = "0.0 V 🌙";
         }
-        const solarPanelValElement = document.getElementById("solarPanelVal");
-        solarPanelValElement.textContent = solarPanelDisplay;
+        document.getElementById("solarPanelVal").textContent = solarPanelDisplay;
 
         // CHARGE
         let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
@@ -611,8 +599,7 @@
             ? `<span style="color:green;">${chargeDisplay}</span>`
             : `<span style="color:red;">${chargeDisplay}</span>`;
         }
-        const chargeValElement = document.getElementById("chargeVal");
-        chargeValElement.innerHTML = chargeDisplay;
+        document.getElementById("chargeVal").innerHTML = chargeDisplay;
 
         // PEAK WIND GUST
         let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
@@ -621,43 +608,28 @@
         } else if (peakWindGustVal > 10) {
           peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
         }
-        const peakWindGustValElement = document.getElementById("peakWindGustVal");
-        peakWindGustValElement.innerHTML = peakWindGustDisplay;
+        document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
 
         // VECTOR WIND
-        const vectorWindSpeedValElement = document.getElementById("vectorWindSpeedVal");
-        vectorWindSpeedValElement.textContent = vectorWindSpeedVal.toFixed(1);
-        const vectorWindDirDegValElement = document.getElementById("vectorWindDirDegVal");
-        vectorWindDirDegValElement.textContent = vectorWindDirVal.toFixed(1);
-        const vectorWindDirTextValElement = document.getElementById("vectorWindDirTextVal");
-        vectorWindDirTextValElement.textContent = getWindDirection(vectorWindDirVal);
+        document.getElementById("vectorWindSpeedVal").textContent = vectorWindSpeedVal.toFixed(1);
+        document.getElementById("vectorWindDirDegVal").textContent = vectorWindDirVal.toFixed(1);
+        document.getElementById("vectorWindDirTextVal").textContent = getWindDirection(vectorWindDirVal);
 
         // EVAP & DEW POINT
-        const evapRateValElement = document.getElementById("evapRateVal");
-        evapRateValElement.textContent = evapRate.toFixed(3);
-        const dailyEvapValElement = document.getElementById("dailyEvapVal");
-        dailyEvapValElement.textContent = dailyEvap.toFixed(3);
-        const dewPointValElement = document.getElementById("dewPointVal");
-        dewPointValElement.textContent = dewPoint.toFixed(1);
+        document.getElementById("evapRateVal").textContent = evapRate.toFixed(3);
+        document.getElementById("dailyEvapVal").textContent = dailyEvap.toFixed(3);
+        document.getElementById("dewPointVal").textContent = dewPoint.toFixed(1);
 
         // SOIL TEMPS & MOISTURE
-        const soilTemp10ValElement = document.getElementById("soilTemp10Val");
-        soilTemp10ValElement.textContent = soilTemp10.toFixed(1);
-        const soilTemp20ValElement = document.getElementById("soilTemp20Val");
-        soilTemp20ValElement.textContent = soilTemp20.toFixed(1);
-        const soilTemp30ValElement = document.getElementById("soilTemp30Val");
-        soilTemp30ValElement.textContent = soilTemp30.toFixed(1);
-        const soilTemp40ValElement = document.getElementById("soilTemp40Val");
-        soilTemp40ValElement.textContent = soilTemp40.toFixed(1);
+        document.getElementById("soilTemp10Val").textContent = soilTemp10.toFixed(1);
+        document.getElementById("soilTemp20Val").textContent = soilTemp20.toFixed(1);
+        document.getElementById("soilTemp30Val").textContent = soilTemp30.toFixed(1);
+        document.getElementById("soilTemp40Val").textContent = soilTemp40.toFixed(1);
 
-        const moisture10ValElement = document.getElementById("moisture10Val");
-        moisture10ValElement.innerHTML = colorMoisture(moisture10Val);
-        const moisture20ValElement = document.getElementById("moisture20Val");
-        moisture20ValElement.innerHTML = colorMoisture(moisture20Val);
-        const moisture30ValElement = document.getElementById("moisture30Val");
-        moisture30ValElement.innerHTML = colorMoisture(moisture30Val);
-        const moisture40ValElement = document.getElementById("moisture40Val");
-        moisture40ValElement.innerHTML = colorMoisture(moisture40Val);
+        document.getElementById("moisture10Val").innerHTML = colorMoisture(moisture10Val);
+        document.getElementById("moisture20Val").innerHTML = colorMoisture(moisture20Val);
+        document.getElementById("moisture30Val").innerHTML = colorMoisture(moisture30Val);
+        document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
 
       } catch (error) {
         console.error("Error parsing or updating data:", error);
