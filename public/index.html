@@ -131,10 +131,12 @@
       color: #00008B;
     }
     .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+  display: flex;
+  align-items: center; /* Keeps images vertically aligned with each other */
+  gap: 10px;
+  position: relative;  /* Add this to enable shifting */
+  top: 6px;          /* Add this to push the container down. Adjust '6px' slightly if needed for perfect alignment. */
+}
     .logo-container img {
       height: 60px;
       width: auto;
