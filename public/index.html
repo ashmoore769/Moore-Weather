@@ -28,7 +28,6 @@
 
     .freeze-pane {
       position: sticky;
-      /* Use safe-area inset if available */
       top: env(safe-area-inset-top, 0);
       z-index: 100;
       background: #f4f4f4;
@@ -141,7 +140,7 @@
       width: 100%;
     }
 
-    /* --- New Header Layout --- */
+    /* --- Header Layout --- */
     .header-content {
       display: flex;
       justify-content: space-between;
@@ -255,7 +254,7 @@
     /* Media Queries for Mobile Devices */
     @media only screen and (max-width: 600px) {
       .main-container {
-        max-width: 100%;  /* Allow container to use full width */
+        max-width: 100%;
         margin: 0;
         padding: 0 5px;
       }
@@ -270,12 +269,8 @@
         width: 100%;
         margin: 2px 0;
       }
-      .wind-logger-container {
-        flex-direction: column;
-      }
-      .wind-column, .logger-column {
-        width: 100%;
-      }
+      /* Note: The wind-logger-container is no longer forced to stack vertically,
+               ensuring the big temperature remains in the right column on mobile. */
     }
   </style>
 </head>
@@ -298,7 +293,7 @@
 
     <!-- Weather Data Section -->
     <div id="weatherData">
-      <!-- Modified Header Section -->
+      <!-- Header Section -->
       <div class="header-content">
         <div class="title-date-container">
           <div class="address-title">WEST WARWICK, QLD</div>
