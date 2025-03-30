@@ -114,21 +114,19 @@
       clear: both;
       width: 100%;
     }
-    /* --- New Header Layout --- */
-    /* Address row remains separate */
+    /* --- Header Layout --- */
+    /* Address row now has no bottom margin */
     .address-row {
-      margin-bottom: 8px;
+      margin-bottom: 0; /* Changed from 8px to 0 */
     }
-    .address-container {
-      /* Left-side address text */
-    }
+    .address-container {}
     .address-title {
       font-size: 16.5px;
       font-weight: bold;
       margin: 0;
       color: #00008B;
     }
-    /* New row grouping Date/Time and Logos */
+    /* Row for Date/Time and Logos */
     .date-time-logo-row {
       display: flex;
       justify-content: space-between;
