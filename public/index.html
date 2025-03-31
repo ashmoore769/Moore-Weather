@@ -26,12 +26,12 @@
     }
 
     .freeze-pane {
-      position: sticky;
-      top: env(safe-area-inset-top, 0);
-      z-index: 100;
-      background: #f4f4f4;
-      padding: 5px 0;
-    }
+  position: sticky;
+  top: env(safe-area-inset-top, 0);
+  z-index: 100;
+  background: #f4f4f4;
+  padding: 0; /* reduce from 5px 0 to 0 */
+}
 
     .header-box {
       background-color: #00008B;
@@ -50,12 +50,13 @@
     }
 
     .control-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 5px;
-      margin-bottom: 2px; /* minimal spacing */
-    }
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;        /* reduce horizontal padding */
+  margin-bottom: 0;      /* remove bottom margin */
+  margin-top: 2px;       /* optional: add a little space if needed */
+}
 
     .control-half {
       width: 50%;
