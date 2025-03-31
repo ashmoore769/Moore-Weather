@@ -20,10 +20,10 @@
     }
 
     .main-container {
-      max-width: 400px;
-      margin: 10px auto;
-      padding: 0 5px;
-    }
+  max-width: 400px;
+  margin: 5px auto; /* was 10px auto */
+  padding: 0 5px;
+}
 
     .freeze-pane {
   position: sticky;
@@ -36,8 +36,9 @@
 .header-box {
   background-color: #00008B;
   border-radius: 5px;
-  padding: 3px;         /* was 5px */
+  padding: 2px 5px; /* tighter top/bottom, leave side padding */
   text-align: center;
+  margin-bottom: 2px; /* pulls controls closer */
 }
 
 .header-box h2 {
@@ -49,13 +50,12 @@
   white-space: nowrap;
 }
 
-    .control-container {
+.control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;        /* reduce horizontal padding */
-  margin-bottom: 0;      /* remove bottom margin */
-  margin-top: 2px;       /* optional: add a little space if needed */
+  padding: 0 2px;
+  margin: 2px 0 4px 0; /* tighten top and bottom margins */
 }
 
     .control-half {
@@ -97,17 +97,18 @@
 
     .status-badge {
   display: inline-block;
-  padding: 6px 12px;       /* same as button */
-  font-size: 14px;         /* same as button */
+  padding: 6px 12px;
+  font-size: 14px;
   font-weight: bold;
-  border-radius: 10px;     /* same as button */
-  background-color: white; /* default (non-connected) */
+  border-radius: 10px;
+  background-color: white;
   color: #006400;
   border: 2px solid #006400;
-  white-space: nowrap;
-  line-height: 1;
+  line-height: 1.1; /* slight tweak for consistent vertical height */
+  vertical-align: middle; /* aligns with button */
   transition: all 0.3s ease;          /* prevents extra height */
 }
+
 .connected .status-badge {
   background-color: #006400;
   color: white;
