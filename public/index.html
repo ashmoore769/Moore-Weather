@@ -26,29 +26,25 @@
     }
 
     .freeze-pane {
-  position: sticky;
-  top: env(safe-area-inset-top, 0);
-  z-index: 100;
-  background: #f4f4f4;
   padding: 0;
+  background: #f4f4f4;
   border-bottom: 1px solid #ccc;
+  margin-bottom: -2px; /* helps pull buttons up slightly */
 }
 
 .header-box {
   background-color: #00008B;
   border-radius: 5px;
-  padding: 3px;         /* was 5px */
-  text-align: center;
+  padding: 2px 5px; /* was 3px */
+  margin-bottom: 2px; /* helps glue header to button row */
 }
 
 .header-box h2 {
   margin: 0;
-  font-size: 18px;
-  font-weight: bold;
-  color: white;
-  padding: 4px 0;       /* was 6px 0 */
-  white-space: nowrap;
+  font-size: 16px; /* optional: down from 18px if needed */
+  padding: 2px 0; /* was 4px */
 }
+
 
 .control-container {
   display: flex;
