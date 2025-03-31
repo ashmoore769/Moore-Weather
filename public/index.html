@@ -676,8 +676,10 @@
       const statusText = document.getElementById("status");
       const spinnerContainer = document.getElementById("spinnerContainer");
 
-      document.getElementById("statusBadge").textContent = "Status: Fetching";
-      statusText.className = "connected";
+      const statusBadge = document.getElementById("statusBadge");
+statusBadge.textContent = "Status: Connected";
+statusBadge.classList.add("connected");
+statusText.className = "connected";
       spinnerContainer.style.display = "block";
 
       fetch(WEATHER_ENDPOINT)
