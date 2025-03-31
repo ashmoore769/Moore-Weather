@@ -97,15 +97,23 @@
 
     .status-badge {
   display: inline-block;
-  padding: 6px 12px;
-  font-size: 14px;
+  padding: 6px 12px;       /* same as button */
+  font-size: 14px;         /* same as button */
   font-weight: bold;
-  border-radius: 10px;
-  background-color: white;
-  color: #006400; /* dark green like your .connected class */
+  border-radius: 10px;     /* same as button */
+  background-color: white; /* default (non-connected) */
+  color: #006400;
   border: 2px solid #006400;
   white-space: nowrap;
+  line-height: 1;
+  transition: all 0.3s ease;          /* prevents extra height */
 }
+.connected .status-badge {
+  background-color: #006400;
+  color: white;
+  border-color: #006400;
+}
+
     .connected { color: #006400; }
     .error { color: rgb(186, 191, 35); }
 
