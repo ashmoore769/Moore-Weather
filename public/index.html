@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="apple-touch-icon" href="/Weather_Station_App.png" aria-label="Weather Station Icon">
+  <link rel="apple-touch-icon" href="/Weather_Station_App.png">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Moore's LIVE Weather Data</title>
@@ -25,65 +25,53 @@
       padding: 0 5px;
     }
 
-    /* Sticky Header Section */
     .freeze-pane {
-      position: sticky;
-      top: env(safe-area-inset-top, 0);
-      z-index: 100;
-      background: #00008B;
-      padding: 5px;
-      border-radius: 5px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      transition: box-shadow 0.3s ease;
-    }
+  position: sticky;
+  top: env(safe-area-inset-top, 0);
+  z-index: 100;
+  background: #f4f4f4;
+  padding: 0; /* reduce from 5px 0 to 0 */
+}
 
-    .freeze-pane.active {
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
+.header-box {
+  background-color: #00008B;
+  border-radius: 5px;
+  padding: 3px;         /* was 5px */
+  text-align: center;
+}
 
-    .header-box {
-      background-color: #00008B;
-      border-radius: 5px 5px 0 0;
-      padding: 3px;
-      text-align: center;
-    }
-
-    .header-box h2 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: bold;
-      color: white;
-      padding: 6px 0;
-      white-space: nowrap;
-      letter-spacing: 0.5px;
-    }
+.header-box h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  padding: 4px 0;       /* was 6px 0 */
+  white-space: nowrap;
+}
 
     .control-container {
-      background-color: #00008B;
-      border-radius: 0 0 5px 5px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 5px;
-      margin-bottom: 0;
-      margin-top: 0;
-    }
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;        /* reduce horizontal padding */
+  margin-bottom: 0;      /* remove bottom margin */
+  margin-top: 2px;       /* optional: add a little space if needed */
+}
 
     .control-half {
       width: 50%;
       text-align: center;
       white-space: nowrap;
-      padding: 2px;
     }
 
     button {
-      padding: 8px 16px;
-      font-size: 14px;
+      padding: 6px 12px; /* increased padding */
+      font-size: 14px;   /* increased font size */
       font-weight: bold;
       background-color: #FFA500;
       color: black;
       border: none;
-      border-radius: 10px;
+      border-radius: 10px; /* softer rounded corners */
       cursor: pointer;
       transition: background 0.3s;
       display: inline-block;
@@ -102,36 +90,32 @@
 
     #status {
       font-weight: bold;
-      font-size: 16px;
+      font-size: 16px; /* increased font size */
       white-space: nowrap;
       padding: 0;
     }
 
     .status-badge {
-      display: inline-block;
-      padding: 8px 16px;
-      font-size: 14px;
-      font-weight: bold;
-      border-radius: 10px;
-      background-color: #006400;
-      color: white;
-      border: none;
-      white-space: nowrap;
-      line-height: 1;
-      transition: all 0.3s ease;
-    }
+  display: inline-block;
+  padding: 6px 12px;       /* same as button */
+  font-size: 14px;         /* same as button */
+  font-weight: bold;
+  border-radius: 10px;     /* same as button */
+  background-color: white; /* default (non-connected) */
+  color: #006400;
+  border: 2px solid #006400;
+  white-space: nowrap;
+  line-height: 1;
+  transition: all 0.3s ease;          /* prevents extra height */
+}
+.connected .status-badge {
+  background-color: #006400;
+  color: white;
+  border-color: #006400;
+}
 
-    .connected .status-badge {
-      background-color: #006400;
-      color: white;
-      border: none;
-    }
-
-    .error .status-badge {
-      background-color: rgb(186, 191, 35);
-      color: black;
-      border: none;
-    }
+    .connected { color: #006400; }
+    .error { color: rgb(186, 191, 35); }
 
     .spinner-container {
       display: none;
@@ -180,11 +164,11 @@
       width: 100%;
     }
 
-    /* Header Layout */
+    /* --- Header Layout --- */
     .header-content {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: center; /* center vertically */
       margin: 5px 0;
       white-space: nowrap;
     }
@@ -196,7 +180,7 @@
     }
 
     .address-title {
-      font-size: 18px;
+      font-size: 18px; /* slightly reduced from previous 20px */
       font-weight: bold;
       margin: 0 0 2px 0;
       color: #00008B;
@@ -222,14 +206,14 @@
     }
 
     .logo-container img {
-      height: 60px;
+      height: 60px; /* increased image size */
       width: auto;
       margin: 0;
       display: block;
       border-radius: 8px;
     }
 
-    /* Main Data Layout */
+    /* --- Main Data Layout --- */
     .wind-logger-container {
       display: flex;
       justify-content: space-between;
@@ -248,23 +232,24 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: center; /* center vertically within logger column */
       white-space: nowrap;
     }
-
+    
     .big-temp-box {
-      margin: 2px auto;
-      padding: 8px 9px;
-      border: 2px solid grey;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      font-size: 22px;
-      font-weight: bold;
-      text-align: center;
-      min-width: 60px;
-      white-space: nowrap;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }
+  margin: 2px auto;
+  padding: 8px 9px;  /* reduced from 10px 12px */
+  border: 2px solid grey;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-size: 22px;  /* reduced from 28px */
+  font-weight: bold;
+  text-align: center;
+  color: #FFF;  /* text color remains white */
+  min-width: 60px;
+  white-space: nowrap;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
 
     .rain-container {
       margin-top: 2px;
@@ -308,8 +293,10 @@
     /* Media Queries for Mobile Devices */
     @media only screen and (max-width: 600px) {
       .main-container {
-        margin: 5px auto;
-      }
+  max-width: 400px;
+  margin: 5px auto; /* was 10px auto */
+  padding: 0 5px;
+}
 
       .header-box {
         padding: 0;
@@ -326,7 +313,7 @@
       </div>
       <div class="control-container">
         <div class="control-half">
-          <button id="fetchBtn" onclick="manualFetch()" aria-label="Fetch Current Weather Readings">CURRENT READINGS</button>
+          <button id="fetchBtn" onclick="manualFetch()">CURRENT READINGS</button>
         </div>
         <div class="control-half">
           <p id="status" class="connected" aria-live="polite">
@@ -374,7 +361,7 @@
           </div>
         </div>
         <div class="logger-column">
-          <div class="big-temp-box" aria-label="Current Temperature">
+          <div class="big-temp-box">
             <span id="bigTempVal">--</span>
           </div>
         </div>
@@ -462,7 +449,7 @@
       else if (temp < 36) { color = "#FF4500"; desc = "Hot"; }
       else if (temp < 41) { color = "#B22222"; desc = "Very hot"; }
       else if (temp <= 60) { color = "#8B0000"; desc = "Extremely hot"; }
-      else { color = "#000000"; desc = "Dangerously hot"; }
+      else { color = "#000000"; desc = ""; }
       return { color, desc };
     }
 
@@ -486,7 +473,6 @@
     let initialLoadComplete = false;
     let refreshTimeout;
     let retryAttempts = 0;
-    let isFetching = false;
     const MAX_RETRY_ATTEMPTS = 3;
     const WEATHER_ENDPOINT = "/weather";
 
@@ -494,13 +480,14 @@
     * MAIN UPDATE FUNCTION *
     *****************************/
     function updateWeatherData(data) {
-      if (!data || !data.trim()) {
-        throw new Error("Empty data received");
-      }
-
+      console.log("Raw CSV data:", data);
       const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
+      console.log("Parsed lines array:", lines);
+
       if (lines.length < 30) {
-        throw new Error("Incomplete or malformed data received");
+        console.error("Incomplete data received:", lines);
+        document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
+        return;
       }
 
       try {
@@ -537,7 +524,9 @@
 
         // Validate the data
         if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw)) {
-          throw new Error("Invalid data values received");
+          console.error("Invalid data received:", lines);
+          document.getElementById("weatherData").innerHTML = "<b>Error:</b> Invalid data values.";
+          return;
         }
 
         // DATE & TIME
@@ -576,6 +565,7 @@
 
         // RAIN IN LAST MINUTE
         if (isNaN(rainInLastMinRaw)) {
+          console.warn("Rain/Last Min is NaN. Defaulting to 0.0 mm");
           rainInLastMinRaw = 0.0;
         }
         let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
@@ -673,8 +663,8 @@
         document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
 
       } catch (error) {
-        document.getElementById("weatherData").innerHTML = `<b>Error:</b> ${error.message}`;
-        throw error;
+        console.error("Error parsing or updating data:", error);
+        document.getElementById("weatherData").innerHTML = "<b>Error:</b> An error occurred while processing the data.";
       }
     }
 
@@ -692,7 +682,7 @@
       fetch(WEATHER_ENDPOINT)
         .then(response => {
           if (!response.ok) {
-            throw new Error(`Server responded with ${response.status}`);
+            throw new Error("Server responded with " + response.status);
           }
           return response.text();
         })
@@ -711,11 +701,12 @@
             delay = (20 - now.getSeconds()) * 1000;
           } else {
             delay = ((60 - now.getSeconds()) + 20) * 1000;
-          }
+          } 
           refreshTimeout = setTimeout(fetchWeather, delay);
         })
         .catch(error => {
-          document.getElementById("statusBadge").textContent = `Status: Error (${error.message})`;
+          console.error("Fetch error:", error);
+          document.getElementById("statusBadge").textContent = "Status: Error";
           statusText.className = "error";
           if (!initialLoadComplete) {
             refreshTimeout = setTimeout(fetchWeather, 1000);
@@ -730,10 +721,9 @@
         })
         .finally(() => {
           spinnerContainer.style.display = "none";
-          isFetching = false;
         });
     }
-    
+
     function manualFetch() {
       if (refreshTimeout) {
         clearTimeout(refreshTimeout);
