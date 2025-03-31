@@ -30,33 +30,35 @@
   top: env(safe-area-inset-top, 0);
   z-index: 100;
   background: #f4f4f4;
-  padding: 0; /* reduce from 5px 0 to 0 */
+  padding: 0;
+  border-bottom: 1px solid #ccc;
 }
 
-    .header-box {
-      background-color: #00008B;
-      border-radius: 5px;
-      padding: 5px;
-      text-align: center;
-    }
+.header-box {
+  background-color: #00008B;
+  border-radius: 5px;
+  padding: 3px;         /* was 5px */
+  text-align: center;
+}
 
-    .header-box h2 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: bold;
-      color: white;
-      padding: 6px 0; /* thicker header */
-      white-space: nowrap;
-    }
+.header-box h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  padding: 4px 0;       /* was 6px 0 */
+  white-space: nowrap;
+}
 
-    .control-container {
+.control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;        /* reduce horizontal padding */
-  margin-bottom: 0;      /* remove bottom margin */
-  margin-top: 2px;       /* optional: add a little space if needed */
+  padding: 0 2px;
+  margin-top: 2px;
+  margin-bottom: 2px;   /* was 0 or more */
 }
+
 
     .control-half {
       width: 50%;
@@ -293,10 +295,11 @@
     /* Media Queries for Mobile Devices */
     @media only screen and (max-width: 600px) {
       .main-container {
-        max-width: 100%;
-        margin: 0;
-        padding: 0 5px;
-      }
+  max-width: 400px;
+  margin: 5px auto; /* was 10px auto */
+  padding: 0 5px;
+}
+
       .header-box {
         padding: 0;
       }
