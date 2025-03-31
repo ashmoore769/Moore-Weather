@@ -20,10 +20,10 @@
     }
 
     .main-container {
-  max-width: 400px;
-  margin: 5px auto; /* was 10px auto */
-  padding: 0 5px;
-}
+      max-width: 400px;
+      margin: 10px auto;
+      padding: 0 5px;
+    }
 
     .freeze-pane {
   position: sticky;
@@ -36,9 +36,8 @@
 .header-box {
   background-color: #00008B;
   border-radius: 5px;
-  padding: 2px 5px; /* tighter top/bottom, leave side padding */
+  padding: 3px;         /* was 5px */
   text-align: center;
-  margin-bottom: 2px; /* pulls controls closer */
 }
 
 .header-box h2 {
@@ -50,12 +49,13 @@
   white-space: nowrap;
 }
 
-.control-container {
+    .control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;
-  margin: 2px 0 4px 0; /* tighten top and bottom margins */
+  padding: 0 2px;        /* reduce horizontal padding */
+  margin-bottom: 0;      /* remove bottom margin */
+  margin-top: 2px;       /* optional: add a little space if needed */
 }
 
     .control-half {
@@ -97,18 +97,17 @@
 
     .status-badge {
   display: inline-block;
-  padding: 6px 12px;
-  font-size: 14px;
+  padding: 6px 12px;       /* same as button */
+  font-size: 14px;         /* same as button */
   font-weight: bold;
-  border-radius: 10px;
-  background-color: white;
+  border-radius: 10px;     /* same as button */
+  background-color: white; /* default (non-connected) */
   color: #006400;
   border: 2px solid #006400;
-  line-height: 1.1; /* slight tweak for consistent vertical height */
-  vertical-align: middle; /* aligns with button */
+  white-space: nowrap;
+  line-height: 1;
   transition: all 0.3s ease;          /* prevents extra height */
 }
-
 .connected .status-badge {
   background-color: #006400;
   color: white;
@@ -676,10 +675,8 @@
       const statusText = document.getElementById("status");
       const spinnerContainer = document.getElementById("spinnerContainer");
 
-      const statusBadge = document.getElementById("statusBadge");
-statusBadge.textContent = "Status: Connected";
-statusBadge.classList.add("connected");
-statusText.className = "connected";
+      document.getElementById("statusBadge").textContent = "Status: Fetching";
+      statusText.className = "connected";
       spinnerContainer.style.display = "block";
 
       fetch(WEATHER_ENDPOINT)
