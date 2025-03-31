@@ -95,27 +95,39 @@
       padding: 0;
     }
 
-    .status-badge {
+/* Default badge style for all statuses */
+.status-badge {
   display: inline-block;
-  padding: 6px 12px;       /* same as button */
-  font-size: 14px;         /* same as button */
+  padding: 6px 12px;
+  font-size: 14px;
   font-weight: bold;
-  border-radius: 10px;     /* same as button */
-  background-color: white; /* default (non-connected) */
+  border-radius: 10px;
+  background-color: white;
   color: #006400;
   border: 2px solid #006400;
-  white-space: nowrap;
   line-height: 1;
-  transition: all 0.3s ease;          /* prevents extra height */
+  transition: all 0.3s ease;
 }
-.connected .status-badge {
+
+/* Only Connected gets solid green background */
+.status-badge.connected {
   background-color: #006400;
   color: white;
   border-color: #006400;
 }
 
-    .connected { color: #006400; }
-    .error { color: rgb(186, 191, 35); }
+/* Optional: yellow/orange for fetching */
+.status-badge.fetching {
+  color: #DAA520;
+  border-color: #DAA520;
+}
+
+/* Optional: red for error */
+.status-badge.error {
+  color: #B22222;
+  border-color: #B22222;
+}
+
 
     .spinner-container {
       display: none;
@@ -423,6 +435,19 @@
       return directions[Math.round(degrees / 22.5) % 16];
     }
 
+    function setStatusBadge(statusText, statusClass) {
+  const icons = {
+    connected: "✅",
+    fetching: "🔄",
+    error: "⚠️"
+  };
+  const icon = icons[statusClass] || "";
+  const badge = document.getElementById("statusBadge");
+  badge.textContent = `${icon} Status: ${statusText}`;
+  badge.className = `status-badge ${statusClass}`;
+}
+
+
     function formatDateString(dateStr) {
       const parts = dateStr.split("/");
       if (parts.length === 3) {
@@ -675,7 +700,7 @@
       const statusText = document.getElementById("status");
       const spinnerContainer = document.getElementById("spinnerContainer");
 
-      document.getElementById("statusBadge").textContent = "Status: Fetching";
+      setStatusBadge("Fetching", "fetching");
       statusText.className = "connected";
       spinnerContainer.style.display = "block";
 
@@ -688,7 +713,7 @@
         })
         .then(data => {
           updateWeatherData(data);
-          document.getElementById("statusBadge").textContent = "Status: Connected";
+          setStatusBadge("Connected", "connected");
           statusText.className = "connected";
           retryAttempts = 0;
           if (!initialLoadComplete) {
@@ -706,7 +731,7 @@
         })
         .catch(error => {
           console.error("Fetch error:", error);
-          document.getElementById("statusBadge").textContent = "Status: Error";
+          setStatusBadge("Error", "error");
           statusText.className = "error";
           if (!initialLoadComplete) {
             refreshTimeout = setTimeout(fetchWeather, 1000);
