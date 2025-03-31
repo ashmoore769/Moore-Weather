@@ -25,37 +25,25 @@
       padding: 0 5px;
     }
 
-    .freeze-pane {
-      position: sticky;
-      top: env(safe-area-inset-top, 0);
-      z-index: 100;
-      background: #f4f4f4;
-      padding: 5px 0;
-    }
+.freeze-pane {
+  /* Remove vertical padding */
+  padding: 0;
+}
 
-    .header-box {
-      background-color: #00008B;
-      border-radius: 5px;
-      padding: 5px;
-      text-align: center;
-    }
+.header-box {
+  /* Reduce padding around the header box */
+  padding: 0;
+}
 
-    .header-box h2 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: bold;
-      color: white;
-      padding: 6px 0; /* thicker header */
-      white-space: nowrap;
-    }
+.header-box h2 {
+  /* Remove extra top/bottom padding from the heading text */
+  padding: 0;
+}
 
-    .control-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 5px;
-      margin-bottom: 2px; /* minimal spacing */
-    }
+.control-container {
+  /* Remove the margin below the button row */
+  margin-bottom: 0;
+}
 
     .control-half {
       width: 50%;
