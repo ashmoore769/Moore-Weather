@@ -95,6 +95,17 @@
       padding: 0;
     }
 
+    .status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 10px;
+  background-color: white;
+  color: #006400; /* dark green like your .connected class */
+  border: 2px solid #006400;
+  white-space: nowrap;
+}
     .connected { color: #006400; }
     .error { color: rgb(186, 191, 35); }
 
@@ -296,7 +307,9 @@
           <button id="fetchBtn" onclick="manualFetch()">CURRENT READINGS</button>
         </div>
         <div class="control-half">
-          <p id="status" class="connected" aria-live="polite">Status: Waiting...</p>
+          <p id="status" class="connected" aria-live="polite">
+            <span class="status-badge">Status: Connected</span>
+          </p>
         </div>
       </div>
     </div>
