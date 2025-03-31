@@ -33,21 +33,21 @@
   padding: 0; /* reduce from 5px 0 to 0 */
 }
 
-    .header-box {
-      background-color: #00008B;
-      border-radius: 5px;
-      padding: 5px;
-      text-align: center;
-    }
+.header-box {
+  background-color: #00008B;
+  border-radius: 5px;
+  padding: 3px;         /* was 5px */
+  text-align: center;
+}
 
-    .header-box h2 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: bold;
-      color: white;
-      padding: 6px 0; /* thicker header */
-      white-space: nowrap;
-    }
+.header-box h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  padding: 4px 0;       /* was 6px 0 */
+  white-space: nowrap;
+}
 
     .control-container {
   display: flex;
@@ -105,7 +105,13 @@
   color: #006400;
   border: 2px solid #006400;
   white-space: nowrap;
-  line-height: 1;          /* prevents extra height */
+  line-height: 1;
+  transition: all 0.3s ease;          /* prevents extra height */
+}
+.connected .status-badge {
+  background-color: #006400;
+  color: white;
+  border-color: #006400;
 }
 
     .connected { color: #006400; }
@@ -287,10 +293,11 @@
     /* Media Queries for Mobile Devices */
     @media only screen and (max-width: 600px) {
       .main-container {
-        max-width: 100%;
-        margin: 0;
-        padding: 0 5px;
-      }
+  max-width: 400px;
+  margin: 5px auto; /* was 10px auto */
+  padding: 0 5px;
+}
+
       .header-box {
         padding: 0;
       }
