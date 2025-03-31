@@ -21,29 +21,23 @@
 
     .main-container {
       max-width: 400px;
-      margin: 5px auto;
+      margin: 10px auto;
       padding: 0 5px;
     }
 
-    /* Reduced padding for a more compact control section */
     .freeze-pane {
       position: sticky;
       top: env(safe-area-inset-top, 0);
       z-index: 100;
       background: #f4f4f4;
-      padding: 0 0 5px 0;
+      padding: 5px 0;
     }
 
-    /* Updated header-box using flexbox to center the title text */
     .header-box {
       background-color: #00008B;
       border-radius: 5px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       padding: 5px;
       text-align: center;
-      height: 40px;
     }
 
     .header-box h2 {
@@ -51,17 +45,16 @@
       font-size: 16px;
       font-weight: bold;
       color: white;
-      padding: 0;
+      padding: 10px 0; /* thicker header */
       white-space: nowrap;
     }
 
-    /* Reduced padding for the control container */
     .control-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 0 5px;
-      margin-bottom: 5px;
+      margin-bottom: 2px; /* minimal spacing */
     }
 
     .control-half {
@@ -71,17 +64,17 @@
     }
 
     button {
-      padding: 6px 12px;
-      font-size: 14px;
+      padding: 6px 12px; /* increased padding */
+      font-size: 14px;   /* increased font size */
       font-weight: bold;
       background-color: #FFA500;
       color: black;
       border: none;
-      border-radius: 10px;
+      border-radius: 10px; /* softer rounded corners */
       cursor: pointer;
       transition: background 0.3s;
       display: inline-block;
-      margin: 0;
+      margin: 2px 0;
       white-space: nowrap;
     }
 
@@ -96,7 +89,7 @@
 
     #status {
       font-weight: bold;
-      font-size: 16px;
+      font-size: 16px; /* increased font size */
       white-space: nowrap;
       padding: 0;
     }
@@ -135,8 +128,6 @@
       color: #333;
       text-align: left;
       margin-bottom: 20px;
-      height: calc(100vh - 150px);
-      overflow-y: auto;
     }
 
     #weatherData p {
@@ -157,7 +148,7 @@
     .header-content {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: center; /* center vertically */
       margin: 5px 0;
       white-space: nowrap;
     }
@@ -169,7 +160,7 @@
     }
 
     .address-title {
-      font-size: 18px;
+      font-size: 18px; /* slightly reduced from previous 20px */
       font-weight: bold;
       margin: 0 0 2px 0;
       color: #00008B;
@@ -195,7 +186,7 @@
     }
 
     .logo-container img {
-      height: 60px;
+      height: 60px; /* increased image size */
       width: auto;
       margin: 0;
       display: block;
@@ -221,24 +212,24 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: center; /* center vertically within logger column */
       white-space: nowrap;
     }
     
     .big-temp-box {
-      margin: 2px auto;
-      padding: 8px 9px;
-      border: 2px solid grey;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      font-size: 22px;
-      font-weight: bold;
-      text-align: center;
-      color: #FFF;
-      min-width: 60px;
-      white-space: nowrap;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }
+  margin: 2px auto;
+  padding: 8px 9px;  /* reduced from 10px 12px */
+  border: 2px solid grey;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-size: 22px;  /* reduced from 28px */
+  font-weight: bold;
+  text-align: center;
+  color: #FFF;  /* text color remains white */
+  min-width: 60px;
+  white-space: nowrap;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
 
     .rain-container {
       margin-top: 2px;
@@ -287,7 +278,7 @@
         padding: 0 5px;
       }
       .header-box {
-        padding: 5px;
+        padding: 0;
       }
     }
   </style>
