@@ -308,7 +308,7 @@
         </div>
         <div class="control-half">
           <p id="status" class="connected" aria-live="polite">
-            <span class="status-badge">Status: Connected</span>
+            <span id="statusBadge" class="status-badge">Status: Waiting...</span>
           </p>
         </div>
       </div>
@@ -666,7 +666,7 @@
       const statusText = document.getElementById("status");
       const spinnerContainer = document.getElementById("spinnerContainer");
 
-      statusText.innerText = "Status: Fetching";
+      document.getElementById("statusBadge").textContent = "Status: Fetching";
       statusText.className = "connected";
       spinnerContainer.style.display = "block";
 
@@ -679,7 +679,7 @@
         })
         .then(data => {
           updateWeatherData(data);
-          statusText.innerText = "Status: Connected";
+          document.getElementById("statusBadge").textContent = "Status: Connected";
           statusText.className = "connected";
           retryAttempts = 0;
           if (!initialLoadComplete) {
