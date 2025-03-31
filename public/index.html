@@ -26,35 +26,37 @@
     }
 
     .freeze-pane {
-  padding: 0;
+  position: sticky;
+  top: env(safe-area-inset-top, 0);
+  z-index: 100;
   background: #f4f4f4;
-  border-bottom: 1px solid #ccc;
-  margin-bottom: -2px; /* helps pull buttons up slightly */
+  padding: 0; /* reduce from 5px 0 to 0 */
 }
 
-.header-box {
-  background-color: #00008B;
-  border-radius: 5px;
-  padding: 2px 5px; /* was 3px */
-  margin-bottom: 2px; /* helps glue header to button row */
-}
+    .header-box {
+      background-color: #00008B;
+      border-radius: 5px;
+      padding: 5px;
+      text-align: center;
+    }
 
-.header-box h2 {
-  margin: 0;
-  font-size: 16px; /* optional: down from 18px if needed */
-  padding: 2px 0; /* was 4px */
-}
+    .header-box h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: bold;
+      color: white;
+      padding: 6px 0; /* thicker header */
+      white-space: nowrap;
+    }
 
-
-.control-container {
+    .control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;
-  margin-top: 2px;
-  margin-bottom: 2px;   /* was 0 or more */
+  padding: 0 2px;        /* reduce horizontal padding */
+  margin-bottom: 0;      /* remove bottom margin */
+  margin-top: 2px;       /* optional: add a little space if needed */
 }
-
 
     .control-half {
       width: 50%;
@@ -291,11 +293,10 @@
     /* Media Queries for Mobile Devices */
     @media only screen and (max-width: 600px) {
       .main-container {
-  max-width: 400px;
-  margin: 5px auto; /* was 10px auto */
-  padding: 0 5px;
-}
-
+        max-width: 100%;
+        margin: 0;
+        padding: 0 5px;
+      }
       .header-box {
         padding: 0;
       }
