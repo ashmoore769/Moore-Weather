@@ -692,12 +692,12 @@
             delay = (20 - now.getSeconds()) * 1000;
           } else {
             delay = ((60 - now.getSeconds()) + 20) * 1000;
-          }
+          } 
           refreshTimeout = setTimeout(fetchWeather, delay);
         })
         .catch(error => {
           console.error("Fetch error:", error);
-          statusText.innerText = "Status: Error";
+          document.getElementById("statusBadge").textContent = "Status: Error";
           statusText.className = "error";
           if (!initialLoadComplete) {
             refreshTimeout = setTimeout(fetchWeather, 1000);
