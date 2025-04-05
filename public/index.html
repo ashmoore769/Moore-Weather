@@ -365,6 +365,7 @@
             (<span id="tempDescVal">--</span>)
           </p>
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
+          <p><b>🌐 Black Globe Temp:</b> <span id="blackGlobeTempVal">--</span>°C</p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
           <p><b>⏲ Pressure:</b> <span id="pressureVal">--</span></p>
           <div class="rain-container">
@@ -546,6 +547,7 @@
         const moisture20Val = parseFloat(lines[27]);
         const moisture30Val = parseFloat(lines[28]);
         const moisture40Val = parseFloat(lines[29]);
+        const blackGlobeTemp = parseFloat(lines[30]);
 
         // Validate the data
         if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw)) {
@@ -617,6 +619,12 @@
           solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
         }
         document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
+
+        const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
+const globeElem = document.getElementById("blackGlobeTempVal");
+globeElem.textContent = blackGlobeTemp.toFixed(1) + "°C";
+globeElem.style.color = globeTempData.color;
+
 
         // GARDEN BED TEMP
         document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
