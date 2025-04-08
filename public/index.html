@@ -206,10 +206,12 @@ button:disabled {
     }
 
     .title-date-container {
-      display: flex;
-      flex-direction: column;
-      white-space: nowrap;
-    }
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;          /* ✅ let it shrink if needed */
+  min-width: 0;            /* ✅ required for text-overflow ellipsis or proper shrink */
+  margin-right: 10px;      /* ✅ gives the logo a little buffer */
+}
 
     .address-title {
       font-size: 18px; /* slightly reduced from previous 20px */
