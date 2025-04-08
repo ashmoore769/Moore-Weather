@@ -417,7 +417,7 @@
 
     @media only screen and (max-width: 400px) {
       .control-container {
-        flex-direction: row; /* Keep button and status side-by-side as in screenshot */
+        flex-direction: row;
         align-items: center;
       }
 
@@ -427,7 +427,7 @@
       }
 
       .header-content {
-        flex-direction: row; /* Keep title and logos side-by-side as in screenshot */
+        flex-direction: row;
         align-items: center;
       }
 
@@ -636,7 +636,7 @@
       const lines = cleanData.split(",");
       console.log("Parsed lines array:", lines);
 
-      if (lines.length < 31) {
+      if (lines.length < 30) {
         console.error("Incomplete data received:", lines);
         setStatusBadge("No Data", "no-data");
         document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete data from server.";
@@ -673,7 +673,7 @@
         const moisture20Val = parseFloat(lines[27]) || 0;
         const moisture30Val = parseFloat(lines[28]) || 0;
         const moisture40Val = parseFloat(lines[29]) || 0;
-        const blackGlobeTemp = parseFloat(lines[30]) || 0;
+        const blackGlobeTemp = parseFloat(lines[30]); // Removed || 0 to match original behavior
 
         document.getElementById("dateVal").textContent = formatDateString(dateStr);
         document.getElementById("timeVal").textContent = timeStr + " AEST";
@@ -722,16 +722,22 @@
         }
         document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
 
-        if (!isNaN(blackGlobeTemp)) {
-          const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
-          document.getElementById("blackGlobeTempVal").textContent = blackGlobeTemp.toFixed(1);
-          document.getElementById("blackGlobeTempVal").style.color = globeTempData.color;
+        // Black Globe Temp
+        const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
+        const globeElem = document.getElementById("blackGlobeTempVal");
+        globeElem.textContent = isNaN(blackGlobeTemp) ? "--" : blackGlobeTemp.toFixed(1);
+        globeElem.style.color = globeTempData.color;
 
+        // Radiant Heat Difference (only calculate if blackGlobeTemp is valid)
+        if (!isNaN(blackGlobeTemp) && blackGlobeTemp !== 0) {
           const radiantDiff = blackGlobeTemp - temperatureRaw;
           const radiantDiffElem = document.getElementById("radiantDiffVal");
           const radiantDiffContainer = document.getElementById("radiantDiffBox");
           radiantDiffElem.textContent = `${radiantDiff >= 0 ? "+" : ""}${radiantDiff.toFixed(1)}°C`;
           radiantDiffContainer.style.backgroundColor = radiantDiff > 0 ? "#E57373" : "#64B5F6";
+        } else {
+          document.getElementById("radiantDiffVal").textContent = "--";
+          document.getElementById("radiantDiffBox").style.backgroundColor = "#808080"; // Neutral color for invalid data
         }
 
         document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
