@@ -249,22 +249,24 @@
     }
     
     .big-temp-box {
-  margin: 5px auto;
-  padding: 8px 9px;
+  width: 130px;              /* fixed width for uniformity */
+  height: 70px;              /* consistent height */
+  padding: 8px 10px;
   border: 2px solid grey;
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  font-size: 22px;
+  font-size: 20px;           /* slightly smaller for better wrap */
   font-weight: bold;
   text-align: center;
-  min-width: 60px;
-  white-space: nowrap;
+  color: #FFF;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  word-wrap: break-word;
 }
+
 
 .big-temp-box span.label {
   font-size: 12px;
@@ -389,8 +391,8 @@
         </div>
         <div class="logger-column">
           <div class="big-temp-box" id="airTempBox">
-            <span id="bigTempVal">--</span><br>
-            <span class="label" aria-label="Air Temperature in degrees Celsius">Air Temp</span>
+            <span id="bigTempVal">16.4°C</span><br>
+<span class="label">Air Temp</span>
           </div>
           <div class="big-temp-box" id="radiantDiffBox">
             <span id="radiantDiffVal">--</span><br>
