@@ -63,13 +63,14 @@
   white-space: nowrap;
 }
 
-    .control-container {
+.control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;        /* reduce horizontal padding */
-  margin-bottom: 0;      /* remove bottom margin */
-  margin-top: 2px;       /* optional: add a little space if needed */
+  padding: 0 2px;
+  margin-bottom: 0;
+  margin-top: 2px;
+  gap: 8px; /* ← NEW: adds breathing room between the two halves */
 }
 
     .control-half {
@@ -175,8 +176,11 @@ button:disabled {
   background: #ffffff;
   padding: 8px 10px 12px 10px; /* slightly tighter padding */
   border-radius: 12px;         /* a bit more modern, softer */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* softer shadow */
-  font-size: 13.5px;           /* matches body font size for consistency */
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+}
+    font-size: 13.5px;           /* matches body font size for consistency */
   color: #222;                 /* slightly darker for better contrast */
   text-align: left;
   margin-bottom: 15px;         /* reduce space before footer or next block */
