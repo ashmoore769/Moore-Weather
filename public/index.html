@@ -517,7 +517,7 @@
       const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
       console.log("Parsed lines array:", lines);
 
-      if (lines.length < 30) {
+      if (lines.length < 31) {
         console.error("Incomplete data received:", lines);
         document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
         return;
