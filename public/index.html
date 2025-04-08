@@ -173,13 +173,10 @@ button:disabled {
     }
 
     /* Weather Data Container */
-    #weatherData {
-  background: #ffffff;
-  padding: 8px 10px 12px 10px; /* slightly tighter padding */
-  border-radius: 12px;         /* a bit more modern, softer */
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    0 4px 12px rgba(0, 0, 0, 0.08);
+    #weatherData p {
+  margin: 0.5px 0;        /* Super tight spacing between paragraphs */
+  line-height: 1.2;       /* Slightly reduced line height */
+  white-space: nowrap;    /* Prevent wrapping */
 }
     font-size: 13.5px;           /* matches body font size for consistency */
   color: #222;                 /* slightly darker for better contrast */
@@ -196,7 +193,7 @@ button:disabled {
     hr {
       border: none;
       border-top: 1px solid #ccc;
-      margin: 5px 0;
+      margin: 3px 0; /* or even 2px 0 */
       clear: both;
       width: 100%;
     }
