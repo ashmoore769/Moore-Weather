@@ -627,10 +627,21 @@
         }
         document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
 
-        const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
-const globeElem = document.getElementById("blackGlobeTempVal");
-globeElem.textContent = blackGlobeTemp.toFixed(1);
-globeElem.style.color = globeTempData.color;
+        if (!isNaN(blackGlobeTemp)) {
+  const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
+  const globeElem = document.getElementById("blackGlobeTempVal");
+  globeElem.textContent = blackGlobeTemp.toFixed(1);
+  globeElem.style.color = globeTempData.color;
+
+  // Radiant Heat Diff (Globe Temp - Air Temp)
+  const radiantDiff = blackGlobeTemp - temperatureRaw;
+  const radiantDiffElem = document.getElementById("radiantDiffVal");
+  const radiantDiffContainer = document.getElementById("radiantDiffBox");
+
+  radiantDiffElem.textContent = `${radiantDiff >= 0 ? "+" : ""}${radiantDiff.toFixed(1)}°C`;
+  radiantDiffContainer.style.backgroundColor = radiantDiff > 0 ? "#E57373" : "#64B5F6";
+}
+
 // Radiant Heat Diff (Globe Temp - Air Temp)
 const radiantDiff = blackGlobeTemp - temperatureRaw;
 const radiantDiffElem = document.getElementById("radiantDiffVal");
