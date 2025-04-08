@@ -17,15 +17,15 @@
       font-size: 14px;
       line-height: 1.3;
       padding-top: env(safe-area-inset-top, 0);
-      overflow-x: hidden; /* Prevent horizontal scrolling */
+      overflow-x: hidden;
     }
 
     .main-container {
       max-width: 400px;
-      width: 100%; /* Ensure it respects viewport width */
+      width: 100%;
       margin: 10px auto;
       padding: 0 5px;
-      box-sizing: border-box; /* Include padding in width */
+      box-sizing: border-box;
     }
 
     .freeze-pane {
@@ -54,6 +54,8 @@
       color: white;
       padding: 4px 0;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .control-container {
@@ -63,14 +65,14 @@
       padding: 0 2px;
       margin-bottom: 0;
       margin-top: 2px;
-      flex-wrap: nowrap; /* Prevent wrapping on small screens */
+      flex-wrap: nowrap;
     }
 
     .control-half {
       width: 50%;
       text-align: center;
       white-space: nowrap;
-      overflow: hidden; /* Prevent text overflow */
+      overflow: hidden;
       text-overflow: ellipsis;
     }
 
@@ -175,12 +177,15 @@
       text-align: left;
       margin-bottom: 20px;
       box-sizing: border-box;
+      overflow: hidden;
     }
 
     #weatherData p {
       margin: 2px 0;
       line-height: 1.3;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     hr {
@@ -197,14 +202,16 @@
       align-items: center;
       margin: 5px 0;
       white-space: nowrap;
-      flex-wrap: nowrap; /* Prevent wrapping */
+      flex-wrap: nowrap;
+      overflow: hidden;
     }
 
     .title-date-container {
       display: flex;
       flex-direction: column;
       white-space: nowrap;
-      max-width: 60%; /* Limit width to avoid overflow */
+      max-width: 50%;
+      overflow: hidden;
     }
 
     .address-title {
@@ -235,7 +242,8 @@
       gap: 5px;
       margin: 0;
       padding: 0;
-      max-width: 40%; /* Limit logo width */
+      max-width: 50%;
+      overflow: hidden;
     }
 
     .logo-container img {
@@ -244,7 +252,7 @@
       margin: 0;
       display: block;
       border-radius: 8px;
-      max-width: 100%; /* Ensure images scale down */
+      max-width: 100%;
     }
 
     .wind-logger-container {
@@ -254,11 +262,13 @@
       margin: 5px 0;
       white-space: nowrap;
       flex-wrap: nowrap;
+      overflow: hidden;
     }
 
     .wind-column {
       width: 60%;
       white-space: nowrap;
+      overflow: hidden;
     }
 
     .logger-column {
@@ -268,6 +278,7 @@
       align-items: center;
       justify-content: center;
       white-space: nowrap;
+      overflow: hidden;
     }
     
     .big-temp-box {
@@ -284,6 +295,7 @@
       white-space: nowrap;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
       box-sizing: border-box;
+      overflow: hidden;
     }
 
     .rain-container {
@@ -294,6 +306,7 @@
       border-radius: 8px;
       background: #f9f9f9;
       white-space: nowrap;
+      overflow: hidden;
     }
 
     .evap-battery {
@@ -302,16 +315,19 @@
       margin: 5px 0;
       white-space: nowrap;
       flex-wrap: nowrap;
+      overflow: hidden;
     }
 
     .evap-col {
       width: 52%;
       white-space: nowrap;
+      overflow: hidden;
     }
 
     .battery-col {
       width: 48%;
       white-space: nowrap;
+      overflow: hidden;
     }
 
     .soil-moisture {
@@ -320,21 +336,23 @@
       margin: 5px 0;
       white-space: nowrap;
       flex-wrap: nowrap;
+      overflow: hidden;
     }
 
     .soiltemp-col, .moisture-col {
       width: 48%;
       white-space: nowrap;
+      overflow: hidden;
     }
 
-    /* Enhanced Mobile Media Query */
+    /* Mobile Media Queries */
     @media only screen and (max-width: 600px) {
       body {
-        font-size: 12px; /* Slightly smaller text for mobile */
+        font-size: 12px;
       }
 
       .main-container {
-        max-width: 100%; /* Full width on small screens */
+        max-width: 100%;
         width: 100%;
         margin: 5px 0;
         padding: 0 5px;
@@ -350,7 +368,7 @@
       }
 
       .header-box h2 {
-        font-size: 16px; /* Adjust title size */
+        font-size: 16px;
       }
 
       button {
@@ -381,11 +399,11 @@
       }
 
       .logo-container img {
-        height: 50px; /* Smaller logos on mobile */
+        height: 50px;
       }
 
       .big-temp-box {
-        font-size: 18px; /* Smaller temp boxes */
+        font-size: 18px;
         padding: 6px 7px;
         min-width: 50px;
       }
@@ -397,26 +415,25 @@
       }
     }
 
-    /* Extra small screens (below 400px) */
     @media only screen and (max-width: 400px) {
       .control-container {
-        flex-direction: column; /* Stack button and status */
+        flex-direction: row; /* Keep button and status side-by-side as in screenshot */
         align-items: center;
       }
 
       .control-half {
-        width: 100%;
+        width: 50%;
         margin: 2px 0;
       }
 
       .header-content {
-        flex-direction: column; /* Stack title and logos */
-        align-items: flex-start;
+        flex-direction: row; /* Keep title and logos side-by-side as in screenshot */
+        align-items: center;
       }
 
       .title-date-container,
       .logo-container {
-        max-width: 100%;
+        max-width: 50%;
       }
     }
   </style>
