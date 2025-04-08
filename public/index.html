@@ -79,28 +79,34 @@
     }
 
     button {
-      padding: 6px 12px; /* increased padding */
-      font-size: 14px;   /* increased font size */
-      font-weight: bold;
-      background-color: #FFA500;
-      color: black;
-      border: none;
-      border-radius: 10px; /* softer rounded corners */
-      cursor: pointer;
-      transition: background 0.3s;
-      display: inline-block;
-      margin: 2px 0;
-      white-space: nowrap;
-    }
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: "Inter", "system-ui", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  background-color: #FFA500;
+  color: black;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.1s ease;
+  display: inline-block;
+  margin: 2px 0;
+  white-space: nowrap;
+  line-height: 1.2;             /* Tighter for button text */
+  letter-spacing: 0.3px;        /* Slight punch */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15); /* Soft elevation */
+}
 
-    button:hover {
-      background-color: #e59400;
-    }
+button:hover {
+  background-color: #e59400;
+  transform: scale(1.02);       /* Tiny lift on hover */
+}
 
-    button:disabled {
-      background-color: gray;
-      cursor: not-allowed;
-    }
+button:disabled {
+  background-color: gray;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 
     #status {
       font-weight: bold;
@@ -297,10 +303,11 @@
 
 .big-temp-box span.label {
   font-size: 12px;
-  font-weight: bold;
+  font-weight: 600;
   color: white;
-  margin-top: 2px; /* Try 2–4px as a sweet spot */
-  line-height: 1.2;
+  margin-top: 1px;       /* ⬅️ tighter gap */
+  line-height: 1.1;       /* ⬅️ slightly tighter vertical spacing */
+  letter-spacing: 0.2px;  /* optional: smooths text, helps legibility */
 }
 
 .big-temp-box + .big-temp-box {
@@ -420,7 +427,7 @@
         </div>
         <div class="logger-column">
           <div class="big-temp-box" id="airTempBox">
-            <span id="bigTempVal">15.6°C</span>
+            <span id="bigTempVal">16.4°C</span>
             <span class="label">Air Temp</span>
           </div>
           <div class="big-temp-box" id="radiantDiffBox">
