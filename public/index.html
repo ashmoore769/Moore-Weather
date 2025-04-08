@@ -783,74 +783,85 @@ if (radiantDiff >= 0) {
     }
 
     /*****************************
-    * FETCH & AUTO-REFRESH LOGIC *
-    *****************************/
-    function fetchWeather() {
-      const statusText = document.getElementById("status");
-      const spinnerContainer = document.getElementById("spinnerContainer");
+ * FETCH & AUTO-REFRESH LOGIC *
+ *****************************/
+function fetchWeather() {
+    const statusText = document.getElementById("status");
+    const spinnerContainer = document.getElementById("spinnerContainer");
+    const fetchBtn = document.getElementById("fetchBtn");
 
-      setStatusBadge("Fetching", "fetching");
-      statusText.className = "connected";
-      spinnerContainer.style.display = "block";
+    setStatusBadge("Fetching", "fetching");
+    statusText.className = "connected";
+    spinnerContainer.style.display = "block";
+    fetchBtn.disabled = true;
 
-      fetch(WEATHER_ENDPOINT)
+    fetch(WEATHER_ENDPOINT)
         .then(response => {
-          if (!response.ok) {
-            throw new Error("Server responded with " + response.status);
-          }
-          return response.text();
+            if (!response.ok) {
+                throw new Error("Server responded with " + response.status);
+            }
+            return response.text();
         })
         .then(data => {
-          updateWeatherData(data);
-          setStatusBadge("Connected", "connected");
-          statusText.className = "connected";
-          retryAttempts = 0;
-          if (!initialLoadComplete) {
-            initialLoadComplete = true;
-          }
-          // Schedule next fetch at 20 seconds past the minute
-          const now = new Date();
-          let delay;
-          if (now.getSeconds() < 20) {
-            delay = (20 - now.getSeconds()) * 1000;
-          } else {
-            delay = ((60 - now.getSeconds()) + 20) * 1000;
-          } 
-          refreshTimeout = setTimeout(fetchWeather, delay);
+            updateWeatherData(data);
+            setStatusBadge("Connected", "connected");
+            statusText.className = "connected";
+            retryAttempts = 0;
+            if (!initialLoadComplete) {
+                initialLoadComplete = true;
+            }
+            // Schedule next fetch at 20 seconds past the minute
+            scheduleNextFetch();
         })
         .catch(error => {
-  console.error("Fetch error:", error);
+            console.error("Fetch error:", error);
+            retryAttempts++;
 
-  retryAttempts++;
-
-  const isFinalFailure = retryAttempts >= MAX_RETRY_ATTEMPTS;
-
-  if (isFinalFailure) {
-    setStatusBadge("Error", "error");
-    statusText.className = "error";
-    console.log("Max retry attempts reached. Manual intervention may be required.");
-  } else {
-    // Stay in fetching state silently
-    setStatusBadge("Fetching", "fetching");
-    statusText.className = "connected"; // styling consistency
-    const retryDelay = retryAttempts === 1 ? 300 : 800;
-    refreshTimeout = setTimeout(fetchWeather, retryDelay);
-    console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
-  }
-})
+            if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+                setStatusBadge("Error", "error");
+                statusText.className = "error";
+                console.log("Temporary failure reached. Continuing with longer retry intervals...");
+                
+                // Instead of stopping, schedule a retry with longer delay
+                const retryDelay = Math.min(30000, 5000 * Math.pow(2, retryAttempts - MAX_RETRY_ATTEMPTS)); // Exponential backoff, max 30s
+                refreshTimeout = setTimeout(fetchWeather, retryDelay);
+            } else {
+                setStatusBadge("Fetching", "fetching");
+                statusText.className = "connected";
+                const retryDelay = retryAttempts === 1 ? 300 : 800;
+                refreshTimeout = setTimeout(fetchWeather, retryDelay);
+                console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
+            }
+        })
         .finally(() => {
-          spinnerContainer.style.display = "none";
+            spinnerContainer.style.display = "none";
+            fetchBtn.disabled = false;
         });
-    }
+}
 
-    function manualFetch() {
-      if (refreshTimeout) {
+function scheduleNextFetch() {
+    if (refreshTimeout) {
         clearTimeout(refreshTimeout);
-      }
-      fetchWeather();
     }
+    const now = new Date();
+    let delay;
+    if (now.getSeconds() < 20) {
+        delay = (20 - now.getSeconds()) * 1000;
+    } else {
+        delay = ((60 - now.getSeconds()) + 20) * 1000;
+    }
+    refreshTimeout = setTimeout(fetchWeather, delay);
+}
 
-    window.addEventListener("load", () => fetchWeather());
+function manualFetch() {
+    if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+    }
+    retryAttempts = 0; // Reset retry counter on manual fetch
+    fetchWeather();
+}
+
+window.addEventListener("load", () => fetchWeather());
   </script>
 </body>
 </html>
