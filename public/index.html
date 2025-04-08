@@ -816,20 +816,25 @@ if (radiantDiff >= 0) {
           refreshTimeout = setTimeout(fetchWeather, delay);
         })
         .catch(error => {
-          console.error("Fetch error:", error);
-          setStatusBadge("Error", "error");
-          statusText.className = "error";
-          if (!initialLoadComplete) {
-            refreshTimeout = setTimeout(fetchWeather, 1000);
-          } else {
-            retryAttempts++;
-            if (retryAttempts <= MAX_RETRY_ATTEMPTS) {
-              refreshTimeout = setTimeout(fetchWeather, 5000);
-            } else {
-              console.log("Max retry attempts reached. Manual intervention may be required.");
-            }
-          }
-        })
+  console.error("Fetch error:", error);
+
+  retryAttempts++;
+
+  const isFinalFailure = retryAttempts >= MAX_RETRY_ATTEMPTS;
+
+  if (isFinalFailure) {
+    setStatusBadge("Error", "error");
+    statusText.className = "error";
+    console.log("Max retry attempts reached. Manual intervention may be required.");
+  } else {
+    // Stay in fetching state silently
+    setStatusBadge("Fetching", "fetching");
+    statusText.className = "connected"; // styling consistency
+    const retryDelay = retryAttempts === 1 ? 300 : 800;
+    refreshTimeout = setTimeout(fetchWeather, retryDelay);
+    console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
+  }
+})
         .finally(() => {
           spinnerContainer.style.display = "none";
         });
