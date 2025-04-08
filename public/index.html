@@ -249,19 +249,33 @@
     }
     
     .big-temp-box {
-  margin: 2px auto;
-  padding: 8px 9px;  /* reduced from 10px 12px */
+  margin: 5px auto;
+  padding: 8px 9px;
   border: 2px solid grey;
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  font-size: 22px;  /* reduced from 28px */
+  font-size: 22px;
   font-weight: bold;
   text-align: center;
-  color: #FFF;  /* text color remains white */
   min-width: 60px;
   white-space: nowrap;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
+
+.big-temp-box span.label {
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  margin-top: 2px;
+}
+.big-temp-box + .big-temp-box {
+  margin-top: 8px;
+}
+
 
 .rain-container {
   margin-top: 7px; /* Increased space at the top for extra separation */
@@ -374,9 +388,14 @@
           </div>
         </div>
         <div class="logger-column">
-          <div class="big-temp-box">
-            <span id="bigTempVal">--</span>
+          <div class="big-temp-box" id="airTempBox">
+            <span id="bigTempVal">--</span><br>
+            <span class="label" aria-label="Air Temperature in degrees Celsius">Air Temp</span>
           </div>
+          <div class="big-temp-box" id="radiantDiffBox">
+            <span id="radiantDiffVal">--</span><br>
+            <span class="label" aria-label="Difference between radiant and air temperature">Radiant Heat Diff</span>
+          </div> 
         </div>
       </div>
       <hr>
@@ -579,7 +598,7 @@
         // Big Temperature Box: update text and container background color dynamically
         const bigTempElement = document.getElementById("bigTempVal");
         bigTempElement.textContent = temperatureRaw.toFixed(1) + "°C";
-        const bigTempContainer = document.querySelector('.big-temp-box');
+        const bigTempContainer = document.getElementById("airTempBox");
         bigTempContainer.style.backgroundColor = tempData.color;
         bigTempElement.style.color = "#FFF";
 
@@ -624,6 +643,27 @@
 const globeElem = document.getElementById("blackGlobeTempVal");
 globeElem.textContent = blackGlobeTemp.toFixed(1);
 globeElem.style.color = globeTempData.color;
+
+// Radiant Heat Diff Calculation
+const radiantDiff = blackGlobeTemp - temperatureRaw;
+const radiantDiffElem = document.getElementById("radiantDiffVal");
+const radiantDiffBox = document.getElementById("radiantDiffBox");
+
+// Format value with +/- and 1 decimal
+const diffFormatted = (radiantDiff >= 0 ? "+" : "") + radiantDiff.toFixed(1) + "°C";
+radiantDiffElem.textContent = diffFormatted;
+
+// Set color theme
+if (radiantDiff >= 0) {
+  // Hotter than air
+  radiantDiffBox.style.backgroundColor = "#d94a38";  // warm red
+  radiantDiffElem.style.color = "white";
+} else {
+  // Cooler than air
+  radiantDiffBox.style.backgroundColor = "#4682B4";  // steel blue
+  radiantDiffElem.style.color = "white";
+}
+
 
 
         // GARDEN BED TEMP
