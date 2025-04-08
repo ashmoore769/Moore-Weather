@@ -63,98 +63,89 @@
   white-space: nowrap;
 }
 
-/* Update existing CSS */
-
-/* Control container adjustments */
-.control-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center; /* Ensure vertical alignment */
-    padding: 0 2px;
-    margin-bottom: 0;
-    margin-top: 2px;
+    .control-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2px;        /* reduce horizontal padding */
+  margin-bottom: 0;      /* remove bottom margin */
+  margin-top: 2px;       /* optional: add a little space if needed */
 }
 
-/* Ensure control-half centers content vertically */
-.control-half {
-    width: 50%;
-    display: flex; /* Add flex to center contents */
-    justify-content: center;
-    align-items: center;
-    white-space: nowrap;
+    .control-half {
+      width: 50%;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    button {
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: "Inter", "system-ui", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  background-color: #FFA500;
+  color: black;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.1s ease;
+  display: inline-block;
+  margin: 2px 0;
+  white-space: nowrap;
+  line-height: 1.2;             /* Tighter for button text */
+  letter-spacing: 0.3px;        /* Slight punch */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15); /* Soft elevation */
 }
 
-/* Default badge style for both status and button wrapper */
-.status-badge {
-    display: inline-block;
-    padding: 6px 12px;
-    font-size: 14px;
-    font-weight: bold;
-    border-radius: 10px;
-    background-color: white;
-    color: #006400;
-    border: 2px solid #006400;
-    line-height: 1;
-    transition: all 0.3s ease;
-    text-align: center; /* Ensure text centering */
-}
-
-/* Specific styling for the button wrapper */
-.status-badge.button-wrapper {
-    padding: 0; /* Remove padding since button has its own */
-    background-color: transparent; /* No background */
-    border: none; /* No border on wrapper */
-}
-
-/* Button styling to match status badge */
-button {
-    padding: 6px 12px; /* Match status badge padding */
-    font-size: 14px;
-    font-weight: 600;
-    font-family: "Inter", "system-ui", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    background-color: #FFA500;
-    color: black;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background 0.3s ease, transform 0.1s ease;
-    width: 100%; /* Take full width of wrapper */
-    height: 100%; /* Take full height of wrapper */
-    margin: 0; /* Remove margin to fit wrapper */
-    line-height: 1; /* Match status badge line-height */
-    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-}
-
-/* Ensure hover effect still works */
 button:hover {
-    background-color: #e59400;
-    transform: scale(1.02);
+  background-color: #e59400;
+  transform: scale(1.02);       /* Tiny lift on hover */
 }
 
-/* Disabled state */
 button:disabled {
-    background-color: gray;
-    cursor: not-allowed;
-    opacity: 0.7;
+  background-color: gray;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
-/* Connected status specific styling */
+    #status {
+      font-weight: bold;
+      font-size: 16px; /* increased font size */
+      white-space: nowrap;
+      padding: 0;
+    }
+
+/* Default badge style for all statuses */
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 10px;
+  background-color: white;
+  color: #006400;
+  border: 2px solid #006400;
+  line-height: 1;
+  transition: all 0.3s ease;
+}
+
+/* Only Connected gets solid green background */
 .status-badge.connected {
-    background-color: #006400;
-    color: white;
-    border-color: #006400;
+  background-color: #006400;
+  color: white;
+  border-color: #006400;
 }
 
-/* Fetching status */
+/* Optional: yellow/orange for fetching */
 .status-badge.fetching {
-    color: #DAA520;
-    border-color: #DAA520;
+  color: #DAA520;
+  border-color: #DAA520;
 }
 
-/* Error status */
+/* Optional: red for error */
 .status-badge.error {
-    color: #B22222;
-    border-color: #B22222;
+  color: #B22222;
+  border-color: #B22222;
 }
 
 
@@ -387,19 +378,15 @@ button:disabled {
       <div class="header-box">
         <h2>Moore's LIVE Weather Data</h2>
       </div>
-      <!-- Replace the control-container section -->
-<div class="control-container">
-  <div class="control-half">
-      <span class="status-badge button-wrapper">
+      <div class="control-container">
+        <div class="control-half">
           <button id="fetchBtn" onclick="manualFetch()">CURRENT READINGS</button>
-      </span>
-  </div>
-  <div class="control-half">
-      <p id="status" class="connected" aria-live="polite">
-          <span id="statusBadge" class="status-badge">Status: Waiting...</span>
-      </p>
-  </div>
-</div>
+        </div>
+        <div class="control-half">
+          <p id="status" class="connected" aria-live="polite">
+            <span id="statusBadge" class="status-badge">Status: Waiting...</span>
+          </p>
+        </div>
       </div>
     </div>
 
