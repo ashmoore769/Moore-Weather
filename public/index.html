@@ -444,8 +444,8 @@
   };
   const icon = icons[statusClass] || "";
   const badge = document.getElementById("statusBadge");
-  badge.textContent = `${icon} Status: ${statusText}`;
-badge.className = `status-badge ${statusClass}`;
+  badge.textContent = ${icon} Status: ${statusText};
+  badge.className = status-badge ${statusClass};
 }
 
 
@@ -453,7 +453,7 @@ badge.className = `status-badge ${statusClass}`;
       const parts = dateStr.split("/");
       if (parts.length === 3) {
         const [year, month, day] = parts;
-        rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
+        const formattedDate = ${day}/${month}/${year};
         const dateObj = new Date(year, month - 1, day);
         const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         return ${formattedDate} (${dayNames[dateObj.getDay()]});
@@ -586,7 +586,7 @@ badge.className = `status-badge ${statusClass}`;
         // RAIN SINCE 9AM
         let rainSince9Display = rainSince9.toFixed(1) + " mm";
         if (rainSince9 >= 0.2) {
-          rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
+          rainSince9Display = <span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>;
         }
         document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
 
@@ -597,7 +597,7 @@ badge.className = `status-badge ${statusClass}`;
         }
         let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
         if (rainInLastMinRaw >= 0.2) {
-          rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
+          rainInLastMinDisplay = <span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>;
         }
         document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
 
