@@ -374,15 +374,8 @@
           </div>
         </div>
         <div class="logger-column">
-          <!-- Air Temp Bubble -->
           <div class="big-temp-box">
             <span id="bigTempVal">--</span>
-          </div>
-        
-          <!-- Radiant Heat Diff Bubble -->
-          <div id="radiantDiffBox" class="big-temp-box" style="margin-top: 6px;">
-            <span id="radiantDiffVal">--</span><br>
-            <span style="font-size: 13px;">Radiant Heat Diff</span>
           </div>
         </div>
       </div>
@@ -517,7 +510,7 @@
       const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
       console.log("Parsed lines array:", lines);
 
-      if (lines.length < 31) {
+      if (lines.length < 30) {
         console.error("Incomplete data received:", lines);
         document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
         return;
@@ -627,31 +620,10 @@
         }
         document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
 
-        if (!isNaN(blackGlobeTemp)) {
-  const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
-  const globeElem = document.getElementById("blackGlobeTempVal");
-  globeElem.textContent = blackGlobeTemp.toFixed(1);
-  globeElem.style.color = globeTempData.color;
-
-  // Radiant Heat Diff (Globe Temp - Air Temp)
-  const radiantDiff = blackGlobeTemp - temperatureRaw;
-  const radiantDiffElem = document.getElementById("radiantDiffVal");
-  const radiantDiffContainer = document.getElementById("radiantDiffBox");
-
-  radiantDiffElem.textContent = `${radiantDiff >= 0 ? "+" : ""}${radiantDiff.toFixed(1)}°C`;
-  radiantDiffContainer.style.backgroundColor = radiantDiff > 0 ? "#E57373" : "#64B5F6";
-}
-
-// Radiant Heat Diff (Globe Temp - Air Temp)
-const radiantDiff = blackGlobeTemp - temperatureRaw;
-const radiantDiffElem = document.getElementById("radiantDiffVal");
-const radiantDiffContainer = document.getElementById("radiantDiffBox");
-
-radiantDiffElem.textContent = `${radiantDiff >= 0 ? "+" : ""}${radiantDiff.toFixed(1)}°C`;
-
-// Set background color: red if positive, blue if negative
-radiantDiffContainer.style.backgroundColor = radiantDiff > 0 ? "#E57373" : "#64B5F6";
-
+        const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
+const globeElem = document.getElementById("blackGlobeTempVal");
+globeElem.textContent = blackGlobeTemp.toFixed(1);
+globeElem.style.color = globeTempData.color;
 
 
         // GARDEN BED TEMP
