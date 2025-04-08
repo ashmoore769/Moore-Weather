@@ -444,8 +444,8 @@
   };
   const icon = icons[statusClass] || "";
   const badge = document.getElementById("statusBadge");
-  badge.textContent = `${icon} Status: ${statusText}`;
-badge.className = `status-badge ${statusClass}`;
+  badge.textContent = ${icon} Status: ${statusText};
+  badge.className = status-badge ${statusClass};
 }
 
 
@@ -586,7 +586,7 @@ badge.className = `status-badge ${statusClass}`;
         // RAIN SINCE 9AM
         let rainSince9Display = rainSince9.toFixed(1) + " mm";
         if (rainSince9 >= 0.2) {
-          rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
+          rainSince9Display = <span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>;
         }
         document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
 
