@@ -63,16 +63,14 @@
   white-space: nowrap;
 }
 
-.control-container {
+    .control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;
-  margin-bottom: 0;
-  margin-top: 2px;
-  /* gap: 8px; ← Remove this */
+  padding: 0 2px;        /* reduce horizontal padding */
+  margin-bottom: 0;      /* remove bottom margin */
+  margin-top: 2px;       /* optional: add a little space if needed */
 }
-
 
     .control-half {
       width: 50%;
@@ -173,12 +171,12 @@ button:disabled {
     }
 
     /* Weather Data Container */
-    #weatherData p {
-  margin: 0.5px 0;        /* Super tight spacing between paragraphs */
-  line-height: 1.2;       /* Slightly reduced line height */
-  white-space: nowrap;    /* Prevent wrapping */
-}
-    font-size: 13.5px;           /* matches body font size for consistency */
+    #weatherData {
+  background: #ffffff;
+  padding: 8px 10px 12px 10px; /* slightly tighter padding */
+  border-radius: 12px;         /* a bit more modern, softer */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* softer shadow */
+  font-size: 13.5px;           /* matches body font size for consistency */
   color: #222;                 /* slightly darker for better contrast */
   text-align: left;
   margin-bottom: 15px;         /* reduce space before footer or next block */
@@ -193,7 +191,7 @@ button:disabled {
     hr {
       border: none;
       border-top: 1px solid #ccc;
-      margin: 3px 0; /* or even 2px 0 */
+      margin: 5px 0;
       clear: both;
       width: 100%;
     }
