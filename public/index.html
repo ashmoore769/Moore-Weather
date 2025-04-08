@@ -817,23 +817,27 @@ if (radiantDiff >= 0) {
         })
         .catch(error => {
   console.error("Fetch error:", error);
-  
   retryAttempts++;
 
+  const retryDelay = initialLoadComplete ? 5000 : 1000;
+
   if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
-    // Final failure — show error
-    setStatusBadge("Error", "error");
-    statusText.className = "error";
-    console.log("Max retry attempts reached. Manual intervention may be required.");
+    if (!initialLoadComplete) {
+      // Initial load failed completely — show error
+      setStatusBadge("Error", "error");
+      statusText.className = "error";
+    } else {
+      console.log("Max retry attempts reached. Stopping further retries.");
+    }
   } else {
-    // Retry still in progress — keep FETCHING state
+    // Still retrying
     setStatusBadge("Fetching", "fetching");
-    statusText.className = "connected"; // keep styling consistent
-    const retryDelay = initialLoadComplete ? 5000 : 1000;
-    refreshTimeout = setTimeout(fetchWeather, retryDelay);
+    statusText.className = "connected"; // keep consistent style
     console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
+    refreshTimeout = setTimeout(fetchWeather, retryDelay);
   }
 })
+
 .finally(() => {
   spinnerContainer.style.display = "none";
 });
