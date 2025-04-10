@@ -383,6 +383,17 @@ button:disabled {
     <!-- Weather Data Section -->
     <div id="weatherData">
       <!-- Header Section -->
+      <div class="control-container" style="margin-top: 10px;">
+        <div class="control-half">
+          <button id="fetchBtn" onclick="manualFetch()">CURRENT READINGS</button>
+        </div>
+        <div class="control-half">
+          <p id="status" class="connected" aria-live="polite">
+            <span id="statusBadge" class="status-badge">Status: Waiting...</span>
+          </p>
+        </div>
+      </div>
+      <hr>
       <div class="header-content">
         <div class="title-date-container">
           <div class="address-title">WEST WARWICK, QLD</div>
@@ -471,17 +482,6 @@ button:disabled {
           <p><b>💧 Moist. 40cm:</b> <span id="moisture40Val">--</span>%</p>
         </div>
       </div>
-      <hr>
-<div class="control-container" style="margin-top: 10px;">
-  <div class="control-half">
-    <button id="fetchBtn" onclick="manualFetch()">CURRENT READINGS</button>
-  </div>
-  <div class="control-half">
-    <p id="status" class="connected" aria-live="polite">
-      <span id="statusBadge" class="status-badge">Status: Waiting...</span>
-    </p>
-  </div>
-</div>
       <hr>
     </div>
 
