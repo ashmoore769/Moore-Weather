@@ -859,20 +859,20 @@ function fetchWeather() {
             retryAttempts++;
 
             if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
-                setStatusBadge("Error", "error");
-                statusText.className = "error";
-                console.log("Temporary failure reached. Continuing with longer retry intervals...");
-                
-                // Instead of stopping, schedule a retry with longer delay
-                const retryDelay = Math.min(30000, 5000 * Math.pow(2, retryAttempts - MAX_RETRY_ATTEMPTS)); // Exponential backoff, max 30s
-                refreshTimeout = setTimeout(fetchWeather, retryDelay);
-            } else {
-                setStatusBadge("Fetching", "fetching");
-                statusText.className = "connected";
-                const retryDelay = retryAttempts === 1 ? 300 : 800;
-                refreshTimeout = setTimeout(fetchWeather, retryDelay);
-                console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
-            }
+    setStatusBadge("Error", "error");
+    statusText.className = "error";
+    console.log("Max retry reached — retrying again shortly...");
+
+    // ⏱ Retry again quickly after showing Error
+    const retryDelay = 1000; // 1 second
+    refreshTimeout = setTimeout(fetchWeather, retryDelay);
+} else {
+    setStatusBadge("Fetching", "fetching");
+    statusText.className = "connected";
+    const retryDelay = retryAttempts === 1 ? 300 : 800;
+    refreshTimeout = setTimeout(fetchWeather, retryDelay);
+    console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
+}
         })
         .finally(() => {
             spinnerContainer.style.display = "none";
