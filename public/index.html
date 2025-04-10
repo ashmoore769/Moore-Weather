@@ -49,10 +49,10 @@
 
 .header-box {
   background-color: #00008B;
-  border-radius: 10px;
-  padding: 3px 5px 1px 5px;  /* ⬅️ less padding on bottom */
+  border-radius: 10px 10px 0 0;  /* top-left, top-right, bottom-right, bottom-left */
+  padding: 3px 5px 1px 5px;
   text-align: center;
-  margin-bottom: 0;          /* ⬅️ prevent gap push */
+  margin-bottom: 0;
 }
 
 .header-box h2 {
@@ -174,13 +174,13 @@ button:disabled {
     /* Weather Data Container */
     #weatherData {
   background: #ffffff;
-  padding: 8px 10px 12px 10px; /* slightly tighter padding */
-  border-radius: 12px;         /* a bit more modern, softer */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* softer shadow */
-  font-size: 13.5px;           /* matches body font size for consistency */
-  color: #222;                 /* slightly darker for better contrast */
+  padding: 8px 10px 12px 10px;
+  border-radius: 0 0 12px 12px;  /* top corners square, bottom corners rounded */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  font-size: 13.5px;
+  color: #222;
   text-align: left;
-  margin-bottom: 15px;         /* reduce space before footer or next block */
+  margin-bottom: 15px;
 }
 
     #weatherData p {
