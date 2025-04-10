@@ -50,8 +50,9 @@
 .header-box {
   background-color: #00008B;
   border-radius: 10px;
-  padding: 5px;         /* was 5px */
+  padding: 3px 5px 1px 5px;  /* ⬅️ less padding on bottom */
   text-align: center;
+  margin-bottom: 0;          /* ⬅️ prevent gap push */
 }
 
 .header-box h2 {
@@ -59,17 +60,17 @@
   font-size: 18px;
   font-weight: bold;
   color: white;
-  padding: 4px 0;       /* was 6px 0 */
+  padding: 2px 0;       /* was 6px 0 */
   white-space: nowrap;
 }
 
-    .control-container {
+.control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;        /* reduce horizontal padding */
-  margin-bottom: 0;      /* remove bottom margin */
-  margin-top: 2px;       /* optional: add a little space if needed */
+  padding: 0 2px;
+  margin-top: 0;       /* ⬅️ this is the key change */
+  margin-bottom: 0;
 }
 
     .control-half {
