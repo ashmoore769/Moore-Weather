@@ -64,20 +64,27 @@
   white-space: nowrap;
 }
 
+.control-bar {
+  background-color: #eeeeee;
+  padding: 4px 6px;
+  border-radius: 0 0 12px 12px;
+}
+
 .control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 2px;
-  margin-top: 0;       /* ⬅️ this is the key change */
-  margin-bottom: 0;
+  margin: 0;
 }
 
-    .control-half {
-      width: 50%;
-      text-align: center;
-      white-space: nowrap;
-    }
+.control-half {
+  width: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  white-space: nowrap;
+}
 
     button {
   padding: 6px 12px;
@@ -381,33 +388,40 @@ button:disabled {
       </div>
 
     <!-- Weather Data Section -->
-    <div id="weatherData">
-      <!-- Header Section -->
-      <div class="control-container" style="margin-top: 1px;" style="margin-bottom: 3px;">
-        <div class="control-half">
-          <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
-        </div>
-        <div class="control-half">
-          <p id="status" class="connected" aria-live="polite">
-            <span id="statusBadge" class="status-badge">Status: Waiting...</span>
-          </p>
-        </div>
+<div id="weatherData">
+
+  <!-- Control Button Bar -->
+  <div class="control-bar">
+    <div class="control-container">
+      <div class="control-half">
+        <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
       </div>
-      <hr>
-      <div class="header-content">
-        <div class="title-date-container" style="margin-top: 2px;">
-          <div class="address-title">WEST WARWICK, QLD</div>
-          <div class="date-time">
-            <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-            <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
-          </div>
-        </div>
-        <div class="logo-container">
-          <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-          <img src="/Station_Label.png" alt="Environdata Weather Maestro">
-        </div>
+      <div class="control-half">
+        <p id="status" class="connected" aria-live="polite">
+          <span id="statusBadge" class="status-badge">Status: Waiting...</span>
+        </p>
       </div>
-      <hr>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Header Section -->
+  <div class="header-content">
+    <div class="title-date-container">
+      <div class="address-title">WEST WARWICK, QLD</div>
+      <div class="date-time">
+        <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+        <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+      </div>
+    </div>
+    <div class="logo-container">
+      <img src="/Weather_Station_App.png" alt="Weather Station Icon">
+      <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+    </div>
+  </div>
+
+  <hr>
 
       <!-- Main Data Columns -->
       <div class="wind-logger-container">
