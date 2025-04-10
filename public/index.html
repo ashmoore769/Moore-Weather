@@ -78,14 +78,21 @@
       padding: 0 0.3125rem;
     }
 
+    /* Apply nowrap/ellipsis broadly first */
     p {
       margin: 0.2rem 0; /* Tighten paragraph spacing */
       line-height: 1.35;
-      /* USER FEEDBACK: Prioritize alignment - prevent wrapping */
       white-space: nowrap;
-      overflow: hidden; /* Prevent overflow if nowrap is too strict */
-      text-overflow: ellipsis; /* Indicate truncation */
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+     /* Allow specific descriptions to wrap if needed */
+    #humidityDescVal, #tempDescVal {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
 
     b, strong {
       font-weight: 600;
@@ -377,9 +384,9 @@
     .two-col-container > div { width: calc(50% - 0.375rem); }
     /* Apply nowrap to specific columns */
     .evap-col p, .battery-col p, .soiltemp-col p, .moisture-col p, .data-section > p /* Vector Wind */ {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        /* white-space: nowrap; */ /* Let general p handle this now */
+        /* overflow: hidden; */
+        /* text-overflow: ellipsis; */
     }
 
 
@@ -465,7 +472,7 @@
           <div class="date-time">
             <!-- Emojis directly in HTML -->
             <p>📅 <span id="dateVal">-- / -- / ---- (---)</span></p>
-            <p>⏰ <span id="timeVal">-- : -- : -- AEST</span></p>
+            <p>⏰ <span id="timeVal">-- : -- : --</span> AEST</p> <!-- AEST Moved outside span -->
           </div>
         </div>
         <div class="logo-container">
@@ -482,10 +489,10 @@
           <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
           <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
           <p><b>🌡️ Temperature:</b> <span id="tempVal" class="temp-value">--°C</span> (<span id="tempDescVal">--</span>)</p>
-          <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">-- W/m²</span> <span id="solarEmoji"></span></p> <!-- Separate span for emoji if needed -->
+          <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span> W/m² <span id="solarEmoji"></span></p> <!-- Separate span for emoji -->
           <p><b>⚫ Black Globe Temp:</b> <span id="blackGlobeTempVal" class="temp-value">--</span>°C</p> <!-- Changed emoji -->
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
-          <p><b>🌀 Pressure:</b> <span id="pressureVal">-- hPa</span> <span id="pressureEmoji"></span></p> <!-- Separate span for emoji -->
+          <p><b>🌀 Pressure:</b> <span id="pressureVal">--</span> hPa <span id="pressureEmoji"></span></p> <!-- Separate span for emoji -->
           <div class="rain-container">
             <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span> mm</p>
             <p><b>💧 Rain In Last Min:</b> <span id="rainInLastMinVal">--</span> mm</p> <!-- Changed emoji -->
@@ -558,163 +565,277 @@
     /********************
     * HELPER FUNCTIONS *
     ********************/
-    // --- Keep helper functions like getWindDirection, formatDateString ---
-    function getWindDirection(degrees) { /* ... as before ... */ }
-    function formatDateString(dateStr) { /* ... as before ... */ }
+    function getWindDirection(degrees) {
+        const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+        // Ensure degrees is a number and handle potential NaN or non-numeric input
+        const numericDegrees = parseFloat(degrees);
+        if (isNaN(numericDegrees)) {
+            return "--"; // Return a default value if input is not a valid number
+        }
+        // Normalize degrees to be within 0-360 range
+        const normalizedDegrees = (numericDegrees % 360 + 360) % 360;
+        return directions[Math.round(normalizedDegrees / 22.5) % 16];
+    }
 
-    // --- STATUS BADGE TEXT ---
+    function formatDateString(dateStr) {
+        if (!dateStr || typeof dateStr !== 'string') return "-- / -- / ---- (---)"; // Handle null/undefined/wrong type
+        const parts = dateStr.split("/");
+        if (parts.length === 3) {
+            const [year, month, day] = parts;
+            // Basic validation for numeric parts
+            if (!/^\d+$/.test(year) || !/^\d+$/.test(month) || !/^\d+$/.test(day)) {
+                 return `${dateStr} (Invalid)`;
+            }
+            const formattedDate = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`; // Pad day/month
+            // Be careful with Date constructor parsing YY format, ensure year is YYYY
+            const yearNum = parseInt(year);
+            const fullYear = yearNum < 100 ? (yearNum >= 70 ? 1900 + yearNum : 2000 + yearNum) : yearNum; // Simple 2-digit year assumption
+
+            const dateObj = new Date(fullYear, parseInt(month) - 1, parseInt(day)); // Month is 0-indexed
+            const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+            if (!isNaN(dateObj.getTime()) && dateObj.getDate() == parseInt(day) && (dateObj.getMonth() + 1) == parseInt(month)) { // Validate date object creation
+                return `${formattedDate} (${dayNames[dateObj.getDay()]})`;
+            } else {
+                 return `${formattedDate} (Invalid Date)`; // Indicate if parsing failed
+            }
+        }
+        return `${dateStr} (Unknown Format)`; // Fallback for unexpected format
+    }
+
     function setStatusBadge(statusText, statusClass) {
         const badge = document.getElementById("statusBadge");
         if (badge) {
-            // USER FEEDBACK: Simple status text
             let displayStatus = statusText;
-            if (statusClass === 'fetching' && statusText.startsWith('Retrying')) {
-                displayStatus = 'Retrying...'; // Keep retry concise
-            } else if (statusClass === 'error' && statusText.startsWith('Error')) {
-                 displayStatus = 'Error'; // Keep error concise
+            if (statusClass === 'fetching') {
+                 displayStatus = statusText.startsWith('Retrying') ? 'Retrying...' : 'Fetching...';
+            } else if (statusClass === 'error') {
+                 displayStatus = 'Error';
+            } else if (statusClass === 'connected') {
+                 displayStatus = 'Connected';
             }
 
-            badge.textContent = displayStatus; // Set only the status text
-            badge.className = `button-style ${statusClass}`; // Apply base style + dynamic class
+            badge.textContent = displayStatus;
+            badge.className = `button-style ${statusClass}`;
         } else {
             console.warn("statusBadge element not found");
         }
     }
 
-
     // --- REVISED DYNAMIC CLASS FUNCTIONS ---
-    // These now only return class names or empty strings
     function getTemperatureInfo(temp) {
       let desc = ""; let className = "";
-      if (temp < -10) { desc = "Severely cold"; className = "temp-very-cold"; }
-      else if (temp < 0) { desc = "Extremely cold"; className = "temp-very-cold"; }
-      else if (temp < 6) { desc = "Very cold"; className = "temp-cold"; }
-      else if (temp < 11) { desc = "Cold"; className = "temp-cold"; }
-      else if (temp < 16) { desc = "Cool"; className = "temp-cool"; }
-      else if (temp < 21) { desc = "Mild"; className = "temp-mild"; }
-      else if (temp < 28) { desc = "Warm"; className = "temp-warm"; }
-      else if (temp < 32) { desc = "Warmer"; className = "temp-hot"; }
-      else if (temp < 36) { desc = "Hot"; className = "temp-hot"; }
-      else if (temp < 41) { desc = "Very hot"; className = "temp-very-hot"; }
-      else if (temp <= 60) { desc = "Extremely hot"; className = "temp-very-hot"; }
+      const tempNum = parseFloat(temp); // Ensure numeric comparison
+       if (isNaN(tempNum)) return { desc: "--", className: "" };
+
+      if (tempNum < -10) { desc = "Severely cold"; className = "temp-very-cold"; }
+      else if (tempNum < 0) { desc = "Extremely cold"; className = "temp-very-cold"; }
+      else if (tempNum < 6) { desc = "Very cold"; className = "temp-cold"; }
+      else if (tempNum < 11) { desc = "Cold"; className = "temp-cold"; }
+      else if (tempNum < 16) { desc = "Cool"; className = "temp-cool"; }
+      else if (tempNum < 21) { desc = "Mild"; className = "temp-mild"; }
+      else if (tempNum < 28) { desc = "Warm"; className = "temp-warm"; }
+      else if (tempNum < 32) { desc = "Warmer"; className = "temp-hot"; }
+      else if (tempNum < 36) { desc = "Hot"; className = "temp-hot"; }
+      else if (tempNum < 41) { desc = "Very hot"; className = "temp-very-hot"; }
+      else if (tempNum <= 60) { desc = "Extremely hot"; className = "temp-very-hot"; }
       else { desc = ""; className = ""; } // Default/fallback
       return { desc, className };
     }
 
     function getBigTempBoxAirClass(temp) {
-       if (temp < 6) return 'temp-cold';
-       if (temp < 11) return 'temp-cool';
-       if (temp < 21) return 'temp-mild'; // Adjusted Mild range slightly
-       if (temp < 32) return 'temp-warm'; // Adjusted Warm range slightly
+       const tempNum = parseFloat(temp);
+       if (isNaN(tempNum)) return '';
+       if (tempNum < 6) return 'temp-cold';
+       if (tempNum < 11) return 'temp-cool';
+       if (tempNum < 21) return 'temp-mild';
+       if (tempNum < 32) return 'temp-warm';
        return 'temp-hot';
     }
 
     function getRadiantDiffClass(diff) {
-       // Match target image: Purple for negative, Orange for positive
-       return diff >= 0 ? 'diff-positive' : 'diff-negative';
+       const diffNum = parseFloat(diff);
+       if (isNaN(diffNum)) return 'dew-neutral'; // Use neutral if NaN
+       return diffNum >= 0 ? 'diff-positive' : 'diff-negative';
      }
 
      function getDewDiffClass(diff) {
-        // Match target image: Teal for humid (low diff), Gray for neutral/dry?
-        if (diff < 1.5) return 'dew-humid'; // Humid
-        // if (diff >= 3.0) return 'dew-dry'; // Pinkish - Optional if desired
-        return 'dew-neutral'; // Default/Dryish state
+        const diffNum = parseFloat(diff);
+        if (isNaN(diffNum)) return 'dew-neutral';
+        if (diffNum < 1.5) return 'dew-humid';
+        // if (diffNum >= 3.0) return 'dew-dry'; // Optional
+        return 'dew-neutral';
      }
 
-    function getHumidityDesc(humidity) { /* ... as before ... */ }
+    function getHumidityDesc(humidity) {
+      const humNum = parseFloat(humidity);
+      if (isNaN(humNum)) return "--";
+      if (humNum <= 20) { return "Very Dry"; }
+      else if (humNum <= 40) { return "Dry"; }
+      else if (humNum <= 60) { return "Comfortable"; }
+      else if (humNum <= 80) { return "Humid"; }
+      else { return "Very Humid"; }
+    }
 
     function getMoistureClass(val) {
-      return (val < 20) ? "moisture-dry text-semibold" : "";
+        const valNum = parseFloat(val);
+        if (isNaN(valNum)) return '';
+        return (valNum < 20) ? "moisture-dry text-semibold" : "";
     }
 
     function getSolarRadiationClass(solarRad) {
-        if (solarRad <= 0) return 'solar-zero';
-        if (solarRad <= 100) return 'solar-low';
-        if (solarRad <= 600) return 'solar-med';
-        if (solarRad <= 1100) return 'solar-high';
+        const radNum = parseFloat(solarRad);
+        if (isNaN(radNum)) return '';
+        if (radNum <= 0) return 'solar-zero';
+        if (radNum <= 100) return 'solar-low';
+        if (radNum <= 600) return 'solar-med';
+        if (radNum <= 1100) return 'solar-high';
         return 'solar-very-high';
     }
     function getPressureClass(pressure) {
-        return pressure >= 1020 ? 'pressure-high text-semibold' : ''; // Added semibold
+        const presNum = parseFloat(pressure);
+        if (isNaN(presNum)) return '';
+        return presNum >= 1020 ? 'pressure-high text-semibold' : '';
     }
     function getBatteryClass(voltage) {
-        if (voltage < 12.5) return 'battery-low text-semibold'; // Semibold on low
-        if (voltage >= 13.8) return 'battery-full text-semibold';
+        const voltNum = parseFloat(voltage);
+        if (isNaN(voltNum)) return '';
+        if (voltNum < 12.5) return 'battery-low text-semibold';
+        if (voltNum >= 13.8) return 'battery-full text-semibold';
         return 'battery-ok';
     }
     function getChargeClass(charge, load, voltage) {
-         if (voltage < 13.80) {
-             return charge > load ? 'charge-positive text-semibold' : 'charge-negative text-semibold'; // Semibold added
+         const chargeNum = parseFloat(charge);
+         const loadNum = parseFloat(load);
+         const voltNum = parseFloat(voltage);
+         if (isNaN(chargeNum) || isNaN(loadNum) || isNaN(voltNum)) return '';
+
+         if (voltNum < 13.80) {
+             return chargeNum > loadNum ? 'charge-positive text-semibold' : 'charge-negative text-semibold';
          }
          return '';
     }
     function getWindGustClass(gust) {
-        if (gust > 25) return 'wind-gust-high text-semibold';
-        if (gust > 10) return 'wind-gust-med text-semibold';
+        const gustNum = parseFloat(gust);
+        if (isNaN(gustNum)) return '';
+        if (gustNum > 25) return 'wind-gust-high text-semibold';
+        if (gustNum > 10) return 'wind-gust-med text-semibold';
         return '';
     }
     function getRainClass(rainAmount) {
-        return rainAmount >= 0.2 ? 'rain-significant text-semibold' : '';
+        const rainNum = parseFloat(rainAmount);
+        if (isNaN(rainNum)) return '';
+        return rainNum >= 0.2 ? 'rain-significant text-semibold' : '';
     }
 
 
     /*****************************
     * GLOBAL STATE & RETRIES *
     *****************************/
-    // --- Keep as is ---
-    let initialLoadComplete = false; /* ... */
-    let refreshTimeout; /* ... */
-    let retryAttempts = 0; /* ... */
-    const MAX_RETRY_ATTEMPTS = 3; /* ... */
-    const WEATHER_ENDPOINT = "/weather"; /* ... */
+    let initialLoadComplete = false;
+    let refreshTimeout = null; // Initialize to null
+    let retryAttempts = 0;
+    const MAX_RETRY_ATTEMPTS = 3;
+    const WEATHER_ENDPOINT = "/weather"; // Make sure this endpoint is correct
 
 
     /*****************************
     * MAIN UPDATE FUNCTION *
     *****************************/
     function updateWeatherData(data) {
-      console.log("Raw CSV data received");
-      const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
+      console.log("Received data, attempting update..."); // Log start
+      if (typeof data !== 'string' || data.trim() === '') {
+          console.error("Invalid or empty data received for processing.");
+           setStatusBadge("Data Error", "error");
+           return;
+      }
 
-      if (lines.length < 30) { /* ... error handling as before ... */ return; }
+      // More robust split, handling potential extra commas or whitespace
+      const lines = data.replace(/r3\r?\n?/, "").trim().split(",").map(s => s.trim());
+      console.log(`Parsed ${lines.length} fields.`);
+
+      // Check minimum expected fields
+      if (lines.length < 31) { // Adjusted to 31 based on last index used (30)
+        console.error(`Incomplete data: Expected at least 31 fields, got ${lines.length}. Data:`, data);
+         setStatusBadge("Data Error", "error");
+        return;
+      }
 
       try {
-        // --- Extract Data (Keep as is) ---
-        const dateStr = lines[0]; /* ... */ const timeStr = lines[1]; /* ... */
-        const windSpeed = parseFloat(lines[2]); /* ... */ const windDirDeg = parseFloat(lines[3]); /* ... */
-        const humidityRaw = parseFloat(lines[4]); /* ... */ const temperatureRaw = parseFloat(lines[5]); /* ... */
-        let rainInLastMinRaw = parseFloat(lines[6]); /* ... */ const solarRadRaw = parseFloat(lines[7]); /* ... */
-        const pressureRaw = parseFloat(lines[8]); /* ... */ const gardenBedTemp = parseFloat(lines[9]); /* ... */
-        const batteryVoltageVal = parseFloat(lines[10]); /* ... */ const loadCurrent = parseFloat(lines[11]); /* ... */
-        const rawSolarVoltage = parseFloat(lines[12]); /* ... */ const chargeCurrent = parseFloat(lines[13]); /* ... */
-        const peakWindGustVal = parseFloat(lines[14]); /* ... */ const vectorWindSpeedVal = parseFloat(lines[15]); /* ... */
-        const vectorWindDirVal = parseFloat(lines[16]); /* ... */ const rainSince9 = parseFloat(lines[17]); /* ... */
-        const evapRate = parseFloat(lines[18]); /* ... */ const dailyEvap = parseFloat(lines[20]); /* ... */
-        const dewPoint = parseFloat(lines[21]); /* ... */ const soilTemp10 = parseFloat(lines[22]); /* ... */
-        const soilTemp20 = parseFloat(lines[23]); /* ... */ const soilTemp30 = parseFloat(lines[24]); /* ... */
-        const soilTemp40 = parseFloat(lines[25]); /* ... */ const moisture10Val = parseFloat(lines[26]); /* ... */
-        const moisture20Val = parseFloat(lines[27]); /* ... */ const moisture30Val = parseFloat(lines[28]); /* ... */
-        const moisture40Val = parseFloat(lines[29]); /* ... */ const blackGlobeTemp = parseFloat(lines[30]); /* ... */
+        // --- Helper function to get numeric value or NaN ---
+        const getNum = (index) => parseFloat(lines[index]);
 
-        // --- Validate Core Data (Keep as is) ---
-        if (isNaN(windSpeed) || /* ... other checks ... */ isNaN(pressureRaw)) { /* ... error handling ... */ return; }
+        // --- Extract Data (Using helper for safety) ---
+        const dateStr = lines[0];
+        const timeStr = lines[1];
+        const windSpeed = getNum(2);
+        const windDirDeg = getNum(3);
+        const humidityRaw = getNum(4);
+        const temperatureRaw = getNum(5);
+        let rainInLastMinRaw = getNum(6);
+        const solarRadRaw = getNum(7);
+        const pressureRaw = getNum(8);
+        const gardenBedTemp = getNum(9);
+        const batteryVoltageVal = getNum(10);
+        const loadCurrent = getNum(11);
+        const rawSolarVoltage = getNum(12);
+        const chargeCurrent = getNum(13);
+        const peakWindGustVal = getNum(14);
+        const vectorWindSpeedVal = getNum(15);
+        const vectorWindDirVal = getNum(16);
+        const rainSince9 = getNum(17);
+        const evapRate = getNum(18);
+        // Index 19 seems skipped in original, check data source if needed
+        const dailyEvap = getNum(20);
+        const dewPoint = getNum(21);
+        const soilTemp10 = getNum(22);
+        const soilTemp20 = getNum(23);
+        const soilTemp30 = getNum(24);
+        const soilTemp40 = getNum(25);
+        const moisture10Val = getNum(26);
+        const moisture20Val = getNum(27);
+        const moisture30Val = getNum(28);
+        const moisture40Val = getNum(29);
+        const blackGlobeTemp = getNum(30);
+
+        // --- Validate Core Data (Check for NaN) ---
+         if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw) || isNaN(pressureRaw) || isNaN(blackGlobeTemp)) {
+            console.error("Invalid core numeric data received (NaN found).");
+            // Log which specific values are NaN if needed
+            console.log({ windSpeed, windDirDeg, humidityRaw, temperatureRaw, pressureRaw, blackGlobeTemp });
+            setStatusBadge("Data Error", "error");
+            return;
+        }
 
         // --- Update DOM Elements using textContent and classList ---
-
-        // Helper to update text and classes (Revised slightly for base class handling)
+        // Helper to update text and classes safely
         function updateElement(id, value, baseClass = '', dynamicClass = '') {
           const element = document.getElementById(id);
           if (element) {
-            element.textContent = value;
+            // Format numbers, handle NaN
+            let displayValue = value;
+            if (typeof value === 'number' && isNaN(value)) {
+                displayValue = "--"; // Display placeholder for NaN numbers
+            } else if (typeof value === 'number') {
+                // Apply default formatting if needed, but often done before calling
+            } else if (value === null || typeof value === 'undefined') {
+                 displayValue = "--"; // Placeholder for null/undefined
+            }
+
+            element.textContent = displayValue;
+
             // Combine base and dynamic classes
             const classesToAdd = [];
             if (baseClass) classesToAdd.push(...baseClass.split(' ').filter(Boolean));
             if (dynamicClass) classesToAdd.push(...dynamicClass.split(' ').filter(Boolean));
-            element.className = classesToAdd.join(' '); // Set combined classes
+            element.className = classesToAdd.join(' ');
           } else {
-            console.warn(`Element with id "${id}" not found.`);
+            // Log only once per missing ID to avoid flooding console? Or just log it.
+             console.warn(`Element with id "${id}" not found.`);
           }
         }
+
          // Helper to update only classes
          function updateElementClass(id, baseClass = '', dynamicClass = '') {
              const element = document.getElementById(id);
@@ -730,7 +851,7 @@
 
         // DATE & TIME
         updateElement("dateVal", formatDateString(dateStr));
-        updateElement("timeVal", timeStr); // Remove AEST here, maybe add in HTML if static
+        updateElement("timeVal", timeStr || "--:--:--"); // Provide fallback for time
 
         // WIND
         updateElement("windSpeedVal", windSpeed.toFixed(1));
@@ -743,102 +864,207 @@
 
         // TEMPERATURE
         const tempInfo = getTemperatureInfo(temperatureRaw);
-        updateElement("tempVal", temperatureRaw.toFixed(1) + "°C", 'temp-value', tempInfo.className);
+        updateElement("tempVal", isNaN(temperatureRaw) ? '--°C' : temperatureRaw.toFixed(1) + "°C", 'temp-value', tempInfo.className);
         updateElement("tempDescVal", tempInfo.desc);
 
         // BIG TEMP BOX - AIR
         const airTempBoxClass = getBigTempBoxAirClass(temperatureRaw);
-        updateElement("bigTempVal", temperatureRaw.toFixed(1) + "°C", 'value');
-        updateElementClass("airTempBox", 'big-temp-box updated', airTempBoxClass); // Use class helper
+        updateElement("bigTempVal", isNaN(temperatureRaw) ? '--°C' : temperatureRaw.toFixed(1) + "°C", 'value');
+        updateElementClass("airTempBox", 'big-temp-box updated', airTempBoxClass);
 
         // SOLAR RADIATION
-        const solarRad = Math.max(0, solarRadRaw);
-        updateElement("solarRadVal", solarRad.toFixed(1) + " W/m²", '', getSolarRadiationClass(solarRad));
-        updateElement("solarEmoji", solarRad < 10 ? "🌙" : "☀️"); // Update emoji
+        const solarRad = Math.max(0, solarRadRaw); // Ensure non-negative
+        updateElement("solarRadVal", isNaN(solarRad) ? '--' : solarRad.toFixed(1), '', getSolarRadiationClass(solarRad));
+        updateElement("solarEmoji", isNaN(solarRad) ? '' : (solarRad < 10 ? "🌙" : "☀️"));
 
         // BLACK GLOBE TEMP & RADIANT DIFF
         const globeTempInfo = getTemperatureInfo(blackGlobeTemp);
-        updateElement("blackGlobeTempVal", blackGlobeTemp.toFixed(1), 'temp-value', globeTempInfo.className);
+        updateElement("blackGlobeTempVal", isNaN(blackGlobeTemp) ? '--' : blackGlobeTemp.toFixed(1), 'temp-value', globeTempInfo.className);
 
-        const radiantDiff = blackGlobeTemp - temperatureRaw;
-        const radiantDiffFormatted = (radiantDiff >= 0 ? "+" : "") + radiantDiff.toFixed(1) + "°C";
+        const radiantDiff = blackGlobeTemp - temperatureRaw; // Will be NaN if either is NaN
+        const radiantDiffFormatted = isNaN(radiantDiff) ? '--°C' : (radiantDiff >= 0 ? "+" : "") + radiantDiff.toFixed(1) + "°C";
         const radiantDiffClass = getRadiantDiffClass(radiantDiff);
         updateElement("radiantDiffVal", radiantDiffFormatted, 'value');
         updateElementClass("radiantDiffBox", 'big-temp-box updated', radiantDiffClass);
 
          // TEMP ABOVE DEW POINT
-         const dewDiff = temperatureRaw - dewPoint;
-         const dewFormatted = (dewDiff >= 0 ? "+" : "") + dewDiff.toFixed(1) + "°C";
+         const dewDiff = temperatureRaw - dewPoint; // Can be NaN
+         const dewFormatted = isNaN(dewDiff) ? '--°C' : (dewDiff >= 0 ? "+" : "") + dewDiff.toFixed(1) + "°C";
          const dewDiffClass = getDewDiffClass(dewDiff);
          updateElement("dewDiffVal", dewFormatted, 'value');
          updateElementClass("dewDiffBox", 'big-temp-box updated', dewDiffClass);
 
         // GARDEN BED TEMP
-        updateElement("gardenBedTempVal", gardenBedTemp.toFixed(1));
+        updateElement("gardenBedTempVal", isNaN(gardenBedTemp) ? '--' : gardenBedTemp.toFixed(1));
 
         // PRESSURE
-        let adjustedPressure = pressureRaw - 1.9;
-        updateElement("pressureVal", adjustedPressure.toFixed(1) + " hPa", '', getPressureClass(adjustedPressure));
-        updateElement("pressureEmoji", adjustedPressure >= 1020 ? "🐟" : ""); // Update emoji
+        let adjustedPressure = pressureRaw - 1.9; // Can be NaN
+        updateElement("pressureVal", isNaN(adjustedPressure) ? '--' : adjustedPressure.toFixed(1), '', getPressureClass(adjustedPressure));
+        updateElement("pressureEmoji", isNaN(adjustedPressure) ? '' : (adjustedPressure >= 1020 ? "🐟" : ""));
 
         // RAIN
-         rainInLastMinRaw = isNaN(rainInLastMinRaw) ? 0.0 : rainInLastMinRaw;
-         updateElement("rainSince9Val", rainSince9.toFixed(1), '', getRainClass(rainSince9));
-         updateElement("rainInLastMinVal", rainInLastMinRaw.toFixed(1), '', getRainClass(rainInLastMinRaw));
+         rainInLastMinRaw = isNaN(rainInLastMinRaw) ? 0.0 : rainInLastMinRaw; // Default NaN rain to 0
+         updateElement("rainSince9Val", isNaN(rainSince9) ? '--' : rainSince9.toFixed(1), '', getRainClass(rainSince9));
+         updateElement("rainInLastMinVal", rainInLastMinRaw.toFixed(1), '', getRainClass(rainInLastMinRaw)); // Already handled NaN
 
         // BATTERY & CHARGE
-        updateElement("batteryVal", batteryVoltageVal.toFixed(1), '', getBatteryClass(batteryVoltageVal));
-        updateElement("loadVal", loadCurrent.toFixed(1));
+        updateElement("batteryVal", isNaN(batteryVoltageVal) ? '--' : batteryVoltageVal.toFixed(1), '', getBatteryClass(batteryVoltageVal));
+        updateElement("loadVal", isNaN(loadCurrent) ? '--' : loadCurrent.toFixed(1));
 
-        updateElement("solarPanelVal", rawSolarVoltage.toFixed(1));
-        updateElement("solarPanelEmoji", rawSolarVoltage < batteryVoltageVal ? "🌙" : "☀️");
+        updateElement("solarPanelVal", isNaN(rawSolarVoltage) ? '--' : rawSolarVoltage.toFixed(1));
+        updateElement("solarPanelEmoji", isNaN(rawSolarVoltage) || isNaN(batteryVoltageVal) ? '' : (rawSolarVoltage < batteryVoltageVal ? "🌙" : "☀️"));
 
-        updateElement("chargeVal", chargeCurrent.toFixed(1), '', getChargeClass(chargeCurrent, loadCurrent, batteryVoltageVal));
+        updateElement("chargeVal", isNaN(chargeCurrent) ? '--' : chargeCurrent.toFixed(1), '', getChargeClass(chargeCurrent, loadCurrent, batteryVoltageVal));
 
         // PEAK WIND GUST
-        updateElement("peakWindGustVal", peakWindGustVal.toFixed(1), '', getWindGustClass(peakWindGustVal));
+        updateElement("peakWindGustVal", isNaN(peakWindGustVal) ? '--' : peakWindGustVal.toFixed(1), '', getWindGustClass(peakWindGustVal));
 
         // VECTOR WIND
-        updateElement("vectorWindSpeedVal", vectorWindSpeedVal.toFixed(1));
-        updateElement("vectorWindDirDegVal", vectorWindDirVal.toFixed(1));
+        updateElement("vectorWindSpeedVal", isNaN(vectorWindSpeedVal) ? '--' : vectorWindSpeedVal.toFixed(1));
+        updateElement("vectorWindDirDegVal", isNaN(vectorWindDirVal) ? '--' : vectorWindDirVal.toFixed(1));
         updateElement("vectorWindDirTextVal", getWindDirection(vectorWindDirVal));
 
         // EVAP & DEW POINT
-        updateElement("evapRateVal", evapRate.toFixed(3));
-        updateElement("dailyEvapVal", dailyEvap.toFixed(3));
-        updateElement("dewPointVal", dewPoint.toFixed(1));
+        updateElement("evapRateVal", isNaN(evapRate) ? '--' : evapRate.toFixed(3));
+        updateElement("dailyEvapVal", isNaN(dailyEvap) ? '--' : dailyEvap.toFixed(3));
+        updateElement("dewPointVal", isNaN(dewPoint) ? '--' : dewPoint.toFixed(1));
 
         // SOIL TEMPS
-        updateElement("soilTemp10Val", soilTemp10.toFixed(1)); /* ... */
-        updateElement("soilTemp20Val", soilTemp20.toFixed(1)); /* ... */
-        updateElement("soilTemp30Val", soilTemp30.toFixed(1)); /* ... */
-        updateElement("soilTemp40Val", soilTemp40.toFixed(1)); /* ... */
+        updateElement("soilTemp10Val", isNaN(soilTemp10) ? '--' : soilTemp10.toFixed(1));
+        updateElement("soilTemp20Val", isNaN(soilTemp20) ? '--' : soilTemp20.toFixed(1));
+        updateElement("soilTemp30Val", isNaN(soilTemp30) ? '--' : soilTemp30.toFixed(1));
+        updateElement("soilTemp40Val", isNaN(soilTemp40) ? '--' : soilTemp40.toFixed(1));
 
         // SOIL MOISTURE
-        updateElement("moisture10Val", moisture10Val.toFixed(1), '', getMoistureClass(moisture10Val)); /* ... */
-        updateElement("moisture20Val", moisture20Val.toFixed(1), '', getMoistureClass(moisture20Val)); /* ... */
-        updateElement("moisture30Val", moisture30Val.toFixed(1), '', getMoistureClass(moisture30Val)); /* ... */
-        updateElement("moisture40Val", moisture40Val.toFixed(1), '', getMoistureClass(moisture40Val)); /* ... */
+        updateElement("moisture10Val", isNaN(moisture10Val) ? '--' : moisture10Val.toFixed(1), '', getMoistureClass(moisture10Val));
+        updateElement("moisture20Val", isNaN(moisture20Val) ? '--' : moisture20Val.toFixed(1), '', getMoistureClass(moisture20Val));
+        updateElement("moisture30Val", isNaN(moisture30Val) ? '--' : moisture30Val.toFixed(1), '', getMoistureClass(moisture30Val));
+        updateElement("moisture40Val", isNaN(moisture40Val) ? '--' : moisture40Val.toFixed(1), '', getMoistureClass(moisture40Val));
 
         // Remove pulse animation class after it runs
         setTimeout(() => {
             document.querySelectorAll('.big-temp-box.updated').forEach(el => el.classList.remove('updated'));
         }, 400);
 
+        console.log("DOM update completed successfully."); // Log success
 
-      } catch (error) { /* ... error handling ... */ }
+      } catch (error) {
+        console.error("Error during updateWeatherData execution:", error);
+         setStatusBadge("Processing Error", "error");
+      }
     }
 
 
     /*****************************
     * FETCH & AUTO-REFRESH LOGIC *
     *****************************/
-    // --- Keep fetchWeather, scheduleNextFetch, manualFetch, and window.onload as in the previous version ---
-    // --- They correctly handle the status updates via setStatusBadge ---
-     function fetchWeather() { /* ... as before ... */ }
-     function scheduleNextFetch() { /* ... as before ... */ }
-     function manualFetch() { /* ... as before ... */ }
-     window.addEventListener("load", () => { /* ... as before ... */ });
+    function fetchWeather() {
+        console.log("fetchWeather called. Attempt:", retryAttempts + 1);
+        const spinnerContainer = document.getElementById("spinnerContainer");
+        const fetchBtn = document.getElementById("fetchBtn");
+
+        setStatusBadge(retryAttempts > 0 ? `Retrying ${retryAttempts}/${MAX_RETRY_ATTEMPTS}` : "Fetching", "fetching");
+        if(spinnerContainer) spinnerContainer.style.display = "block";
+        if(fetchBtn) fetchBtn.disabled = true;
+
+        // Clear previous timeout if any (e.g., from manual fetch)
+        if (refreshTimeout) {
+            clearTimeout(refreshTimeout);
+            refreshTimeout = null;
+        }
+
+        fetch(WEATHER_ENDPOINT)
+            .then(response => {
+                console.log(`Fetch response status: ${response.status}`);
+                if (!response.ok) {
+                    // Throw an error with status text to be caught below
+                    throw new Error(`Server error: ${response.status} ${response.statusText || 'Unknown Status'}`);
+                }
+                return response.text(); // Get response body as text
+            })
+            .then(data => {
+                console.log("Fetch successful, data received.");
+                updateWeatherData(data); // Process the data
+                setStatusBadge("Connected", "connected");
+                retryAttempts = 0; // Reset retries on success
+                if (!initialLoadComplete) {
+                    initialLoadComplete = true;
+                    console.log("Initial load complete.");
+                }
+                scheduleNextFetch(); // Schedule the next automatic refresh
+            })
+            .catch(error => {
+                console.error("Fetch error:", error.message); // Log the specific error
+                retryAttempts++;
+
+                if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+                    setStatusBadge(`Error (${retryAttempts})`, "error");
+                    console.log(`Max retries (${MAX_RETRY_ATTEMPTS}) reached. Scheduling longer retry...`);
+                    // Schedule a longer retry (e.g., 30 seconds) after max attempts
+                    const retryDelay = 30000;
+                    refreshTimeout = setTimeout(fetchWeather, retryDelay); // Still try again later
+                } else {
+                    // Use 'fetching' state visually during retry attempts
+                    setStatusBadge(`Retrying ${retryAttempts}/${MAX_RETRY_ATTEMPTS}`, "fetching");
+                    const retryDelay = retryAttempts === 1 ? 1500 : 3000; // Simple backoff
+                    refreshTimeout = setTimeout(fetchWeather, retryDelay); // Schedule retry
+                    console.log(`Scheduling retry in ${retryDelay}ms...`);
+                }
+            })
+            .finally(() => {
+                // Hide spinner ONLY if we are NOT about to retry immediately
+                 if (retryAttempts === 0 || retryAttempts >= MAX_RETRY_ATTEMPTS) {
+                      if(spinnerContainer) spinnerContainer.style.display = "none";
+                      if(fetchBtn) fetchBtn.disabled = false; // Re-enable button after final attempt or success
+                 }
+                 console.log("Fetch sequence finished (finally block).");
+            });
+    }
+
+    function scheduleNextFetch() {
+        // Clear any existing timeout before scheduling a new one
+        if (refreshTimeout) {
+            clearTimeout(refreshTimeout);
+        }
+
+        const now = new Date();
+        const seconds = now.getSeconds();
+        const millis = now.getMilliseconds();
+        const targetSecond = 20; // Target second past the minute
+
+        // Calculate delay to the next targetSecond
+        let delay;
+        if (seconds < targetSecond) {
+            delay = (targetSecond - seconds) * 1000 - millis;
+        } else {
+            // Need to go to targetSecond of the *next* minute
+            delay = (60 - seconds + targetSecond) * 1000 - millis;
+        }
+
+        // Ensure a minimum reasonable delay (e.g., 1 second) to prevent rapid loops if calculation is slightly off
+        delay = Math.max(1000, delay);
+
+        console.log(`Scheduling next fetch in ${Math.round(delay/1000)} seconds (at second ${targetSecond}).`);
+        refreshTimeout = setTimeout(fetchWeather, delay);
+    }
+
+    function manualFetch() {
+        console.log("Manual fetch triggered.");
+        if (refreshTimeout) {
+            clearTimeout(refreshTimeout); // Stop any scheduled fetch
+            refreshTimeout = null;
+        }
+        retryAttempts = 0; // Reset retries on manual fetch
+        fetchWeather(); // Fetch immediately
+    }
+
+    // Initial Load on window load
+    window.addEventListener("load", () => {
+        console.log("Window loaded, initiating first fetch.");
+        // Set initial status badge state explicitly
+        setStatusBadge("Waiting...", ""); // Default gray state
+        fetchWeather(); // Start the process
+    });
 
   </script>
 </body>
