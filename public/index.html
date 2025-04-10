@@ -379,17 +379,6 @@ button:disabled {
       <div class="header-box">
         <h2>Moore's LIVE Weather Data</h2>
       </div>
-      <div class="control-container">
-        <div class="control-half">
-          <button id="fetchBtn" onclick="manualFetch()">CURRENT READINGS</button>
-        </div>
-        <div class="control-half">
-          <p id="status" class="connected" aria-live="polite">
-            <span id="statusBadge" class="status-badge">Status: Waiting...</span>
-          </p>
-        </div>
-      </div>
-    </div>
 
     <!-- Weather Data Section -->
     <div id="weatherData">
@@ -482,6 +471,17 @@ button:disabled {
           <p><b>💧 Moist. 40cm:</b> <span id="moisture40Val">--</span>%</p>
         </div>
       </div>
+      <hr>
+<div class="control-container" style="margin-top: 10px;">
+  <div class="control-half">
+    <button id="fetchBtn" onclick="manualFetch()">CURRENT READINGS</button>
+  </div>
+  <div class="control-half">
+    <p id="status" class="connected" aria-live="polite">
+      <span id="statusBadge" class="status-badge">Status: Waiting...</span>
+    </p>
+  </div>
+</div>
       <hr>
     </div>
 
