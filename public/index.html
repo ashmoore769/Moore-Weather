@@ -436,8 +436,12 @@ button:disabled {
           <div class="big-temp-box" id="radiantDiffBox">
             <span id="radiantDiffVal">--</span>
             <span class="label" aria-label="Difference between radiant and air temperature">Rad. Heat Diff</span>
-          </div> 
-        </div>
+          </div>
+          <div class="big-temp-box" id="dewDiffBox">
+            <span id="dewDiffVal">--</span>
+            <span class="label" aria-label="Temp above dew point">Temp Above Dew P.</span>
+          </div>
+        </div>        
       </div>
       <hr>
       <!-- Evaporation and Battery Section -->
@@ -705,6 +709,26 @@ if (radiantDiff >= 0) {
   radiantDiffElem.style.color = "white";
 }
 
+// Temp Above Dew Point
+const dewDiff = temperatureRaw - dewPoint;
+const dewDiffElem = document.getElementById("dewDiffVal");
+const dewDiffBox = document.getElementById("dewDiffBox");
+
+// Format +/− display
+const dewFormatted = (dewDiff >= 0 ? "+" : "") + dewDiff.toFixed(1) + "°C";
+dewDiffElem.textContent = dewFormatted;
+
+// Color logic
+if (dewDiff >= 3.0) {
+  dewDiffBox.style.backgroundColor = "#d94a38";  // dry air - red
+  dewDiffElem.style.color = "white";
+} else if (dewDiff < 1.5) {
+  dewDiffBox.style.backgroundColor = "#4682B4";  // humid air - blue
+  dewDiffElem.style.color = "white";
+} else {
+  dewDiffBox.style.backgroundColor = "#999999";  // neutral gray
+  dewDiffElem.style.color = "white";
+}
 
 
         // GARDEN BED TEMP
