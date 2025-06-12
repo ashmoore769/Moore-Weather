@@ -608,7 +608,7 @@ button:disabled {
     *****************************/
     function updateWeatherData(data) {
       console.log("Raw CSV data:", data);
-      const lines = data.replace(/^r3\s*/, "").trim().split(","); 
+      const lines = data.replace(/^r3\s*/, "").trim().split(",");
       console.log("Parsed lines array:", lines); 
  
       if (lines.length < 30) {
