@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moore's Daily Summary</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      font-size: 13.5px;
+      background-color: #f4f4f4;
+      -webkit-font-smoothing: antialiased;
+      color: #222;
+    }
+
+    .main-container {
+      max-width: 400px;
+      margin: 10px auto;
+      padding: 0 5px;
+    }
+
+    .header-box {
+      background-color: #1e3a8a;
+      color: white;
+      border-radius: 10px 10px 0 0;
+      padding: 5px 10px;
+      text-align: center;
+    }
+
+    .header-box h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .button-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 2px 0 6px 0;
+      padding: 0 4px;
+    }
+
+    #forceUpdateBtn, .back-button {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    #forceUpdateBtn {
+      background-color: #4682B4;
+      color: white;
+    }
+
+    #forceUpdateBtn:hover {
+      background-color: #5a9bd5;
+      transform: translateY(-1px);
+    }
+
+    .back-button {
+      background-color: #FFA500;
+      color: #4d4b47;
+    }
+
+    .back-button:hover {
+      background-color: #ffb733;
+      transform: translateY(-1px);
+    }
+
+    .content-box {
+      background: #ffffff;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      padding: 10px 10px 15px 10px;
+      margin-bottom: 15px;
+    }
+
+    .section {
+      margin-top: 10px;
+    }
+
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #00008B;
+    }
+
+    .inline-values {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 12px;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+
+    .inline-values span {
+      flex: 1;
+      white-space: nowrap;
+    }
+
+    .summary-meta {
+      margin: 10px 0 5px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <div class="header-box">
+      <h2>Moore's LIVE Weather Data</h2>
+    </div>
+
+    <div class="content-box">
+      <div class="button-bar">
+        <button class="back-button" onclick="location.href='index.html'">← Current Readings</button>
+        <button id="forceUpdateBtn" onclick="forceSummaryFetch()">🔁 Force Update</button>
+      </div>
+
+      <div class="summary-meta">
+        📆 Date: <span id="summaryDate">--</span><br />
+        ⏰ Summary Time: <span id="summaryTime">--</span>
+      </div>
+
+      <div id="summaryContent">
+        <div class="section">
+          <div class="section-title">🌧️ Rainfall</div>
+          <div class="inline-values"><span>Total: <b id="rainTotal">--</b> mm</span></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">🌡️ Air Temperature</div>
+          <div class="inline-values">
+            <span>Min: <b id="tempMin">--</b>°C</span>
+            <span>Max: <b id="tempMax">--</b>°C</span>
+            <span>Avg: <b id="tempAvg">--</b>°C</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">🔴 Black Globe Temperature</div>
+          <div class="inline-values">
+            <span>Min: <b id="globeMin">--</b>°C</span>
+            <span>Max: <b id="globeMax">--</b>°C</span>
+            <span>Avg: <b id="globeAvg">--</b>°C</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">☀️ Solar Radiation</div>
+          <div class="inline-values">
+            <span>Max: <b id="solarMax">--</b> W/m²</span>
+            <span>Avg: <b id="solarAvg">--</b> W/m²</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">💧 Air Moisture</div>
+          <div class="inline-values">
+            <span>Humidity: <b id="humidityAvg">--</b>%</span>
+            <span>Dew Point: <b id="dewAvg">--</b>°C</span>
+            <span>Evaporation: <b id="evapTotal">--</b> mm</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">🌿 Garden Temperature</div>
+          <div class="inline-values">
+            <span>Min: <b id="dirtMin">--</b>°C</span>
+            <span>Max: <b id="dirtMax">--</b>°C</span>
+            <span>Avg: <b id="dirtAvg">--</b>°C</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">🌬️ Wind</div>
+          <div class="inline-values" style="flex-wrap: wrap;">
+            <span>Max Speed: <b id="windMax">--</b> km/h</span>
+            <span>Avg Speed: <b id="windAvg">--</b> km/h</span>
+            <span>Peak Gust: <b id="gustPeak">--</b> km/h</span>
+            <span>Direction: <b id="windDir">--</b>°</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">📈 Pressure</div>
+          <div class="inline-values">
+            <span>Avg Pressure: <b id="pressureAvg">--</b> hPa</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">🌱 Soil (10cm)</div>
+          <div class="inline-values">
+            <span>Temp: <b id="soilTemp">--</b>°C</span>
+            <span>Moisture: <b id="soilMoisture">--</b>%</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">🔋 Battery</div>
+          <div class="inline-values">
+            <span>Min Voltage: <b id="batteryMin">--</b> V</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS Logic to be inserted later for dynamic loading -->
+</body>
+</html>
