@@ -71,29 +71,13 @@
   padding: 4px 6px;
   border-radius: 12px;
 }
- 
-.control-container.control-full {
+
+.control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap; /* Allows wrapping on smaller screens */
-}
-
-.control-container.control-full button {
-  flex-shrink: 0;
-}
-
-.status-badge {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.button-group {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+  padding: 0 2px;
+  margin: 0;
 }
 
 .control-half {
@@ -412,19 +396,17 @@ button:disabled {
 
   <!-- Control Button Bar -->
   <div class="control-bar">
-    <div class="control-container control-full">
-      <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
-      <button onclick="location.href='daily.html'">📊 Daily Summary</button>
-      <span id="statusBadge" class="status-badge">Status: Waiting...</span>
+    <div class="control-container">
+      <div class="control-half">
+        <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
+      </div>
+      <div class="control-half">
+        <p id="status" class="connected" aria-live="polite">
+          <span id="statusBadge" class="status-badge">Status: Waiting...</span>
+        </p>
+      </div>
     </div>
   </div>
-  
-  <style>
-    .control-half button + button {
-      margin-left: 8px;
-    }
-  </style>
-  
 
   <hr>
 
@@ -528,16 +510,16 @@ button:disabled {
   </div>
 
   <script>
-/********************
- * HELPER FUNCTIONS *
- ********************/
- function getWindDirection(degrees) {
-  const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-  return directions[Math.round(degrees / 22.5) % 16];
-}
+    /********************
+    * HELPER FUNCTIONS *
+    ********************/
+    function getWindDirection(degrees) {
+      const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+      return directions[Math.round(degrees / 22.5) % 16];
+    }
 
-function setStatusBadge(statusText, statusClass) {
+    function setStatusBadge(statusText, statusClass) {
   const icons = {
     connected: "✅",
     fetching: "🔄",
@@ -549,309 +531,377 @@ function setStatusBadge(statusText, statusClass) {
   badge.className = `status-badge ${statusClass}`;
 }
 
-function formatDateString(dateStr) {
-  const parts = dateStr.split("/");
-  if (parts.length === 3) {
-    const [year, month, day] = parts;
-    const formattedDate = `${day}/${month}/${year}`;
-    const dateObj = new Date(year, month - 1, day);
-    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    return `${formattedDate} (${dayNames[dateObj.getDay()]})`;
-  }
-  return dateStr;
+
+    function formatDateString(dateStr) {
+      const parts = dateStr.split("/");
+      if (parts.length === 3) {
+        const [year, month, day] = parts;
+        const formattedDate = `${day}/${month}/${year}`;
+        const dateObj = new Date(year, month - 1, day);
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        return `${formattedDate} (${dayNames[dateObj.getDay()]})`;
+      }
+      return dateStr;
+    }
+
+    function getTemperatureColorAndDesc(temp) {
+      let color, desc;
+      if (temp < -20) { color = "#000000"; desc = ""; }
+      else if (temp < -10) { color = "#191970"; desc = "Severely cold"; }
+      else if (temp < 0) { color = "#00008B"; desc = "Extremely cold"; }
+      else if (temp < 6) { color = "#104E8B"; desc = "Very cold"; }
+      else if (temp < 11) { color = "#4682B4"; desc = "Cold"; }
+      else if (temp < 16) { color = "#32CD32"; desc = "Cool"; }
+      else if (temp < 21) { color = "#228B22"; desc = "Mild"; }
+      else if (temp < 28) { color = "#D4A017"; desc = "Warm"; }
+      else if (temp < 32) { color = "#FF8C00"; desc = "Warmer"; }
+      else if (temp < 36) { color = "#FF4500"; desc = "Hot"; }
+      else if (temp < 41) { color = "#B22222"; desc = "Very hot"; }
+      else if (temp <= 60) { color = "#8B0000"; desc = "Extremely hot"; }
+      else { color = "#000000"; desc = ""; }
+      return { color, desc };
+    }
+
+    function getHumidityDesc(humidity) {
+      if (humidity <= 20) { return "Very Dry"; }
+      else if (humidity <= 40) { return "Dry"; }
+      else if (humidity <= 60) { return "Comfortable"; }
+      else if (humidity <= 80) { return "Humid"; }
+      else { return "Very Humid"; }
+    }
+
+    function colorMoisture(val) {
+      let display = val.toFixed(1);
+      if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
+      return display;
+    }
+
+    /*****************************
+    * GLOBAL STATE & RETRIES *
+    *****************************/
+    let initialLoadComplete = false;
+    let refreshTimeout;
+    let retryAttempts = 0;
+    const MAX_RETRY_ATTEMPTS = 3;
+    const WEATHER_ENDPOINT = "/weather";
+
+    /*****************************
+    * MAIN UPDATE FUNCTION *
+    *****************************/
+    function updateWeatherData(data) {
+      console.log("Raw CSV data:", data);
+      const lines = data.replace(/r3\r?\n?/, "").trim().split(",");
+      console.log("Parsed lines array:", lines);
+
+      if (lines.length < 30) {
+        console.error("Incomplete data received:", lines);
+        document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
+        return;
+      }
+
+      try {
+        // Extract data from CSV indices
+        const dateStr = lines[0];
+        const timeStr = lines[1];
+        const windSpeed = parseFloat(lines[2]);
+        const windDirDeg = parseFloat(lines[3]);
+        const humidityRaw = parseFloat(lines[4]);
+        const temperatureRaw = parseFloat(lines[5]);
+        let rainInLastMinRaw = parseFloat(lines[6]);
+        const solarRadRaw = parseFloat(lines[7]);
+        const pressureRaw = parseFloat(lines[8]);
+        const gardenBedTemp = parseFloat(lines[9]);
+        const batteryVoltageVal = parseFloat(lines[10]);
+        const loadCurrent = parseFloat(lines[11]);
+        const rawSolarVoltage = parseFloat(lines[12]);
+        const chargeCurrent = parseFloat(lines[13]);
+        const peakWindGustVal = parseFloat(lines[14]);
+        const vectorWindSpeedVal = parseFloat(lines[15]);
+        const vectorWindDirVal = parseFloat(lines[16]);
+        const rainSince9 = parseFloat(lines[17]);
+        const evapRate = parseFloat(lines[18]);
+        const dailyEvap = parseFloat(lines[20]);
+        const dewPoint = parseFloat(lines[21]);
+        const soilTemp10 = parseFloat(lines[22]);
+        const soilTemp20 = parseFloat(lines[23]);
+        const soilTemp30 = parseFloat(lines[24]);
+        const soilTemp40 = parseFloat(lines[25]);
+        const moisture10Val = parseFloat(lines[26]);
+        const moisture20Val = parseFloat(lines[27]);
+        const moisture30Val = parseFloat(lines[28]);
+        const moisture40Val = parseFloat(lines[29]);
+        const blackGlobeTemp = parseFloat(lines[30]);
+
+        // Validate the data
+        if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw)) {
+          console.error("Invalid data received:", lines);
+          document.getElementById("weatherData").innerHTML = "<b>Error:</b> Invalid data values.";
+          return;
+        }
+
+        // DATE & TIME
+        document.getElementById("dateVal").textContent = formatDateString(dateStr);
+        document.getElementById("timeVal").textContent = timeStr + " AEST";
+
+        // WIND
+        document.getElementById("windSpeedVal").textContent = windSpeed.toFixed(1);
+        document.getElementById("windDirDegVal").textContent = windDirDeg.toFixed(1);
+        document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
+
+        // HUMIDITY
+        document.getElementById("humidityVal").textContent = humidityRaw.toFixed(1);
+        document.getElementById("humidityDescVal").textContent = getHumidityDesc(humidityRaw);
+
+        // TEMPERATURE
+        const tempData = getTemperatureColorAndDesc(temperatureRaw);
+        const tempSpan = document.getElementById("tempVal");
+        tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
+        tempSpan.style.color = tempData.color;
+        document.getElementById("tempDescVal").textContent = tempData.desc;
+
+        // Big Temperature Box: update text and container background color dynamically
+        const bigTempElement = document.getElementById("bigTempVal");
+        bigTempElement.textContent = temperatureRaw.toFixed(1) + "°C";
+        const bigTempContainer = document.getElementById("airTempBox");
+        bigTempContainer.style.backgroundColor = tempData.color;
+        bigTempElement.style.color = "#FFF";
+
+        // RAIN SINCE 9AM
+        let rainSince9Display = rainSince9.toFixed(1) + " mm";
+        if (rainSince9 >= 0.2) {
+          rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
+        }
+        document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
+
+        // RAIN IN LAST MINUTE
+        if (isNaN(rainInLastMinRaw)) {
+          console.warn("Rain/Last Min is NaN. Defaulting to 0.0 mm");
+          rainInLastMinRaw = 0.0;
+        }
+        let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
+        if (rainInLastMinRaw >= 0.2) {
+          rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
+        }
+        document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
+
+        // SOLAR RADIATION
+        const solarRad = Math.max(0, solarRadRaw);
+        let solarRadColor = solarRad === 0 ? "#000033" :
+          solarRad <= 100 ? "#000080" :
+          solarRad <= 299 ? "#27408B" :
+          solarRad <= 600 ? "#DAA520" :
+          solarRad <= 800 ? "#FF9933" :
+          solarRad <= 1100 ? "#BF360C" : "#B71C1C";
+        let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
+        if (solarRad < 10) {
+          solarRadDisplay += " 🌙";
+        }
+        if (solarRad > 0) {
+          solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor};">${solarRadDisplay}</span>`;
+        } else {
+          solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
+        }
+        document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
+
+        const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
+const globeElem = document.getElementById("blackGlobeTempVal");
+globeElem.textContent = blackGlobeTemp.toFixed(1);
+globeElem.style.color = globeTempData.color;
+
+// Radiant Heat Diff Calculation
+const radiantDiff = blackGlobeTemp - temperatureRaw;
+const radiantDiffElem = document.getElementById("radiantDiffVal");
+const radiantDiffBox = document.getElementById("radiantDiffBox");
+
+// Format value with +/- and 1 decimal
+const diffFormatted = (radiantDiff >= 0 ? "+" : "") + radiantDiff.toFixed(1) + "°C";
+radiantDiffElem.textContent = diffFormatted;
+
+// Set color theme
+if (radiantDiff >= 0) {
+  // Hotter than air
+  radiantDiffBox.style.backgroundColor = "#d94a38";  // warm red
+  radiantDiffElem.style.color = "white";
+} else {
+  // Cooler than air
+  radiantDiffBox.style.backgroundColor = "#4682B4";  // steel blue
+  radiantDiffElem.style.color = "white";
 }
 
-function getTemperatureColorAndDesc(temp) {
-  let color, desc;
-  if (temp < -20) { color = "#000000"; desc = ""; }
-  else if (temp < -10) { color = "#191970"; desc = "Severely cold"; }
-  else if (temp < 0) { color = "#00008B"; desc = "Extremely cold"; }
-  else if (temp < 6) { color = "#104E8B"; desc = "Very cold"; }
-  else if (temp < 11) { color = "#4682B4"; desc = "Cold"; }
-  else if (temp < 16) { color = "#32CD32"; desc = "Cool"; }
-  else if (temp < 21) { color = "#228B22"; desc = "Mild"; }
-  else if (temp < 28) { color = "#D4A017"; desc = "Warm"; }
-  else if (temp < 32) { color = "#FF8C00"; desc = "Warmer"; }
-  else if (temp < 36) { color = "#FF4500"; desc = "Hot"; }
-  else if (temp < 41) { color = "#B22222"; desc = "Very hot"; }
-  else if (temp <= 60) { color = "#8B0000"; desc = "Extremely hot"; }
-  else { color = "#000000"; desc = ""; }
-  return { color, desc };
+// Temp Above Dew Point
+const dewDiff = temperatureRaw - dewPoint;
+const dewDiffElem = document.getElementById("dewDiffVal");
+const dewDiffBox = document.getElementById("dewDiffBox");
+
+// Format +/− display
+const dewFormatted = (dewDiff >= 0 ? "+" : "") + dewDiff.toFixed(1) + "°C";
+dewDiffElem.textContent = dewFormatted;
+
+// Color logic
+if (dewDiff >= 3.0) {
+  dewDiffBox.style.backgroundColor = "#BBAA98";  // dry air - red
+  dewDiffElem.style.color = "white";
+} else if (dewDiff < 1.5) {
+  dewDiffBox.style.backgroundColor = "#A6C6C9";  // humid air - blue
+  dewDiffElem.style.color = "white";
+} else {
+  dewDiffBox.style.backgroundColor = "#A6C6C9";  // neutral gray
+  dewDiffElem.style.color = "white";
 }
 
-function getHumidityDesc(humidity) {
-  if (humidity <= 20) { return "Very Dry"; }
-  else if (humidity <= 40) { return "Dry"; }
-  else if (humidity <= 60) { return "Comfortable"; }
-  else if (humidity <= 80) { return "Humid"; }
-  else { return "Very Humid"; }
-}
 
-function colorMoisture(val) {
-  let display = val.toFixed(1);
-  if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
-  return display;
-}
+        // GARDEN BED TEMP
+        document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
 
-/*****************************
- * GLOBAL STATE & RETRIES *
- *****************************/
-let initialLoadComplete = false;
-let refreshTimeout;
-let retryAttempts = 0;
-const MAX_RETRY_ATTEMPTS = 3;
-const WEATHER_ENDPOINT = "/weather";
+        // PRESSURE (with 1.9 hPa offset)
+        let adjustedPressure = pressureRaw - 1.9;
+        let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
+        if (adjustedPressure >= 1020) {
+          pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
+        }
+        document.getElementById("pressureVal").innerHTML = pressureDisplay;
 
-/*****************************
- * MAIN UPDATE FUNCTION *
- *****************************/
-function updateWeatherData(data) {
-  console.log("Received JSON data:", data);
+        // BATTERY
+        const batteryVoltage = batteryVoltageVal.toFixed(1);
+        let batteryColor = batteryVoltageVal < 12.5 ? "red" : "green";
+        let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
+        if (batteryVoltageVal >= 13.8) {
+          batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
+        }
+        document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
 
-  try {
-    // Validate data
-    if (!data || typeof data !== "object") {
-      throw new Error("Invalid or empty JSON data");
+        // LOAD
+        document.getElementById("loadVal").textContent = loadCurrent.toFixed(1);
+
+        // SOLAR PANEL
+        let solarPanelDisplay = rawSolarVoltage.toFixed(1) + " V ☀️";
+        if (rawSolarVoltage < batteryVoltageVal) {
+          solarPanelDisplay = "0.0 V 🌙";
+        }
+        document.getElementById("solarPanelVal").textContent = solarPanelDisplay;
+
+        // CHARGE
+        let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
+        if (batteryVoltageVal < 13.80) {
+          chargeDisplay = chargeCurrent > loadCurrent
+            ? `<span style="color:green;">${chargeDisplay}</span>`
+            : `<span style="color:red;">${chargeDisplay}</span>`;
+        }
+        document.getElementById("chargeVal").innerHTML = chargeDisplay;
+
+        // PEAK WIND GUST
+        let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
+        if (peakWindGustVal > 25) {
+          peakWindGustDisplay = `<span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>`;
+        } else if (peakWindGustVal > 10) {
+          peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
+        }
+        document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
+
+        // VECTOR WIND
+        document.getElementById("vectorWindSpeedVal").textContent = vectorWindSpeedVal.toFixed(1);
+        document.getElementById("vectorWindDirDegVal").textContent = vectorWindDirVal.toFixed(1);
+        document.getElementById("vectorWindDirTextVal").textContent = getWindDirection(vectorWindDirVal);
+
+        // EVAP & DEW POINT
+        document.getElementById("evapRateVal").textContent = evapRate.toFixed(3);
+        document.getElementById("dailyEvapVal").textContent = dailyEvap.toFixed(3);
+        document.getElementById("dewPointVal").textContent = dewPoint.toFixed(1);
+
+        // SOIL TEMPS & MOISTURE
+        document.getElementById("soilTemp10Val").textContent = soilTemp10.toFixed(1);
+        document.getElementById("soilTemp20Val").textContent = soilTemp20.toFixed(1);
+        document.getElementById("soilTemp30Val").textContent = soilTemp30.toFixed(1);
+        document.getElementById("soilTemp40Val").textContent = soilTemp40.toFixed(1);
+
+        document.getElementById("moisture10Val").innerHTML = colorMoisture(moisture10Val);
+        document.getElementById("moisture20Val").innerHTML = colorMoisture(moisture20Val);
+        document.getElementById("moisture30Val").innerHTML = colorMoisture(moisture30Val);
+        document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
+
+      } catch (error) {
+        console.error("Error parsing or updating data:", error);
+        document.getElementById("weatherData").innerHTML = "<b>Error:</b> An error occurred while processing the data.";
+      }
     }
-    const requiredFields = ["date", "time", "windSpeed", "windDirDeg", "humidity", "temperature",
-      "rainInLastMin", "solarRad", "pressure", "gardenBedTemp", "batteryVoltage", "loadCurrent",
-      "solarVoltage", "chargeCurrent", "peakWindGust", "vectorWindSpeed", "vectorWindDir",
-      "rainSince9", "evapRate", "dailyEvap", "dewPoint", "soilTemp10", "soilTemp20",
-      "soilTemp30", "soilTemp40", "moisture10", "moisture20", "moisture30", "moisture40",
-      "blackGlobeTemp"];
-    const missingFields = requiredFields.filter(field => data[field] === undefined || data[field] === null);
-    if (missingFields.length > 0) {
-      throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
-    }
 
-    // DATE & TIME
-    document.getElementById("dateVal").textContent = formatDateString(data.date);
-    document.getElementById("timeVal").textContent = data.time + " AEST";
-
-    // WIND
-    document.getElementById("windSpeedVal").textContent = data.windSpeed.toFixed(1);
-    document.getElementById("windDirDegVal").textContent = data.windDirDeg.toFixed(1);
-    document.getElementById("windDirTextVal").textContent = getWindDirection(data.windDirDeg);
-
-    // HUMIDITY
-    document.getElementById("humidityVal").textContent = data.humidity.toFixed(1);
-    document.getElementById("humidityDescVal").textContent = getHumidityDesc(data.humidity);
-
-    // TEMPERATURE
-    const tempData = getTemperatureColorAndDesc(data.temperature);
-    const tempSpan = document.getElementById("tempVal");
-    tempSpan.textContent = data.temperature.toFixed(1) + "°C";
-    tempSpan.style.color = tempData.color;
-    document.getElementById("tempDescVal").textContent = tempData.desc;
-
-    // Big Temperature Box
-    const bigTempElement = document.getElementById("bigTempVal");
-    bigTempElement.textContent = data.temperature.toFixed(1) + "°C";
-    const bigTempContainer = document.getElementById("airTempBox");
-    bigTempContainer.style.backgroundColor = tempData.color;
-    bigTempContainer.classList.add("updated");
-    setTimeout(() => bigTempContainer.classList.remove("updated"), 300);
-
-    // RAIN SINCE 9AM
-    let rainSince9Display = data.rainSince9.toFixed(1) + " mm";
-    if (data.rainSince9 >= 0.2) {
-      rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
-    }
-    document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
-
-    // RAIN IN LAST MINUTE
-    const rainInLastMin = isNaN(data.rainInLastMin) ? 0.0 : data.rainInLastMin;
-    let rainInLastMinDisplay = rainInLastMin.toFixed(1) + " mm";
-    if (rainInLastMin >= 0.2) {
-      rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
-    }
-    document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
-
-    // SOLAR RADIATION
-    const solarRad = Math.max(0, data.solarRad);
-    let solarRadColor = solarRad === 0 ? "#000033" :
-      solarRad <= 100 ? "#000080" :
-      solarRad <= 299 ? "#27408B" :
-      solarRad <= 600 ? "#DAA520" :
-      solarRad <= 800 ? "#FF9933" :
-      solarRad <= 1100 ? "#BF360C" : "#B71C1C";
-    let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
-    if (solarRad < 10) {
-      solarRadDisplay += " 🌙";
-    }
-    if (solarRad > 0) {
-      solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor};">${solarRadDisplay}</span>`;
-    } else {
-      solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
-    }
-    document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
-
-    // BLACK GLOBE TEMP
-    const globeTempData = getTemperatureColorAndDesc(data.blackGlobeTemp);
-    const globeElem = document.getElementById("blackGlobeTempVal");
-    globeElem.textContent = data.blackGlobeTemp.toFixed(1);
-    globeElem.style.color = globeTempData.color;
-
-    // Radiant Heat Diff
-    const radiantDiff = data.blackGlobeTemp - data.temperature;
-    const radiantDiffElem = document.getElementById("radiantDiffVal");
-    const radiantDiffBox = document.getElementById("radiantDiffBox");
-    const diffFormatted = (radiantDiff >= 0 ? "+" : "") + radiantDiff.toFixed(1) + "°C";
-    radiantDiffElem.textContent = diffFormatted;
-    radiantDiffBox.style.backgroundColor = radiantDiff >= 0 ? "#d94a38" : "#4682B4";
-    radiantDiffElem.style.color = "white";
-
-    // Temp Above Dew Point
-    const dewDiff = data.temperature - data.dewPoint;
-    const dewDiffElem = document.getElementById("dewDiffVal");
-    const dewDiffBox = document.getElementById("dewDiffBox");
-    const dewFormatted = (dewDiff >= 0 ? "+" : "") + dewDiff.toFixed(1) + "°C";
-    dewDiffElem.textContent = dewFormatted;
-    dewDiffBox.style.backgroundColor = dewDiff >= 3.0 ? "#BBAA98" : dewDiff < 1.5 ? "#A6C6C9" : "#A6C6C9";
-    dewDiffElem.style.color = "white";
-
-    // GARDEN BED TEMP
-    document.getElementById("gardenBedTempVal").textContent = data.gardenBedTemp.toFixed(1);
-
-    // PRESSURE
-    let adjustedPressure = data.pressure - 1.9;
-    let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
-    if (adjustedPressure >= 1020) {
-      pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
-    }
-    document.getElementById("pressureVal").innerHTML = pressureDisplay;
-
-    // BATTERY
-    const batteryVoltage = data.batteryVoltage.toFixed(1);
-    let batteryColor = data.batteryVoltage < 12.5 ? "red" : "green";
-    let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
-    if (data.batteryVoltage >= 13.8) {
-      batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
-    }
-    document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
-
-    // LOAD
-    document.getElementById("loadVal").textContent = data.loadCurrent.toFixed(1);
-
-    // SOLAR PANEL
-    let solarPanelDisplay = data.solarVoltage.toFixed(1) + " V ☀️";
-    if (data.solarVoltage < data.batteryVoltage) {
-      solarPanelDisplay = "0.0 V 🌙";
-    }
-    document.getElementById("solarPanelVal").textContent = solarPanelDisplay;
-
-    // CHARGE
-    let chargeDisplay = data.chargeCurrent.toFixed(1) + " mA";
-    if (data.batteryVoltage < 13.80) {
-      chargeDisplay = data.chargeCurrent > data.loadCurrent
-        ? `<span style="color:green;">${chargeDisplay}</span>`
-        : `<span style="color:red;">${chargeDisplay}</span>`;
-    }
-    document.getElementById("chargeVal").innerHTML = chargeDisplay;
-
-    // PEAK WIND GUST
-    let peakWindGustDisplay = data.peakWindGust.toFixed(1) + " km/h";
-    if (data.peakWindGust > 25) {
-      peakWindGustDisplay = `<span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>`;
-    } else if (data.peakWindGust > 10) {
-      peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
-    }
-    document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
-
-    // VECTOR WIND
-    document.getElementById("vectorWindSpeedVal").textContent = data.vectorWindSpeed.toFixed(1);
-    document.getElementById("vectorWindDirDegVal").textContent = data.vectorWindDir.toFixed(1);
-    document.getElementById("vectorWindDirTextVal").textContent = getWindDirection(data.vectorWindDir);
-
-    // EVAP & DEW POINT
-    document.getElementById("evapRateVal").textContent = data.evapRate.toFixed(3);
-    document.getElementById("dailyEvapVal").textContent = data.dailyEvap.toFixed(3);
-    document.getElementById("dewPointVal").textContent = data.dewPoint.toFixed(1);
-
-    // SOIL TEMPS & MOISTURE
-    document.getElementById("soilTemp10Val").textContent = data.soilTemp10.toFixed(1);
-    document.getElementById("soilTemp20Val").textContent = data.soilTemp20.toFixed(1);
-    document.getElementById("soilTemp30Val").textContent = data.soilTemp30.toFixed(1);
-    document.getElementById("soilTemp40Val").textContent = data.soilTemp40.toFixed(1);
-
-    document.getElementById("moisture10Val").innerHTML = colorMoisture(data.moisture10);
-    document.getElementById("moisture20Val").innerHTML = colorMoisture(data.moisture20);
-    document.getElementById("moisture30Val").innerHTML = colorMoisture(data.moisture30);
-    document.getElementById("moisture40Val").innerHTML = colorMoisture(data.moisture40);
-
-  } catch (error) {
-    console.error("Error updating data:", error);
-    document.getElementById("weatherData").innerHTML = "<b>Error:</b> An error occurred while processing the data.";
-  }
-}
-
-/*****************************
+    /*****************************
  * FETCH & AUTO-REFRESH LOGIC *
  *****************************/
 function fetchWeather() {
-  const spinnerContainer = document.getElementById("spinnerContainer");
-  const fetchBtn = document.getElementById("fetchBtn");
+    const statusText = document.getElementById("status");
+    const spinnerContainer = document.getElementById("spinnerContainer");
+    const fetchBtn = document.getElementById("fetchBtn");
 
-  setStatusBadge("Fetching", "fetching");
-  spinnerContainer.style.display = "block";
-  fetchBtn.disabled = true;
+    setStatusBadge("Fetching", "fetching");
+    statusText.className = "connected";
+    spinnerContainer.style.display = "block";
+    fetchBtn.disabled = true;
 
-  fetch(WEATHER_ENDPOINT)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(({ data, lastUpdated }) => {
-      updateWeatherData(data);
-      setStatusBadge("Connected", "connected");
-      retryAttempts = 0;
-      if (!initialLoadComplete) {
-        initialLoadComplete = true;
-      }
-      scheduleNextFetch();
-      console.log(`Data last updated: ${lastUpdated}`);
-    })
-    .catch(error => {
-      console.error("Fetch error:", error);
-      retryAttempts++;
-      if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
-        setStatusBadge("Error", "error");
-        const retryDelay = 1000;
-        refreshTimeout = setTimeout(fetchWeather, retryDelay);
-      } else {
-        setStatusBadge("Fetching", "fetching");
-        const retryDelay = retryAttempts === 1 ? 300 : 800;
-        refreshTimeout = setTimeout(fetchWeather, retryDelay);
-      }
-    })
-    .finally(() => {
-      spinnerContainer.style.display = "none";
-      fetchBtn.disabled = false;
-    });
+    fetch(WEATHER_ENDPOINT)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Server responded with " + response.status);
+            }
+            return response.text();
+        })
+        .then(data => {
+            updateWeatherData(data);
+            setStatusBadge("Connected", "connected");
+            statusText.className = "connected";
+            retryAttempts = 0;
+            if (!initialLoadComplete) {
+                initialLoadComplete = true;
+            }
+            // Schedule next fetch at 20 seconds past the minute
+            scheduleNextFetch();
+        })
+        .catch(error => {
+            console.error("Fetch error:", error);
+            retryAttempts++;
+
+            if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
+    setStatusBadge("Error", "error");
+    statusText.className = "error";
+    console.log("Max retry reached — retrying again shortly...");
+
+    // ⏱ Retry again quickly after showing Error
+    const retryDelay = 1000; // 1 second
+    refreshTimeout = setTimeout(fetchWeather, retryDelay);
+} else {
+    setStatusBadge("Fetching", "fetching");
+    statusText.className = "connected";
+    const retryDelay = retryAttempts === 1 ? 300 : 800;
+    refreshTimeout = setTimeout(fetchWeather, retryDelay);
+    console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
 }
-
+        })
+        .finally(() => {
+            spinnerContainer.style.display = "none";
+            fetchBtn.disabled = false;
+        });
+}
+ 
 function scheduleNextFetch() {
-  if (refreshTimeout) {
-    clearTimeout(refreshTimeout);
-  }
-  const now = new Date();
-  let delay;
-  if (now.getSeconds() < 20) {
-    delay = (20 - now.getSeconds()) * 1000;
-  } else {
-    delay = ((60 - now.getSeconds()) + 20) * 1000;
-  }
-  refreshTimeout = setTimeout(fetchWeather, delay);
+    if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+    }
+    const now = new Date();
+    let delay;
+    if (now.getSeconds() < 20) {
+        delay = (20 - now.getSeconds()) * 1000;
+    } else {
+        delay = ((60 - now.getSeconds()) + 20) * 1000;
+    }
+    refreshTimeout = setTimeout(fetchWeather, delay);
 }
 
 function manualFetch() {
-  if (refreshTimeout) {
-    clearTimeout(refreshTimeout);
-  }
-  retryAttempts = 0;
-  fetchWeather();
+    if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+    }
+    retryAttempts = 0; // Reset retry counter on manual fetch
+    fetchWeather();
 }
 
 window.addEventListener("load", () => fetchWeather());
