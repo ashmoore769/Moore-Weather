@@ -72,12 +72,28 @@
   border-radius: 12px;
 }
 
-.control-container {
+.control-container.control-full {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;
-  margin: 0;
+  gap: 6px;
+  flex-wrap: wrap; /* Allows wrapping on smaller screens */
+}
+
+.control-container.control-full button {
+  flex-shrink: 0;
+}
+
+.status-badge {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .control-half {
@@ -396,17 +412,19 @@ button:disabled {
 
   <!-- Control Button Bar -->
   <div class="control-bar">
-    <div class="control-container">
-      <div class="control-half">
-        <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
-      </div>
-      <div class="control-half">
-        <p id="status" class="connected" aria-live="polite">
-          <span id="statusBadge" class="status-badge">Status: Waiting...</span>
-        </p>
-      </div>
+    <div class="control-container control-full">
+      <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
+      <button onclick="location.href='daily.html'">📊 Daily Summary</button>
+      <span id="statusBadge" class="status-badge">Status: Waiting...</span>
     </div>
   </div>
+  
+  <style>
+    .control-half button + button {
+      margin-left: 8px;
+    }
+  </style>
+  
 
   <hr>
 
