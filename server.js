@@ -93,15 +93,22 @@ function fetchDailyData(attempt = 1, maxAttempts = 3) {
 
     client.on("close", () => {
       client.destroy();
-      if (receivedData.trim().split(",").length === 41) {
-        cachedDailyData = receivedData.trim();
-        lastDailyPollTime = new Date();
-        logger.info(`Daily data updated at ${lastDailyPollTime.toLocaleTimeString()}`);
+    
+      logger.info("RAW r3:", receivedData.trim());          // 👈 1) see exact CSV
+      const parsedData = parseWeatherData(receivedData);
+      logger.info("PARSED:", parsedData);                   // 👈 2) see parsed object
+    
+      if (
+        parsedData &&
+        Object.values(parsedData).every(val => !isNaN(val) || typeof val === "string")
+      ) {
+        cachedWeatherData = parsedData;
+        lastPollTime = new Date();
+        logger.info(`Cache updated at ${lastPollTime.toLocaleTimeString()}`);
       } else {
-        logger.warn(`Invalid daily data format: ${receivedData.trim().split(",").length} fields received`);
+        logger.warn("Validation failed – at least one NaN.");
       }
-      resolve(); // Resolve promise regardless of success
-    });
+    });    
 
     client.on("error", (err) => {
       logger.error(`Daily polling error: ${err.message}`);
