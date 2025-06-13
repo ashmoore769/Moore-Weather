@@ -5,8 +5,8 @@ const path = require("path");
 const net = require("net");
 const winston = require("winston");
 
-const WEATHER_STATION_HOST = process.env.WEATHER_STATION_HOST || "myweather.ddns.net";
-const WEATHER_STATION_PORT = parseInt(process.env.WEATHER_STATION_PORT) || 8899;
+const WEATHER_STATION_HOST = "myweather.ddns.net";  // or your actual IP/host
+const WEATHER_STATION_PORT = 8899;
 const PORT = process.env.PORT || 10000;
 
 // Configure logging
