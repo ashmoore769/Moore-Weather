@@ -474,7 +474,7 @@
     function forceSummaryFetch() {
       const spinner = document.getElementById("spinnerContainer");
       spinner.style.display = "block";
-      fetch(SUMMARY_ENDPOINT)
+      fetch(SUMMARY_ENDPOINT + "?force=1")
         .then(response => {
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           return response.text();
