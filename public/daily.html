@@ -472,21 +472,21 @@
     }
 
     function forceSummaryFetch() {
-      const spinner = document.getElementById("spinnerContainer");
-      spinner.style.display = "block";
-      fetch(SUMMARY_ENDPOINT + "?force=1")
-        .then(response => {
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          return response.text();
-        })
-        .then(data => updateSummary(data.trim()))
-        .catch(error => {
-          console.error("Fetch error:", error);
-          document.getElementById("errorMessage").textContent = `Error: ${error.message}`;
-          document.getElementById("errorMessage").style.display = "block";
-        })
-        .finally(() => spinner.style.display = "none");
-    }
+  const spinner = document.getElementById("spinnerContainer");
+  spinner.style.display = "block";
+  fetch(SUMMARY_ENDPOINT + "?force=1")
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      return response.text();
+    })
+    .then(data => updateSummary(data.trim()))
+    .catch(error => {
+      console.error("Fetch error:", error);
+      document.getElementById("errorMessage").textContent = `Error: ${error.message}`;
+      document.getElementById("errorMessage").style.display = "block";
+    })
+    .finally(() => spinner.style.display = "none");
+}
     function startPolling() {
   const now = new Date();
   const hours = now.getHours();
