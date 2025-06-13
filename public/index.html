@@ -593,16 +593,15 @@ button:disabled {
     * MAIN UPDATE FUNCTION *
     *****************************/
     function updateWeatherData(data) {
-      console.log("Raw CSV data:", data);
-      const lines = csv.replace(/^r3\s*/, "").trim().replace(/,?END$/, "").split(",");
-      console.log("Parsed lines array:", lines);
+  console.log("Raw CSV data:", data);
+  const lines = data.replace(/^r3\s*/, "").trim().replace(/,?END$/, "").split(",");
+  console.log("Parsed lines array:", lines);
 
-      if (lines.length < 30) {
-        console.error("Incomplete data received:", lines);
-        document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
-        return;
-      }
-
+  if (lines.length < 30) {
+    console.error("Incomplete data received:", lines);
+    document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
+    return;
+  }
       try {
         // Extract data from CSV indices
         const dateStr = lines[0];
