@@ -1,30 +1,30 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const net = require("net");
-const winston = require("winston");
+require("dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const net = require('net');
+const winston = require('winston');
 
-const WEATHER_STATION_HOST = "myweather.ddns.net";
+const WEATHER_STATION_HOST = 'myweather.ddns.net';
 const WEATHER_STATION_PORT = 8899;
 const PORT = process.env.PORT || 10000;
 
 // Logger setup
 const logger = winston.createLogger({
-  level: "info",
+  level: 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.printf(({ timestamp, level, message }) => `${timestamp} [${level}]: ${message}`)
   ),
   transports: [
     new winston.transports.Console(),
-    new winston.transports.File({ filename: "weather.log" }),
+    new winston.transports.File({ filename: 'weather.log' }),
   ],
 });
 
 const app = express();
 app.use(cors());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, 'public')));
 
 let cachedWeatherData = null;
 let cachedDailyData = null;
@@ -34,23 +34,23 @@ let lastDailyPollTime = null;
 // Fetch CURRENT readings (r3)
 function updateWeatherData(attempt = 1, maxAttempts = 3) {
   const client = new net.Socket();
-  let receivedData = "";
+  let receivedData = '';
 
   client.setTimeout(5000);
 
   client.connect(WEATHER_STATION_PORT, WEATHER_STATION_HOST, () => {
     logger.info(`Connected for current weather (r3)`);
-    client.write("r3\r\n");
+    client.write('r3\r\n');
   });
 
-  client.on("data", (data) => {
+  client.on('data', (data) => {
     receivedData += data.toString();
   });
 
-  client.on("close", () => {
+  client.on('close', () => {
     client.destroy();
-    const cleaned = receivedData.replace(/^r3\s*/, "").trim().replace(/,?END$/, "");
-    const fields = cleaned.split(",");
+    const cleaned = receivedData.replace(/^r3\s*/, '').trim().replace(/,?END$/, '');
+    const fields = cleaned.split(',');
 
     if (fields.length >= 30) {
       cachedWeatherData = cleaned;
@@ -64,7 +64,7 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
     }
   });
 
-  client.on("error", (err) => {
+  client.on('error', (err) => {
     logger.error(`r3 error: ${err.message}`);
     client.destroy();
     if (attempt < maxAttempts) {
@@ -72,8 +72,8 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
     }
   });
 
-  client.on("timeout", () => {
-    logger.error("r3 timeout");
+  client.on('timeout', () => {
+    logger.error('r3 timeout');
     client.destroy();
     if (attempt < maxAttempts) {
       setTimeout(() => updateWeatherData(attempt + 1, maxAttempts), 1000);
@@ -85,51 +85,51 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
 function fetchDailyData(attempt = 1, maxAttempts = 3) {
   return new Promise((resolve) => {
     const client = new net.Socket();
-    let receivedData = "";
+    let receivedData = '';
 
     client.setTimeout(5000);
 
     client.connect(WEATHER_STATION_PORT, WEATHER_STATION_HOST, () => {
-      logger.info(`Connected for daily summary (MEM 1 LAST)`);
-      client.write("MEM 1 LAST\r\n");
+      logger.info(`Connected for daily summary (MEM 1 LAST, attempt ${attempt})`);
+      client.write('MEM 1 LAST\r\n');
     });
 
-    client.on("data", (data) => {
+    client.on('data', (data) => {
       receivedData += data.toString();
     });
 
-    client.on("close", () => {
+    client.on('close', () => {
       client.destroy();
-      const cleaned = receivedData.trim().replace(/,?END$/, "");
-      const fields = cleaned.split(",");
+      const cleaned = receivedData.trim().replace(/,?END$/, '');
+      const fields = cleaned.split(',');
 
       if (fields.length === 41) {
         cachedDailyData = cleaned;
         lastDailyPollTime = new Date();
-        logger.info(`Daily data updated at ${lastDailyPollTime.toLocaleTimeString()}`);
+        logger.info(`Daily data updated at ${lastDailyPollTime.toLocaleTimeString()} (${fields.length} fields)`);
       } else {
-        logger.warn(`Invalid daily data: ${fields.length} fields received`);
+        logger.warn(`Invalid daily data: received ${fields.length} fields, expected 41. Data: ${cleaned}`);
       }
-      resolve();
+      resolve(cleaned || ''); // Return the data or empty string
     });
 
-    client.on("error", (err) => {
-      logger.error(`Daily fetch error: ${err.message}`);
+    client.on('error', (err) => {
+      logger.error(`Daily fetch error: ${err.message} (attempt ${attempt})`);
       client.destroy();
       if (attempt < maxAttempts) {
         setTimeout(() => fetchDailyData(attempt + 1, maxAttempts).then(resolve), 1000);
       } else {
-        resolve();
+        resolve(''); // Resolve with empty string on failure
       }
     });
 
-    client.on("timeout", () => {
-      logger.error("Daily fetch timeout");
+    client.on('timeout', () => {
+      logger.error(`Daily fetch timeout (attempt ${attempt})`);
       client.destroy();
       if (attempt < maxAttempts) {
         setTimeout(() => fetchDailyData(attempt + 1, maxAttempts).then(resolve), 1000);
       } else {
-        resolve();
+        resolve(''); // Resolve with empty string on timeout
       }
     });
   });
@@ -158,42 +158,42 @@ function schedulePolling() {
 // ROUTES
 
 // Current readings (for index.html)
-app.get("/weather", (req, res) => {
+app.get('/weather', (req, res) => {
   if (cachedWeatherData) {
     res.status(200).send(cachedWeatherData);
   } else {
-    res.status(503).send("Weather data not available yet.");
+    res.status(503).send('Weather data not available yet.');
   }
 });
 
 // Daily summary (for daily.html)
-app.get("/daily", async (req, res) => {
-  const force = req.query.force === "1";
+app.get('/daily', async (req, res) => {
+  const force = req.query.force === '1';
 
   if (!force && cachedDailyData) {
     return res.status(200).send(cachedDailyData);
   }
 
-  await fetchDailyData();
-  if (cachedDailyData) {
-    res.status(200).send(cachedDailyData);
+  const data = await fetchDailyData();
+  if (data && data.split(',').length === 41) {
+    res.status(200).send(data);
   } else {
-    res.status(503).send("Failed to retrieve daily summary.");
+    res.status(503).send('Failed to retrieve valid daily summary.');
   }
 });
 
 // Diagnostics
-app.get("/ping", (req, res) => {
+app.get('/ping', (req, res) => {
   res.json({
-    status: "online",
+    status: 'online',
     lastWeatherPoll: lastPollTime ? lastPollTime.toISOString() : null,
     lastDailyPoll: lastDailyPollTime ? lastDailyPollTime.toISOString() : null,
   });
 });
 
 // Default index page
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start server
