@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Moore's Daily Summary</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
-      font-family: "Inter", sans-serif;
+      font-family: "Inter", "system-ui", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       font-size: 13.5px;
-      background-color: #f4f4f4;
+      background: linear-gradient(135deg, #f4f4f4 0%, #e9ecef 100%);
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      padding-top: env(safe-area-inset-top, 0);
       color: #222;
     }
 
@@ -19,199 +23,508 @@
       max-width: 400px;
       margin: 10px auto;
       padding: 0 5px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .freeze-pane {
+      position: sticky;
+      top: env(safe-area-inset-top, 0);
+      z-index: 100;
+      background: #f4f4f4;
+      padding: 0;
+      border-radius: 12px 12px 0 0;
     }
 
     .header-box {
-      background-color: #1e3a8a;
-      color: white;
-      border-radius: 10px 10px 0 0;
-      padding: 5px 10px;
+      background: linear-gradient(90deg, #1e3a8a 0%, #2a5298 100%);
+      border-radius: 12px 12px 0 0;
+      padding: 8px 5px;
       text-align: center;
+      margin-bottom: 0;
     }
 
     .header-box h2 {
       margin: 0;
-      font-size: 16px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      padding: 4px 0;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      white-space: nowrap;
     }
 
     .button-bar {
+      background-color: #e9ecef;
+      padding: 6px;
+      border-radius: 0 0 12px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin: 2px 0 6px 0;
-      padding: 0 4px;
+      margin: 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
-    #forceUpdateBtn, .back-button {
-      padding: 8px 14px;
-      font-size: 13px;
+    button {
+      padding: 6px 12px;
+      font-size: 14px;
       font-weight: 600;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-      transition: background-color 0.2s ease, transform 0.1s ease;
-    }
-
-    #forceUpdateBtn {
-      background-color: #4682B4;
-      color: white;
-    }
-
-    #forceUpdateBtn:hover {
-      background-color: #5a9bd5;
-      transform: translateY(-1px);
-    }
-
-    .back-button {
-      background-color: #FFA500;
+      font-family: "Inter", sans-serif;
+      background: linear-gradient(90deg, #FFA500 0%, #ffaa33 100%);
       color: #4d4b47;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-block;
+      margin: 2px 0;
+      white-space: nowrap;
+      line-height: 1.2;
+      letter-spacing: 0.3px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .back-button:hover {
-      background-color: #ffb733;
+    button:hover {
+      background: linear-gradient(90deg, #e59400 0%, #ff9933 100%);
       transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      opacity: 0.7;
     }
 
     .content-box {
-      background: #ffffff;
+      background: #fff;
       border-radius: 0 0 12px 12px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-      padding: 10px 10px 15px 10px;
+      padding: 12px 10px 16px 10px;
       margin-bottom: 15px;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin: 8px 0 12px;
+    }
+
+    .summary-left {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .summary-location {
+      font-family: "Rubik", sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      color: #00008B;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    .date-time {
+      font-weight: 600;
+      color: #00008B;
+    }
+
+    .summary-box {
+      background: #26A69A;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(38, 166, 154, 0.3);
+      font-family: "Rubik", sans-serif;
+      font-weight: 700;
+      text-align: center;
+      width: 40%;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .summary-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(38, 166, 154, 0.4);
+    }
+
+    .summary-box span {
+      display: block;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .summary-box .date {
+      font-size: 16px;
+      letter-spacing: 1px;
     }
 
     .section {
-      margin-top: 10px;
+      margin-top: 12px;
+      transition: transform 0.2s ease;
+    }
+
+    .section:hover {
+      transform: translateY(-2px);
     }
 
     .section-title {
-      font-weight: bold;
-      margin-bottom: 4px;
+      font-weight: 700;
+      margin-bottom: 6px;
       color: #00008B;
+      font-family: "Rubik", sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      position: relative;
+    }
+
+    .section-title::after {
+      content: "";
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 30px;
+      height: 2px;
+      background: #00008B;
+      transition: width 0.3s ease;
+    }
+
+    .section-title:hover::after {
+      width: 50px;
     }
 
     .inline-values {
       display: flex;
-      flex-wrap: nowrap;
-      gap: 12px;
-      flex-direction: row;
-      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-start;
     }
 
     .inline-values span {
       flex: 1;
+      min-width: 100px;
       white-space: nowrap;
+      font-family: "Rubik", sans-serif;
+      font-weight: 600;
     }
 
-    .summary-meta {
-      margin: 10px 0 5px;
-      font-weight: bold;
+    .inline-values span b {
+      font-weight: normal;
+      color: #222;
+    }
+
+    .inline-values .unit {
+      font-weight: normal;
+      color: #555;
+      margin-left: 4px;
+    }
+
+    .spinner-container {
+      display: none;
+      margin: 20px auto;
+      width: 40px;
+      height: 40px;
+    }
+
+    .spinner {
+      width: 100%;
+      height: 100%;
+      border: 4px solid #e9ecef;
+      border-top: 4px solid #FFA500;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      color: #d32f2f;
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    @media only screen and (max-width: 600px) {
+      .main-container {
+        max-width: 400px;
+        margin: 5px auto;
+        padding: 0 5px;
+      }
+
+      .header-box {
+        padding: 0;
+      }
+
+      .inline-values {
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .inline-values span {
+        min-width: 0;
+      }
+
+      .summary-meta {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .summary-location {
+        font-size: 14px;
+      }
+
+      .date-time {
+        margin-top: 2px;
+      }
+
+      .summary-box {
+        padding: 6px 10px;
+        width: 100%;
+        margin-top: 8px;
+      }
+
+      .summary-box span {
+        font-size: 12px;
+      }
+
+      .summary-box .date {
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="main-container">
-    <div class="header-box">
-      <h2>Moore's LIVE Weather Data</h2>
-    </div>
-
-    <div class="content-box">
+    <div class="freeze-pane">
+      <div class="header-box">
+        <h2>Moore's Daily Summary</h2>
+      </div>
       <div class="button-bar">
         <button class="back-button" onclick="location.href='index.html'">← Current Readings</button>
         <button id="forceUpdateBtn" onclick="forceSummaryFetch()">🔁 Force Update</button>
       </div>
+    </div>
 
+    <div class="content-box">
       <div class="summary-meta">
-        📆 Date: <span id="summaryDate">--</span><br />
-        ⏰ Summary Time: <span id="summaryTime">--</span>
+        <div class="summary-left">
+          <div class="summary-location">WEST WARWICK, QLD</div>
+          <div class="date-time">
+            📅 Date: <span id="summaryDate">13/06/2025 (Friday)</span><br />
+            ⏰ Summary Time: <span id="summaryTime">23:04 AEST</span>
+          </div>
+        </div>
+        <div class="summary-box">
+          <span>Daily Summary for:</span>
+          <span id="summaryForDay" class="date">THURS 12th June 2025</span>
+        </div>
       </div>
 
       <div id="summaryContent">
         <div class="section">
-          <div class="section-title">🌧️ Rainfall</div>
-          <div class="inline-values"><span>Total: <b id="rainTotal">--</b> mm</span></div>
+          <div class="section-title">🌧️ RAINFALL</div>
+          <div class="inline-values"><span>Total: <b id="rainTotal">--</b> <span class="unit">mm</span></span></div>
         </div>
 
         <div class="section">
-          <div class="section-title">🌡️ Air Temperature</div>
+          <div class="section-title">🌡️ AIR TEMPERATURE</div>
           <div class="inline-values">
-            <span>Min: <b id="tempMin">--</b>°C</span>
-            <span>Max: <b id="tempMax">--</b>°C</span>
-            <span>Avg: <b id="tempAvg">--</b>°C</span>
+            <span>Min: <b id="tempMin">--</b> <span class="unit">°C</span></span>
+            <span>Max: <b id="tempMax">--</b> <span class="unit">°C</span></span>
+            <span>Avg: <b id="tempAvg">--</b> <span class="unit">°C</span></span>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">🔴 Black Globe Temperature</div>
+          <div class="section-title">🔥 BLACK GLOBE TEMPERATURE</div>
           <div class="inline-values">
-            <span>Min: <b id="globeMin">--</b>°C</span>
-            <span>Max: <b id="globeMax">--</b>°C</span>
-            <span>Avg: <b id="globeAvg">--</b>°C</span>
+            <span>Min: <b id="globeMin">--</b> <span class="unit">°C</span></span>
+            <span>Max: <b id="globeMax">--</b> <span class="unit">°C</span></span>
+            <span>Avg: <b id="globeAvg">--</b> <span class="unit">°C</span></span>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">☀️ Solar Radiation</div>
+          <div class="section-title">☀️ SOLAR RADIATION</div>
           <div class="inline-values">
-            <span>Max: <b id="solarMax">--</b> W/m²</span>
-            <span>Avg: <b id="solarAvg">--</b> W/m²</span>
+            <span>Max: <b id="solarMax">--</b> <span class="unit">W/m²</span></span>
+            <span>Avg: <b id="solarAvg">--</b> <span class="unit">W/m²</span></span>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">💧 Air Moisture</div>
+          <div class="section-title">💧 AIR MOISTURE</div>
           <div class="inline-values">
-            <span>Humidity: <b id="humidityAvg">--</b>%</span>
-            <span>Dew Point: <b id="dewAvg">--</b>°C</span>
-            <span>Evaporation: <b id="evapTotal">--</b> mm</span>
+            <span>Humidity: <b id="humidityAvg">--</b> <span class="unit">%</span></span>
+            <span>Dew Point: <b id="dewAvg">--</b> <span class="unit">°C</span></span>
+            <span>Daily Evap: <b id="evapTotal">--</b> <span class="unit">mm</span></span>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">🌿 Garden Temperature</div>
+          <div class="section-title">🌱 GARDEN TEMPERATURE</div>
           <div class="inline-values">
-            <span>Min: <b id="dirtMin">--</b>°C</span>
-            <span>Max: <b id="dirtMax">--</b>°C</span>
-            <span>Avg: <b id="dirtAvg">--</b>°C</span>
+            <span>Min: <b id="dirtMin">--</b> <span class="unit">°C</span></span>
+            <span>Max: <b id="dirtMax">--</b> <span class="unit">°C</span></span>
+            <span>Avg: <b id="dirtAvg">--</b> <span class="unit">°C</span></span>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">🌬️ Wind</div>
+          <div class="section-title">🌬️ WIND</div>
           <div class="inline-values" style="flex-wrap: wrap;">
-            <span>Max Speed: <b id="windMax">--</b> km/h</span>
-            <span>Avg Speed: <b id="windAvg">--</b> km/h</span>
-            <span>Peak Gust: <b id="gustPeak">--</b> km/h</span>
-            <span>Direction: <b id="windDir">--</b>°</span>
+            <span>Max Speed: <b id="windMax">--</b> <span class="unit">km/h</span></span>
+            <span>Avg Speed: <b id="windAvg">--</b> <span class="unit">km/h</span></span>
+            <div style="display: flex; gap: 10px; width: 100%;">
+              <span>Peak Gust: <b id="gustPeak">--</b> <span class="unit">km/h</span></span>
+              <span>Direction: <b id="windDir">--</b> <span class="unit">°</span></span>
+            </div>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">📈 Pressure</div>
+          <div class="section-title">📊 PRESSURE</div>
           <div class="inline-values">
-            <span>Avg Pressure: <b id="pressureAvg">--</b> hPa</span>
+            <span>Avg Pressure: <b id="pressureAvg">--</b> <span class="unit">hPa</span></span>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">🌱 Soil (10cm)</div>
+          <div class="section-title">🌍 SOIL (10CM)</div>
           <div class="inline-values">
-            <span>Temp: <b id="soilTemp">--</b>°C</span>
-            <span>Moisture: <b id="soilMoisture">--</b>%</span>
+            <span>Temp: <b id="soilTemp">--</b> <span class="unit">°C</span></span>
+            <span>Moisture: <b id="soilMoisture">--</b> <span class="unit">%</span></span>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">🔋 Battery</div>
+          <div class="section-title">🔋 BATTERY</div>
           <div class="inline-values">
-            <span>Min Voltage: <b id="batteryMin">--</b> V</span>
+            <span>Min Voltage: <b id="batteryMin">--</b> <span class="unit">V</span></span>
           </div>
         </div>
       </div>
+
+      <div id="spinnerContainer" class="spinner-container">
+        <div class="spinner"></div>
+      </div>
+      <div id="errorMessage" class="error-message" style="display: none;"></div>
     </div>
   </div>
 
-  <!-- JS Logic to be inserted later for dynamic loading -->
+  <script>
+    const SUMMARY_ENDPOINT = "/daily";
+    let lastUpdateTime = null;
+
+    function updateSummary(data) {
+      const [date, time, ...values] = data.split(',');
+      if (values.length < 41) {
+        document.getElementById("errorMessage").textContent = "Invalid data format: insufficient values.";
+        document.getElementById("errorMessage").style.display = "block";
+        return;
+      }
+      document.getElementById("summaryDate").textContent = date ? `${date} (${new Date(date).toLocaleString('en-US', { weekday: 'long' })})` : "--";
+      document.getElementById("summaryTime").textContent = time || "--";
+      document.getElementById("rainTotal").textContent = values[14] !== undefined ? values[14] : "--";
+      document.getElementById("tempMax").textContent = values[11] !== undefined ? values[11] : "--";
+      document.getElementById("tempMin").textContent = values[12] !== undefined ? values[12] : "--";
+      document.getElementById("tempAvg").textContent = values[13] !== undefined ? values[13] : "--";
+      document.getElementById("globeMax").textContent = values[39] !== undefined ? values[39] : "--";
+      document.getElementById("globeMin").textContent = values[40] !== undefined ? values[40] : "--";
+      document.getElementById("globeAvg").textContent = values[38] !== undefined ? values[38] : "--";
+      document.getElementById("solarMax").textContent = values[37] !== undefined ? values[37] : "--";
+      document.getElementById("solarAvg").textContent = values[15] !== undefined ? values[15] : "--";
+      document.getElementById("humidityAvg").textContent = values[10] !== undefined ? values[10] : "--";
+      document.getElementById("dewAvg").textContent = values[17] !== undefined ? values[17] : "--";
+      document.getElementById("evapTotal").textContent = values[16] !== undefined ? values[16] : "--";
+      document.getElementById("dirtMax").textContent = values[32] !== undefined ? values[32] : "--";
+      document.getElementById("dirtMin").textContent = values[33] !== undefined ? values[33] : "--";
+      document.getElementById("dirtAvg").textContent = values[31] !== undefined ? values[31] : "--";
+      document.getElementById("windMax").textContent = values[0] !== undefined ? values[0] : "--";
+      document.getElementById("windAvg").textContent = values[1] !== undefined ? values[1] : "--";
+      document.getElementById("gustPeak").textContent = values[5] !== undefined ? values[5] : "--";
+      document.getElementById("windDir").textContent = values[7] !== undefined ? values[7] : "--";
+      document.getElementById("pressureAvg").textContent = values[34] !== undefined ? values[34] : "--";
+      document.getElementById("soilTemp").textContent = values[23] !== undefined ? values[23] : "--";
+      document.getElementById("soilMoisture").textContent = values[27] !== undefined ? values[27] : "--";
+      document.getElementById("batteryMin").textContent = values[18] !== undefined ? values[18] : "--";
+
+      // Calculate summary day (previous day)
+      if (date !== "--") {
+        const [year, month, day] = date.split('/');
+        const dateObj = new Date(`${year}-${month}-${day}`);
+        dateObj.setDate(dateObj.getDate() - 1);
+        const dayNames = ["SUN", "MON", "TUES", "WED", "THURS", "FRI", "SAT"];
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const dayName = dayNames[dateObj.getDay()];
+        const monthName = monthNames[dateObj.getMonth()];
+        const dayWithSuffix = dateObj.getDate() + (dateObj.getDate() % 10 === 1 && dateObj.getDate() !== 11 ? "st" : dateObj.getDate() % 10 === 2 && dateObj.getDate() !== 12 ? "nd" : dateObj.getDate() % 10 === 3 && dateObj.getDate() !== 13 ? "rd" : "th");
+        document.getElementById("summaryForDay").textContent = `${dayName} ${dayWithSuffix} ${monthName} ${dateObj.getFullYear()}`;
+      } else {
+        document.getElementById("summaryForDay").textContent = "--";
+      }
+      document.getElementById("errorMessage").style.display = "none";
+      lastUpdateTime = time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Australia/Sydney', timeZoneName: 'short' });
+    }
+
+    function forceSummaryFetch() {
+      const spinner = document.getElementById("spinnerContainer");
+      spinner.style.display = "block";
+      fetch(SUMMARY_ENDPOINT)
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return response.text();
+        })
+        .then(data => {
+          if (!data || !data.trim()) throw new Error("No data received");
+          updateSummary(data.trim());
+        })
+        .catch(error => {
+          console.error("Fetch error:", error);
+          document.getElementById("errorMessage").textContent = `Error: ${error.message}`;
+          document.getElementById("errorMessage").style.display = "block";
+        })
+        .finally(() => spinner.style.display = "none");
+    }
+
+    function startPolling() {
+      const now = new Date();
+      const hours = now.getHours();
+      if (hours >= 9 && hours < 24) { // Start polling after 9 AM and before midnight
+        forceSummaryFetch(); // Initial fetch
+        setInterval(() => {
+          const currentTime = new Date();
+          if (currentTime.getHours() >= 9) {
+            fetch(SUMMARY_ENDPOINT)
+              .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.text();
+              })
+              .then(data => {
+                const [_, time] = data.trim().split(',');
+                if (time && time !== lastUpdateTime) {
+                  updateSummary(data.trim());
+                }
+              })
+              .catch(error => {
+                console.error("Polling error:", error);
+                document.getElementById("errorMessage").textContent = `Error: ${error.message}`;
+                document.getElementById("errorMessage").style.display = "block";
+              });
+          }
+        }, 30000); // Poll every 30 seconds
+      } else {
+        document.getElementById("errorMessage").textContent = "Polling will start after 9 AM.";
+        document.getElementById("errorMessage").style.display = "block";
+      }
+    }
+
+    window.addEventListener("load", startPolling);
+  </script>
 </body>
 </html>
