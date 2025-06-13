@@ -140,7 +140,7 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
 
   client.on("data", (data) => {
     receivedData += data.toString();
-    client.end();
+    client.end(); // close after receiving
   });
 
   client.on("close", () => {
@@ -156,26 +156,7 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
     } else {
       logger.warn("Max retries reached. No valid data received.");
     }
-  });
-
-  client.on("error", (err) => {
-    logger.error(`Polling error: ${err.message}`);
-    client.destroy();
-    if (attempt < maxAttempts) {
-      logger.warn(`Retrying poll (${attempt}/${maxAttempts})`);
-      setTimeout(() => updateWeatherData(attempt + 1, maxAttempts), 1000);
-    }
-  });
-
-  client.on("timeout", () => {
-    logger.error("Connection timed out");
-    client.destroy();
-    if (attempt < maxAttempts) {
-      logger.warn(`Retrying poll (${attempt}/${maxAttempts})`);
-      setTimeout(() => updateWeatherData(attempt + 1, maxAttempts), 1000);
-    }
-  });
-}
+  });}
 
 function schedulePolling() {
   const now = new Date();
@@ -227,10 +208,8 @@ app.get("/weather", (req, res) => {
       data: cachedWeatherData,
       lastUpdated: lastPollTime.toISOString(),
     });
-  } else if (!lastPollTime) {
-    res.status(503).json({ error: "Weather data not available: Initial poll in progress." });
   } else {
-    res.status(503).json({ error: `Weather data unavailable since ${lastPollTime.toLocaleTimeString()}.` });
+    res.status(503).json({ error: "Weather data not available: Initial poll in progress." });
   }
 });
 
