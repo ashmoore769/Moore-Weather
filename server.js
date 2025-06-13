@@ -1,9 +1,10 @@
-require("dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const net = require('net');
-const winston = require('winston');
+require("dotenv").config();
+
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const net = require("net");
+const winston = require("winston"); // If you're using Winston logging
 
 const WEATHER_STATION_HOST = 'myweather.ddns.net';
 const WEATHER_STATION_PORT = 8899;
