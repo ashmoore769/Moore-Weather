@@ -34,9 +34,9 @@ let lastDailyPollTime = null;
 function parseWeatherData(csv) {
   try {
     const lines = csv.replace(/^r3\s*/, "").trim().replace(/,?END$/, "").split(",");
-    if (lines.length < 31) {
-      throw new Error(`Incomplete CSV: ${lines.length} fields received`);
-    }
+    if (lines.length !== 31) {
+      throw new Error(`Invalid CSV: expected 31 fields, got ${lines.length}`);
+    }    
     return {
       date: lines[0],
       time: lines[1],
