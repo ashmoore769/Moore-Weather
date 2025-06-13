@@ -487,38 +487,21 @@
         })
         .finally(() => spinner.style.display = "none");
     }
-
     function startPolling() {
-      const now = new Date();
-      const hours = now.getHours();
-      if (hours >= 9 && hours < 24) { // Start polling after 9 AM and before midnight
-        forceSummaryFetch(); // Initial fetch
-        setInterval(() => {
-          const currentTime = new Date();
-          if (currentTime.getHours() >= 9) {
-            fetch(SUMMARY_ENDPOINT)
-              .then(response => {
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                return response.text();
-              })
-              .then(data => {
-                const [_, time] = data.trim().split(',');
-                if (time && time !== lastUpdateTime) {
-                  updateSummary(data.trim());
-                }
-              })
-              .catch(error => {
-                console.error("Polling error:", error);
-                document.getElementById("errorMessage").textContent = `Error: ${error.message}`;
-                document.getElementById("errorMessage").style.display = "block";
-              });
-          }
-        }, 30000); // Poll every 30 seconds
-      } else {
-        document.getElementById("errorMessage").textContent = "Polling will start after 9 AM.";
-        document.getElementById("errorMessage").style.display = "block";
-      }
-    }
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+
+  if (hours > 9 || (hours === 9 && minutes >= 5)) {
+    forceSummaryFetch(); // It's after 9:05 — fetch now
+  } else {
+    const delayMs = ((9 - hours) * 60 + (5 - minutes)) * 60 * 1000;
+    document.getElementById("errorMessage").textContent = "Waiting for summary data (after 9:05 AM)...";
+    document.getElementById("errorMessage").style.display = "block";
+    setTimeout(forceSummaryFetch, delayMs); // Try once at 9:05 AM
+  }
+}
+
 
     window.addEventListener("load", startPolling);
   </script>
