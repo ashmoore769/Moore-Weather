@@ -315,13 +315,13 @@
         <div class="summary-left">
           <div class="summary-location">WEST WARWICK, QLD</div>
           <div class="date-time">
-            📅 Date: <span id="summaryDate">13/06/2025 (Friday)</span><br />
-            ⏰ Time: <span id="summaryTime">23:16 AEST</span>
+            📅 Date: <span id="summaryDate">14/06/2025 (Saturday)</span><br />
+            ⏰ Time: <span id="summaryTime">01:25 AEST</span>
           </div>
         </div>
         <div class="summary-box">
           <span>Daily Summary for:</span>
-          <span id="summaryForDay" class="date">THURS 12th June 2025</span>
+          <span id="summaryForDay" class="date">FRI 13th June 2025</span>
         </div>
       </div>
 
@@ -422,12 +422,15 @@
     let lastUpdateTime = null;
 
     function updateSummary(data) {
-      const [date, time, ...values] = data.split(',');
-      if (values.length < 41) {
-        document.getElementById("errorMessage").textContent = "Invalid data format: insufficient values.";
+      console.log("Received data:", data); // Debug raw data
+      const fields = data.split(',');
+      console.log("Field count:", fields.length); // Debug field count
+      if (fields.length < 43) { // Expect date, time, + 41 values
+        document.getElementById("errorMessage").textContent = `Invalid data format: received ${fields.length} fields, expected 43.`;
         document.getElementById("errorMessage").style.display = "block";
         return;
       }
+      const [date, time, ...values] = fields;
       document.getElementById("summaryDate").textContent = date ? `${date} (${new Date(date).toLocaleString('en-US', { weekday: 'long' })})` : "--";
       document.getElementById("summaryTime").textContent = time || "--";
       document.getElementById("rainTotal").textContent = values[14] !== undefined ? values[14] : "--";
@@ -454,54 +457,68 @@
       document.getElementById("soilMoisture").textContent = values[27] !== undefined ? values[27] : "--";
       document.getElementById("batteryMin").textContent = values[18] !== undefined ? values[18] : "--";
 
-      if (date !== "--") {
-        const [year, month, day] = date.split('/');
-        const dateObj = new Date(`${year}-${month}-${day}`);
-        dateObj.setDate(dateObj.getDate() - 1);
-        const dayNames = ["SUN", "MON", "TUES", "WED", "THURS", "FRI", "SAT"];
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        const dayName = dayNames[dateObj.getDay()];
-        const monthName = monthNames[dateObj.getMonth()];
-        const dayWithSuffix = dateObj.getDate() + (dateObj.getDate() % 10 === 1 && dateObj.getDate() !== 11 ? "st" : dateObj.getDate() % 10 === 2 && dateObj.getDate() !== 12 ? "nd" : dateObj.getDate() % 10 === 3 && dateObj.getDate() !== 13 ? "rd" : "th");
-        document.getElementById("summaryForDay").textContent = `${dayName} ${dayWithSuffix} ${monthName} ${dateObj.getFullYear()}`;
+      if (date && date !== "--") {
+        try {
+          const [day, month, year] = date.split('/');
+          const dateObj = new Date(`${year}-${month}-${day}`);
+          dateObj.setDate(dateObj.getDate() - 1);
+          const dayNames = ["SUN", "MON", "TUES", "WED", "THURS", "FRI", "SAT"];
+          const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+          const dayName = dayNames[dateObj.getDay()];
+          const monthName = monthNames[dateObj.getMonth()];
+          const dayWithSuffix = dateObj.getDate() + (dateObj.getDate() % 10 === 1 && dateObj.getDate() !== 11 ? "st" : dateObj.getDate() % 10 === 2 && dateObj.getDate() !== 12 ? "nd" : dateObj.getDate() % 10 === 3 && dateObj.getDate() !== 13 ? "rd" : "th");
+          document.getElementById("summaryForDay").textContent = `${dayName} ${dayWithSuffix} ${monthName} ${dateObj.getFullYear()}`;
+        } catch (e) {
+          console.error("Date parsing error:", e);
+          document.getElementById("summaryForDay").textContent = "--";
+        }
       } else {
         document.getElementById("summaryForDay").textContent = "--";
       }
       document.getElementById("errorMessage").style.display = "none";
       lastUpdateTime = time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Australia/Sydney', timeZoneName: 'short' });
+      console.log("UI updated with lastUpdateTime:", lastUpdateTime);
     }
 
     function forceSummaryFetch() {
-  const spinner = document.getElementById("spinnerContainer");
-  spinner.style.display = "block";
-  fetch(SUMMARY_ENDPOINT + "?force=1")
-    .then(response => {
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return response.text();
-    })
-    .then(data => updateSummary(data.trim()))
-    .catch(error => {
-      console.error("Fetch error:", error);
-      document.getElementById("errorMessage").textContent = `Error: ${error.message}`;
-      document.getElementById("errorMessage").style.display = "block";
-    })
-    .finally(() => spinner.style.display = "none");
-}
+      const spinner = document.getElementById("spinnerContainer");
+      const errorMessage = document.getElementById("errorMessage");
+      spinner.style.display = "block";
+      errorMessage.style.display = "none";
+      fetch(SUMMARY_ENDPOINT + "?force=1")
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return response.text();
+        })
+        .then(data => {
+          if (data.trim()) {
+            updateSummary(data.trim());
+          } else {
+            throw new Error("Empty response received");
+          }
+        })
+        .catch(error => {
+          console.error("Fetch error:", error);
+          errorMessage.textContent = `Error: ${error.message}`;
+          errorMessage.style.display = "block";
+        })
+        .finally(() => spinner.style.display = "none");
+    }
+
     function startPolling() {
-  const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
 
-  if (hours > 9 || (hours === 9 && minutes >= 5)) {
-    forceSummaryFetch(); // It's after 9:05 — fetch now
-  } else {
-    const delayMs = ((9 - hours) * 60 + (5 - minutes)) * 60 * 1000;
-    document.getElementById("errorMessage").textContent = "Waiting for summary data (after 9:05 AM)...";
-    document.getElementById("errorMessage").style.display = "block";
-    setTimeout(forceSummaryFetch, delayMs); // Try once at 9:05 AM
-  }
-}
-
+      if (hours > 9 || (hours === 9 && minutes >= 5)) {
+        forceSummaryFetch(); // It's after 9:05 — fetch now
+      } else {
+        const delayMs = ((9 - hours) * 60 + (5 - minutes)) * 60 * 1000;
+        document.getElementById("errorMessage").textContent = "Waiting for summary data (after 9:05 AM)...";
+        document.getElementById("errorMessage").style.display = "block";
+        setTimeout(forceSummaryFetch, delayMs); // Try once at 9:05 AM
+      }
+    }
 
     window.addEventListener("load", startPolling);
   </script>
