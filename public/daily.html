@@ -316,7 +316,7 @@
           <div class="summary-location">WEST WARWICK, QLD</div>
           <div class="date-time">
             📅 Date: <span id="summaryDate">13/06/2025 (Friday)</span><br />
-            ⏰ Summary Time: <span id="summaryTime">23:04 AEST</span>
+            ⏰ Time: <span id="summaryTime">23:16 AEST</span>
           </div>
         </div>
         <div class="summary-box">
@@ -454,7 +454,6 @@
       document.getElementById("soilMoisture").textContent = values[27] !== undefined ? values[27] : "--";
       document.getElementById("batteryMin").textContent = values[18] !== undefined ? values[18] : "--";
 
-      // Calculate summary day (previous day)
       if (date !== "--") {
         const [year, month, day] = date.split('/');
         const dateObj = new Date(`${year}-${month}-${day}`);
@@ -480,10 +479,7 @@
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           return response.text();
         })
-        .then(data => {
-          if (!data || !data.trim()) throw new Error("No data received");
-          updateSummary(data.trim());
-        })
+        .then(data => updateSummary(data.trim()))
         .catch(error => {
           console.error("Fetch error:", error);
           document.getElementById("errorMessage").textContent = `Error: ${error.message}`;
