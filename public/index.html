@@ -88,11 +88,11 @@
   white-space: nowrap;
 }
 
-    button {
-  padding: 6px 12px;
-  font-size: 14px;
+button {
+  padding: 4px 8px;
+  font-size: 13px;
   font-weight: 600;
-  font-family: "Inter", "system-ui", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-family: "Inter", sans-serif;
   background-color: #FFA500;
   color: rgb(77, 75, 71);
   border: none;
@@ -102,10 +102,22 @@
   display: inline-block;
   margin: 2px 0;
   white-space: nowrap;
-  line-height: 1.2;             /* Tighter for button text */
-  letter-spacing: 0.3px;        /* Slight punch */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15); /* Soft elevation */
+  line-height: 1.2;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
+
+button:hover {
+  background-color: #e59400;
+  transform: scale(1.02);
+}
+
+button:disabled {
+  background-color: gray;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 
 #dailyBtn {
   background-color: #006400;
@@ -416,9 +428,7 @@ button:disabled {
       <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
     </div>
     <div class="control-half">
-      <button id="dailyBtn" onclick="location.href='daily.html'" style="background-color: #006400; color: white; font-weight: 600;">
-        📊 Daily Summary
-      </button>
+      <button onclick="location.href='daily.html'">📊 Daily Summary</button>
     </div>
   </div>
 </div>
