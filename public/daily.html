@@ -213,7 +213,7 @@
           <p><b>🥵 Air Temp Max:</b> <span id="tempMax">--</span> °C</p>
           <p><b>🌡️ Air Temp Avg:</b> <span id="tempAvg">--</span> °C</p>
           <hr>
-          <p><b>🌑 Globe Temp Min:</b> <span id="globeMin">--</span> °C</p>
+          <p><b>🌑 Globe Temp Min:</b> <span id="globeMin">--</span> <span id="globeMinUnit">°C</span> <span id="globeNote" style="color: #333; font-weight: normal;"></span></p>
           <p><b>🌔 Globe Temp Max:</b> <span id="globeMax">--</span> °C</p>
           <p><b>🌕 Globe Temp Avg:</b> <span id="globeAvg">--</span> °C</p>
           <hr>
@@ -289,7 +289,56 @@ if (!isNaN(tempMin) && tempMin <= 0) {
 }
       document.getElementById("tempAvg").textContent = vals[13] || "--";
       document.getElementById("globeMax").textContent = vals[39] || "--";
-      document.getElementById("globeMin").textContent = vals[40] || "--";
+      const globeMin = parseFloat(vals[40]);
+const globeMinElem = document.getElementById("globeMin");
+const globeMinUnitElem = document.getElementById("globeMinUnit"); // You'll need to split °C out like we did for air temp
+const globeNoteElem = document.getElementById("globeNote"); // Add span to your HTML
+
+globeMinElem.textContent = vals[40] || "--";
+globeMinElem.style = "";
+globeMinUnitElem.style = "";
+globeNoteElem.textContent = "";
+
+if (!isNaN(globeMin) && globeMin <= 10) {
+  if (globeMin <= 0) {
+    globeMinElem.style.color = "#004080";
+    globeMinElem.style.fontWeight = "bold";
+    globeMinUnitElem.style.color = "#004080";
+    globeMinUnitElem.style.fontWeight = "bold";
+    globeNoteElem.textContent = "(Extreme Cold)";
+  } else if (globeMin <= 2) {
+    globeMinElem.style.color = "#005ca9";
+    globeMinElem.style.fontWeight = "bold";
+    globeMinUnitElem.style.color = "#005ca9";
+    globeMinUnitElem.style.fontWeight = "bold";
+    globeNoteElem.textContent = "(Very Cold)";
+  } else if (globeMin <= 4) {
+    globeMinElem.style.color = "#2b7bb9";
+    globeMinElem.style.fontWeight = "bold";
+    globeMinUnitElem.style.color = "#2b7bb9";
+    globeMinUnitElem.style.fontWeight = "bold";
+    globeNoteElem.textContent = "(Cold)";
+  } else if (globeMin <= 6) {
+    globeMinElem.style.color = "#4a9ecf";
+    globeMinElem.style.fontWeight = "bold";
+    globeMinUnitElem.style.color = "#4a9ecf";
+    globeMinUnitElem.style.fontWeight = "bold";
+    globeNoteElem.textContent = "(Chilly)";
+  } else if (globeMin <= 8) {
+    globeMinElem.style.color = "#73b7de";
+    globeMinElem.style.fontWeight = "bold";
+    globeMinUnitElem.style.color = "#73b7de";
+    globeMinUnitElem.style.fontWeight = "bold";
+    globeNoteElem.textContent = "(Cool)";
+  } else if (globeMin <= 10) {
+    globeMinElem.style.color = "#a2cde8";
+    globeMinElem.style.fontWeight = "bold";
+    globeMinUnitElem.style.color = "#a2cde8";
+    globeMinUnitElem.style.fontWeight = "bold";
+    globeNoteElem.textContent = "(Mild Cool)";
+  }
+}
+
       document.getElementById("globeAvg").textContent = vals[38] || "--";
       document.getElementById("solarMax").textContent = vals[37] || "--";
       document.getElementById("solarAvg").textContent = vals[15] || "--";
