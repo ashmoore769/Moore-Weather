@@ -415,7 +415,25 @@ if (!isNaN(globeMin) && globeMin <= 10) {
 }
 
       document.getElementById("globeAvg").textContent = vals[38] || "--";
-      document.getElementById("solarMax").textContent = vals[37] || "--";
+      const solarMax = parseFloat(vals[37]);
+const solarMaxElem = document.getElementById("solarMax");
+
+solarMaxElem.textContent = vals[37] || "--";
+solarMaxElem.style = "";
+
+if (!isNaN(solarMax)) {
+  if (solarMax >= 1000) {
+    solarMaxElem.style.color = "#e67e22"; // strong orange
+    solarMaxElem.style.fontWeight = "bold";
+  } else if (solarMax >= 800) {
+    solarMaxElem.style.color = "#f39c12"; // amber
+    solarMaxElem.style.fontWeight = "bold";
+  } else if (solarMax >= 600) {
+    solarMaxElem.style.color = "#f1c40f"; // yellow
+  } else if (solarMax >= 400) {
+    solarMaxElem.style.color = "#f7dc6f"; // pale yellow
+  }
+}
       document.getElementById("solarAvg").textContent = vals[15] || "--";
       document.getElementById("humidityAvg").textContent = vals[10] || "--";
       document.getElementById("dewAvg").textContent = vals[17] || "--";
