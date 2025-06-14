@@ -278,15 +278,50 @@ const tempMinUnitElem = document.getElementById("tempMinUnit");
 const frostNoteElem = document.getElementById("frostNote");
 
 tempMinElem.textContent = vals[12] || "--";
-tempMinElem.classList.remove("cold-temp");
-tempMinUnitElem.classList.remove("cold-temp");
+tempMinElem.style = "";
+tempMinUnitElem.style = "";
 frostNoteElem.textContent = "";
 
-if (!isNaN(tempMin) && tempMin <= 0) {
-  tempMinElem.classList.add("cold-temp");
-  tempMinUnitElem.classList.add("cold-temp");
-  frostNoteElem.textContent = "(Frost)";
+if (!isNaN(tempMin) && tempMin <= 10) {
+  if (tempMin <= 0) {
+    tempMinElem.style.color = "#004080";
+    tempMinElem.style.fontWeight = "bold";
+    tempMinUnitElem.style.color = "#004080";
+    tempMinUnitElem.style.fontWeight = "bold";
+    frostNoteElem.textContent = "(FROST ❄️)";
+  } else if (tempMin <= 2) {
+    tempMinElem.style.color = "#005ca9";
+    tempMinElem.style.fontWeight = "bold";
+    tempMinUnitElem.style.color = "#005ca9";
+    tempMinUnitElem.style.fontWeight = "bold";
+    frostNoteElem.textContent = "(Very Cold)";
+  } else if (tempMin <= 4) {
+    tempMinElem.style.color = "#2b7bb9";
+    tempMinElem.style.fontWeight = "bold";
+    tempMinUnitElem.style.color = "#2b7bb9";
+    tempMinUnitElem.style.fontWeight = "bold";
+    frostNoteElem.textContent = "(Cold)";
+  } else if (tempMin <= 6) {
+    tempMinElem.style.color = "#4a9ecf";
+    tempMinElem.style.fontWeight = "bold";
+    tempMinUnitElem.style.color = "#4a9ecf";
+    tempMinUnitElem.style.fontWeight = "bold";
+    frostNoteElem.textContent = "(Chilly)";
+  } else if (tempMin <= 8) {
+    tempMinElem.style.color = "#73b7de";
+    tempMinElem.style.fontWeight = "bold";
+    tempMinUnitElem.style.color = "#73b7de";
+    tempMinUnitElem.style.fontWeight = "bold";
+    frostNoteElem.textContent = "(Cool)";
+  } else if (tempMin <= 10) {
+    tempMinElem.style.color = "#a2cde8";
+    tempMinElem.style.fontWeight = "bold";
+    tempMinUnitElem.style.color = "#a2cde8";
+    tempMinUnitElem.style.fontWeight = "bold";
+    frostNoteElem.textContent = "(Mild Cool)";
+  }
 }
+
       document.getElementById("tempAvg").textContent = vals[13] || "--";
       document.getElementById("globeMax").textContent = vals[39] || "--";
       const globeMin = parseFloat(vals[40]);
