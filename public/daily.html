@@ -76,36 +76,35 @@
   white-space: nowrap;
 }
 
-button {
-  padding: 4px 8px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: "Inter", sans-serif;
-  background-color: #FFA500;
-  color: rgb(77, 75, 71);
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.1s ease;
-  display: inline-block;
-  margin: 2px 0;
-  white-space: nowrap;
-  line-height: 1.2;
-  letter-spacing: 0.3px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-}
+    button {
+      padding: 4px 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: "Inter", sans-serif;
+      background-color: #FFA500;
+      color: rgb(77, 75, 71);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.1s ease;
+      display: inline-block;
+      margin: 2px 0;
+      white-space: nowrap;
+      line-height: 1.2;
+      letter-spacing: 0.3px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
 
-button:hover {
-  background-color: #e59400;
-  transform: scale(1.02);
-}
+    button:hover {
+      background-color: #e59400;
+      transform: scale(1.02);
+    }
 
-button:disabled {
-  background-color: gray;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
+    button:disabled {
+      background-color: gray;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
     
     .summary-for-box {
   background: #006400; /* same green as Connected */
@@ -228,17 +227,16 @@ button:disabled {
         </div>
   
         <div id="weatherData">
-          <!-- Control Button Bar -->
-<div class="control-bar">
-    <div class="control-container">
-      <div class="control-half">
-        <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
-      </div>
-      <div class="control-half">
-        <button onclick="location.href='daily.html'">📊 Daily Summary</button>
-      </div>
-    </div>
-  </div>
+          <div class="control-bar">
+            <div class="control-container">
+              <div class="control-half">
+                <button class="back-button" onclick="location.href='index.html'">← Current Readings</button>
+              </div>
+              <div class="control-half">
+                <button id="forceUpdateBtn" class="force-button" onclick="forceSummaryFetch()">🔁 Force Update</button>
+              </div>
+            </div>
+          </div>
           <div id="summaryForContainer" class="summary-for-box">
             <span>🌤️ Daily Summary for:</span>
             <span id="summaryForDay" class="date upper">--</span>
