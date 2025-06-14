@@ -420,6 +420,17 @@ button:disabled {
         padding: 0;
       }
     }
+
+    #dailySummaryBtn {
+  background-color: #006400;
+  color: white;
+  font-weight: 600;
+}
+
+#dailySummaryBtn:hover {
+  background-color: #004d00;
+}
+
   </style>
 </head>
 <body>
@@ -440,7 +451,7 @@ button:disabled {
       <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
     </div>
     <div class="control-half">
-      <button onclick="location.href='daily.html'">⛅️ Daily Summary</button>
+      <button id="dailySummaryBtn" onclick="location.href='daily.html'">⛅️ Daily Summary</button>
     </div>
   </div>
 </div>
