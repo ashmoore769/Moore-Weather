@@ -591,12 +591,13 @@ if (!isNaN(pressure)) {
       document.getElementById("soilMoisture").textContent = vals[27] || "--";
       document.getElementById("batteryMin").textContent = vals[18] || "--";
 
-      const tempMin = parseFloat(vals[12]);
+      
+const tempMin = parseFloat(vals[12]);
 const minTempBox = document.getElementById("minTempBox");
 const minTempVal = document.getElementById("minTempVal");
 
 if (!isNaN(tempMin)) {
-  minTempVal.textContent = tempMin.toFixed(1) + "°C";
+    minTempVal.textContent = tempMin.toFixed(1) + "°C";
   
   // Apply appropriate cold theme
   if (tempMin <= 0) {
