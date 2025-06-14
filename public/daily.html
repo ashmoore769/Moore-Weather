@@ -260,6 +260,58 @@
   font-size: 13px;
   display: inline-block;
 }
+
+.min-temp-container {
+  text-align: center;
+  margin: 12px 0;
+}
+
+.big-temp-box {
+  width: 110px; /* Slightly wider */
+  height: 45px; /* Slightly taller */
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e88e5 100%);
+  box-shadow: 
+    0 4px 8px rgba(30, 58, 138, 0.2),
+    inset 0 0 8px rgba(255,255,255,0.2);
+  font-size: 18px;
+  font-family: 'Rubik', sans-serif;
+  font-weight: 700;
+  color: white;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  line-height: 1.1;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.big-temp-box.freeze-theme {
+  background: linear-gradient(135deg, #0d47a1 0%, #2196f3 100%);
+  box-shadow: 
+    0 4px 12px rgba(13, 71, 161, 0.3),
+    inset 0 0 10px rgba(255,255,255,0.3);
+}
+
+.big-temp-box span.label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.big-temp-box.updated {
+  animation: pulse 0.4s ease-out;
+}
   </style>
 </head>
 <body>
@@ -290,9 +342,11 @@
           <div class="rain-highlight">
             <p><b>🌧️ Total Rainfall:</b> <span id="rainTotal">--</span> mm</p>
           </div>
-          <div class="big-temp-box" id="minTempBox">
-            <span id="minTempVal">--</span>
-            <span class="label">Min Temp</span>
+          <div class="min-temp-container">
+            <div class="big-temp-box" id="minTempBox">
+              <span id="minTempVal">--</span>
+              <span class="label">Min Temp</span>
+            </div>
           </div>
           <hr>
           <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> <span id="tempMinUnit">°C</span> <span id="frostNote" style="color: #333; font-weight: normal;"></span></p>
@@ -361,54 +415,22 @@
       // POPULATE UI ELEMENTS
       document.getElementById("rainTotal").textContent = vals[14] || "--";
       document.getElementById("tempMax").textContent = vals[11] || "--";
-      const tempMin = parseFloat(vals[12]);
-const tempMinElem = document.getElementById("tempMin");
-const tempMinUnitElem = document.getElementById("tempMinUnit");
-const frostNoteElem = document.getElementById("frostNote");
-
-tempMinElem.textContent = vals[12] || "--";
-tempMinElem.style = "";
-tempMinUnitElem.style = "";
-frostNoteElem.textContent = "";
-
-if (!isNaN(tempMin) && tempMin <= 10) {
+      if (!isNaN(tempMin)) {
+  minTempVal.textContent = tempMin.toFixed(1) + "°C";
+  
+  // Apply theme based on temperature
   if (tempMin <= 0) {
-    tempMinElem.style.color = "#004080";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#004080";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Frost 🥶)";
-  } else if (tempMin <= 2) {
-    tempMinElem.style.color = "#005ca9";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#005ca9";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Very Cold)";
-  } else if (tempMin <= 4) {
-    tempMinElem.style.color = "#2b7bb9";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#2b7bb9";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Cold)";
-  } else if (tempMin <= 6) {
-    tempMinElem.style.color = "#4a9ecf";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#4a9ecf";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Chilly)";
-  } else if (tempMin <= 8) {
-    tempMinElem.style.color = "#73b7de";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#73b7de";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Cool)";
-  } else if (tempMin <= 10) {
-    tempMinElem.style.color = "#a2cde8";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#a2cde8";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Mild Cool)";
+    minTempBox.className = "big-temp-box freeze-theme";
+  } else {
+    minTempBox.className = "big-temp-box";
   }
+  
+  // Trigger pulse animation
+  minTempBox.classList.add("updated");
+  setTimeout(() => minTempBox.classList.remove("updated"), 400);
+} else {
+  minTempVal.textContent = "--";
+  minTempBox.className = "big-temp-box";
 }
 
       document.getElementById("tempAvg").textContent = vals[13] || "--";
