@@ -135,6 +135,26 @@
       margin-bottom: 15px;
     }
 
+    .big-temp-box {
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 14px;
+  text-align: center;
+  margin: 10px auto;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.hot-temp-box {
+  background-color: #cc3300; /* red tint */
+}
+
+.cold-temp-box {
+  background-color: #0077cc; /* blue tint */
+}
+
+
     #weatherData p {
   margin: 2px 0;
   line-height: 1.3;
@@ -241,7 +261,8 @@
             <span>🌤️ Daily Summary for:</span>
             <span id="summaryForDay" class="date upper">--</span>
           </div>
-  
+          <div id="focusTempBox" class="big-temp-box" style="display: none;"></div>
+
           <hr>
   
           <div class="rain-highlight">
@@ -521,6 +542,44 @@ if (!isNaN(pressure)) {
       document.getElementById("soilTemp").textContent = vals[23] || "--";
       document.getElementById("soilMoisture").textContent = vals[27] || "--";
       document.getElementById("batteryMin").textContent = vals[18] || "--";
+
+      const focusBox = document.getElementById("focusTempBox");
+focusBox.style.display = "none";
+focusBox.className = "big-temp-box";  // reset classes
+
+const tMin = parseFloat(vals[12]);
+const tMax = parseFloat(vals[11]);
+
+if (!isNaN(tMin) && !isNaN(tMax)) {
+  let focusValue, label, isHot;
+
+  if (tMin <= 10) {
+    focusValue = tMin;
+    label = `🥶 Min Temp: ${tMin.toFixed(1)}°C`;
+    isHot = false;
+  } else if (tMax >= 30) {
+    focusValue = tMax;
+    label = `🥵 Max Temp: ${tMax.toFixed(1)}°C`;
+    isHot = true;
+  } else {
+    // Use whichever is further from 20°C
+    const deltaMin = Math.abs(tMin - 20);
+    const deltaMax = Math.abs(tMax - 20);
+    if (deltaMax > deltaMin) {
+      focusValue = tMax;
+      label = `Max Temp: ${tMax.toFixed(1)}°C`;
+      isHot = true;
+    } else {
+      focusValue = tMin;
+      label = `Min Temp: ${tMin.toFixed(1)}°C`;
+      isHot = false;
+    }
+  }
+
+  focusBox.textContent = label;
+  focusBox.classList.add(isHot ? "hot-temp-box" : "cold-temp-box");
+  focusBox.style.display = "block";
+}
 
       // SUMMARY FOR DAY BOX
       if (date && date !== "--") {
