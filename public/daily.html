@@ -459,7 +459,7 @@
 
       if (date && date !== "--") {
         try {
-          const [day, month, year] = date.split('/');
+          const [year, month, day] = date.split('/');
           const dateObj = new Date(`${year}-${month}-${day}`);
           dateObj.setDate(dateObj.getDate() - 1);
           const dayNames = ["SUN", "MON", "TUES", "WED", "THURS", "FRI", "SAT"];
