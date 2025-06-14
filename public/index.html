@@ -843,16 +843,16 @@ if (dewDiff >= 3.0) {
       }
     }
 
-    /*****************************
+ /*****************************
  * FETCH & AUTO-REFRESH LOGIC *
  *****************************/
 function fetchWeather() {
-    const statusText = document.getElementById("status");
+    // const statusText = document.getElementById("status");
     const spinnerContainer = document.getElementById("spinnerContainer");
     const fetchBtn = document.getElementById("fetchBtn");
 
-    setStatusBadge("Fetching", "fetching");
-    statusText.className = "connected";
+    // setStatusBadge("Fetching", "fetching");
+    // if (statusText) statusText.className = "connected";
     spinnerContainer.style.display = "block";
     fetchBtn.disabled = true;
 
@@ -865,8 +865,8 @@ function fetchWeather() {
         })
         .then(data => {
             updateWeatherData(data);
-            setStatusBadge("Connected", "connected");
-            statusText.className = "connected";
+            // setStatusBadge("Connected", "connected");
+            // if (statusText) statusText.className = "connected";
             retryAttempts = 0;
             if (!initialLoadComplete) {
                 initialLoadComplete = true;
@@ -879,27 +879,27 @@ function fetchWeather() {
             retryAttempts++;
 
             if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
-    setStatusBadge("Error", "error");
-    statusText.className = "error";
-    console.log("Max retry reached — retrying again shortly...");
+                // setStatusBadge("Error", "error");
+                // if (statusText) statusText.className = "error";
+                console.log("Max retry reached — retrying again shortly...");
 
-    // ⏱ Retry again quickly after showing Error
-    const retryDelay = 1000; // 1 second
-    refreshTimeout = setTimeout(fetchWeather, retryDelay);
-} else {
-    setStatusBadge("Fetching", "fetching");
-    statusText.className = "connected";
-    const retryDelay = retryAttempts === 1 ? 300 : 800;
-    refreshTimeout = setTimeout(fetchWeather, retryDelay);
-    console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
-}
+                // ⏱ Retry again quickly after showing Error
+                const retryDelay = 1000; // 1 second
+                refreshTimeout = setTimeout(fetchWeather, retryDelay);
+            } else {
+                // setStatusBadge("Fetching", "fetching");
+                // if (statusText) statusText.className = "connected";
+                const retryDelay = retryAttempts === 1 ? 300 : 800;
+                refreshTimeout = setTimeout(fetchWeather, retryDelay);
+                console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
+            }
         })
         .finally(() => {
             spinnerContainer.style.display = "none";
             fetchBtn.disabled = false;
         });
 }
-  
+
 function scheduleNextFetch() {
     if (refreshTimeout) {
         clearTimeout(refreshTimeout);
@@ -921,7 +921,7 @@ function manualFetch() {
     retryAttempts = 0; // Reset retry counter on manual fetch
     fetchWeather();
 }
- 
+
 window.addEventListener("load", () => fetchWeather());
   </script>
 </body>
