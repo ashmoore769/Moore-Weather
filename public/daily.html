@@ -180,61 +180,49 @@
       .header-box { padding: 0; }
     }
 
-    .temp-group-container {
+.temp-group-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  margin: 5px 0;  /* Reduced margin */
-}
-
-.temp-readings {
-  flex: 1;
-  margin: 0;  /* Remove any default margins */
+  margin: 4px 0; /* Reduced vertical margin */
 }
 
 .temp-readings p {
-  margin: 2px 0;  /* Tighten paragraph spacing */
-  line-height: 1.2;  /* Tighter line spacing */
+  margin: 2px 0; /* Tight paragraph spacing */
+  line-height: 1.2; /* Slightly tighter line height */
 }
 
 .temp-box {
-  width: 80px;  /* Slightly narrower */
-  height: 44px; /* Reduced height to match your reference */
+  width: 80px;
+  height: 44px; /* Exact height to match your reference */
   background-color: #f1f1f1;
   border: 1px solid #ccc;
-  border-radius: 6px;  /* Slightly smaller radius */
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 2px 0;  /* Reduced padding */
+  padding: 0; /* Remove padding for tighter spacing */
 }
 
 #tempBoxValue {
-  font-size: 16px;  /* Slightly smaller */
+  font-size: 16px;
   font-weight: bold;
   color: #004080;
-  line-height: 1.2;  /* Tighter line spacing */
+  line-height: 1; /* Tighter line spacing */
+  margin-top: 4px; /* Small top margin */
 }
 
 #tempBoxLabel {
-  font-size: 11px;  /* Slightly smaller */
+  font-size: 11px;
   color: #666;
   text-align: center;
-  line-height: 1.2;  /* Tighter line spacing */
-  margin-top: 1px;  /* Minimal space between value and label */
+  line-height: 1; /* Tighter line spacing */
+  margin-top: 2px; /* Small space between value and label */
+  margin-bottom: 2px; /* Small bottom margin */
 }
 
-@media only screen and (max-width: 400px) {
-  .temp-box {
-    width: 80px;
-    height: 55px;
-  }
-  #tempBoxValue {
-    font-size: 18px;
-  }
-}
     .force-button {
   background-color: #70B8D9;
   color: white;
@@ -436,6 +424,9 @@ const tempBoxLabel = document.getElementById("tempBoxLabel");
 if (!isNaN(tempMin)) {
   tempBoxValue.textContent = `${vals[12]}°C`;
   tempBoxLabel.textContent = "Min Temp";
+  
+  // Apply color only to the value (not the label)
+  tempBoxValue.style.color = "#004080"; // Standard blue color
 } else {
   tempBoxValue.textContent = "--";
   tempBoxLabel.textContent = "Min Temp";
