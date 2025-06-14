@@ -207,6 +207,14 @@
   padding: 0 4px; /* matches grey background padding */
 }
 
+.rain-highlight {
+  background-color: #f1f1f1;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin: 6px 0 10px 0;
+  display: inline-block;
+}
   </style>
 </head>
 <body>
@@ -236,7 +244,9 @@
   
           <hr>
   
-          <p><b>🌧️ Total Rainfall:</b> <span id="rainTotal">--</span> mm</p>
+          <div class="rain-highlight">
+            <p><b>🌧️ Total Rainfall:</b> <span id="rainTotal">--</span> mm</p>
+          </div>
           <hr>
           <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> <span id="tempMinUnit">°C</span> <span id="frostNote" style="color: #333; font-weight: normal;"></span></p>
           <p><b>🥵 Air Temp Max:</b> <span id="tempMax">--</span> °C</p>
