@@ -178,6 +178,25 @@
       .main-container { max-width: 400px; margin: 5px auto; padding: 0 5px; }
       .header-box { padding: 0; }
     }
+
+    .force-button {
+  background-color: #70B8D9;
+  color: white;
+}
+
+.force-button:hover {
+  background-color: #5CA5C7;
+}
+
+.force-button:active {
+  background-color: #4C91B3;
+}
+
+.force-button:disabled {
+  background-color: gray;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
   </style>
 </head>
 <body>
@@ -194,7 +213,7 @@
                 <button class="back-button" onclick="location.href='index.html'">← Current Readings</button>
               </div>
               <div class="control-half">
-                <button id="forceUpdateBtn" onclick="forceSummaryFetch()">🔁 Force Update</button>
+                <button id="forceUpdateBtn" class="force-button" onclick="forceSummaryFetch()">🔁 Force Update</button>
               </div>
             </div>
           </div>
