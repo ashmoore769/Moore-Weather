@@ -173,81 +173,77 @@
   </style>
 </head>
 <body>
-  <div class="main-container">
-    <div class="freeze-pane">
-      <div class="header-box">
-        <h2>Moore's Daily Summary</h2>
+    <div class="main-container">
+      <div class="freeze-pane">
+        <div class="header-box">
+          <h2>Moore's Daily Summary</h2>
+        </div>
+  
+        <div id="weatherData">
+          <div class="control-bar">
+            <div class="control-container">
+              <div class="control-half">
+                <button class="back-button" onclick="location.href='index.html'">← Current Readings</button>
+              </div>
+              <div class="control-half">
+                <button id="forceUpdateBtn" onclick="forceSummaryFetch()">🔁 Force Update</button>
+              </div>
+            </div>
+          </div>
+  
+          <hr>
+  
+          <div class="address-title">WEST WARWICK, QLD</div>
+  
+          <div id="summaryForContainer" class="summary-for-box">
+            <span>Daily Summary for:</span>
+            <span id="summaryForDay" class="date">--</span>
+          </div>
+  
+          <hr>
+  
+          <p><b>💨 Avg Wind Speed:</b> <span id="windAvg">--</span> km/h</p>
+          <p><b>💨 Max Wind Speed:</b> <span id="windMax">--</span> km/h</p>
+          <p><b>🌬️ Peak Wind Gust:</b> <span id="gustPeak">--</span> km/h</p>
+          <p><b>🧭 Wind Direction:</b> <span id="windDir">--</span>° (<span id="windDirText">--</span>)</p>
+  
+          <p><b>💧 Avg Humidity:</b> <span id="humidityAvg">--</span>%</p>
+          <p><b>💧 Avg Dew Point:</b> <span id="dewAvg">--</span> °C</p>
+  
+          <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> °C</p>
+          <p><b>🌡️ Air Temp Avg:</b> <span id="tempAvg">--</span> °C</p>
+          <p><b>🥵 Air Temp Max:</b> <span id="tempMax">--</span> °C</p>
+  
+          <p><b>🌤️ Solar Radiation Avg:</b> <span id="solarAvg">--</span> W/m²</p>
+          <p><b>☀️ Solar Radiation Max:</b> <span id="solarMax">--</span> W/m²</p>
+  
+          <p><b>🌑 Globe Temp Min:</b> <span id="globeMin">--</span> °C</p>
+          <p><b>🌕 Globe Temp Avg:</b> <span id="globeAvg">--</span> °C</p>
+          <p><b>🌔 Globe Temp Max:</b> <span id="globeMax">--</span> °C</p>
+  
+          <p><b>🌱 Garden Temp Min:</b> <span id="dirtMin">--</span> °C</p>
+          <p><b>🌿 Garden Temp Avg:</b> <span id="dirtAvg">--</span> °C</p>
+          <p><b>🌾 Garden Temp Max:</b> <span id="dirtMax">--</span> °C</p>
+  
+          <p><b>📈 Avg Pressure:</b> <span id="pressureAvg">--</span> hPa</p>
+  
+          <p><b>🌡️ Soil Temp (10cm):</b> <span id="soilTemp">--</span> °C</p>
+          <p><b>💧 Soil Moisture (10cm):</b> <span id="soilMoisture">--</span>%</p>
+  
+          <p><b>🔋 Battery Min:</b> <span id="batteryMin">--</span> V</p>
+          <p><b>🌧️ Total Rainfall:</b> <span id="rainTotal">--</span> mm</p>
+          <p><b>⬆️ Total Daily Evap:</b> <span id="evapTotal">--</span> mm</p>
+  
+          <hr>
+        </div>
+  
+        <div id="spinnerContainer" class="spinner-container">
+          <div class="spinner"></div>
+        </div>
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
       </div>
-
-      <div id="weatherData">
-        <div class="control-bar">
-          <div class="control-container">
-            <div class="control-half">
-              <button class="back-button" onclick="location.href='index.html'">← Current Readings</button>
-            </div>
-            <div class="control-half">
-              <button id="forceUpdateBtn" onclick="forceSummaryFetch()">🔁 Force Update</button>
-            </div>
-          </div>
-        </div>
-
-        <hr>
-
-        <div class="address-title">WEST WARWICK, QLD</div>
-        
-        <div id="summaryForContainer" class="summary-for-box">
-          <span>Daily Summary for:</span>
-          <span id="summaryForDay" class="date">--</span>
-        </div>
-        
-        <hr>
-
-        <div>
-            <p><b>💨 Avg/Max Wind Speed:</b> <span id="windAvg">--</span> / <span id="windMax">--</span> km/h</p>
-            <p><b>🧭 Avg Wind Direction:</b> <span id="windDir">--</span>° (<span id="windDirText">--</span>)</p>
-            <p><b>💦 Avg Humidity:</b> <span id="humidityAvg">--</span>%</p>
-            <p><b>🌡️ Min/Avg/Max Temp:</b> <span id="tempMin">--</span>/<span id="tempAvg">--</span>/<span id="tempMax">--</span> °C</p>
-            <p><b>☀️ Avg/Max Solar:</b> <span id="solarAvg">--</span> / <span id="solarMax">--</span> W/m²</p>
-            <p><b>🔘 Min/Avg/Max Globe:</b> <span id="globeMin">--</span>/<span id="globeAvg">--</span>/<span id="globeMax">--</span> °C</p>
-            <p><b>🌱 Min/Avg/Max Garden:</b> <span id="dirtMin">--</span>/<span id="dirtAvg">--</span>/<span id="dirtMax">--</span> °C</p>
-            <p><b>🌀 Avg Pressure:</b> <span id="pressureAvg">--</span> hPa</p>
-            <div class="rain-container">
-              <p><b>🌧️ Total Rainfall:</b> <span id="rainTotal">--</span> mm</p>
-            </div>
-        </div>
-        
-        <hr>
-        
-        <div class="data-group">
-          <div class="col">
-            <p><b>⬆️ Total Daily Evap:</b> <span id="evapTotal">--</span> mm</p>
-            <p><b>💧 Avg Dew Point:</b> <span id="dewAvg">--</span>°C</p>
-          </div>
-          <div class="col">
-            <p><b>🌬️ Peak Wind Gust:</b> <span id="gustPeak">--</span> km/h</p>
-            <p><b>🔋 Min Battery:</b> <span id="batteryMin">--</span> V</p>
-          </div>
-        </div>
-
-        <hr>
-
-        <div class="data-group">
-          <div class="col">
-            <p><b>🌡️ Avg Soil Temp:</b> <span id="soilTemp">--</span>°C</p>
-          </div>
-          <div class="col">
-            <p><b>💧 Avg Soil Moisture:</b> <span id="soilMoisture">--</span>%</p>
-          </div>
-        </div>
-
-        <hr>
-      </div>
-
-      <div id="spinnerContainer" class="spinner-container"><div class="spinner"></div></div>
-      <div id="errorMessage" class="error-message" style="display: none;"></div>
     </div>
-  </div>
-
+  
   <script>
     const SUMMARY_ENDPOINT = "/daily";
 
