@@ -114,7 +114,7 @@ function fetchDailyData(attempt = 1, maxAttempts = 3) {
       const cleaned = dataLine.trim().replace(/,?\s*\\?END.*$/i, '');
       const fields = cleaned.split(',');
     
-      if (fields.length === 41) {
+      if (fields.length === 43) {
         cachedDailyData = cleaned;
         lastDailyPollTime = new Date();
         logger.info(`[DAILY] ✅ Data cached @ ${lastDailyPollTime.toLocaleTimeString()} with ${fields.length} fields`);
@@ -187,7 +187,7 @@ app.get('/daily', async (req, res) => {
   }
 
   const data = await fetchDailyData();
-  if (data && data.split(',').length === 41) {
+  if (data && data.split(',').length === 43) {
     res.status(200).send(data);
   } else {
     res.status(503).send('Failed to retrieve valid daily summary.');
