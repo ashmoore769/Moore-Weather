@@ -408,7 +408,9 @@ if (!isNaN(tempMin) && tempMin <= 10) {
     frostNoteElem.textContent = "(Mild Cool)";
   }
 
-  const tempBoxValue = document.getElementById("tempBoxValue");
+  
+}
+const tempBoxValue = document.getElementById("tempBoxValue");
 const tempBoxLabel = document.getElementById("tempBoxLabel");
 
 if (!isNaN(tempMin)) {
@@ -434,8 +436,6 @@ if (!isNaN(tempMin)) {
   tempBoxValue.textContent = "--";
   tempBoxLabel.textContent = "Min Temp";
 }
-}
-
       document.getElementById("tempAvg").textContent = vals[13] || "--";
       document.getElementById("globeMax").textContent = vals[39] || "--";
       const globeMin = parseFloat(vals[40]);
