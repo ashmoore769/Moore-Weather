@@ -180,6 +180,43 @@
       .header-box { padding: 0; }
     }
 
+    .temp-group-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.temp-readings {
+  flex: 1;
+}
+
+.temp-box {
+  width: 90px;
+  height: 60px;
+  background-color: #f1f1f1;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 5px;
+}
+
+#tempBoxValue {
+  font-size: 18px;
+  font-weight: bold;
+  color: #004080;
+}
+
+#tempBoxLabel {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+}
+
+
     .force-button {
   background-color: #70B8D9;
   color: white;
@@ -248,9 +285,17 @@
             <p><b>🌧️ Total Rainfall:</b> <span id="rainTotal">--</span> mm</p>
           </div>
           <hr>
-          <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> <span id="tempMinUnit">°C</span> <span id="frostNote" style="color: #333; font-weight: normal;"></span></p>
-          <p><b>🥵 Air Temp Max:</b> <span id="tempMax">--</span> °C</p>
-          <p><b>🌡️ Air Temp Avg:</b> <span id="tempAvg">--</span> °C</p>
+          <div class="temp-group-container">
+            <div class="temp-readings">
+              <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> <span id="tempMinUnit">°C</span> <span id="frostNote" style="color: #333; font-weight: normal;"></span></p>
+              <p><b>🥵 Air Temp Max:</b> <span id="tempMax">--</span> °C</p>
+              <p><b>🌡️ Air Temp Avg:</b> <span id="tempAvg">--</span> °C</p>
+            </div>
+            <div class="temp-box">
+              <div id="tempBoxValue">-2.4°C</div>
+              <div id="tempBoxLabel">Min Temp</div>
+            </div>
+          </div>
           <hr>
           <p><b>🔘 Globe Temp Min:</b> <span id="globeMin">--</span> <span id="globeMinUnit">°C</span> <span id="globeNote" style="color: #333; font-weight: normal;"></span></p>
           <p><b>⭕️ Globe Temp Max:</b> <span id="globeMax">--</span> °C</p>
@@ -362,6 +407,33 @@ if (!isNaN(tempMin) && tempMin <= 10) {
     tempMinUnitElem.style.fontWeight = "bold";
     frostNoteElem.textContent = "(Mild Cool)";
   }
+
+  const tempBoxValue = document.getElementById("tempBoxValue");
+const tempBoxLabel = document.getElementById("tempBoxLabel");
+
+if (!isNaN(tempMin)) {
+  tempBoxValue.textContent = `${vals[12]}°C`;
+  tempBoxValue.style.color = ""; // Reset color
+  tempBoxLabel.textContent = "Min Temp";
+  
+  // Apply same color coding as the min temp
+  if (tempMin <= 0) {
+    tempBoxValue.style.color = "#004080";
+  } else if (tempMin <= 2) {
+    tempBoxValue.style.color = "#005ca9";
+  } else if (tempMin <= 4) {
+    tempBoxValue.style.color = "#2b7bb9";
+  } else if (tempMin <= 6) {
+    tempBoxValue.style.color = "#4a9ecf";
+  } else if (tempMin <= 8) {
+    tempBoxValue.style.color = "#73b7de";
+  } else if (tempMin <= 10) {
+    tempBoxValue.style.color = "#a2cde8";
+  }
+} else {
+  tempBoxValue.textContent = "--";
+  tempBoxLabel.textContent = "Min Temp";
+}
 }
 
       document.getElementById("tempAvg").textContent = vals[13] || "--";
