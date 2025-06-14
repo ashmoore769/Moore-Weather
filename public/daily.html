@@ -402,35 +402,63 @@
     }
 
     function updateSummaryUI(data) {
-      const fields = data.split(',');
-      if (fields.length !== 43) {
-        document.getElementById("errorMessage").textContent = `Error: Invalid data format. Received ${fields.length} fields, expected 43.`;
-        document.getElementById("errorMessage").style.display = "block";
-        return;
-      }
+  const fields = data.split(',');
+  if (fields.length !== 43) {
+    document.getElementById("errorMessage").textContent = `Error: Invalid data format. Received ${fields.length} fields, expected 43.`;
+    document.getElementById("errorMessage").style.display = "block";
+    return;
+  }
 
-      // DESTRUCTURE AND PARSE VALUES
-      const [date, time, ...vals] = fields;
+  // DESTRUCTURE AND PARSE VALUES
+  const [date, time, ...vals] = fields;
 
-      // POPULATE UI ELEMENTS
-      document.getElementById("rainTotal").textContent = vals[14] || "--";
-      document.getElementById("tempMax").textContent = vals[11] || "--";
-      if (!isNaN(tempMin)) {
-  minTempVal.textContent = tempMin.toFixed(1) + "°C";
+  // Declare all variables at the start
+  const tempMin = parseFloat(vals[12]);
+  const minTempBox = document.getElementById("minTempBox");
+  const minTempVal = document.getElementById("minTempVal");
+
+  // POPULATE UI ELEMENTS
+  document.getElementById("rainTotal").textContent = vals[14] || "--";
+  document.getElementById("tempMax").textContent = vals[11] || "--";
   
-  // Apply theme based on temperature
-  if (tempMin <= 0) {
-    minTempBox.className = "big-temp-box freeze-theme";
+  // Update the big temp box
+  if (!isNaN(tempMin)) {
+    minTempVal.textContent = tempMin.toFixed(1) + "°C";
+    
+    // Apply theme based on temperature
+    if (tempMin <= 0) {
+      minTempBox.className = "big-temp-box freeze-theme";
+    } else if (tempMin <= 10) {
+      minTempBox.className = "big-temp-box cold-theme";
+    } else {
+      minTempBox.className = "big-temp-box";
+    }
+    
+    // Trigger pulse animation
+    minTempBox.classList.add("updated");
+    setTimeout(() => minTempBox.classList.remove("updated"), 400);
   } else {
+    minTempVal.textContent = "--";
     minTempBox.className = "big-temp-box";
   }
+
+  // Update the regular temperature display
+  const tempMinElem = document.getElementById("tempMin");
+  const tempMinUnitElem = document.getElementById("tempMinUnit");
+  const frostNoteElem = document.getElementById("frostNote");
+
+  tempMinElem.textContent = isNaN(tempMin) ? "--" : tempMin.toFixed(1);
+  tempMinElem.style = "";
+  tempMinUnitElem.style = "";
+  frostNoteElem.textContent = "";
+
+  if (!isNaN(tempMin) && tempMin <= 10) {
+    // ... rest of your temperature styling logic
+  }
+
+  // ... rest of your update code
   
-  // Trigger pulse animation
-  minTempBox.classList.add("updated");
-  setTimeout(() => minTempBox.classList.remove("updated"), 400);
-} else {
-  minTempVal.textContent = "--";
-  minTempBox.className = "big-temp-box";
+  // REMOVE THE DUPLICATE DECLARATION AT LINE ~660
 }
 
       document.getElementById("tempAvg").textContent = vals[13] || "--";
@@ -632,7 +660,7 @@ if (!isNaN(tempMin)) {
       }
 
       document.getElementById("errorMessage").style.display = "none";
-    }
+
 
     function forceSummaryFetch(isInitialLoad = false) {
       const spinner = document.getElementById("spinnerContainer");
