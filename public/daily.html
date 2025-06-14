@@ -259,7 +259,10 @@
           <hr>
           <p><b>⬆️ Total Daily Evap:</b> <span id="evapTotal">--</span> mm</p>
           <hr>
-          <p><b>💧 Avg Humidity:</b> <span id="humidityAvg">--</span>%</p>
+          <p><b>💧 Avg Humidity:</b>
+            <span id="humidityAvg">--</span><span id="humidityUnit">%</span>
+            <span id="humidityDesc" class="descriptor-label"></span>
+          </p>
           <p><b>💧 Avg Dew Point:</b> <span id="dewAvg">--</span> °C</p>
           <hr>
           <p><b>💨 Avg Wind Speed:</b> <span id="windAvg">--</span> km/h</p>
@@ -442,7 +445,48 @@ if (colour) {
 }
 
       document.getElementById("solarAvg").textContent = vals[15] || "--";
-      document.getElementById("humidityAvg").textContent = vals[10] || "--";
+      const humidityAvg = parseFloat(vals[10]);
+const humidityElem = document.getElementById("humidityAvg");
+const humidityUnitElem = document.getElementById("humidityUnit");
+const humidityDescElem = document.getElementById("humidityDesc");
+
+humidityElem.textContent = vals[10] || "--";
+humidityElem.style = "";
+humidityUnitElem.style = "";
+humidityDescElem.textContent = "";
+humidityDescElem.style = "";
+
+if (!isNaN(humidityAvg)) {
+  let color = "";
+  let desc = "";
+
+  if (humidityAvg >= 95) {
+    color = "#2C7A7B";
+    desc = "(Saturated)";
+  } else if (humidityAvg >= 85) {
+    color = "#339999";
+    desc = "(Oppressive)";
+  } else if (humidityAvg >= 70) {
+    color = "#66b2b2";
+    desc = "(Humid)";
+  } else if (humidityAvg >= 50) {
+    color = "#99cccc";
+    desc = "(Comfortable)";
+  } else if (humidityAvg >= 30) {
+    color = "#cccccc";
+    desc = "(Dry)";
+  } else {
+    color = "#aaaaaa";
+    desc = "(Very Dry)";
+  }
+
+  humidityElem.style.color = color;
+  humidityElem.style.fontWeight = "bold";
+  humidityUnitElem.style.color = color;
+  humidityUnitElem.style.fontWeight = "bold";
+
+  humidityDescElem.textContent = desc;
+}
       document.getElementById("dewAvg").textContent = vals[17] || "--";
       document.getElementById("evapTotal").textContent = vals[16] || "--";
       document.getElementById("dirtMax").textContent = vals[32] || "--";
