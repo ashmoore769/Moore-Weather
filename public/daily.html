@@ -425,7 +425,7 @@
       console.log("Received data:", data); // Debug raw data
       const fields = data.split(',');
       console.log("Field count:", fields.length); // Debug field count
-      if (fields.length < 43) { // Expect date, time, + 41 values
+      if (fields.length < 43 && fields.length !== 41)
         document.getElementById("errorMessage").textContent = `Invalid data format: received ${fields.length} fields, expected 43.`;
         document.getElementById("errorMessage").style.display = "block";
         return;
