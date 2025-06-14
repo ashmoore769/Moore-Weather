@@ -452,14 +452,14 @@
           tempMinUnitElem.style = "";
           frostNoteElem.textContent = "";
     
-          if (!isNaN(tempMin) {
-            if (tempMin <= 0) {
-              tempMinElem.style.color = "#004080";
-              tempMinElem.style.fontWeight = "bold";
-              tempMinUnitElem.style.color = "#004080";
-              tempMinUnitElem.style.fontWeight = "bold";
-              frostNoteElem.textContent = "(Frost 🥶)";
-            } else if (tempMin <= 2) {
+          if (!isNaN(tempMin)) {  // Added missing parenthesis
+    if (tempMin <= 0) {
+        tempMinElem.style.color = "#004080";
+        tempMinElem.style.fontWeight = "bold";
+        tempMinUnitElem.style.color = "#004080";
+        tempMinUnitElem.style.fontWeight = "bold";
+        frostNoteElem.textContent = "(Frost 🥶)";
+    } else if (tempMin <= 2) {
               tempMinElem.style.color = "#005ca9";
               tempMinElem.style.fontWeight = "bold";
               tempMinUnitElem.style.color = "#005ca9";
