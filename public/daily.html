@@ -140,6 +140,11 @@
   white-space: nowrap;
 }
 
+.cold-temp {
+  color: #0077cc;
+  font-weight: bold;
+}
+
     hr { border: none; border-top: 1px solid #e0e0e0; margin: 5px 0; }
     
     .address-title {
@@ -267,7 +272,14 @@
       // POPULATE UI ELEMENTS
       document.getElementById("rainTotal").textContent = vals[14] || "--";
       document.getElementById("tempMax").textContent = vals[11] || "--";
-      document.getElementById("tempMin").textContent = vals[12] || "--";
+      const tempMin = parseFloat(vals[12]);
+const tempMinElem = document.getElementById("tempMin");
+tempMinElem.textContent = vals[12] || "--";
+tempMinElem.classList.remove("cold-temp");
+
+if (!isNaN(tempMin) && tempMin <= 0) {
+  tempMinElem.classList.add("cold-temp");
+}
       document.getElementById("tempAvg").textContent = vals[13] || "--";
       document.getElementById("globeMax").textContent = vals[39] || "--";
       document.getElementById("globeMin").textContent = vals[40] || "--";
