@@ -71,23 +71,26 @@
   padding: 4px 6px;
   width: 100%;
   border-radius: 12px;
+  box-sizing: border-box;  /* ✅ ensure padding doesn't overflow */
 }
 
 .control-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;              /* ✅ this handles spacing between buttons */
-  padding: 0 4px;        /* ✅ this gives equal margin on left and right */
+  padding: 0;
+  margin: 0;
+  gap: 10px;               /* ✅ this evenly separates the buttons */
 }
 
 .control-half {
-  width: 50%;
+  flex: 1;                 /* ✅ equal width on both sides */
   display: flex;
   justify-content: center;
   align-items: center;
   white-space: nowrap;
 }
+
 
 button {
   padding: 4px 8px;
