@@ -69,12 +69,12 @@
     }
 
     .control-half {
-  width: 50%;
-  display: flex;
-  justify-content: stretch; /* or space-between / flex-start if needed */
-  align-items: center;
-  white-space: nowrap;
-}
+      width: 50%;
+      display: flex;
+      justify-content: stretch;
+      align-items: center;
+      white-space: nowrap;
+    }
 
     button {
       padding: 4px 8px;
@@ -107,23 +107,24 @@
     }
     
     .summary-for-box {
-  background: #006400; /* same green as Connected */
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(37, 163, 111, 0.3);
-  font-family: "Inter", sans-serif;
-  font-weight: 600;
-  font-size: 14px;
-  text-align: center;
-  margin: 6px auto;
-}
+      background: #006400;
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(37, 163, 111, 0.3);
+      font-family: "Inter", sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      text-align: center;
+      margin: 6px auto;
+    }
+
     .summary-for-box .date {
-  font-size: inherit;       /* same size as the rest of the box */
-  letter-spacing: 0;        /* optional: remove excess spacing */
-  color: inherit;           /* keeps it white like the rest */
-  text-transform: uppercase;
-}
+      font-size: inherit;
+      letter-spacing: 0;
+      color: inherit;
+      text-transform: uppercase;
+    }
 
     #weatherData {
       background: #ffffff;
@@ -136,26 +137,26 @@
     }
 
     #weatherData p {
-  margin: 2px 0;
-  line-height: 1.3;
-  white-space: nowrap;
-}
+      margin: 2px 0;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
 
-.cold-temp {
-  color: #0077cc;
-  font-weight: bold;
-}
+    .cold-temp {
+      color: #0077cc;
+      font-weight: bold;
+    }
 
     hr { border: none; border-top: 1px solid #e0e0e0; margin: 4px 0; }
     
     .address-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #00008B;
-  text-align: left;
-  margin: 10px 0 2px 0;
-  padding-left: 2px;
-}
+      font-size: 16px;
+      font-weight: 700;
+      color: #00008B;
+      text-align: left;
+      margin: 10px 0 2px 0;
+      padding-left: 2px;
+    }
 
     .rain-container { 
       margin: 10px auto 5px auto; 
@@ -167,9 +168,6 @@
     }
     .rain-container p { margin: 0; }
 
-    .data-group { display: flex; justify-content: space-between; margin: 5px 0; }
-    .data-group .col { width: 48%; white-space: nowrap; }
-
     .spinner-container { display: none; margin: 20px auto; width: 40px; height: 40px; }
     .spinner { width: 100%; height: 100%; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -180,86 +178,86 @@
       .header-box { padding: 0; }
     }
 
-.temp-group-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin: 4px 0; /* Reduced vertical margin */
-}
+    .temp-group-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin: 4px 0;
+    }
 
-.temp-readings p {
-  margin: 2px 0; /* Tight paragraph spacing */
-  line-height: 1.2; /* Slightly tighter line height */
-}
+    .temp-readings p {
+      margin: 2px 0;
+      line-height: 1.2;
+    }
 
-.temp-box {
-  width: 80px;
-  height: 44px; /* Exact height to match your reference */
-  background-color: #f1f1f1;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 0; /* Remove padding for tighter spacing */
-}
+    .temp-box {
+      width: 80px;
+      height: 44px;
+      background-color: #f1f1f1;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+    }
 
-#tempBoxValue {
-  font-size: 16px;
-  font-weight: bold;
-  color: #004080;
-  line-height: 1; /* Tighter line spacing */
-  margin-top: 4px; /* Small top margin */
-}
+    #tempBoxValue, #globeTempBoxValue {
+      font-size: 16px;
+      font-weight: bold;
+      color: #004080;
+      line-height: 1;
+      margin-top: 4px;
+    }
 
-#tempBoxLabel {
-  font-size: 11px;
-  color: #666;
-  text-align: center;
-  line-height: 1; /* Tighter line spacing */
-  margin-top: 2px; /* Small space between value and label */
-  margin-bottom: 2px; /* Small bottom margin */
-}
+    #tempBoxLabel, #globeTempBoxLabel {
+      font-size: 11px;
+      color: #666;
+      text-align: center;
+      line-height: 1;
+      margin-top: 2px;
+      margin-bottom: 2px;
+    }
 
     .force-button {
-  background-color: #70B8D9;
-  color: white;
-}
+      background-color: #70B8D9;
+      color: white;
+    }
 
-.force-button:hover {
-  background-color: #5CA5C7;
-}
+    .force-button:hover {
+      background-color: #5CA5C7;
+    }
 
-.force-button:active {
-  background-color: #4C91B3;
-}
+    .force-button:active {
+      background-color: #4C91B3;
+    }
 
-.force-button:disabled {
-  background-color: gray;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
+    .force-button:disabled {
+      background-color: gray;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
 
-.control-half button {
-  width: 100%;
-}
+    .control-half button {
+      width: 100%;
+    }
 
-.control-container {
-  gap: 8px;
-  padding: 0 4px; /* matches grey background padding */
-}
+    .control-container {
+      gap: 8px;
+      padding: 0 4px;
+    }
 
-.rain-highlight {
-  background-color: #f1f1f1;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  padding: 2px 6px;
-  margin: 2px 0 4px 0;
-  font-size: 13px;
-  display: inline-block;
-}
+    .rain-highlight {
+      background-color: #f1f1f1;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 2px 6px;
+      margin: 2px 0 4px 0;
+      font-size: 13px;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
@@ -298,7 +296,7 @@
               <p><b>🌡️ Air Temp Avg:</b> <span id="tempAvg">--</span> °C</p>
             </div>
             <div class="temp-box">
-              <div id="tempBoxValue">-2.4°C</div>
+              <div id="tempBoxValue">--</div>
               <div id="tempBoxLabel">Min Temp</div>
             </div>
           </div>
@@ -314,6 +312,8 @@
               <div id="globeTempBoxLabel">Globe Min</div>
             </div>
           </div>
+          <hr>
+          <p><b>⬆️ Total Daily Evap:</b> <span id="evapTotal">--</span> mm</p>
           <hr>
           <p><b>💧 Avg Humidity:</b>
             <span id="humidityAvg">--</span><span id="humidityUnit">%</span>
@@ -372,68 +372,65 @@
       document.getElementById("rainTotal").textContent = vals[14] || "--";
       document.getElementById("tempMax").textContent = vals[11] || "--";
       const tempMin = parseFloat(vals[12]);
-const tempMinElem = document.getElementById("tempMin");
-const tempMinUnitElem = document.getElementById("tempMinUnit");
-const frostNoteElem = document.getElementById("frostNote");
+      const tempMinElem = document.getElementById("tempMin");
+      const tempMinUnitElem = document.getElementById("tempMinUnit");
+      const frostNoteElem = document.getElementById("frostNote");
 
-tempMinElem.textContent = vals[12] || "--";
-tempMinElem.style = "";
-tempMinUnitElem.style = "";
-frostNoteElem.textContent = "";
+      tempMinElem.textContent = vals[12] || "--";
+      tempMinElem.style = "";
+      tempMinUnitElem.style = "";
+      frostNoteElem.textContent = "";
 
-if (!isNaN(tempMin) && tempMin <= 10) {
-  if (tempMin <= 0) {
-    tempMinElem.style.color = "#004080";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#004080";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Frost 🥶)";
-  } else if (tempMin <= 2) {
-    tempMinElem.style.color = "#005ca9";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#005ca9";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Very Cold)";
-  } else if (tempMin <= 4) {
-    tempMinElem.style.color = "#2b7bb9";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#2b7bb9";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Cold)";
-  } else if (tempMin <= 6) {
-    tempMinElem.style.color = "#4a9ecf";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#4a9ecf";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Chilly)";
-  } else if (tempMin <= 8) {
-    tempMinElem.style.color = "#73b7de";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#73b7de";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Cool)";
-  } else if (tempMin <= 10) {
-    tempMinElem.style.color = "#a2cde8";
-    tempMinElem.style.fontWeight = "bold";
-    tempMinUnitElem.style.color = "#a2cde8";
-    tempMinUnitElem.style.fontWeight = "bold";
-    frostNoteElem.textContent = "(Mild Cool)";
-  }
+      if (!isNaN(tempMin) && tempMin <= 10) {
+        if (tempMin <= 0) {
+          tempMinElem.style.color = "#004080";
+          tempMinElem.style.fontWeight = "bold";
+          tempMinUnitElem.style.color = "#004080";
+          tempMinUnitElem.style.fontWeight = "bold";
+          frostNoteElem.textContent = "(Frost 🥶)";
+        } else if (tempMin <= 2) {
+          tempMinElem.style.color = "#005ca9";
+          tempMinElem.style.fontWeight = "bold";
+          tempMinUnitElem.style.color = "#005ca9";
+          tempMinUnitElem.style.fontWeight = "bold";
+          frostNoteElem.textContent = "(Very Cold)";
+        } else if (tempMin <= 4) {
+          tempMinElem.style.color = "#2b7bb9";
+          tempMinElem.style.fontWeight = "bold";
+          tempMinUnitElem.style.color = "#2b7bb9";
+          tempMinUnitElem.style.fontWeight = "bold";
+          frostNoteElem.textContent = "(Cold)";
+        } else if (tempMin <= 6) {
+          tempMinElem.style.color = "#4a9ecf";
+          tempMinElem.style.fontWeight = "bold";
+          tempMinUnitElem.style.color = "#4a9ecf";
+          tempMinUnitElem.style.fontWeight = "bold";
+          frostNoteElem.textContent = "(Chilly)";
+        } else if (tempMin <= 8) {
+          tempMinElem.style.color = "#73b7de";
+          tempMinElem.style.fontWeight = "bold";
+          tempMinUnitElem.style.color = "#73b7de";
+          tempMinUnitElem.style.fontWeight = "bold";
+          frostNoteElem.textContent = "(Cool)";
+        } else if (tempMin <= 10) {
+          tempMinElem.style.color = "#a2cde8";
+          tempMinElem.style.fontWeight = "bold";
+          tempMinUnitElem.style.color = "#a2cde8";
+          tempMinUnitElem.style.fontWeight = "bold";
+          frostNoteElem.textContent = "(Mild Cool)";
+        }
+      }
+      
+      const tempBoxValue = document.getElementById("tempBoxValue");
+      const tempBoxLabel = document.getElementById("tempBoxLabel");
 
-  
-}
-// Update temp box - place this right after the air temp min/max/avg updates
-// Update temp box - simplified version
-const tempBoxValue = document.getElementById("tempBoxValue");
-const tempBoxLabel = document.getElementById("tempBoxLabel");
-
-if (!isNaN(tempMin)) {
-  tempBoxValue.textContent = `${vals[12]}°C`;
-  tempBoxLabel.textContent = "Min Temp";
-} else {
-  tempBoxValue.textContent = "--";
-  tempBoxLabel.textContent = "Min Temp";
-}
+      if (vals[12] && !isNaN(tempMin)) {
+        tempBoxValue.textContent = `${vals[12]}°C`;
+        tempBoxLabel.textContent = "Min Temp";
+      } else {
+        tempBoxValue.textContent = "--";
+        tempBoxLabel.textContent = "Min Temp";
+      }
       document.getElementById("tempAvg").textContent = vals[13] || "--";
       document.getElementById("globeMax").textContent = vals[39] || "--";
       const globeMin = parseFloat(vals[40]);
@@ -486,7 +483,6 @@ if (!isNaN(tempMin)) {
         }
       }
 
-      // Update globe temp box
       const globeTempBoxValue = document.getElementById("globeTempBoxValue");
       const globeTempBoxLabel = document.getElementById("globeTempBoxLabel");
 
@@ -499,117 +495,119 @@ if (!isNaN(tempMin)) {
       }
 
       document.getElementById("globeAvg").textContent = vals[38] || "--";
+      document.getElementById("evapTotal").textContent = vals[16] || "--";
+      document.getElementById("dewAvg").textContent = vals[17] || "--";
+      
       const solarMax = parseFloat(vals[37]);
-const solarMaxElem      = document.getElementById("solarMax");
-const solarMaxUnitElem  = document.getElementById("solarMaxUnit");
+      const solarMaxElem = document.getElementById("solarMax");
+      const solarMaxUnitElem  = document.getElementById("solarMaxUnit");
 
-solarMaxElem.textContent = vals[37] || "--";
-solarMaxElem.style = "";
-if (solarMaxUnitElem) solarMaxUnitElem.style = "";
+      solarMaxElem.textContent = vals[37] || "--";
+      solarMaxElem.style = "";
+      if (solarMaxUnitElem) solarMaxUnitElem.style = "";
 
-/* Better-contrast colour mapping */
-let colour = "";
-if (!isNaN(solarMax)) {
-  if      (solarMax >= 1000) colour = "#cc5c00";
-  else if (solarMax >= 800)  colour = "#e67e22";
-  else if (solarMax >= 600)  colour = "#d4ac0d";
-  else if (solarMax >= 400)  colour = "#b7950b";
-}
+      let colour = "";
+      if (!isNaN(solarMax)) {
+        if      (solarMax >= 1000) colour = "#cc5c00";
+        else if (solarMax >= 800)  colour = "#e67e22";
+        else if (solarMax >= 600)  colour = "#d4ac0d";
+        else if (solarMax >= 400)  colour = "#b7950b";
+      }
 
-if (colour) {
-  solarMaxElem.style.color = colour;
-  solarMaxElem.style.fontWeight = "bold";
-  if (solarMaxUnitElem) {
-    solarMaxUnitElem.style.color = colour;
-    solarMaxUnitElem.style.fontWeight = "bold";
-  }
-}
+      if (colour) {
+        solarMaxElem.style.color = colour;
+        solarMaxElem.style.fontWeight = "bold";
+        if (solarMaxUnitElem) {
+          solarMaxUnitElem.style.color = colour;
+          solarMaxUnitElem.style.fontWeight = "bold";
+        }
+      }
 
       document.getElementById("solarAvg").textContent = vals[15] || "--";
-     const humidity = parseFloat(vals[10]);
-const humidityElem = document.getElementById("humidityAvg");
-const humidityUnitElem = document.getElementById("humidityUnit");
-const humidityDescElem = document.getElementById("humidityDesc");
+      
+      const humidity = parseFloat(vals[10]);
+      const humidityElem = document.getElementById("humidityAvg");
+      const humidityUnitElem = document.getElementById("humidityUnit");
+      const humidityDescElem = document.getElementById("humidityDesc");
 
-humidityElem.textContent = vals[10] || "--";
-humidityElem.style = "";
-humidityUnitElem.style = "";
-humidityDescElem.textContent = "";
-humidityDescElem.style = "";
+      humidityElem.textContent = vals[10] || "--";
+      humidityElem.style = "";
+      humidityUnitElem.style = "";
+      humidityDescElem.textContent = "";
+      humidityDescElem.style = "";
 
-if (!isNaN(humidity)) {
-  let color = "";
-  let descriptor = "";
+      if (!isNaN(humidity)) {
+        let color = "";
+        let descriptor = "";
 
-  if (humidity <= 20) {
-    color = "#994C00";
-    descriptor = "(Very Dry)";
-  } else if (humidity <= 40) {
-    color = "#AA6E00";
-    descriptor = "(Dry)";
-  } else if (humidity <= 60) {
-    color = "#006400";
-    descriptor = "(Comfortable)";
-  } else if (humidity <= 80) {
-    color = "#006699";
-    descriptor = "(Humid)";
-  } else {
-    color = "#003366";
-    descriptor = "(Very Humid)";
-  }
+        if (humidity <= 20) {
+          color = "#994C00";
+          descriptor = "(Very Dry)";
+        } else if (humidity <= 40) {
+          color = "#AA6E00";
+          descriptor = "(Dry)";
+        } else if (humidity <= 60) {
+          color = "#006400";
+          descriptor = "(Comfortable)";
+        } else if (humidity <= 80) {
+          color = "#006699";
+          descriptor = "(Humid)";
+        } else {
+          color = "#003366";
+          descriptor = "(Very Humid)";
+        }
 
-  // Apply styles and content
-  humidityElem.style.color = color;
-  humidityElem.style.fontWeight = "bold";
-  humidityUnitElem.style.color = color;
-  humidityUnitElem.style.fontWeight = "bold";
-  humidityDescElem.textContent = ` ${descriptor}`;
-}
-      document.getElementById("dewAvg").textContent = vals[17] || "--";
-      document.getElementById("evapTotal").textContent = vals[16] || "--";
+        humidityElem.style.color = color;
+        humidityElem.style.fontWeight = "bold";
+        humidityUnitElem.style.color = color;
+        humidityUnitElem.style.fontWeight = "bold";
+        humidityDescElem.textContent = ` ${descriptor}`;
+      }
+      
       document.getElementById("dirtMax").textContent = vals[32] || "--";
       document.getElementById("dirtMin").textContent = vals[33] || "--";
       document.getElementById("dirtAvg").textContent = vals[31] || "--";
       document.getElementById("windMax").textContent = vals[0] || "--";
       document.getElementById("windAvg").textContent = vals[1] || "--";
       document.getElementById("gustPeak").textContent = vals[5] || "--";
+      
       const windDirAvg = parseFloat(vals[7]);
       document.getElementById("windDir").textContent = isNaN(windDirAvg) ? "--" : windDirAvg.toFixed(1);
       document.getElementById("windDirText").textContent = isNaN(windDirAvg) ? "--" : getWindDirection(windDirAvg);
+      
       const pressure = parseFloat(vals[34]);
-const pressureElem = document.getElementById("pressureAvg");
-const pressureUnitElem = document.getElementById("pressureUnit");
-const pressureFishElem = document.getElementById("pressureFish");
+      const pressureElem = document.getElementById("pressureAvg");
+      const pressureUnitElem = document.getElementById("pressureUnit");
+      const pressureFishElem = document.getElementById("pressureFish");
 
-pressureElem.style = "";
-pressureUnitElem.style = "";
-pressureFishElem.textContent = "";
+      pressureElem.style = "";
+      pressureUnitElem.style = "";
+      pressureFishElem.textContent = "";
 
-if (!isNaN(pressure)) {
-  const rounded = pressure.toFixed(1);
-  pressureElem.textContent = rounded;
+      if (!isNaN(pressure)) {
+        const rounded = pressure.toFixed(1);
+        pressureElem.textContent = rounded;
 
-  if (pressure >= 1020.0) {
-    pressureElem.style.color = "#2678B2";
-    pressureElem.style.fontWeight = "bold";
-    pressureUnitElem.style.color = "#2678B2";
-    pressureUnitElem.style.fontWeight = "bold";
-    pressureFishElem.textContent = "🐟";
-  }
-} else {
-  pressureElem.textContent = "--";
-}
+        if (pressure >= 1020.0) {
+          pressureElem.style.color = "#2678B2";
+          pressureElem.style.fontWeight = "bold";
+          pressureUnitElem.style.color = "#2678B2";
+          pressureUnitElem.style.fontWeight = "bold";
+          pressureFishElem.textContent = "🐟";
+        }
+      } else {
+        pressureElem.textContent = "--";
+      }
 
       document.getElementById("soilTemp").textContent = vals[23] || "--";
       document.getElementById("soilMoisture").textContent = vals[27] || "--";
       document.getElementById("batteryMin").textContent = vals[18] || "--";
 
-      // SUMMARY FOR DAY BOX
       if (date && date !== "--") {
         try {
           const [year, month, day] = date.split('/');
           const dateObj = new Date(`${year}-${month}-${day}`);
-          dateObj.setDate(dateObj.getDate() - 1); // Summary is for the previous day
+          dateObj.setDate(dateObj.getDate() - 1);
           const dayNames = ["SUN", "MON", "TUES", "WED", "THURS", "FRI", "SAT"];
           const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
           const dayName = dayNames[dateObj.getDay()];
@@ -660,7 +658,6 @@ if (!isNaN(pressure)) {
     }
 
     function startInitialFetch() {
-      // Fetch data on load. The server-side caching will handle providing stale data until the 9AM update.
       forceSummaryFetch(true); 
     }
 
