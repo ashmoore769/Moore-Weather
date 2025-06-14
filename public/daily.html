@@ -234,7 +234,7 @@
           <p><b>🌾 Garden Temp Max:</b> <span id="dirtMax">--</span> °C</p>
           <p><b>🌿 Garden Temp Avg:</b> <span id="dirtAvg">--</span> °C</p>
           <hr>
-          <p><b>📈 Avg Pressure:</b> <span id="pressureAvg">--</span> <span id="pressureFish"></span> hPa</p>
+          <p><b>📈 Avg Pressure:</b> <span id="pressureAvg">--</span> <span id="pressureUnit">hPa</span> <span id="pressureFish" style="font-weight: normal;"></span></p>
           <hr>
           <p><b>🌡️ Soil Temp (10cm):</b> <span id="soilTemp">--</span> °C</p>
           <p><b>💧 Soil Moisture (10cm):</b> <span id="soilMoisture">--</span>%</p>
@@ -391,16 +391,26 @@ if (!isNaN(globeMin) && globeMin <= 10) {
       document.getElementById("windDirText").textContent = isNaN(windDirAvg) ? "--" : getWindDirection(windDirAvg);
       const pressure = parseFloat(vals[34]);
 const pressureElem = document.getElementById("pressureAvg");
+const pressureUnitElem = document.getElementById("pressureUnit");
 const pressureFishElem = document.getElementById("pressureFish");
 
-pressureElem.textContent = vals[34] || "--";
 pressureElem.style = "";
+pressureUnitElem.style = "";
 pressureFishElem.textContent = "";
 
-if (!isNaN(pressure) && pressure >= 1020.0) {
-  pressureElem.style.color = "#3AADE0";
-  pressureElem.style.fontWeight = "bold";
-  pressureFishElem.textContent = "🐟";
+if (!isNaN(pressure)) {
+  const rounded = pressure.toFixed(1);
+  pressureElem.textContent = rounded;
+
+  if (pressure >= 1020.0) {
+    pressureElem.style.color = "#3AADE0";
+    pressureElem.style.fontWeight = "bold";
+    pressureUnitElem.style.color = "#3AADE0";
+    pressureUnitElem.style.fontWeight = "bold";
+    pressureFishElem.textContent = "🐟";
+  }
+} else {
+  pressureElem.textContent = "--";
 }
 
       document.getElementById("soilTemp").textContent = vals[23] || "--";
