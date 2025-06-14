@@ -267,7 +267,7 @@
           <p><b>🌬️ Peak Wind Gust:</b> <span id="gustPeak">--</span> km/h</p>
           <p><b>🧭 Avg Wind Direc:</b> <span id="windDir">--</span>° (<span id="windDirText">--</span>)</p>
           <hr>
-          <p><b>☀️ Solar Radiation Max:</b> <span id="solarMax">--</span> W/m²</p>
+          <p><b>☀️ Solar Radiation Max:</b> <span id="solarMax">--</span> <span id="solarMaxUnit">W/m²</span></p>
           <p><b>🌤️ Solar Radiation Avg:</b> <span id="solarAvg">--</span> W/m²</p>
           <hr>
           <p><b>🌱 Garden Temp Min:</b> <span id="dirtMin">--</span> °C</p>
@@ -417,23 +417,34 @@ if (!isNaN(globeMin) && globeMin <= 10) {
       document.getElementById("globeAvg").textContent = vals[38] || "--";
       const solarMax = parseFloat(vals[37]);
 const solarMaxElem = document.getElementById("solarMax");
+const solarMaxUnitElem = document.getElementById("solarMaxUnit");
 
 solarMaxElem.textContent = vals[37] || "--";
 solarMaxElem.style = "";
+solarMaxUnitElem.style = "";
 
 if (!isNaN(solarMax)) {
   if (solarMax >= 1000) {
-    solarMaxElem.style.color = "#e67e22"; // strong orange
+    solarMaxElem.style.color = "#e67e22";  // vivid burnt orange
+    solarMaxUnitElem.style.color = "#e67e22";
     solarMaxElem.style.fontWeight = "bold";
+    solarMaxUnitElem.style.fontWeight = "bold";
   } else if (solarMax >= 800) {
-    solarMaxElem.style.color = "#f39c12"; // amber
+    solarMaxElem.style.color = "#f39c12";  // amber
+    solarMaxUnitElem.style.color = "#f39c12";
     solarMaxElem.style.fontWeight = "bold";
+    solarMaxUnitElem.style.fontWeight = "bold";
   } else if (solarMax >= 600) {
-    solarMaxElem.style.color = "#f1c40f"; // yellow
+    solarMaxElem.style.color = "#f1c40f";  // golden yellow
+    solarMaxUnitElem.style.color = "#f1c40f";
+    solarMaxElem.style.fontWeight = "bold";
+    solarMaxUnitElem.style.fontWeight = "bold";
   } else if (solarMax >= 400) {
-    solarMaxElem.style.color = "#f7dc6f"; // pale yellow
+    solarMaxElem.style.color = "#d4ac0d";  // darker yellow for contrast
+    solarMaxUnitElem.style.color = "#d4ac0d";
   }
 }
+
       document.getElementById("solarAvg").textContent = vals[15] || "--";
       document.getElementById("humidityAvg").textContent = vals[10] || "--";
       document.getElementById("dewAvg").textContent = vals[17] || "--";
