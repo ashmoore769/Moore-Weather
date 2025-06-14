@@ -429,39 +429,13 @@ if (!isNaN(tempMin) && tempMin <= 10) {
   
 }
 // Update temp box - place this right after the air temp min/max/avg updates
+// Update temp box - simplified version
 const tempBoxValue = document.getElementById("tempBoxValue");
 const tempBoxLabel = document.getElementById("tempBoxLabel");
 
 if (!isNaN(tempMin)) {
   tempBoxValue.textContent = `${vals[12]}°C`;
-  tempBoxValue.style.color = "#333"; // Default color
   tempBoxLabel.textContent = "Min Temp";
-  
-  // Apply color coding based on temperature
-  if (tempMin <= 0) {
-    tempBoxValue.style.color = "#004080";
-  } else if (tempMin <= 2) {
-    tempBoxValue.style.color = "#005ca9";
-  } else if (tempMin <= 4) {
-    tempBoxValue.style.color = "#2b7bb9";
-  } else if (tempMin <= 6) {
-    tempBoxValue.style.color = "#4a9ecf";
-  } else if (tempMin <= 8) {
-    tempBoxValue.style.color = "#73b7de";
-  } else if (tempMin <= 10) {
-    tempBoxValue.style.color = "#a2cde8";
-  }
-  
-  // Add emoji based on temperature
-  if (tempMin <= 0) {
-    tempBoxLabel.innerHTML = "Frost ❄️";
-  } else if (tempMin <= 5) {
-    tempBoxLabel.innerHTML = "Cold 🥶";
-  } else if (tempMin <= 15) {
-    tempBoxLabel.innerHTML = "Cool 😌";
-  } else {
-    tempBoxLabel.innerHTML = "Warm ☀️";
-  }
 } else {
   tempBoxValue.textContent = "--";
   tempBoxLabel.textContent = "Min Temp";
