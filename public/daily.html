@@ -262,8 +262,14 @@
 }
 
 .min-temp-container {
-  text-align: center;
-  margin: 12px 0;
+  float: right;
+  margin: -10px 0 10px 15px; /* Adjust positioning as needed */
+  clear: right; /* Prevents other elements from floating next to it */
+}
+
+/* Optional: Adjust the hr spacing if needed */
+hr {
+  clear: both; /* Ensures horizontal rules appear below floated elements */
 }
 
 .big-temp-box {
