@@ -107,20 +107,24 @@
     }
     
     .summary-for-box {
-      background: #26A69A;
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(38, 166, 154, 0.3);
-      font-family: "Rubik", sans-serif;
-      font-weight: 700;
-      text-align: center;
-      margin: 10px auto;
-    }
-    .summary-for-box .date {
-      font-size: 16px;
-      letter-spacing: 1px;
-    }
+  background: #26A69A;
+  color: #fff; /* This keeps the first part white */
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(38, 166, 154, 0.3);
+  font-family: "Rubik", sans-serif;
+  font-weight: 700;
+  font-size: 14px; /* Set uniform size here */
+  text-align: center;
+  margin: 10px auto;
+}
+
+.summary-for-box .date {
+  color: #000;        /* Make the dynamic date black */
+  font-size: inherit; /* Same size as the rest */
+  letter-spacing: 0;  /* Optional: reduce spacing */
+}
+
 
     #weatherData {
       background: #ffffff;
@@ -195,7 +199,7 @@
           <hr>
           <div id="summaryForContainer" class="summary-for-box">
             <span>9AM Daily Summary for:</span>
-            <span id="summaryForDay" class="date">--</span>
+            <span id="summaryForDay" class="date">FRI 13th June 2025</span>
           </div>
   
           <hr>
