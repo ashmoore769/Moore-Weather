@@ -107,14 +107,20 @@
     }
     
     .summary-for-box {
-  /* unchanged: teal background, white text */
-  font-size: 14px;
-  color:#fff;
-}
-
-.summary-for-box .upper { text-transform: uppercase; }
-
-
+      background: #26A69A;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(38, 166, 154, 0.3);
+      font-family: "Rubik", sans-serif;
+      font-weight: 700;
+      text-align: center;
+      margin: 10px auto;
+    }
+    .summary-for-box .date {
+      font-size: 16px;
+      letter-spacing: 1px;
+    }
 
     #weatherData {
       background: #ffffff;
@@ -188,8 +194,8 @@
   
           <hr>
           <div id="summaryForContainer" class="summary-for-box">
-            <span class="label">9 AM Daily Summary for:</span>
-            <span id="summaryForDay" class="date upper">FRI 13 JUNE 2025</span>
+            <span>9AM Daily Summary for:</span>
+            <span id="summaryForDay" class="date">--</span>
           </div>
   
           <hr>
