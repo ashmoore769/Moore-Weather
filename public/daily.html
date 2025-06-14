@@ -471,9 +471,8 @@ if (!isNaN(humidity)) {
     descriptor = "(Very Humid)";
   }
 
-  humidityElem.style.color = color;
-  humidityElem.style.fontWeight = "bold";
-  humidityElem.textContent += ` ${descriptor}`;
+  humidityElem.innerHTML = `<b style="color: ${color};">${humidity.toFixed(1)}%<\/b> (${descriptor})`;
+
 }
       document.getElementById("dewAvg").textContent = vals[17] || "--";
       document.getElementById("evapTotal").textContent = vals[16] || "--";
