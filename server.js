@@ -170,15 +170,17 @@ app.get('/weather', (req, res) => {
 // Daily summary (for daily.html)
 app.get('/daily', async (req, res) => {
   const force = req.query.force === '1';
-  logger.info(`GET /daily requested. Force: ${force}`);  // 👈 Add this
 
   if (!force && cachedDailyData) {
     return res.status(200).send(cachedDailyData);
   }
 
   const data = await fetchDailyData();
-  logger.info(`Fetched fresh daily data (force=${force}): ${data}`); // 👈 Add this
-  ...
+  if (data && data.split(',').length === 41) {
+    res.status(200).send(data);
+  } else {
+    res.status(503).send('Failed to retrieve valid daily summary.');
+  }
 });
 
 // Diagnostics
