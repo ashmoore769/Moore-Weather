@@ -119,6 +119,12 @@
   letter-spacing: 0.2px;
 }
 
+.min-temp-box-float {
+  position: absolute;
+  right: 10px;
+  top: 0;
+  width: 110px;
+}
     button {
       padding: 4px 8px;
       font-size: 13px;
@@ -262,9 +268,13 @@
 }
 
 .min-temp-container {
-  float: right;
-  margin: -10px 0 10px 15px; /* Adjust positioning as needed */
+  margin: 0;
   clear: right; /* Prevents other elements from floating next to it */
+}
+
+.air-temp-section {
+  position: relative;
+  padding-right: 120px; /* Make space for the floating box */
 }
 
 /* Optional: Adjust the hr spacing if needed */
@@ -355,9 +365,16 @@ hr {
             </div>
           </div>
           <hr>
-          <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> <span id="tempMinUnit">°C</span> <span id="frostNote" style="color: #333; font-weight: normal;"></span></p>
-          <p><b>🥵 Air Temp Max:</b> <span id="tempMax">--</span> °C</p>
-          <p><b>🌡️ Air Temp Avg:</b> <span id="tempAvg">--</span> °C</p>
+          <div class="air-temp-section">
+            <div class="min-temp-box-float" id="minTempBox">
+              <span id="minTempVal">--</span>
+              <span class="label">Min Temp</span>
+            </div>
+            
+            <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> <span id="tempMinUnit">°C</span> <span id="frostNote"></span></p>
+            <p><b>🥵 Air Temp Max:</b> <span id="tempMax">--</span> °C</p>
+            <p><b>🌡️ Air Temp Avg:</b> <span id="tempAvg">--</span> °C</p>
+          </div>
           <hr>
           <p><b>🔘 Globe Temp Min:</b> <span id="globeMin">--</span> <span id="globeMinUnit">°C</span> <span id="globeNote" style="color: #333; font-weight: normal;"></span></p>
           <p><b>⭕️ Globe Temp Max:</b> <span id="globeMax">--</span> °C</p>
