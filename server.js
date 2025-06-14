@@ -101,17 +101,34 @@ function fetchDailyData(attempt = 1, maxAttempts = 3) {
 
     client.on('close', () => {
       client.destroy();
-      const cleaned = receivedData.trim().replace(/,?END$/, '');
+    
+      // ── 1) Clean the raw response ──────────────────────────────────────────────
+      const cleaned = receivedData                 // full string from logger
+        .replace(/^.*MEM\s+1\s+LAST\s*/i, '')      // strip “> MEM 1 LAST” echo
+        .replace(/\\?\s*END\s.*$/i, '')            // strip “\END OF DATA” (or “END”)
+        .trim();
+    
+      // ── 2) Split into CSV fields ───────────────────────────────────────────────
       const fields = cleaned.split(',');
-
+    
+      // ── 3) Cache & log if the format is valid (exactly 41 fields) ──────────────
       if (fields.length === 41) {
-        cachedDailyData = cleaned;
+        cachedDailyData   = cleaned;
         lastDailyPollTime = new Date();
-        logger.info(`Daily data updated at ${lastDailyPollTime.toLocaleTimeString()} (${fields.length} fields)`);
+        logger.info(
+          `[DAILY] Updated cache @ ${lastDailyPollTime.toLocaleTimeString()} ` +
+          `(${fields.length} fields)`
+        );
       } else {
-        logger.warn(`Invalid daily data: received ${fields.length} fields, expected 41. Data: ${cleaned}`);
+        logger.warn(
+          `[DAILY] Invalid data: got ${fields.length} fields (expected 41).\n` +
+          `Raw: ${JSON.stringify(receivedData)}\n` +
+          `Cleaned: ${cleaned}`
+        );
       }
-      resolve(cleaned || ''); // Return the data or empty string
+    
+      // ── 4) Resolve with whatever we have (empty string = error for caller) ─────
+      resolve(cleaned || '');
     });
 
     client.on('error', (err) => {
