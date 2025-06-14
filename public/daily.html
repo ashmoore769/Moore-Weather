@@ -446,9 +446,14 @@ if (colour) {
       document.getElementById("solarAvg").textContent = vals[15] || "--";
       const humidity = parseFloat(vals[10]);
 const humidityElem = document.getElementById("humidityAvg");
+const humidityUnitElem = document.getElementById("humidityUnit");
+const humidityDescElem = document.getElementById("humidityDesc");
 
 humidityElem.textContent = vals[10] || "--";
 humidityElem.style = "";
+humidityUnitElem.style = "";
+humidityDescElem.textContent = "";
+humidityDescElem.style = "";
 
 if (!isNaN(humidity)) {
   let color = "";
@@ -471,8 +476,12 @@ if (!isNaN(humidity)) {
     descriptor = "(Very Humid)";
   }
 
-  humidityElem.innerHTML = `<b style="color: ${color};">${humidity.toFixed(1)}%</b> (${descriptor})`;
-
+  // Apply styles and content
+  humidityElem.style.color = color;
+  humidityElem.style.fontWeight = "bold";
+  humidityUnitElem.style.color = color;
+  humidityUnitElem.style.fontWeight = "bold";
+  humidityDescElem.textContent = ` ${descriptor}`;
 }
       document.getElementById("dewAvg").textContent = vals[17] || "--";
       document.getElementById("evapTotal").textContent = vals[16] || "--";
