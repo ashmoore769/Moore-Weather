@@ -120,6 +120,10 @@ button:disabled {
   opacity: 0.7;
 }
 
+.control-half button {
+  width: 100%;
+}
+
 .force-button {
   background-color: #70B8D9;
   color: white;
@@ -432,10 +436,10 @@ button:disabled {
 <div class="control-bar">
   <div class="control-container">
     <div class="control-half">
-      <button id="fetchBtn" onclick="manualFetch()">← Current Readings</button>
+      <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
     </div>
     <div class="control-half">
-      <button id="dailyBtn" onclick="location.href='daily.html'" class="force-button">📊 Daily Summary</button>
+      <button onclick="location.href='daily.html'">📊 Daily Summary</button>
     </div>
   </div>
 </div>
