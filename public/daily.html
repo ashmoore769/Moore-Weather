@@ -118,9 +118,11 @@
       margin: 10px auto;
     }
     .summary-for-box .date {
-      font-size: 16px;
-      letter-spacing: 1px;
-    }
+  font-size: inherit;       /* same size as the rest of the box */
+  letter-spacing: 0;        /* optional: remove excess spacing */
+  color: inherit;           /* keeps it white like the rest */
+  text-transform: uppercase;
+}
 
     #weatherData {
       background: #ffffff;
@@ -195,7 +197,7 @@
           <hr>
           <div id="summaryForContainer" class="summary-for-box">
             <span>9AM Daily Summary for:</span>
-            <span id="summaryForDay" class="date">--</span>
+            <span id="summaryForDay" class="date upper">--</span>
           </div>
   
           <hr>
