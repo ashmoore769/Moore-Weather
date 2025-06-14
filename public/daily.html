@@ -416,32 +416,29 @@ if (!isNaN(globeMin) && globeMin <= 10) {
 
       document.getElementById("globeAvg").textContent = vals[38] || "--";
       const solarMax = parseFloat(vals[37]);
-const solarMaxElem = document.getElementById("solarMax");
-const solarMaxUnitElem = document.getElementById("solarMaxUnit");
+const solarMaxElem      = document.getElementById("solarMax");
+const solarMaxUnitElem  = document.getElementById("solarMaxUnit"); // null if you didn’t add it
 
 solarMaxElem.textContent = vals[37] || "--";
 solarMaxElem.style = "";
-solarMaxUnitElem.style = "";
+if (solarMaxUnitElem) solarMaxUnitElem.style = "";
 
+/* ---------- colour thresholds ---------- */
+let colour = "";
 if (!isNaN(solarMax)) {
-  if (solarMax >= 1000) {
-    solarMaxElem.style.color = "#e67e22";  // vivid burnt orange
-    solarMaxUnitElem.style.color = "#e67e22";
-    solarMaxElem.style.fontWeight = "bold";
+  if      (solarMax >= 1000) colour = "#e67e22";
+  else if (solarMax >= 800)  colour = "#f39c12";
+  else if (solarMax >= 600)  colour = "#f1c40f";
+  else if (solarMax >= 400)  colour = "#d4ac0d";
+}
+
+/* ---------- apply styles ---------- */
+if (colour) {
+  solarMaxElem.style.color = colour;
+  solarMaxElem.style.fontWeight = "bold";
+  if (solarMaxUnitElem) {
+    solarMaxUnitElem.style.color = colour;
     solarMaxUnitElem.style.fontWeight = "bold";
-  } else if (solarMax >= 800) {
-    solarMaxElem.style.color = "#f39c12";  // amber
-    solarMaxUnitElem.style.color = "#f39c12";
-    solarMaxElem.style.fontWeight = "bold";
-    solarMaxUnitElem.style.fontWeight = "bold";
-  } else if (solarMax >= 600) {
-    solarMaxElem.style.color = "#f1c40f";  // golden yellow
-    solarMaxUnitElem.style.color = "#f1c40f";
-    solarMaxElem.style.fontWeight = "bold";
-    solarMaxUnitElem.style.fontWeight = "bold";
-  } else if (solarMax >= 400) {
-    solarMaxElem.style.color = "#d4ac0d";  // darker yellow for contrast
-    solarMaxUnitElem.style.color = "#d4ac0d";
   }
 }
 
