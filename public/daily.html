@@ -444,47 +444,36 @@ if (colour) {
 }
 
       document.getElementById("solarAvg").textContent = vals[15] || "--";
-      const humidityAvg = parseFloat(vals[10]);
+      const humidity = parseFloat(vals[10]);
 const humidityElem = document.getElementById("humidityAvg");
-const humidityUnitElem = document.getElementById("humidityUnit");
-const humidityDescElem = document.getElementById("humidityDesc");
 
 humidityElem.textContent = vals[10] || "--";
 humidityElem.style = "";
-humidityUnitElem.style = "";
-humidityDescElem.textContent = "";
-humidityDescElem.style = "";
 
-if (!isNaN(humidityAvg)) {
+if (!isNaN(humidity)) {
   let color = "";
-  let desc = "";
+  let descriptor = "";
 
-  if (humidityAvg >= 95) {
-    color = "#2C7A7B";
-    desc = "(Saturated)";
-  } else if (humidityAvg >= 85) {
-    color = "#339999";
-    desc = "(Oppressive)";
-  } else if (humidityAvg >= 70) {
-    color = "#66b2b2";
-    desc = "(Humid)";
-  } else if (humidityAvg >= 50) {
-    color = "#99cccc";
-    desc = "(Comfortable)";
-  } else if (humidityAvg >= 30) {
-    color = "#cccccc";
-    desc = "(Dry)";
+  if (humidity <= 20) {
+    color = "#994C00";
+    descriptor = "(Very Dry)";
+  } else if (humidity <= 40) {
+    color = "#AA6E00";
+    descriptor = "(Dry)";
+  } else if (humidity <= 60) {
+    color = "#006400";
+    descriptor = "(Comfortable)";
+  } else if (humidity <= 80) {
+    color = "#006699";
+    descriptor = "(Humid)";
   } else {
-    color = "#aaaaaa";
-    desc = "(Very Dry)";
+    color = "#003366";
+    descriptor = "(Very Humid)";
   }
 
   humidityElem.style.color = color;
   humidityElem.style.fontWeight = "bold";
-  humidityUnitElem.style.color = color;
-  humidityUnitElem.style.fontWeight = "bold";
-
-  humidityDescElem.textContent = desc;
+  humidityElem.textContent += ` ${descriptor}`;
 }
       document.getElementById("dewAvg").textContent = vals[17] || "--";
       document.getElementById("evapTotal").textContent = vals[16] || "--";
