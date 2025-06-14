@@ -417,22 +417,21 @@ if (!isNaN(globeMin) && globeMin <= 10) {
       document.getElementById("globeAvg").textContent = vals[38] || "--";
       const solarMax = parseFloat(vals[37]);
 const solarMaxElem      = document.getElementById("solarMax");
-const solarMaxUnitElem  = document.getElementById("solarMaxUnit"); // null if you didn’t add it
+const solarMaxUnitElem  = document.getElementById("solarMaxUnit");
 
 solarMaxElem.textContent = vals[37] || "--";
 solarMaxElem.style = "";
 if (solarMaxUnitElem) solarMaxUnitElem.style = "";
 
-/* ---------- colour thresholds ---------- */
+/* Better-contrast colour mapping */
 let colour = "";
 if (!isNaN(solarMax)) {
-  if      (solarMax >= 1000) colour = "#e67e22";
-  else if (solarMax >= 800)  colour = "#f39c12";
-  else if (solarMax >= 600)  colour = "#f1c40f";
-  else if (solarMax >= 400)  colour = "#d4ac0d";
+  if      (solarMax >= 1000) colour = "#cc5c00";
+  else if (solarMax >= 800)  colour = "#e67e22";
+  else if (solarMax >= 600)  colour = "#d4ac0d";
+  else if (solarMax >= 400)  colour = "#b7950b";
 }
 
-/* ---------- apply styles ---------- */
 if (colour) {
   solarMaxElem.style.color = colour;
   solarMaxElem.style.fontWeight = "bold";
