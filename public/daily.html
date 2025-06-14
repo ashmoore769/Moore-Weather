@@ -209,7 +209,7 @@
   
           <p><b>🌧️ Total Rainfall:</b> <span id="rainTotal">--</span> mm</p>
           <hr>
-          <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> °C</p>
+          <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> <span id="tempMinUnit">°C</span> <span id="frostNote" style="color: #333; font-weight: normal;"></span></p>
           <p><b>🥵 Air Temp Max:</b> <span id="tempMax">--</span> °C</p>
           <p><b>🌡️ Air Temp Avg:</b> <span id="tempAvg">--</span> °C</p>
           <hr>
@@ -274,11 +274,18 @@
       document.getElementById("tempMax").textContent = vals[11] || "--";
       const tempMin = parseFloat(vals[12]);
 const tempMinElem = document.getElementById("tempMin");
+const tempMinUnitElem = document.getElementById("tempMinUnit");
+const frostNoteElem = document.getElementById("frostNote");
+
 tempMinElem.textContent = vals[12] || "--";
 tempMinElem.classList.remove("cold-temp");
+tempMinUnitElem.classList.remove("cold-temp");
+frostNoteElem.textContent = "";
 
 if (!isNaN(tempMin) && tempMin <= 0) {
   tempMinElem.classList.add("cold-temp");
+  tempMinUnitElem.classList.add("cold-temp");
+  frostNoteElem.textContent = "(Frost)";
 }
       document.getElementById("tempAvg").textContent = vals[13] || "--";
       document.getElementById("globeMax").textContent = vals[39] || "--";
