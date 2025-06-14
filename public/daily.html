@@ -185,45 +185,45 @@
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  margin: 5px 0;  /* Reduced margin */
 }
 
 .temp-readings {
   flex: 1;
+  margin: 0;  /* Remove any default margins */
+}
+
+.temp-readings p {
+  margin: 2px 0;  /* Tighten paragraph spacing */
+  line-height: 1.2;  /* Tighter line spacing */
 }
 
 .temp-box {
-  width: 90px;
-  height: 60px;
-  background-color: #f8f8f8;
-  border: 1px solid #ddd;
-  border-radius: 10px;
+  width: 80px;  /* Slightly narrower */
+  height: 44px; /* Reduced height to match your reference */
+  background-color: #f1f1f1;
+  border: 1px solid #ccc;
+  border-radius: 6px;  /* Slightly smaller radius */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 5px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
-}
-
-.temp-box:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  padding: 2px 0;  /* Reduced padding */
 }
 
 #tempBoxValue {
-  font-size: 20px;
-  font-weight: 700;
-  font-family: 'Rubik', sans-serif;
+  font-size: 16px;  /* Slightly smaller */
+  font-weight: bold;
   color: #004080;
-  margin-bottom: 2px;
+  line-height: 1.2;  /* Tighter line spacing */
 }
 
 #tempBoxLabel {
-  font-size: 12px;
+  font-size: 11px;  /* Slightly smaller */
   color: #666;
   text-align: center;
-  letter-spacing: 0.5px;
+  line-height: 1.2;  /* Tighter line spacing */
+  margin-top: 1px;  /* Minimal space between value and label */
 }
 
 @media only screen and (max-width: 400px) {
