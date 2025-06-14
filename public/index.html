@@ -69,6 +69,7 @@
 .control-bar {
   background-color: #eeeeee;
   padding: 4px 6px;
+  width: 100%;
   border-radius: 12px;
 }
 
@@ -76,7 +77,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 2px;
+  gap: 8px;
+  padding: 0 4px;
   margin: 0;
 }
 
@@ -118,6 +120,25 @@ button:disabled {
   opacity: 0.7;
 }
 
+.force-button {
+  background-color: #70B8D9;
+  color: white;
+  font-weight: 600;
+}
+
+.force-button:hover {
+  background-color: #5CA5C7;
+}
+
+.force-button:active {
+  background-color: #4C91B3;
+}
+
+.force-button:disabled {
+  background-color: gray;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 
 #dailyBtn {
   background-color: #006400;
@@ -425,13 +446,14 @@ button:disabled {
 <div class="control-bar">
   <div class="control-container">
     <div class="control-half">
-      <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
+      <button id="fetchBtn" onclick="manualFetch()">← Current Readings</button>
     </div>
     <div class="control-half">
-      <button onclick="location.href='daily.html'">📊 Daily Summary</button>
+      <button id="dailyBtn" onclick="location.href='daily.html'" class="force-button">📊 Daily Summary</button>
     </div>
   </div>
 </div>
+
 
   <hr>
 
