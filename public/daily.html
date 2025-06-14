@@ -194,33 +194,33 @@
 }
 
 .temp-box {
-  width: 70px;               /* Narrower to match reference */
-  height: 38px;              /* Compact height */
-  background-color: #f1f1f1; /* Light gray background */
-  border: 1px solid #ccc;    /* Subtle border */
-  border-radius: 4px;        /* Slightly rounded corners */
+  width: 80px;
+  height: 44px; /* Exact height to match your reference */
+  background-color: #f1f1f1;
+  border: 1px solid #ccc;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0;                /* No internal padding */
-  margin-left: 8px;          /* Small gap from readings */
+  padding: 0; /* Remove padding for tighter spacing */
 }
 
 #tempBoxValue {
-  font-size: 14px;           /* Slightly smaller */
+  font-size: 16px;
   font-weight: bold;
-  color: #004080;            /* Dark blue */
-  line-height: 1;            /* Tight spacing */
-  margin-top: 3px;           /* Small top offset */
+  color: #004080;
+  line-height: 1; /* Tighter line spacing */
+  margin-top: 4px; /* Small top margin */
 }
 
 #tempBoxLabel {
-  font-size: 10px;           /* Small label */
-  color: #666;               /* Dark gray */
-  line-height: 1;            /* Tight spacing */
-  margin-top: 1px;           /* Minimal gap */
-  letter-spacing: 0.2px;     /* Slight character spacing */
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+  line-height: 1; /* Tighter line spacing */
+  margin-top: 2px; /* Small space between value and label */
+  margin-bottom: 2px; /* Small bottom margin */
 }
 
     .force-button {
@@ -421,11 +421,9 @@ if (!isNaN(tempMin) && tempMin <= 10) {
 const tempBoxValue = document.getElementById("tempBoxValue");
 const tempBoxLabel = document.getElementById("tempBoxLabel");
 
-tempBoxValue.textContent = isNaN(tempMin) ? "--" : `${vals[12]}°C`;
-tempBoxLabel.textContent = "Min Temp";
-  
-  // Apply color only to the value (not the label)
-  tempBoxValue.style.color = "#004080"; // Standard blue color
+if (!isNaN(tempMin)) {
+  tempBoxValue.textContent = `${vals[12]}°C`;
+  tempBoxLabel.textContent = "Min Temp";
 } else {
   tempBoxValue.textContent = "--";
   tempBoxLabel.textContent = "Min Temp";
