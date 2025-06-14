@@ -102,33 +102,27 @@ function fetchDailyData(attempt = 1, maxAttempts = 3) {
     client.on('close', () => {
       client.destroy();
     
-      // ── 1) Clean the raw response ──────────────────────────────────────────────
-      const cleaned = receivedData                 // full string from logger
-        .replace(/^.*MEM\s+1\s+LAST\s*/i, '')      // strip “> MEM 1 LAST” echo
-        .replace(/\\?\s*END\s.*$/i, '')            // strip “\END OF DATA” (or “END”)
-        .trim();
+      // Split into lines and find the line that starts with a date (yyyy/mm/dd)
+      const lines = receivedData.split(/\r?\n/);
+      const dataLine = lines.find(line => /^\d{4}\/\d{2}\/\d{2}/.test(line));
     
-      // ── 2) Split into CSV fields ───────────────────────────────────────────────
-      const fields = cleaned.split(',');
-    
-      // ── 3) Cache & log if the format is valid (exactly 41 fields) ──────────────
-      if (fields.length === 41) {
-        cachedDailyData   = cleaned;
-        lastDailyPollTime = new Date();
-        logger.info(
-          `[DAILY] Updated cache @ ${lastDailyPollTime.toLocaleTimeString()} ` +
-          `(${fields.length} fields)`
-        );
-      } else {
-        logger.warn(
-          `[DAILY] Invalid data: got ${fields.length} fields (expected 41).\n` +
-          `Raw: ${JSON.stringify(receivedData)}\n` +
-          `Cleaned: ${cleaned}`
-        );
+      if (!dataLine) {
+        logger.warn(`[DAILY] No valid data line found in response:\n${receivedData}`);
+        return resolve('');
       }
     
-      // ── 4) Resolve with whatever we have (empty string = error for caller) ─────
-      resolve(cleaned || '');
+      const cleaned = dataLine.trim().replace(/,?\s*\\?END.*$/i, '');
+      const fields = cleaned.split(',');
+    
+      if (fields.length === 41) {
+        cachedDailyData = cleaned;
+        lastDailyPollTime = new Date();
+        logger.info(`[DAILY] ✅ Data cached @ ${lastDailyPollTime.toLocaleTimeString()} with ${fields.length} fields`);
+        resolve(cleaned);
+      } else {
+        logger.warn(`[DAILY] ❌ Invalid field count (${fields.length}), expected 41.\nCleaned line: ${cleaned}`);
+        resolve('');
+      }
     });
 
     client.on('error', (err) => {
