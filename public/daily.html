@@ -471,7 +471,7 @@ if (!isNaN(humidity)) {
     descriptor = "(Very Humid)";
   }
 
-  humidityElem.innerHTML = `<b style="color: ${color};">${humidity.toFixed(1)}%<\/b> (${descriptor})`;
+  humidityElem.innerHTML = `<b style="color: ${color};">${humidity.toFixed(1)}%</b> (${descriptor})`;
 
 }
       document.getElementById("dewAvg").textContent = vals[17] || "--";
