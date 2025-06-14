@@ -88,6 +88,36 @@
   white-space: nowrap;
 }
 
+.control-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.control-third {
+  width: 33.3%;
+  display: flex;
+  justify-content: center;
+}
+
+.daily-summary-btn {
+  background-color: #4682B4;
+  color: white;
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.daily-summary-btn:hover {
+  background-color: #3a6b94;
+}
+
     button {
   padding: 6px 12px;
   font-size: 14px;
@@ -394,17 +424,17 @@ button:disabled {
     <!-- Weather Data Section -->
 <div id="weatherData">
 
-  <!-- Control Button Bar -->
-  <div class="control-bar">
-    <div class="control-container">
-      <div class="control-half">
-        <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
-      </div>
-      <div class="control-half">
-        <p id="status" class="connected" aria-live="polite">
-          <span id="statusBadge" class="status-badge">Status: Waiting...</span>
-        </p>
-      </div>
+  <div class="control-container">
+    <div class="control-third">
+      <button id="fetchBtn" onclick="manualFetch()">Current Readings</button>
+    </div>
+    <div class="control-third">
+      <button onclick="location.href='daily.html'" class="daily-summary-btn">📊 Daily Summary</button>
+    </div>
+    <div class="control-third">
+      <p id="status" class="connected" aria-live="polite">
+        <span id="statusBadge" class="status-badge">Status: Waiting...</span>
+      </p>
     </div>
   </div>
 
