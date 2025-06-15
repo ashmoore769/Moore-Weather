@@ -610,44 +610,38 @@ document.getElementById("dirtAvg").textContent = !isNaN(dirtAvg) ? dirtAvg.toFix
       document.getElementById("windMax").textContent = vals[0] || "--";
       document.getElementById("windAvg").textContent = vals[1] || "--";
       const gustPeak = parseFloat(vals[5]);
-const gustBoxValue = document.getElementById("gustBoxValue");
+      const gustBoxValue = document.getElementById("gustBoxValue");
 const gustBoxLabel = document.getElementById("gustBoxLabel");
-const gustInline = document.getElementById("gustPeak");
-const gustUnitElem = document.getElementById("gustUnit");
-const gustNoteElem = document.getElementById("gustNote"); // Add this span in HTML
+const gustInline    = document.getElementById("gustPeak");
+const gustUnitElem  = document.getElementById("gustUnit");
+const gustNoteElem  = document.getElementById("gustNote");
 
 if (!isNaN(gustPeak)) {
   gustBoxValue.textContent = `${gustPeak} km/h`;
   gustBoxLabel.textContent = "Peak Gust";
-  gustInline.textContent = gustPeak.toFixed(1);
+
+  gustInline.textContent  = gustPeak.toFixed(1);
   gustInline.style.fontWeight = "bold";
   gustUnitElem.style.fontWeight = "bold";
 
-  // Descriptor logic
-  if (gustPeak < 10) {
-    gustInline.style.color = "#006699";
-    gustUnitElem.style.color = "#006699";
-    gustNoteElem.textContent = "(Calm)";
-  } else if (gustPeak < 20) {
-    gustInline.style.color = "#2678B2";
-    gustUnitElem.style.color = "#2678B2";
-    gustNoteElem.textContent = "(Light 🍃)";
-  } else if (gustPeak < 30) {
-    gustInline.style.color = "#b7950b";
-    gustUnitElem.style.color = "#b7950b";
-    gustNoteElem.textContent = "(Breezy)";
-  } else if (gustPeak < 40) {
-    gustInline.style.color = "#e67e22";
-    gustUnitElem.style.color = "#e67e22";
-    gustNoteElem.textContent = "(Windy)";
-  } else {
-    gustInline.style.color = "#cc0000";
-    gustUnitElem.style.color = "#cc0000";
-    gustNoteElem.textContent = "(Strong Gusts)";
-  }
+  let color = "#006699", desc = "(Calm)";
 
-  gustNoteElem.style.fontWeight = "normal";
+  if (gustPeak < 10) { color = "#006699"; desc = "(Calm)"; }
+  else if (gustPeak < 20) { color = "#2678B2"; desc = "(Light 🍃)"; }
+  else if (gustPeak < 30) { color = "#b7950b"; desc = "(Breezy)"; }
+  else if (gustPeak < 40) { color = "#e67e22"; desc = "(Windy)"; }
+  else                   { color = "#cc0000"; desc = "(Strong Gusts)"; }
+
+  // 👉 add these two lines so the big box matches
+  gustBoxValue.style.color = color;
+  gustBoxValue.style.fontWeight = "bold";
+
+  gustInline.style.color   = color;
+  gustUnitElem.style.color = color;
+
+  gustNoteElem.textContent = desc;
   gustNoteElem.style.color = "#333";
+  gustNoteElem.style.fontWeight = "normal";
 } else {
   gustBoxValue.textContent = "--";
   gustBoxLabel.textContent = "Peak Gust";
