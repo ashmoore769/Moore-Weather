@@ -617,14 +617,6 @@ button:disabled {
       return { color, desc };
     }
 
-    function getHumidityDesc(humidity) {
-      if (humidity <= 20) { return "Very Dry"; }
-      else if (humidity <= 40) { return "Dry"; }
-      else if (humidity <= 60) { return "Comfortable"; }
-      else if (humidity <= 80) { return "Humid"; }
-      else { return "Very Humid"; }
-    }
-
     function colorMoisture(val) {
       let display = val.toFixed(1);
       if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
@@ -759,8 +751,8 @@ button:disabled {
 
         const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
 const globeElem = document.getElementById("blackGlobeTempVal");
-globeElem.textContent = blackGlobeTemp.toFixed(1);
-globeElem.style.color = globeTempData.color;
+globeElem.innerHTML = `<span style="color:${globeTempData.color}; font-weight:bold;">${blackGlobeTemp.toFixed(1)}°C</span>`;
+
 
 // Radiant Heat Diff Calculation
 const radiantDiff = blackGlobeTemp - temperatureRaw;
