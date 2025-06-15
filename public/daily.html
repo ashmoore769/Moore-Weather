@@ -336,9 +336,17 @@
           <p><b>☀️ Solar Radiation Max:</b> <span id="solarMax">--</span> <span id="solarMaxUnit">W/m²</span></p>
           <p><b>🌤️ Solar Radiation Avg:</b> <span id="solarAvg">--</span> W/m²</p>
           <hr>
-          <p><b>🌱 Garden Temp Min:</b> <span id="dirtMin">--</span> °C</p>
-          <p><b>🌾 Garden Temp Max:</b> <span id="dirtMax">--</span> °C</p>
-          <p><b>🌿 Garden Temp Avg:</b> <span id="dirtAvg">--</span> °C</p>
+          <div class="temp-group-container">
+            <div class="temp-readings">
+              <p><b>🌱 Garden Temp Min:</b> <span id="dirtMin">--</span> °C</p>
+              <p><b>🌾 Garden Temp Max:</b> <span id="dirtMax">--</span> °C</p>
+              <p><b>🌿 Garden Temp Avg:</b> <span id="dirtAvg">--</span> °C</p>
+            </div>
+            <div class="temp-box">
+              <div id="gardenTempBoxValue">--</div>
+              <div id="gardenTempBoxLabel">Garden Avg</div>
+            </div>
+          </div>
           <hr>
           <p><b>📈 Avg Pressure:</b> <span id="pressureAvg">--</span> <span id="pressureUnit">hPa</span> <span id="pressureFish" style="font-weight: normal;"></span></p>
           <hr>
@@ -573,7 +581,25 @@
       
       document.getElementById("dirtMax").textContent = vals[32] || "--";
       document.getElementById("dirtMin").textContent = vals[33] || "--";
-      document.getElementById("dirtAvg").textContent = vals[31] || "--";
+      const dirtAvg = parseFloat(vals[31]);
+const gardenTempBoxValue = document.getElementById("gardenTempBoxValue");
+const gardenTempBoxLabel = document.getElementById("gardenTempBoxLabel");
+
+if (!isNaN(dirtAvg)) {
+  gardenTempBoxValue.textContent = `${dirtAvg}°C`;
+  gardenTempBoxLabel.textContent = "Garden Avg";
+
+  // Optional theme coloring
+  if (dirtAvg >= 30) gardenTempBoxValue.style.color = "#b22222"; // hot
+  else if (dirtAvg >= 20) gardenTempBoxValue.style.color = "#cc7a00"; // warm
+  else if (dirtAvg >= 10) gardenTempBoxValue.style.color = "#2678B2"; // cool
+  else gardenTempBoxValue.style.color = "#005ca9"; // cold
+
+  gardenTempBoxValue.style.fontWeight = "bold";
+} else {
+  gardenTempBoxValue.textContent = "--";
+  gardenTempBoxLabel.textContent = "Garden Avg";
+}
       document.getElementById("windMax").textContent = vals[0] || "--";
       document.getElementById("windAvg").textContent = vals[1] || "--";
       const gustPeak = parseFloat(vals[5]);
