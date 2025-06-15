@@ -764,8 +764,7 @@ document.getElementById("humidityVal").innerHTML = humidityFormatted;
 
         const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
 const globeElem = document.getElementById("blackGlobeTempVal");
-globeElem.innerHTML = `<span style="color:${globeTempData.color}; font-weight:bold;">${blackGlobeTemp.toFixed(1)}°C</span>`;
-
+globeElem.innerHTML = `<span style="color:${globeTempData.color}; font-weight:bold;">${blackGlobeTemp.toFixed(1)}</span>°C`;
 
 // Radiant Heat Diff Calculation
 const radiantDiff = blackGlobeTemp - temperatureRaw;
