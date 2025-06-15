@@ -622,6 +622,18 @@ button:disabled {
       if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
       return display;
     }
+
+    function getHumidityColor(humidity) {
+  if (humidity <= 10) return "#B22222";   // Firebrick
+  if (humidity <= 20) return "#FF4500";   // OrangeRed
+  if (humidity <= 30) return "#D2691E";   // Chocolate
+  if (humidity <= 40) return "#228B22";   // ForestGreen
+  if (humidity <= 60) return "#006400";   // DarkGreen
+  if (humidity <= 70) return "#008B8B";   // DarkCyan
+  if (humidity <= 80) return "#00008B";   // DarkBlue
+  if (humidity <= 90) return "#4B0082";   // Indigo
+  return "#800080";                       // Purple
+}
  
     /*****************************
     * GLOBAL STATE & RETRIES *
@@ -695,21 +707,9 @@ button:disabled {
         document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
 
         // HUMIDITY
-        let humidityFormatted = humidityRaw.toFixed(1) + "%";
-let humidityColor = "#000"; // default color
-
-if (humidityRaw <= 20) {
-  humidityColor = "#FF8C00"; // very dry
-} else if (humidityRaw >= 80) {
-  humidityColor = "#4682B4"; // very humid
-}
-
-if (humidityRaw <= 20 || humidityRaw >= 80) {
-  humidityFormatted = `<span style="color:${humidityColor}; font-weight:bold;">${humidityFormatted}</span>`;
-}
-
+        const humidityColor = getHumidityColor(humidityRaw);
+const humidityFormatted = `<span style="color:${humidityColor}; font-weight:bold;">${humidityRaw.toFixed(1)}%</span>`;
 document.getElementById("humidityVal").innerHTML = humidityFormatted;
-
 
         // TEMPERATURE
         const tempData = getTemperatureColorAndDesc(temperatureRaw);
