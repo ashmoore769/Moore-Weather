@@ -607,11 +607,13 @@ document.getElementById("dirtAvg").textContent = !isNaN(dirtAvg) ? dirtAvg.toFix
       const gustPeak = parseFloat(vals[5]);
 const gustBoxValue = document.getElementById("gustBoxValue");
 const gustBoxLabel = document.getElementById("gustBoxLabel");
+const gustInline = document.getElementById("gustPeak");
 
 if (!isNaN(gustPeak)) {
   gustBoxValue.textContent = `${gustPeak} km/h`;
   gustBoxLabel.textContent = "Peak Gust";
-  
+  gustInline.textContent = gustPeak.toFixed(1);
+
   // Optional color coding
   if (gustPeak >= 60) gustBoxValue.style.color = "#cc0000";
   else if (gustPeak >= 40) gustBoxValue.style.color = "#e67e22";
@@ -622,7 +624,9 @@ if (!isNaN(gustPeak)) {
 } else {
   gustBoxValue.textContent = "--";
   gustBoxLabel.textContent = "Peak Gust";
+  gustInline.textContent = "--";
 }
+
       
       const windDirAvg = parseFloat(vals[7]);
       document.getElementById("windDir").textContent = isNaN(windDirAvg) ? "--" : windDirAvg.toFixed(1);
