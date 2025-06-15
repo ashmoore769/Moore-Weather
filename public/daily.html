@@ -600,6 +600,7 @@ if (!isNaN(dirtAvg)) {
   gardenTempBoxValue.textContent = "--";
   gardenTempBoxLabel.textContent = "Garden Avg";
 }
+document.getElementById("dirtAvg").textContent = !isNaN(dirtAvg) ? dirtAvg.toFixed(1) : "--";
       document.getElementById("windMax").textContent = vals[0] || "--";
       document.getElementById("windAvg").textContent = vals[1] || "--";
       const gustPeak = parseFloat(vals[5]);
