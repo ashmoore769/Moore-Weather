@@ -652,7 +652,24 @@ if (!isNaN(gustPeak)) {
 
       document.getElementById("soilTemp").textContent = vals[23] || "--";
       document.getElementById("soilMoisture").textContent = vals[27] || "--";
-      document.getElementById("batteryMin").textContent = vals[18] || "--";
+      const batteryMin = parseFloat(vals[18]);
+const batteryElem = document.getElementById("batteryMin");
+
+if (!isNaN(batteryMin)) {
+  batteryElem.textContent = batteryMin.toFixed(1);
+
+  if (batteryMin < 12.9) {
+    batteryElem.style.fontWeight = "bold";
+    batteryElem.style.color = "#b30000"; // Rich red for low voltage
+  } else {
+    batteryElem.style.fontWeight = "";
+    batteryElem.style.color = "";
+  }
+} else {
+  batteryElem.textContent = "--";
+  batteryElem.style.fontWeight = "";
+  batteryElem.style.color = "";
+}
 
       if (date && date !== "--") {
         try {
