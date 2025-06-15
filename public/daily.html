@@ -353,7 +353,7 @@
           <p><b>🌡️ Soil Temp (10cm):</b> <span id="soilTemp">--</span> °C</p>
           <p><b>💧 Soil Moisture (10cm):</b> <span id="soilMoisture">--</span>%</p>
           <hr>
-          <p><b>🔋 Battery Min:</b> <span id="batteryMin">--</span> V</p>
+          <p><b>🔋 Battery Min:</b> <span id="batteryMin">--</span> <span id="batteryUnit">V</span></p>
           <hr>
         </div>
   
@@ -654,22 +654,28 @@ if (!isNaN(gustPeak)) {
       document.getElementById("soilMoisture").textContent = vals[27] || "--";
       const batteryMin = parseFloat(vals[18]);
 const batteryElem = document.getElementById("batteryMin");
+const batteryUnitElem = document.getElementById("batteryUnit");
 
 if (!isNaN(batteryMin)) {
   batteryElem.textContent = batteryMin.toFixed(1);
 
   if (batteryMin < 12.9) {
     batteryElem.style.fontWeight = "bold";
-    batteryElem.style.color = "#b30000"; // Rich red for low voltage
+    batteryElem.style.color = "#b30000"; // Deep warning red
+    batteryUnitElem.style.fontWeight = "bold";
+    batteryUnitElem.style.color = "#b30000";
   } else {
     batteryElem.style.fontWeight = "";
     batteryElem.style.color = "";
+    batteryUnitElem.style.fontWeight = "";
+    batteryUnitElem.style.color = "";
   }
 } else {
   batteryElem.textContent = "--";
-  batteryElem.style.fontWeight = "";
-  batteryElem.style.color = "";
+  batteryElem.style = "";
+  batteryUnitElem.style = "";
 }
+
 
       if (date && date !== "--") {
         try {
