@@ -321,10 +321,17 @@
           </p>
           <p><b>💧 Avg Dew Point:</b> <span id="dewAvg">--</span> °C</p>
           <hr>
-          <p><b>💨 Avg Wind Speed:</b> <span id="windAvg">--</span> km/h</p>
-          <p><b>💨 Max Wind Speed:</b> <span id="windMax">--</span> km/h</p>
-          <p><b>🌬️ Peak Wind Gust:</b> <span id="gustPeak">--</span> km/h</p>
-          <p><b>🧭 Avg Wind Direc:</b> <span id="windDir">--</span>° (<span id="windDirText">--</span>)</p>
+          <div class="temp-group-container">
+            <div class="temp-readings">
+              <p><b>💨 Avg Wind Speed:</b> <span id="windAvg">--</span> km/h</p>
+              <p><b>💨 Max Wind Speed:</b> <span id="windMax">--</span> km/h</p>
+              <p><b>🧭 Avg Wind Direc:</b> <span id="windDir">--</span>° (<span id="windDirText">--</span>)</p>
+            </div>
+            <div class="temp-box">
+              <div id="gustBoxValue">--</div>
+              <div id="gustBoxLabel">Peak Gust</div>
+            </div>
+          </div>
           <hr>
           <p><b>☀️ Solar Radiation Max:</b> <span id="solarMax">--</span> <span id="solarMaxUnit">W/m²</span></p>
           <p><b>🌤️ Solar Radiation Avg:</b> <span id="solarAvg">--</span> W/m²</p>
@@ -569,7 +576,25 @@
       document.getElementById("dirtAvg").textContent = vals[31] || "--";
       document.getElementById("windMax").textContent = vals[0] || "--";
       document.getElementById("windAvg").textContent = vals[1] || "--";
-      document.getElementById("gustPeak").textContent = vals[5] || "--";
+      const gustPeak = parseFloat(vals[5]);
+const gustBoxValue = document.getElementById("gustBoxValue");
+const gustBoxLabel = document.getElementById("gustBoxLabel");
+
+if (!isNaN(gustPeak)) {
+  gustBoxValue.textContent = `${gustPeak} km/h`;
+  gustBoxLabel.textContent = "Peak Gust";
+  
+  // Optional color coding
+  if (gustPeak >= 60) gustBoxValue.style.color = "#cc0000";
+  else if (gustPeak >= 40) gustBoxValue.style.color = "#e67e22";
+  else if (gustPeak >= 25) gustBoxValue.style.color = "#b7950b";
+  else gustBoxValue.style.color = "#004080";
+
+  gustBoxValue.style.fontWeight = "bold";
+} else {
+  gustBoxValue.textContent = "--";
+  gustBoxLabel.textContent = "Peak Gust";
+}
       
       const windDirAvg = parseFloat(vals[7]);
       document.getElementById("windDir").textContent = isNaN(windDirAvg) ? "--" : windDirAvg.toFixed(1);
