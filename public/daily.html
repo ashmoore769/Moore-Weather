@@ -353,7 +353,7 @@
           <p><b>🌡️ Soil Temp (10cm):</b> <span id="soilTemp">--</span> °C</p>
           <p><b>💧 Soil Moisture (10cm):</b> <span id="soilMoisture">--</span>%</p>
           <hr>
-          <p><b>🔋 Battery Min:</b> <span id="batteryMin">--</span> <span id="batteryUnit">V</span></p>
+          <p><b>🔋 Battery Min:</b> <span id="batteryMin">--</span> <span id="batteryUnit">V</span> <span id="batteryNote"></span></p>
           <hr>
         </div>
   
@@ -656,25 +656,33 @@ if (!isNaN(gustPeak)) {
       const batteryMin = parseFloat(vals[18]);
 const batteryElem = document.getElementById("batteryMin");
 const batteryUnitElem = document.getElementById("batteryUnit");
+const batteryNoteElem = document.getElementById("batteryNote"); // Add this span to HTML
 
 if (!isNaN(batteryMin)) {
   batteryElem.textContent = batteryMin.toFixed(1);
+  batteryElem.style.fontWeight = "bold";
+  batteryUnitElem.style.fontWeight = "bold";
 
-  if (batteryMin < 12.9) {
-    batteryElem.style.fontWeight = "bold";
-    batteryElem.style.color = "#b30000"; // Deep warning red
-    batteryUnitElem.style.fontWeight = "bold";
+  if (batteryMin < 12.0) {
+    batteryElem.style.color = "#b30000"; // deep red
     batteryUnitElem.style.color = "#b30000";
+    batteryNoteElem.textContent = "(Critical)";
+  } else if (batteryMin < 12.3) {
+    batteryElem.style.color = "#e67e22"; // orange
+    batteryUnitElem.style.color = "#e67e22";
+    batteryNoteElem.textContent = "(Low)";
   } else {
-    batteryElem.style.fontWeight = "";
-    batteryElem.style.color = "";
-    batteryUnitElem.style.fontWeight = "";
-    batteryUnitElem.style.color = "";
+    batteryElem.style.color = "#007700"; // green
+    batteryUnitElem.style.color = "#007700";
+    batteryNoteElem.textContent = "(Healthy)";
   }
+
+  batteryNoteElem.style.color = "#333";
+  batteryNoteElem.style.fontWeight = "normal";
 } else {
   batteryElem.textContent = "--";
-  batteryElem.style = "";
-  batteryUnitElem.style = "";
+  batteryUnitElem.textContent = "";
+  batteryNoteElem.textContent = "";
 }
 
 
