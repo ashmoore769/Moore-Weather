@@ -179,100 +179,85 @@
     }
 
     .temp-group-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin: 4px 0;
-}
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin: 4px 0;
+    }
 
-.temp-readings p {
-  margin: 2px 0;
-  line-height: 1.2;
-}
+    .temp-readings p {
+      margin: 2px 0;
+      line-height: 1.2;
+    }
 
-.temp-box {
-  width: 80px;
-  height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(145deg, #1e90ff, #187bcd);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 0;
-}
+    .temp-box {
+      width: 80px;
+      height: 44px;
+      background-color: #f1f1f1;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+    }
 
-.temp-box div:first-child {
-  font-size: 16px;
-  font-weight: bold;
-  color: #ffffff;
-  margin-top: 4px;
-  line-height: 1;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
+    #tempBoxValue, #globeTempBoxValue {
+      font-size: 16px;
+      font-weight: bold;
+      color: #004080;
+      line-height: 1;
+      margin-top: 4px;
+    }
 
-.temp-box div:last-child {
+    .temp-box div:last-child {
   font-size: 11px;
-  color: #ffffff;
+  color: #666;
   text-align: center;
+  line-height: 1;
   margin-top: 2px;
   margin-bottom: 2px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
-/* Optional: Additional theming for future use */
-.temp-box.cold {
-  background: linear-gradient(145deg, #2196f3, #1976d2);
-}
+    .force-button {
+      background-color: #70B8D9;
+      color: white;
+    }
 
-.temp-box.hot {
-  background: linear-gradient(145deg, #e53935, #c62828);
-}
+    .force-button:hover {
+      background-color: #5CA5C7;
+    }
 
-.temp-box.wind {
-  background: linear-gradient(145deg, #9e9e9e, #616161);
-}
+    .force-button:active {
+      background-color: #4C91B3;
+    }
 
-.force-button {
-  background-color: #70B8D9;
-  color: white;
-}
+    .force-button:disabled {
+      background-color: gray;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
 
-.force-button:hover {
-  background-color: #5CA5C7;
-}
+    .control-half button {
+      width: 100%;
+    }
 
-.force-button:active {
-  background-color: #4C91B3;
-}
+    .control-container {
+      gap: 8px;
+      padding: 0 4px;
+    }
 
-.force-button:disabled {
-  background-color: gray;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.control-half button {
-  width: 100%;
-}
-
-.control-container {
-  gap: 8px;
-  padding: 0 4px;
-}
-
-.rain-highlight {
-  background-color: #f1f1f1;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  padding: 2px 6px;
-  margin: 2px 0 4px 0;
-  font-size: 13px;
-  display: inline-block;
-}
-
+    .rain-highlight {
+      background-color: #f1f1f1;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 2px 6px;
+      margin: 2px 0 4px 0;
+      font-size: 13px;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
