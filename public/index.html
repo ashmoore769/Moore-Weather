@@ -492,7 +492,7 @@ button:disabled {
           </p>
           <p><b>🔘 Black Globe Temp:</b> <span id="blackGlobeTempVal">--</span>°C</p>
           <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
-          <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>% (<span id="humidityDescVal">--</span>)</p>
+          <p><b>💦 Humidity:</b> <span id="humidityVal">--</span>%</p>
           <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
           <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
           <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
@@ -695,8 +695,21 @@ button:disabled {
         document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
 
         // HUMIDITY
-        document.getElementById("humidityVal").textContent = humidityRaw.toFixed(1);
-        document.getElementById("humidityDescVal").textContent = getHumidityDesc(humidityRaw);
+        let humidityFormatted = humidityRaw.toFixed(1) + "%";
+let humidityColor = "#000"; // default color
+
+if (humidityRaw <= 20) {
+  humidityColor = "#FF8C00"; // very dry
+} else if (humidityRaw >= 80) {
+  humidityColor = "#4682B4"; // very humid
+}
+
+if (humidityRaw <= 20 || humidityRaw >= 80) {
+  humidityFormatted = `<span style="color:${humidityColor}; font-weight:bold;">${humidityFormatted}</span>`;
+}
+
+document.getElementById("humidityVal").innerHTML = humidityFormatted;
+
 
         // TEMPERATURE
         const tempData = getTemperatureColorAndDesc(temperatureRaw);
