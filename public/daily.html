@@ -390,7 +390,20 @@
       const [date, time, ...vals] = fields;
 
       // POPULATE UI ELEMENTS
-      document.getElementById("rainTotal").textContent = vals[14] || "--";
+      const rainVal = parseFloat(vals[14]);
+const rainElem = document.getElementById("rainTotal");
+
+if (!isNaN(rainVal)) {
+  const formatted = `${rainVal.toFixed(1)} mm`;
+  if (rainVal >= 0.2) {
+    rainElem.innerHTML = `<span style="color:#1E90FF; font-weight:bold;">${formatted}</span>`;
+  } else {
+    rainElem.textContent = formatted;
+  }
+} else {
+  rainElem.textContent = "--";
+}
+
       document.getElementById("tempMax").textContent = vals[11] || "--";
       const tempMin = parseFloat(vals[12]);
       const tempMinElem = document.getElementById("tempMin");
