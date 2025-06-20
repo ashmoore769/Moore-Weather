@@ -280,8 +280,8 @@
             </div>
           </div>
           <div id="summaryForContainer" class="summary-for-box">
-            <span>🌤️ Daily Summary for: 📅 </span>
-            <span id="summaryForDay" class="date upper">--</span>
+            <span>🌤️ Daily Summary for: </span>
+<span id="summaryForDay" class="date upper">--</span>
           </div>
   
           <hr>
@@ -731,7 +731,7 @@ if (!isNaN(batteryMin)) {
           const [year, month, day] = date.split('/');
           const dateObj = new Date(`${year}-${month}-${day}`);
           dateObj.setDate(dateObj.getDate() - 1);
-          const dayNames = ["SUN", "MON", "TUES", "WED", "THURS", "FRI", "SAT"];
+          const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
           const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
           const dayName = dayNames[dateObj.getDay()];
           const monthName = monthNames[dateObj.getMonth()];
