@@ -1,0 +1,119 @@
+2025-09-03T12:26:14.452Z [info]: Server running at http://localhost:10000
+2025-09-03T12:26:14.457Z [info]: Next daily summary poll in 38086s
+2025-09-03T12:26:14.543Z [info]: Connected for current weather (r3)
+2025-09-03T12:26:19.796Z [error]: r3 timeout
+2025-09-03T12:26:19.825Z [info]: Weather data cached at 10:26:19 pm (32 fields)
+2025-09-03T12:26:20.816Z [info]: Connected for current weather (r3)
+2025-09-03T12:26:26.418Z [error]: r3 timeout
+2025-09-03T12:26:26.420Z [info]: Weather data cached at 10:26:26 pm (63 fields)
+2025-09-03T12:26:27.457Z [info]: Connected for current weather (r3)
+2025-09-03T12:26:33.047Z [error]: r3 timeout
+2025-09-03T12:26:33.049Z [info]: Weather data cached at 10:26:33 pm (63 fields)
+2025-09-03T12:27:14.470Z [info]: Connected for current weather (r3)
+2025-09-03T12:27:19.720Z [error]: r3 timeout
+2025-09-03T12:27:19.721Z [info]: Weather data cached at 10:27:19 pm (32 fields)
+2025-09-03T12:27:20.737Z [info]: Connected for current weather (r3)
+2025-09-03T12:27:26.360Z [error]: r3 timeout
+2025-09-03T12:27:26.361Z [info]: Weather data cached at 10:27:26 pm (63 fields)
+2025-09-03T12:27:27.465Z [info]: Connected for current weather (r3)
+2025-09-03T12:27:33.134Z [error]: r3 timeout
+2025-09-03T12:27:33.135Z [info]: Weather data cached at 10:27:33 pm (63 fields)
+2025-09-03T12:28:14.545Z [info]: Connected for current weather (r3)
+2025-09-03T12:28:19.819Z [error]: r3 timeout
+2025-09-03T12:28:19.820Z [info]: Weather data cached at 10:28:19 pm (32 fields)
+2025-09-03T12:28:20.835Z [info]: Connected for current weather (r3)
+2025-09-03T12:28:26.487Z [error]: r3 timeout
+2025-09-03T12:28:26.488Z [info]: Weather data cached at 10:28:26 pm (63 fields)
+2025-09-03T12:28:27.549Z [info]: Connected for current weather (r3)
+2025-09-03T12:28:33.065Z [error]: r3 timeout
+2025-09-03T12:28:33.067Z [info]: Weather data cached at 10:28:33 pm (63 fields)
+2025-09-03T12:29:14.478Z [info]: Connected for current weather (r3)
+2025-09-03T12:29:19.736Z [error]: r3 timeout
+2025-09-03T12:29:19.737Z [info]: Weather data cached at 10:29:19 pm (32 fields)
+2025-09-03T12:29:21.757Z [info]: Connected for current weather (r3)
+2025-09-03T12:29:27.110Z [error]: r3 timeout
+2025-09-03T12:29:27.111Z [info]: Weather data cached at 10:29:27 pm (32 fields)
+2025-09-03T12:29:28.126Z [info]: Connected for current weather (r3)
+2025-09-03T12:29:33.664Z [error]: r3 timeout
+2025-09-03T12:29:33.664Z [info]: Weather data cached at 10:29:33 pm (63 fields)
+2025-09-03T12:30:14.476Z [info]: Connected for current weather (r3)
+2025-09-03T12:30:19.728Z [error]: r3 timeout
+2025-09-03T12:30:19.729Z [info]: Weather data cached at 10:30:19 pm (32 fields)
+2025-09-03T12:30:20.745Z [info]: Connected for current weather (r3)
+2025-09-03T12:30:27.390Z [error]: r3 timeout
+2025-09-03T12:30:27.391Z [info]: Weather data cached at 10:30:27 pm (63 fields)
+2025-09-03T12:30:28.402Z [info]: Connected for current weather (r3)
+2025-09-03T12:30:35.824Z [error]: r3 timeout
+2025-09-03T12:30:35.824Z [info]: Weather data cached at 10:30:35 pm (63 fields)
+2025-09-03T12:31:14.585Z [info]: Connected for current weather (r3)
+2025-09-03T12:31:19.843Z [error]: r3 timeout
+2025-09-03T12:31:19.844Z [info]: Weather data cached at 10:31:19 pm (32 fields)
+2025-09-03T12:31:20.866Z [info]: Connected for current weather (r3)
+2025-09-03T12:31:26.513Z [error]: r3 timeout
+2025-09-03T12:31:26.513Z [info]: Weather data cached at 10:31:26 pm (63 fields)
+2025-09-03T12:31:27.570Z [info]: Connected for current weather (r3)
+2025-09-03T12:31:33.138Z [error]: r3 timeout
+2025-09-03T12:31:33.139Z [info]: Weather data cached at 10:31:33 pm (63 fields)
+2025-09-03T12:32:14.476Z [info]: Connected for current weather (r3)
+2025-09-03T12:32:19.741Z [error]: r3 timeout
+2025-09-03T12:32:19.742Z [info]: Weather data cached at 10:32:19 pm (32 fields)
+2025-09-03T12:32:20.752Z [info]: Connected for current weather (r3)
+2025-09-03T12:32:26.336Z [error]: r3 timeout
+2025-09-03T12:32:26.337Z [info]: Weather data cached at 10:32:26 pm (63 fields)
+2025-09-03T12:32:27.512Z [info]: Connected for current weather (r3)
+2025-09-03T12:32:33.075Z [error]: r3 timeout
+2025-09-03T12:32:33.077Z [info]: Weather data cached at 10:32:33 pm (63 fields)
+2025-09-03T12:33:14.543Z [info]: Connected for current weather (r3)
+2025-09-03T12:33:19.794Z [error]: r3 timeout
+2025-09-03T12:33:19.795Z [info]: Weather data cached at 10:33:19 pm (32 fields)
+2025-09-03T12:33:20.814Z [info]: Connected for current weather (r3)
+2025-09-03T12:33:26.531Z [error]: r3 timeout
+2025-09-03T12:33:26.531Z [info]: Weather data cached at 10:33:26 pm (63 fields)
+2025-09-03T12:33:27.649Z [info]: Connected for current weather (r3)
+2025-09-03T12:33:33.093Z [error]: r3 timeout
+2025-09-03T12:33:33.094Z [info]: Weather data cached at 10:33:33 pm (63 fields)
+2025-09-03T12:34:14.480Z [info]: Connected for current weather (r3)
+2025-09-03T12:34:19.763Z [error]: r3 timeout
+2025-09-03T12:34:19.764Z [info]: Weather data cached at 10:34:19 pm (32 fields)
+2025-09-03T12:34:20.825Z [info]: Connected for current weather (r3)
+2025-09-03T12:34:26.665Z [error]: r3 timeout
+2025-09-03T12:34:26.666Z [info]: Weather data cached at 10:34:26 pm (63 fields)
+2025-09-03T12:34:27.683Z [info]: Connected for current weather (r3)
+2025-09-03T12:34:33.298Z [error]: r3 timeout
+2025-09-03T12:34:33.299Z [info]: Weather data cached at 10:34:33 pm (63 fields)
+2025-09-03T12:35:14.533Z [info]: Connected for current weather (r3)
+2025-09-03T12:35:19.803Z [error]: r3 timeout
+2025-09-03T12:35:19.804Z [info]: Weather data cached at 10:35:19 pm (32 fields)
+2025-09-03T12:35:20.819Z [info]: Connected for current weather (r3)
+2025-09-03T12:35:26.550Z [error]: r3 timeout
+2025-09-03T12:35:26.550Z [info]: Weather data cached at 10:35:26 pm (63 fields)
+2025-09-03T12:35:27.589Z [info]: Connected for current weather (r3)
+2025-09-03T12:35:33.266Z [error]: r3 timeout
+2025-09-03T12:35:33.267Z [info]: Weather data cached at 10:35:33 pm (63 fields)
+2025-09-03T12:36:14.491Z [info]: Connected for current weather (r3)
+2025-09-03T12:36:19.749Z [error]: r3 timeout
+2025-09-03T12:36:19.749Z [info]: Weather data cached at 10:36:19 pm (32 fields)
+2025-09-03T12:36:20.762Z [info]: Connected for current weather (r3)
+2025-09-03T12:36:26.360Z [error]: r3 timeout
+2025-09-03T12:36:26.361Z [info]: Weather data cached at 10:36:26 pm (63 fields)
+2025-09-03T12:36:27.585Z [info]: Connected for current weather (r3)
+2025-09-03T12:36:33.082Z [error]: r3 timeout
+2025-09-03T12:36:33.083Z [info]: Weather data cached at 10:36:33 pm (63 fields)
+2025-09-03T12:37:14.567Z [info]: Connected for current weather (r3)
+2025-09-03T12:37:19.816Z [error]: r3 timeout
+2025-09-03T12:37:19.818Z [info]: Weather data cached at 10:37:19 pm (32 fields)
+2025-09-03T12:37:20.835Z [info]: Connected for current weather (r3)
+2025-09-03T12:37:26.464Z [error]: r3 timeout
+2025-09-03T12:37:26.465Z [info]: Weather data cached at 10:37:26 pm (63 fields)
+2025-09-03T12:37:27.602Z [info]: Connected for current weather (r3)
+2025-09-03T12:37:33.092Z [error]: r3 timeout
+2025-09-03T12:37:33.092Z [info]: Weather data cached at 10:37:33 pm (63 fields)
+2025-09-03T12:38:14.497Z [info]: Connected for current weather (r3)
+2025-09-03T12:38:19.816Z [error]: r3 timeout
+2025-09-03T12:38:19.817Z [info]: Weather data cached at 10:38:19 pm (32 fields)
+2025-09-03T12:38:20.833Z [info]: Connected for current weather (r3)
+2025-09-03T12:38:26.365Z [error]: r3 timeout
+2025-09-03T12:38:26.366Z [info]: Weather data cached at 10:38:26 pm (63 fields)
+2025-09-03T12:38:27.623Z [info]: Connected for current weather (r3)
+2025-09-03T12:38:33.045Z [error]: r3 timeout
+2025-09-03T12:38:33.046Z [info]: Weather data cached at 10:38:33 pm (63 fields)
