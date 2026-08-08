@@ -412,6 +412,7 @@ button:disabled {
 
     /* --- SkyCam --- */
     .skycam-container {
+      position: relative;
       margin-top: 8px;
       border: 1px solid #ccc;
       border-radius: 10px;
@@ -425,6 +426,61 @@ button:disabled {
       display: block;
       width: 100%;
       height: auto;
+    }
+
+    .skycam-nav {
+      position: absolute;
+      top: 50%;
+      z-index: 3;
+      width: 38px;
+      height: 54px;
+      padding: 0;
+      margin: 0;
+      border: 1px solid rgba(255,255,255,0.55);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.48);
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 34px;
+      font-weight: 400;
+      line-height: 48px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      transform: translateY(-50%);
+      transition: background 0.2s ease, opacity 0.2s ease, transform 0.1s ease;
+    }
+
+    .skycam-nav:hover {
+      background: rgba(0, 0, 0, 0.68);
+      transform: translateY(-50%) scale(1.04);
+    }
+
+    .skycam-nav:disabled {
+      background: rgba(0, 0, 0, 0.25);
+      opacity: 0.35;
+      cursor: default;
+      transform: translateY(-50%);
+    }
+
+    .skycam-nav-prev { left: 8px; }
+    .skycam-nav-next { right: 8px; }
+
+    .skycam-caption {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: #f5f5f5;
+      color: #444;
+      font-size: 11.5px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    #skycamPosition {
+      color: #666;
+      white-space: nowrap;
     }
 
     /* Media Queries for Mobile Devices */
@@ -576,7 +632,29 @@ button:disabled {
 
       <!-- SkyCam -->
       <div class="skycam-container">
+        <button
+          id="skycamPrev"
+          class="skycam-nav skycam-nav-prev"
+          type="button"
+          aria-label="Show older SkyCam image"
+          onclick="stepSkyCam(-1)"
+        >&#8249;</button>
+
         <img id="skycamImage" src="/skycam/latest.jpg" alt="SkyCam live weather view">
+
+        <button
+          id="skycamNext"
+          class="skycam-nav skycam-nav-next"
+          type="button"
+          aria-label="Show newer SkyCam image"
+          onclick="stepSkyCam(1)"
+          disabled
+        >&#8250;</button>
+
+        <div class="skycam-caption">
+          <span id="skycamTime">LIVE / latest</span>
+          <span id="skycamPosition">Loading history...</span>
+        </div>
       </div>
     </div>
 
@@ -974,16 +1052,153 @@ function manualFetch() {
 }
 
 const SKYCAM_ENDPOINT = "/skycam/latest.jpg";
+const SKYCAM_HISTORY_ENDPOINT = "/skycam/history";
+let skycamHistory = [];
+let skycamHistoryIndex = -1;
+let skycamShowingLatest = true;
+
+function formatSkyCamTime(isoString) {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "Historic image";
+
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Brisbane",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date) + " AEST";
+}
+
+function updateSkyCamControls() {
+  const prevBtn = document.getElementById("skycamPrev");
+  const nextBtn = document.getElementById("skycamNext");
+  const timeLabel = document.getElementById("skycamTime");
+  const positionLabel = document.getElementById("skycamPosition");
+
+  if (!prevBtn || !nextBtn || !timeLabel || !positionLabel) return;
+
+  prevBtn.disabled =
+    skycamHistory.length === 0 ||
+    (!skycamShowingLatest && skycamHistoryIndex <= 0);
+
+  nextBtn.disabled = skycamShowingLatest;
+
+  if (skycamShowingLatest) {
+    timeLabel.textContent = "LIVE / latest";
+    positionLabel.textContent = skycamHistory.length
+      ? `${skycamHistory.length} cached`
+      : "History building...";
+    return;
+  }
+
+  const entry = skycamHistory[skycamHistoryIndex];
+  if (!entry) return;
+
+  timeLabel.textContent = formatSkyCamTime(entry.capturedAt);
+  positionLabel.textContent = `${skycamHistoryIndex + 1} of ${skycamHistory.length}`;
+}
+
+function showSkyCamLatest() {
+  const skycamImage = document.getElementById("skycamImage");
+  if (!skycamImage) return;
+
+  skycamShowingLatest = true;
+  skycamHistoryIndex = -1;
+  skycamImage.src = `${SKYCAM_ENDPOINT}?t=${Date.now()}`;
+  updateSkyCamControls();
+}
+
+function showSkyCamHistory(index) {
+  if (!skycamHistory.length) return;
+
+  const safeIndex = Math.max(0, Math.min(index, skycamHistory.length - 1));
+  const entry = skycamHistory[safeIndex];
+  const skycamImage = document.getElementById("skycamImage");
+
+  if (!entry || !skycamImage) return;
+
+  skycamShowingLatest = false;
+  skycamHistoryIndex = safeIndex;
+  skycamImage.src = entry.url;
+  updateSkyCamControls();
+}
+
+function stepSkyCam(direction) {
+  if (direction < 0) {
+    if (skycamShowingLatest) {
+      showSkyCamHistory(skycamHistory.length - 1);
+    } else if (skycamHistoryIndex > 0) {
+      showSkyCamHistory(skycamHistoryIndex - 1);
+    }
+    return;
+  }
+
+  if (skycamShowingLatest) return;
+
+  if (skycamHistoryIndex < skycamHistory.length - 1) {
+    showSkyCamHistory(skycamHistoryIndex + 1);
+  } else {
+    showSkyCamLatest();
+  }
+}
+
+async function loadSkyCamHistory() {
+  const selectedId = !skycamShowingLatest && skycamHistory[skycamHistoryIndex]
+    ? skycamHistory[skycamHistoryIndex].id
+    : null;
+
+  const response = await fetch(`${SKYCAM_HISTORY_ENDPOINT}?t=${Date.now()}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`SkyCam history returned ${response.status}`);
+  }
+
+  const payload = await response.json();
+  skycamHistory = Array.isArray(payload.images) ? payload.images : [];
+
+  if (selectedId) {
+    const newIndex = skycamHistory.findIndex((item) => item.id === selectedId);
+
+    if (newIndex >= 0) {
+      skycamHistoryIndex = newIndex;
+    } else if (skycamHistory.length) {
+      // If the selected frame was the oldest and has just rolled out of cache,
+      // stay at the oldest frame still available.
+      skycamHistoryIndex = 0;
+      showSkyCamHistory(0);
+      return;
+    } else {
+      showSkyCamLatest();
+      return;
+    }
+  }
+
+  updateSkyCamControls();
+}
 
 function refreshSkyCam() {
-  const skycamImage = document.getElementById("skycamImage");
-  if (skycamImage) {
-    skycamImage.src = `${SKYCAM_ENDPOINT}?t=${Date.now()}`;
+  if (skycamShowingLatest) {
+    showSkyCamLatest();
   }
+
+  loadSkyCamHistory().catch((error) => {
+    console.error("SkyCam history error:", error);
+    updateSkyCamControls();
+  });
 }
 
 window.addEventListener("load", () => {
   fetchWeather();
+  loadSkyCamHistory().catch((error) => {
+    console.error("SkyCam history error:", error);
+    updateSkyCamControls();
+  });
   setInterval(refreshSkyCam, 60000);
 });
   </script>

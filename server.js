@@ -5,6 +5,7 @@ const cors = require("cors");
 const path = require("path");
 const net = require("net");
 const http = require("http");
+const crypto = require("crypto");
 const winston = require("winston");
 
 const WEATHER_STATION_HOST =
@@ -14,6 +15,18 @@ const WEATHER_STATION_PORT =
   Number(process.env.WEATHER_STATION_PORT) || 8899;
 
 const PORT = process.env.PORT || 10000;
+
+const SKYCAM_UPSTREAM_URL =
+  process.env.SKYCAM_UPSTREAM_URL || "http://149.28.187.169/latest.jpg";
+
+// Rolling SkyCam cache. The byte cap protects the Render process from
+// unbounded memory growth; the oldest images are discarded first.
+const SKYCAM_HISTORY_INTERVAL_MS =
+  Number(process.env.SKYCAM_HISTORY_INTERVAL_MS) || 60000;
+const SKYCAM_HISTORY_MAX_IMAGES =
+  Number(process.env.SKYCAM_HISTORY_MAX_IMAGES) || 1000;
+const SKYCAM_HISTORY_MAX_BYTES =
+  Number(process.env.SKYCAM_HISTORY_MAX_BYTES) || 128 * 1024 * 1024;
 
 // Queensland / Brisbane is UTC+10 year-round (no daylight saving).
 const BRISBANE_OFFSET_MS = 10 * 60 * 60 * 1000;
@@ -50,6 +63,11 @@ let lastPollTime = null;
 let lastDailyPollTime = null;
 let dailyRefreshInFlight = null;
 let dailyStationRequestInFlight = null;
+
+const skycamHistory = [];
+let skycamHistoryBytes = 0;
+let skycamLastHash = null;
+let skycamSnapshotInFlight = null;
 
 /* =========================================================
    BRISBANE DATE HELPERS
@@ -448,6 +466,117 @@ async function refreshDailyDataWithRetries(
 }
 
 /* =========================================================
+   SKYCAM ROLLING HISTORY CACHE
+   ========================================================= */
+
+function fetchSkyCamBuffer() {
+  return new Promise((resolve, reject) => {
+    const request = http.get(SKYCAM_UPSTREAM_URL, (upstream) => {
+      if (upstream.statusCode !== 200) {
+        upstream.resume();
+        return reject(
+          new Error(`Upstream returned HTTP ${upstream.statusCode}`)
+        );
+      }
+
+      const chunks = [];
+      let totalBytes = 0;
+      const MAX_SINGLE_IMAGE_BYTES = 10 * 1024 * 1024;
+
+      upstream.on("data", (chunk) => {
+        totalBytes += chunk.length;
+
+        if (totalBytes > MAX_SINGLE_IMAGE_BYTES) {
+          request.destroy(new Error("SkyCam image exceeded 10 MB safety limit"));
+          return;
+        }
+
+        chunks.push(chunk);
+      });
+
+      upstream.on("end", () => {
+        resolve({
+          buffer: Buffer.concat(chunks),
+          lastModified: upstream.headers["last-modified"] || null,
+        });
+      });
+    });
+
+    request.setTimeout(5000, () => {
+      request.destroy(new Error("SkyCam upstream timeout"));
+    });
+
+    request.on("error", reject);
+  });
+}
+
+function addSkyCamSnapshot(buffer, capturedAt = new Date()) {
+  const hash = crypto.createHash("sha256").update(buffer).digest("hex");
+
+  // The camera may leave latest.jpg unchanged between captures.
+  // Do not waste memory storing duplicate frames.
+  if (hash === skycamLastHash) {
+    return false;
+  }
+
+  const timestamp = capturedAt instanceof Date && !Number.isNaN(capturedAt.getTime())
+    ? capturedAt
+    : new Date();
+
+  const entry = {
+    id: `${timestamp.getTime()}-${hash.slice(0, 12)}`,
+    capturedAt: timestamp.toISOString(),
+    hash,
+    size: buffer.length,
+    buffer,
+  };
+
+  skycamHistory.push(entry);
+  skycamHistoryBytes += entry.size;
+  skycamLastHash = hash;
+
+  while (
+    skycamHistory.length > SKYCAM_HISTORY_MAX_IMAGES ||
+    skycamHistoryBytes > SKYCAM_HISTORY_MAX_BYTES
+  ) {
+    const removed = skycamHistory.shift();
+    if (!removed) break;
+    skycamHistoryBytes -= removed.size;
+  }
+
+  logger.info(
+    `[SKYCAM] Cached frame ${entry.id}; ${skycamHistory.length} images, ${Math.round(skycamHistoryBytes / 1024 / 1024)} MB`
+  );
+
+  return true;
+}
+
+function captureSkyCamSnapshot() {
+  if (skycamSnapshotInFlight) {
+    return skycamSnapshotInFlight;
+  }
+
+  skycamSnapshotInFlight = (async () => {
+    try {
+      const { buffer, lastModified } = await fetchSkyCamBuffer();
+      const parsedLastModified = lastModified ? new Date(lastModified) : new Date();
+      addSkyCamSnapshot(buffer, parsedLastModified);
+    } catch (err) {
+      logger.warn(`[SKYCAM] History capture failed: ${err.message}`);
+    } finally {
+      skycamSnapshotInFlight = null;
+    }
+  })();
+
+  return skycamSnapshotInFlight;
+}
+
+function scheduleSkyCamHistory() {
+  captureSkyCamSnapshot();
+  setInterval(captureSkyCamSnapshot, SKYCAM_HISTORY_INTERVAL_MS);
+}
+
+/* =========================================================
    SCHEDULERS
    ========================================================= */
 
@@ -481,6 +610,7 @@ function schedulePolling() {
   }
 
   scheduleNextDailyFetch();
+  scheduleSkyCamHistory();
 }
 
 /* =========================================================
@@ -588,9 +718,7 @@ app.get("/daily", async (req, res) => {
 // Lightweight status endpoint used by daily.html to reflect the
 // safety interlock and background/station refresh state.
 app.get("/skycam/latest.jpg", (req, res) => {
-  const upstreamUrl = "http://149.28.187.169/latest.jpg";
-
-  const request = http.get(upstreamUrl, (upstream) => {
+  const request = http.get(SKYCAM_UPSTREAM_URL, (upstream) => {
     if (upstream.statusCode !== 200) {
       upstream.resume();
       logger.error(
@@ -623,6 +751,36 @@ app.get("/skycam/latest.jpg", (req, res) => {
       res.destroy();
     }
   });
+});
+
+app.get("/skycam/history", (req, res) => {
+  res.set("Cache-Control", "no-store");
+
+  res.json({
+    count: skycamHistory.length,
+    bytes: skycamHistoryBytes,
+    maxImages: SKYCAM_HISTORY_MAX_IMAGES,
+    maxBytes: SKYCAM_HISTORY_MAX_BYTES,
+    images: skycamHistory.map((entry) => ({
+      id: entry.id,
+      capturedAt: entry.capturedAt,
+      url: `/skycam/history/${encodeURIComponent(entry.id)}`,
+    })),
+  });
+});
+
+app.get("/skycam/history/:id", (req, res) => {
+  const entry = skycamHistory.find((item) => item.id === req.params.id);
+
+  if (!entry) {
+    return res.status(404).send("SkyCam history image not found.");
+  }
+
+  res.set("Content-Type", "image/jpeg");
+  res.set("Content-Length", String(entry.size));
+  res.set("Cache-Control", "public, max-age=31536000, immutable");
+  res.set("X-Content-Type-Options", "nosniff");
+  res.send(entry.buffer);
 });
 
 app.get("/ping", (req, res) => {
