@@ -324,11 +324,24 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 .primary-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 114px;
-  gap: 10px;
   padding: 12px;
   margin-bottom: 9px;
+}
+.temperature-heroes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.temp-hero {
+  min-width: 0;
+  padding: 10px 11px 11px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.temp-hero:first-child {
+  background: color-mix(in srgb, var(--brand-2) 7%, var(--surface-soft));
+  border-color: color-mix(in srgb, var(--brand-2) 20%, var(--border));
 }
 .eyebrow {
   color: var(--muted);
@@ -339,29 +352,32 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .primary-temp {
   display: inline-block;
-  margin-top: 3px;
-  font-size: 42px;
+  margin-top: 4px;
+  font-size: 39px;
   font-weight: 780;
   line-height: .98;
-  letter-spacing: -1.2px;
+  letter-spacing: -1.1px;
 }
 .primary-desc {
+  min-height: 17px;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 650;
 }
 .primary-meta {
-  margin-top: 11px;
+  margin-top: 8px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
 .quick-stat {
   padding: 8px 9px;
+  border: 1px solid transparent;
   border-radius: 10px;
   background: var(--surface-soft);
   min-width: 0;
+  transition: background-color .18s ease, border-color .18s ease;
 }
 .quick-stat .label {
   color: var(--muted);
@@ -380,40 +396,13 @@ button { -webkit-tap-highlight-color: transparent; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-.thermal-stack {
-  display: grid;
-  gap: 6px;
-  align-content: center;
+.quick-stat#radiantDiffBox,
+.quick-stat#dewDiffBox {
+  border-color: var(--border-strong);
 }
-.big-temp-box {
-  width: 100%;
-  min-height: 48px;
-  padding: 7px 6px;
-  border-radius: 11px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface-soft);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  box-shadow: none;
-  line-height: 1.02;
-  font-size: 15px;
-  font-weight: 800;
-  transition: transform .18s ease, background-color .18s ease;
-}
-.big-temp-box.updated { animation: pulse .3s ease-in-out; }
-.big-temp-box .label {
-  margin-top: 3px;
-  font-size: 9.5px;
-  font-weight: 700;
-  line-height: 1.1;
-  opacity: .9;
-  letter-spacing: .2px;
-}
+.quick-stat#radiantDiffBox .label,
+.quick-stat#dewDiffBox .label { color: rgba(255,255,255,.88); }
+.compat-data { display: none !important; }
 @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025); } }
 
 .section-card { padding: 11px 12px; margin-bottom: 9px; }
@@ -529,6 +518,7 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .skycam-container:fullscreen { display: grid; place-items: center; background: #000; border-radius: 0; border: 0; }
 .skycam-container:fullscreen img { width: 100%; height: 100%; max-height: 100vh; object-fit: contain; cursor: zoom-out; }
+.maintenance-card { margin-top: 9px; margin-bottom: 0; }
 
 .skycam-caption {
   position: absolute;
@@ -684,19 +674,22 @@ html[data-theme="dark"] #rainInLastMinVal span {
   .brand-subtitle { font-size: 10.5px; margin-top: 2px; }
   .header-icon-button { height: 32px; min-width: 32px; padding: 0 7px; }
   #weatherData { padding: 8px; border-radius: 0 0 14px 14px; }
-  .top-toolbar { align-items: center; gap: 7px; padding-bottom: 8px; }
-  .view-tabs { flex: 1 1 auto; }
-  .tab-button { min-height: 30px; padding: 5px 9px; font-size: 12px; }
-  .live-cluster { flex: 1 0 100%; justify-content: flex-end; }
+  .top-toolbar { flex-wrap: nowrap; align-items: center; gap: 5px; padding-bottom: 8px; }
+  .view-tabs { flex: 1 1 auto; min-width: 0; }
+  .tab-button { min-height: 30px; padding: 5px 7px; font-size: 11.5px; white-space: nowrap; }
+  .live-cluster { flex: 0 0 auto; justify-content: flex-end; gap: 4px; font-size: 10px; white-space: nowrap; }
+  .status-badge { min-height: 24px; padding: 3px 6px; font-size: 9.5px; letter-spacing: .3px; }
+  #freshnessText { font-size: 10px; white-space: nowrap; }
   .station-strip { padding: 8px 9px; }
   .address-title { font-size: 15px; }
   .logo-container img { height: 39px; max-width: 88px; }
-  .primary-card { grid-template-columns: minmax(0, 1fr) 104px; padding: 10px; }
-  .primary-temp { font-size: 38px; }
+  .primary-card { padding: 10px; }
+  .temperature-heroes { gap: 6px; }
+  .temp-hero { padding: 9px 9px 10px; }
+  .primary-temp { font-size: 34px; }
+  .primary-desc { font-size: 11.5px; }
   .primary-meta { gap: 5px; }
   .quick-stat { padding: 7px; }
-  .thermal-stack { gap: 5px; }
-  .big-temp-box { min-height: 45px; font-size: 14px; }
   .section-card { padding: 9px 10px; }
   .two-card-grid { grid-template-columns: 1fr; gap: 8px; }
   .metric-row { min-height: 28px; }
@@ -704,6 +697,14 @@ html[data-theme="dark"] #rainInLastMinVal span {
   .skycam-nav { width: 38px; height: 54px; }
   .skycam-caption { left: 7px; right: 7px; bottom: 7px; }
   .skycam-badge { left: 7px; top: 7px; }
+}
+
+@media only screen and (max-width: 380px) {
+  .tab-button { padding-left: 6px; padding-right: 6px; font-size: 11px; }
+  .live-cluster { gap: 3px; font-size: 9.5px; }
+  .status-badge { padding-left: 5px; padding-right: 5px; font-size: 9px; }
+  #freshnessText { font-size: 9.5px; }
+  .primary-temp { font-size: 31px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -767,7 +768,6 @@ html[data-theme="dark"] #rainInLastMinVal span {
               </div>
             </div>
             <div class="logo-container">
-              <img src="/Weather_Station_App.png" alt="Weather station">
               <a href="daily.html" aria-label="View daily summary">
                 <img src="/Station_Label.png" alt="Environdata Weather Maestro">
               </a>
@@ -775,45 +775,47 @@ html[data-theme="dark"] #rainInLastMinVal span {
           </div>
 
           <section class="panel-card primary-card">
-            <div>
-              <div class="eyebrow">Air temperature</div>
-              <div id="tempVal" class="primary-temp">--</div>
-              <div id="tempDescVal" class="primary-desc">Waiting for station</div>
-
-              <div class="primary-meta">
-                <div class="quick-stat">
-                  <span class="label">Humidity</span>
-                  <span id="humidityVal" class="value">--</span>
-                </div>
-                <div class="quick-stat">
-                  <span class="label">Wind</span>
-                  <span class="value"><span id="windSpeedVal">--</span> km/h</span>
-                </div>
-                <div class="quick-stat">
-                  <span class="label">Pressure</span>
-                  <span id="pressureVal" class="value">--</span>
-                </div>
-                <div class="quick-stat">
-                  <span class="label">Rain since 9AM</span>
-                  <span id="rainSince9Val" class="value">--</span>
-                </div>
+            <div class="temperature-heroes">
+              <div class="temp-hero">
+                <div class="eyebrow">Air temperature</div>
+                <div id="tempVal" class="primary-temp">--</div>
+                <div id="tempDescVal" class="primary-desc">Waiting for station</div>
+              </div>
+              <div class="temp-hero">
+                <div class="eyebrow">Black globe</div>
+                <div id="blackGlobeTempVal" class="primary-temp">--°C</div>
+                <div id="blackGlobeDescVal" class="primary-desc">Waiting for station</div>
               </div>
             </div>
 
-            <div class="thermal-stack" aria-label="Temperature differences">
-              <div class="big-temp-box" id="airTempBox">
-                <span id="bigTempVal">--</span>
-                <span class="label">Air Temp</span>
+            <div class="primary-meta">
+              <div class="quick-stat">
+                <span class="label">Humidity</span>
+                <span id="humidityVal" class="value">--</span>
               </div>
-              <div class="big-temp-box" id="radiantDiffBox">
-                <span id="radiantDiffVal">--</span>
+              <div class="quick-stat">
+                <span class="label">Wind</span>
+                <span class="value"><span id="windSpeedVal">--</span> km/h</span>
+              </div>
+              <div class="quick-stat">
+                <span class="label">Pressure</span>
+                <span id="pressureVal" class="value">--</span>
+              </div>
+              <div class="quick-stat">
+                <span class="label">Rain since 9AM</span>
+                <span id="rainSince9Val" class="value">--</span>
+              </div>
+              <div class="quick-stat" id="radiantDiffBox">
                 <span class="label">Radiant Δ</span>
+                <span id="radiantDiffVal" class="value">--</span>
               </div>
-              <div class="big-temp-box" id="dewDiffBox">
-                <span id="dewDiffVal">--</span>
-                <span class="label">Dew Margin</span>
+              <div class="quick-stat" id="dewDiffBox">
+                <span class="label">Dew margin</span>
+                <span id="dewDiffVal" class="value">--</span>
               </div>
             </div>
+
+            <span id="airTempBox" class="compat-data" aria-hidden="true"><span id="bigTempVal">--</span></span>
           </section>
 
           <section class="panel-card section-card">
@@ -821,7 +823,6 @@ html[data-theme="dark"] #rainInLastMinVal span {
             <div class="metric-list">
               <div class="metric-row"><span class="metric-label">Wind direction</span><span class="metric-value"><span id="windDirDegVal">--</span>° <span class="subtle">(<span id="windDirTextVal">--</span>)</span></span></div>
               <div class="metric-row"><span class="metric-label">Solar radiation</span><span id="solarRadVal" class="metric-value">--</span></div>
-              <div class="metric-row"><span class="metric-label">Black globe</span><span id="blackGlobeTempVal" class="metric-value">--°C</span></div>
               <div class="metric-row"><span class="metric-label">Garden bed</span><span class="metric-value"><span id="gardenBedTempVal">--</span>°C</span></div>
               <div class="metric-row"><span class="metric-label">Dew point</span><span class="metric-value"><span id="dewPointVal">--</span>°C</span></div>
               <div class="metric-row"><span class="metric-label">Max wind gust</span><span id="peakWindGustVal" class="metric-value">--</span></div>
@@ -838,25 +839,11 @@ html[data-theme="dark"] #rainInLastMinVal span {
             </div>
           </section>
 
-          <div class="two-card-grid">
-            <section class="panel-card section-card">
-              <div class="section-header"><h2 class="section-title">Power</h2></div>
-              <div class="metric-list">
-                <div class="metric-row"><span class="metric-label">Battery</span><span id="batteryVal" class="metric-value">--</span></div>
-                <div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span> mA</span></div>
-                <div class="metric-row"><span class="metric-label">Solar panel</span><span id="solarPanelVal" class="metric-value">--</span></div>
-                <div class="metric-row"><span class="metric-label">Charge</span><span id="chargeVal" class="metric-value">--</span></div>
-              </div>
-            </section>
-
-            <section class="panel-card section-card">
-              <div class="section-header"><h2 class="section-title">Wind & water</h2></div>
-              <div class="metric-list">
-                <div class="metric-row"><span class="metric-label">Vector speed</span><span class="metric-value"><span id="vectorWindSpeedVal">--</span> km/h</span></div>
-                <div class="metric-row"><span class="metric-label">Vector direction</span><span class="metric-value"><span id="vectorWindDirDegVal">--</span>° <span class="subtle">(<span id="vectorWindDirTextVal">--</span>)</span></span></div>
-                <div class="metric-row"><span class="metric-label">Daily evap</span><span class="metric-value"><span id="dailyEvapVal">--</span> mm</span></div>
-              </div>
-            </section>
+          <div class="compat-data" aria-hidden="true">
+            <span id="vectorWindSpeedVal">--</span>
+            <span id="vectorWindDirDegVal">--</span>
+            <span id="vectorWindDirTextVal">--</span>
+            <span id="dailyEvapVal">--</span>
           </div>
 
           <section class="panel-card section-card">
@@ -884,6 +871,16 @@ html[data-theme="dark"] #rainInLastMinVal span {
               <span id="skycamPosition">Loading history...</span>
             </div>
           </div>
+
+          <section class="panel-card section-card maintenance-card" aria-label="Station power and maintenance">
+            <div class="section-header"><h2 class="section-title">Station power</h2></div>
+            <div class="metric-list">
+              <div class="metric-row"><span class="metric-label">Battery</span><span id="batteryVal" class="metric-value">--</span></div>
+              <div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span> mA</span></div>
+              <div class="metric-row"><span class="metric-label">Solar panel</span><span id="solarPanelVal" class="metric-value">--</span></div>
+              <div class="metric-row"><span class="metric-label">Charge</span><span id="chargeVal" class="metric-value">--</span></div>
+            </div>
+          </section>
         </section>
       </div>
     </main>
@@ -1092,6 +1089,8 @@ document.getElementById("humidityVal").innerHTML = humidityFormatted;
         const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
 const globeElem = document.getElementById("blackGlobeTempVal");
 globeElem.innerHTML = `<span style="color:${globeTempData.color}; font-weight:bold;">${blackGlobeTemp.toFixed(1)}°C</span>`;
+const globeDescElem = document.getElementById("blackGlobeDescVal");
+if (globeDescElem) globeDescElem.textContent = globeTempData.desc;
  
 // Radiant Heat Diff Calculation
 const radiantDiff = blackGlobeTemp - temperatureRaw;
