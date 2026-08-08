@@ -64,6 +64,34 @@ let lastDailyPollTime = null;
 let dailyRefreshInFlight = null;
 let dailyStationRequestInFlight = null;
 
+// All commands share one physical UART/RS232 path through the EW10.
+// Serialize CURRENT and DAILY transactions so replies can never cross between
+// separate TCP clients.
+let stationTransactionTail = Promise.resolve();
+let stationTransactionActive = null;
+
+function runStationTransaction(label, task) {
+  const run = stationTransactionTail.then(async () => {
+    stationTransactionActive = label;
+    logger.info(`[STATION] Starting ${label}`);
+
+    try {
+      return await task();
+    } finally {
+      logger.info(`[STATION] Finished ${label}`);
+      stationTransactionActive = null;
+    }
+  });
+
+  // Keep the queue usable even if a transaction throws. The caller still gets
+  // the original rejection from `run`; only the queue tail is recovered.
+  stationTransactionTail = run.catch((err) => {
+    logger.error(`[STATION] ${label} failed: ${err.message}`);
+  });
+
+  return run;
+}
+
 const skycamHistory = [];
 let skycamHistoryBytes = 0;
 let skycamLastHash = null;
@@ -176,125 +204,112 @@ function dailyCacheStatus() {
    CURRENT WEATHER (r3)
    ========================================================= */
 
-function updateWeatherData(attempt = 1, maxAttempts = 3) {
-  const client = new net.Socket();
-  let receivedData = "";
-  let finished = false;
+function runCurrentWeatherAttempt(attempt = 1, maxAttempts = 3) {
+  return new Promise((resolve) => {
+    const client = new net.Socket();
+    let receivedData = "";
+    let finished = false;
 
-  // The EW10 TCP server can keep the socket open after the logger has already
-  // returned a complete r3 response. Accept valid received data before treating
-  // a socket timeout/close as a failed poll.
-  const cacheReceivedDataIfValid = () => {
-    if (finished || !receivedData) return false;
+    const complete = (success) => {
+      if (finished) return;
+      finished = true;
+      client.destroy();
+      resolve(success);
+    };
 
-    const cleaned = receivedData
-      .replace(/^r3\s*/, "")
-      .trim()
-      .replace(/,?\s*\\?END.*$/i, "");
+    // The EW10 can leave TCP open after the complete logger reply has arrived.
+    // Validate/cache received data before treating timeout/close as failure.
+    // Also reject a 43-field daily-summary response so it can never poison the
+    // current-weather cache even if unexpected serial data is encountered.
+    const cacheReceivedDataIfValid = () => {
+      if (finished || !receivedData) return false;
 
-    const fields = cleaned.split(",");
+      const cleaned = receivedData
+        .replace(/^r3\s*/, "")
+        .trim()
+        .replace(/,?\s*\\?END.*$/i, "");
 
-    if (fields.length < 31) return false;
+      const fields = cleaned.split(",");
+      const hasCurrentShape =
+        fields.length >= 31 &&
+        fields.length !== 43 &&
+        /^\d{4}\/\d{2}\/\d{2}$/.test(fields[0] || "") &&
+        /^\d{2}:\d{2}:\d{2}$/.test(fields[1] || "");
 
-    finished = true;
-    cachedWeatherData = cleaned;
-    lastPollTime = new Date();
-    client.destroy();
+      if (!hasCurrentShape) return false;
 
-    logger.info(
-      `[CURRENT] Weather data cached (${fields.length} fields)`
-    );
-
-    return true;
-  };
-
-  const failAttempt = (reason) => {
-    if (finished) return;
-
-    // Preserve the old working behaviour: if the logger replied but the EW10
-    // left TCP open, use the reply instead of throwing it away on timeout.
-    if (cacheReceivedDataIfValid()) return;
-
-    finished = true;
-    client.destroy();
-
-    logger.warn(
-      `[CURRENT] ${reason} (attempt ${attempt}/${maxAttempts})`
-    );
-
-    if (attempt < maxAttempts) {
-      setTimeout(
-        () => updateWeatherData(attempt + 1, maxAttempts),
-        1000
-      );
-    }
-  };
-
-  client.setTimeout(5000);
-
-  client.connect(
-    WEATHER_STATION_PORT,
-    WEATHER_STATION_HOST,
-    () => {
-      logger.info(
-        `[CURRENT] Connected for r3 (attempt ${attempt}/${maxAttempts})`
-      );
-      client.write("r3\r\n");
-    }
-  );
-
-  client.on("data", (data) => {
-    receivedData += data.toString();
-
-    // If the logger supplies its END marker, there is no reason to wait for
-    // the EW10 to close the TCP connection.
-    if (/\\?END\b/i.test(receivedData)) {
-      cacheReceivedDataIfValid();
-    }
-  });
-
-  client.on("close", () => {
-    if (finished) return;
-    if (cacheReceivedDataIfValid()) return;
-    finished = true;
-
-    const cleaned = receivedData
-      .replace(/^r3\s*/, "")
-      .trim()
-      .replace(/,?END$/, "");
-
-    const fields = cleaned.split(",");
-
-    // index.html consumes fields[0] through fields[30].
-    if (fields.length >= 31) {
       cachedWeatherData = cleaned;
       lastPollTime = new Date();
 
       logger.info(
         `[CURRENT] Weather data cached (${fields.length} fields)`
       );
-      return;
-    }
 
-    logger.warn(
-      `[CURRENT] Invalid r3 data: ${fields.length} fields, expected at least 31`
+      complete(true);
+      return true;
+    };
+
+    client.setTimeout(5000);
+
+    client.connect(
+      WEATHER_STATION_PORT,
+      WEATHER_STATION_HOST,
+      () => {
+        logger.info(
+          `[CURRENT] Connected for r3 (attempt ${attempt}/${maxAttempts})`
+        );
+        client.write("r3\r\n");
+      }
     );
 
-    if (attempt < maxAttempts) {
-      setTimeout(
-        () => updateWeatherData(attempt + 1, maxAttempts),
-        1000
+    client.on("data", (data) => {
+      receivedData += data.toString();
+
+      if (/\\?END\b/i.test(receivedData)) {
+        cacheReceivedDataIfValid();
+      }
+    });
+
+    client.on("close", () => {
+      if (finished) return;
+      if (cacheReceivedDataIfValid()) return;
+
+      logger.warn(
+        `[CURRENT] Invalid r3 response (attempt ${attempt}/${maxAttempts}); response rejected`
       );
-    }
-  });
+      complete(false);
+    });
 
-  client.on("error", (err) => {
-    failAttempt(`Socket error: ${err.message}`);
-  });
+    client.on("error", (err) => {
+      if (cacheReceivedDataIfValid()) return;
+      logger.warn(
+        `[CURRENT] Socket error: ${err.message} (attempt ${attempt}/${maxAttempts})`
+      );
+      complete(false);
+    });
 
-  client.on("timeout", () => {
-    failAttempt("Socket timeout");
+    client.on("timeout", () => {
+      if (cacheReceivedDataIfValid()) return;
+      logger.warn(
+        `[CURRENT] Socket timeout (attempt ${attempt}/${maxAttempts})`
+      );
+      complete(false);
+    });
   });
+}
+
+async function updateWeatherData(attempt = 1, maxAttempts = 3) {
+  const success = await runStationTransaction(
+    `CURRENT r3 attempt ${attempt}/${maxAttempts}`,
+    () => runCurrentWeatherAttempt(attempt, maxAttempts)
+  );
+
+  if (success || attempt >= maxAttempts) {
+    return success;
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  return updateWeatherData(attempt + 1, maxAttempts);
 }
 
 /* =========================================================
@@ -312,7 +327,8 @@ function fetchDailyDataOnce() {
     return dailyStationRequestInFlight;
   }
 
-  const requestPromise = new Promise((resolve) => {
+  const requestPromise = runStationTransaction("DAILY MEM 1 LAST", () =>
+    new Promise((resolve) => {
     const client = new net.Socket();
     let receivedData = "";
     let finished = false;
@@ -425,7 +441,8 @@ function fetchDailyDataOnce() {
       logger.warn("[DAILY] Socket timeout");
       finish("");
     });
-  });
+  })
+  );
 
   dailyStationRequestInFlight = requestPromise;
 
@@ -878,6 +895,7 @@ app.get("/ping", (req, res) => {
     expectedDailySummaryDate: dailyStatus.expectedDate,
     dailyRefreshInProgress: Boolean(dailyRefreshInFlight),
     dailyStationRequestInProgress: Boolean(dailyStationRequestInFlight),
+    stationTransactionActive,
     dailySchedule: "09:10 Australia/Brisbane",
   });
 });
