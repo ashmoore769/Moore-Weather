@@ -1,807 +1,894 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="apple-touch-icon" href="/Weather_Station_App.png">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Moore's LIVE Weather Data</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="apple-touch-icon" href="/Weather_Station_App.png">
+  <title>Moore Weather · West Warwick</title>
+  <script>(function () {
+  try {
+    const saved = localStorage.getItem("mooreWeatherTheme") || "auto";
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const resolved = saved === "auto" ? (prefersDark ? "dark" : "light") : saved;
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.dataset.themeMode = saved;
+  } catch (error) {
+    document.documentElement.dataset.theme = "light";
+    document.documentElement.dataset.themeMode = "auto";
+  }
+})();</script>
   <style>
-    /* Base Styles */
-    body {
+:root {
+  color-scheme: light;
+  --page: #eef2f6;
+  --surface: #ffffff;
+  --surface-soft: #f6f8fb;
+  --surface-raised: #ffffff;
+  --text: #172033;
+  --muted: #667085;
+  --border: #dce3ec;
+  --border-strong: #c8d1dd;
+  --brand: #1e3a8a;
+  --brand-2: #27499e;
+  --accent: #1677ff;
+  --green: #147a42;
+  --green-soft: #eaf7ef;
+  --amber: #a86505;
+  --amber-soft: #fff4dd;
+  --red: #b42318;
+  --red-soft: #fdecea;
+  --shadow: 0 14px 34px rgba(17, 24, 39, 0.08);
+  --shadow-soft: 0 4px 14px rgba(17, 24, 39, 0.06);
+  --radius-xl: 18px;
+  --radius-lg: 14px;
+  --radius-md: 10px;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d1219;
+  --surface: #151c25;
+  --surface-soft: #1b2430;
+  --surface-raised: #202a36;
+  --text: #edf2f7;
+  --muted: #9da9b8;
+  --border: #2b3745;
+  --border-strong: #3a4858;
+  --brand: #24489c;
+  --brand-2: #3155aa;
+  --accent: #68a9ff;
+  --green: #56d58a;
+  --green-soft: rgba(55, 186, 112, 0.12);
+  --amber: #f6b94d;
+  --amber-soft: rgba(246, 185, 77, 0.12);
+  --red: #ff7a70;
+  --red-soft: rgba(255, 122, 112, 0.12);
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  --shadow-soft: 0 5px 16px rgba(0, 0, 0, 0.22);
+}
+
+* { box-sizing: border-box; }
+
+html, body { min-height: 100%; }
+body {
   margin: 0;
-  background-color: #f4f4f4;
-  font-family: "Inter", "system-ui", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  font-size: 13.5px;
-  font-weight: 400;
-  line-height: 1.35;
-  letter-spacing: 0.15px; /* ✨ NEW */
+  background: var(--page);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  padding-top: env(safe-area-inset-top, 0);
-}
- 
-
-    .main-container {
-      max-width: 400px;
-      margin: 10px auto;
-      padding: 0 5px;
-    }
-
-    @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-  100% { transform: scale(1); }
+  transition: background-color .18s ease, color .18s ease;
 }
 
-.big-temp-box.updated {
-  animation: pulse 0.3s ease-in-out;
+button, input { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+
+.main-container {
+  width: min(100% - 24px, 470px);
+  margin: 12px auto 24px;
 }
 
-
-
-    .freeze-pane {
+.freeze-pane {
   position: sticky;
-  top: env(safe-area-inset-top, 0);
+  top: 0;
   z-index: 100;
-  background: #f4f4f4;
-  padding: 0; /* reduce from 5px 0 to 0 */
+  padding-top: env(safe-area-inset-top, 0);
 }
 
 .header-box {
-  position: relative;
-  background-color: #1e3a8a;
-  border-radius: 10px 10px 0 0;  /* top-left, top-right, bottom-right, bottom-left */
-  padding: 5px 5px 5px 5px;
-  text-align: center;
-  margin-bottom: 0;
-}
-
-.header-box h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: bold;
+  background: var(--brand);
   color: white;
-  padding: 2px 0;       /* was 6px 0 */
-  white-space: nowrap;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-soft);
 }
 
-.control-bar {
-  background-color: #eeeeee;
-  padding: 4px 6px;
-  width: 100%;
-  border-radius: 12px;
-  box-sizing: border-box;  /* ✅ ensure padding doesn't overflow */
-}
-
-.control-container {
+.app-header {
+  min-height: 64px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0;
-  margin: 0;
-  gap: 10px;               /* ✅ this evenly separates the buttons */
+  gap: 14px;
+  padding: 10px 12px;
 }
 
-.control-half {
-  flex: 1;                 /* ✅ equal width on both sides */
+.brand-lockup {
+  min-width: 0;
   display: flex;
-  justify-content: center;
   align-items: center;
-  white-space: nowrap;
+  gap: 10px;
+  flex: 1;
 }
 
-
-button {
-  padding: 4px 8px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: "Inter", sans-serif;
-  background-color: #FFA500;
-  color: rgb(77, 75, 71);
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.1s ease;
-  display: inline-block;
-  margin: 2px 0;
-  white-space: nowrap;
-  line-height: 1.2;
-  letter-spacing: 0.3px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-}
-
-button:hover {
-  background-color: #e59400;
-  transform: scale(1.02);
-}
-
-button:disabled {
-  background-color: gray;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.control-half button {
-  width: 100%;
-}
-
-.force-button {
-  background-color: #70B8D9;
-  color: white;
-  font-weight: 600;
-}
-
-#dailyBtn {
-  background-color: #006400;
-  color: white;
-  font-weight: 600;
-  border: none;
-  padding: 8px 14px;
-  font-size: 14px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-#dailyBtn:hover {
-  background-color: #004d00;
-}
-
-button:hover {
-  background-color: #e59400;
-  transform: scale(1.02);       /* Tiny lift on hover */
-}
-
-button:disabled {
-  background-color: gray;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-
-    #status {
-      font-weight: bold;
-      font-size: 16px; /* increased font size */
-      white-space: nowrap;
-      padding: 0;
-    }
-
-/* Default badge style for all statuses */
-.status-badge {
-  display: inline-block;
-  padding: 6px 12px;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 10px;
-  background-color: white;
-  color: #006400;
-  border: 2px solid #006400;
-  line-height: 1;
-  transition: all 0.3s ease;
-}
-
-/* Only Connected gets solid green background */
-.status-badge.connected {
-  background-color: #006400;
-  color: white;
-  border-color: #006400;
-}
-
-/* Optional: yellow/orange for fetching */
-.status-badge.fetching {
-  color: #DAA520;
-  border-color: #DAA520;
-}
-
-/* Optional: red for error */
-.status-badge.error {
-  color: #B22222;
-  border-color: #B22222;
-}
-
-
-    .spinner-container {
-      display: none;
-      margin: 20px auto;
-      width: 40px;
-      height: 40px;
-    }
-
-    .spinner {
-      width: 100%;
-      height: 100%;
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #007bff;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Weather Data Container */
-    #weatherData {
-  background: #ffffff;
-  padding: 8px 10px 12px 10px;
-  border-radius: 0 0 12px 12px;  /* top corners square, bottom corners rounded */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  font-size: 13.5px;
-  color: #222;
-  text-align: left;
-  margin-bottom: 15px;
-}
-
-    #weatherData p {
-      margin: 2px 0;
-      line-height: 1.4;
-      white-space: nowrap;
-    }
-
-    
-
-    hr {
-      border: none;
-      border-top: 1px solid #ccc;
-      margin: 5px 0;
-      clear: both;
-      width: 100%;
-    }
-
-    /* --- Header Layout --- */
-    .header-content {
-      display: flex;
-      justify-content: space-between;
-      align-items: center; /* center vertically */
-      margin: 5px 0;
-      white-space: nowrap;
-    }
-
-    .title-date-container {
-      display: flex;
-      flex-direction: column;
-      white-space: nowrap;
-    }
-
-    .address-title {
-      font-size: 18px; /* slightly reduced from previous 20px */
-      font-weight: bold;
-      margin: 0 0 2px 0;
-      color: #00008B;
-      white-space: nowrap;
-    }
-
-    .date-time {
-      margin: 0;
-      white-space: nowrap;
-    }
-
-    .date-time p {
-      margin: 0;
-      line-height: 1.3;
-      white-space: nowrap;
-    }
-
-    .logo-container {
-      display: flex;
-      gap: 5px;
-      margin: 0;
-      padding: 0;
-    }
-
-    .logo-container img {
-      height: 60px; /* increased image size */
-      width: auto;
-      margin: 0;
-      display: block;
-      border-radius: 8px;
-    }
-
-    .logo-container img:last-child {
-  padding-right: 4px; /* or margin-right */
-}
-    /* --- Main Data Layout --- */
-    .wind-logger-container {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      margin: 5px 0;
-      white-space: nowrap;
-    }
-
-    .wind-column {
-      width: 60%;
-      white-space: nowrap;
-    }
-
-    .logger-column {
-      width: 40%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center; /* center vertically within logger column */
-      white-space: nowrap;
-    }
-    
-    .big-temp-box {
-  width: 98px;
+.brand-mark {
+  width: 38px;
   height: 38px;
-  padding: 4px 6px;
-  border: 2px solid grey;
   border-radius: 10px;
+  background: rgba(255,255,255,.14);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,.2);
+  overflow: hidden;
+}
+.brand-mark img { width: 100%; height: 100%; object-fit: cover; }
 
-  /* ✨ Depth and lighting */
-  background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(0,0,0,0.15));
+.brand-copy { min-width: 0; }
+.brand-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: .1px;
+  line-height: 1.05;
+}
+.brand-subtitle {
+  margin-top: 4px;
+  color: rgba(255,255,255,.72);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .25px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-  box-shadow:
-    inset 0 0 4px rgba(0, 0, 0, 0.25),  /* inner glow */
-    0 2px 6px rgba(0, 0, 0, 0.2);       /* outer drop shadow */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
 
+.header-icon-button,
+.desktop-layout-switcher button {
+  height: 34px;
+  min-width: 34px;
+  padding: 0 9px;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 10px;
+  background: rgba(255,255,255,.1);
+  color: white;
+  box-shadow: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color .15s ease, border-color .15s ease, transform .1s ease;
+}
+.header-icon-button:hover,
+.desktop-layout-switcher button:hover {
+  background: rgba(255,255,255,.2);
+  border-color: rgba(255,255,255,.48);
+}
+.header-icon-button:active,
+.desktop-layout-switcher button:active { transform: translateY(1px); }
+
+.theme-label { font-size: 11px; font-weight: 700; }
+.theme-icon { font-size: 17px; line-height: 1; }
+.logout-form { margin: 0; display: flex; }
+
+.desktop-layout-switcher {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+.desktop-layout-switcher button { padding: 0; font-size: 17px; }
+.desktop-layout-switcher button.active {
+  background: white;
+  color: var(--brand);
+  border-color: white;
+}
+
+#weatherData {
+  background: var(--surface);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  border: 1px solid var(--border);
+  border-top: 0;
+  box-shadow: var(--shadow);
+  padding: 10px;
+  margin-bottom: 16px;
+}
+
+.top-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 1px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.view-tabs {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+.tab-button {
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background-color .15s ease, color .15s ease;
+}
+.tab-button:hover { color: var(--text); background: var(--surface); }
+.tab-button.active {
+  background: var(--surface-raised);
+  color: var(--brand-2);
+  box-shadow: 0 1px 4px rgba(17,24,39,.08);
+}
+.tab-button:disabled { opacity: .58; cursor: wait; }
+
+.live-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .45px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.status-badge.connected { color: var(--green); background: var(--green-soft); border-color: color-mix(in srgb, var(--green) 22%, transparent); }
+.status-badge.fetching { color: var(--amber); background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 22%, transparent); }
+.status-badge.error { color: var(--red); background: var(--red-soft); border-color: color-mix(in srgb, var(--red) 22%, transparent); }
+
+.content-layout { display: block; padding-top: 10px; }
+.readings-panel, .camera-panel { min-width: 0; }
+
+.station-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 11px;
+  margin-bottom: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+}
+.title-date-container { min-width: 0; }
+.address-title {
+  margin: 0 0 5px;
+  color: var(--brand-2);
   font-size: 16px;
-  font-family: 'Rubik', sans-serif;
-  font-weight: bold;
-  text-align: center;
-  color: #FFF;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.date-time { color: var(--muted); font-size: 12px; }
+.date-time p { margin: 1px 0; white-space: nowrap; }
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.logo-container img {
+  display: block;
+  height: 45px;
+  width: auto;
+  max-width: 104px;
+  object-fit: contain;
+  border-radius: 7px;
+}
+
+.panel-card {
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.primary-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 114px;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 9px;
+}
+.eyebrow {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .85px;
+  text-transform: uppercase;
+}
+.primary-temp {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 42px;
+  font-weight: 780;
+  line-height: .98;
+  letter-spacing: -1.2px;
+}
+.primary-desc {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+.primary-meta {
+  margin-top: 11px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.quick-stat {
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: var(--surface-soft);
+  min-width: 0;
+}
+.quick-stat .label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .45px;
+}
+.quick-stat .value {
+  display: block;
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 750;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thermal-stack {
+  display: grid;
+  gap: 6px;
+  align-content: center;
+}
+.big-temp-box {
+  width: 100%;
+  min-height: 48px;
+  padding: 7px 6px;
+  border-radius: 11px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-soft);
+  color: white;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  word-wrap: break-word;
-  line-height: 1;
-  letter-spacing: 0.2px;
-  border: 1px solid rgba(255,255,255,0.4);
--webkit-font-smoothing: antialiased;
--moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  box-shadow: none;
+  line-height: 1.02;
+  font-size: 15px;
+  font-weight: 800;
+  transition: transform .18s ease, background-color .18s ease;
+}
+.big-temp-box.updated { animation: pulse .3s ease-in-out; }
+.big-temp-box .label {
+  margin-top: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  opacity: .9;
+  letter-spacing: .2px;
+}
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025); } }
+
+.section-card { padding: 11px 12px; margin-bottom: 9px; }
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.section-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
-
-.big-temp-box span.label {
+.metric-list { display: grid; gap: 0; }
+.metric-row {
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid var(--border);
+}
+.metric-row:first-child { border-top: 0; }
+.metric-label {
+  color: var(--muted);
   font-size: 12px;
-  font-weight: 600;
-  color: white;
-  margin-top: 1px;       /* ⬅️ tighter gap */
-  line-height: 1.1;       /* ⬅️ slightly tighter vertical spacing */
-  letter-spacing: 0.2px;  /* optional: smooths text, helps legibility */
+  font-weight: 650;
 }
-
-.big-temp-box + .big-temp-box {
-  margin-top: 8px;
-}
-
-
-.rain-container {
-  margin-top: 7px; /* Increased space at the top for extra separation */
-  margin-bottom: 3px;
-  padding: 1px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background: #f9f9f9;
+.metric-value {
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 750;
+  text-align: right;
   white-space: nowrap;
 }
-  
-    .evap-battery {
-      display: flex;
-      justify-content: space-between;
-      margin: 5px 0;
-      white-space: nowrap;
-    }
+.metric-value .subtle { color: var(--muted); font-weight: 650; }
 
-    .evap-col {
-      width: 52%;
-      white-space: nowrap;
-    }
-
-    .battery-col {
-      width: 48%;
-      white-space: nowrap;
-    }
-
-    .soil-moisture {
-      display: flex;
-      justify-content: space-between;
-      margin: 5px 0;
-      white-space: nowrap;
-    }
-
-    .soiltemp-col, .moisture-col {
-      width: 48%;
-      white-space: nowrap;
-    }
-
-    /* --- SkyCam --- */
-    .skycam-container {
-      position: relative;
-      margin-top: 8px;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      overflow: hidden;
-      background: #f9f9f9;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-      line-height: 0;
-    }
-
-    .skycam-container img {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-
-    .skycam-nav {
-      position: absolute;
-      top: 50%;
-      z-index: 3;
-      width: 38px;
-      height: 54px;
-      padding: 0;
-      margin: 0;
-      border: 1px solid rgba(255,255,255,0.55);
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.48);
-      color: white;
-      font-family: Arial, sans-serif;
-      font-size: 34px;
-      font-weight: 400;
-      line-height: 48px;
-      text-align: center;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-      transform: translateY(-50%);
-      transition: background 0.2s ease, opacity 0.2s ease, transform 0.1s ease;
-    }
-
-    .skycam-nav:hover {
-      background: rgba(0, 0, 0, 0.68);
-      transform: translateY(-50%) scale(1.04);
-    }
-
-    .skycam-nav:disabled {
-      background: rgba(0, 0, 0, 0.25);
-      opacity: 0.35;
-      cursor: default;
-      transform: translateY(-50%);
-    }
-
-    .skycam-nav-prev { left: 8px; }
-    .skycam-nav-next { right: 8px; }
-
-    .skycam-caption {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      background: #f5f5f5;
-      color: #444;
-      font-size: 11.5px;
-      font-weight: 600;
-      line-height: 1.25;
-    }
-
-    #skycamPosition {
-      color: #666;
-      white-space: nowrap;
-    }
-
-    /* --- Desktop Portrait / Landscape Layout --- */
-    .desktop-layout-switcher {
-      display: none;
-      position: absolute;
-      top: 50%;
-      right: 6px;
-      transform: translateY(-50%);
-      align-items: center;
-      gap: 4px;
-      z-index: 2;
-    }
-
-    .desktop-layout-switcher button {
-      width: 28px;
-      height: 24px;
-      padding: 0;
-      margin: 0;
-      border: 1px solid rgba(255,255,255,0.55);
-      border-radius: 6px;
-      background: rgba(255,255,255,0.16);
-      color: white;
-      font-family: Arial, sans-serif;
-      font-size: 17px;
-      font-weight: 700;
-      line-height: 22px;
-      box-shadow: none;
-      transform: none;
-    }
-
-    .desktop-layout-switcher button:hover {
-      background: rgba(255,255,255,0.28);
-      transform: none;
-    }
-
-    .desktop-layout-switcher button.active {
-      background: white;
-      color: #1e3a8a;
-      border-color: white;
-    }
-
-    .content-layout {
-      display: block;
-    }
-
-    .readings-panel,
-    .camera-panel {
-      min-width: 0;
-    }
-
-    @media only screen and (min-width: 900px) {
-      .desktop-layout-switcher {
-        display: flex;
-      }
-
-      /* Landscape desktop: compact station console + dominant SkyCam. */
-      body.layout-landscape .main-container {
-        max-width: 1180px;
-        padding-left: 10px;
-        padding-right: 10px;
-      }
-
-      body.layout-landscape #weatherData {
-        padding: 8px 10px 10px 10px;
-      }
-
-      body.layout-landscape #weatherData > hr {
-        margin: 6px 0 8px;
-      }
-
-      body.layout-landscape .content-layout {
-        display: grid;
-        grid-template-columns: minmax(420px, 0.82fr) minmax(0, 1.28fr);
-        gap: 12px;
-        align-items: start;
-      }
-
-      /* Keep station identity, timestamp and logos inside the readings column. */
-      body.layout-landscape .readings-panel {
-        min-width: 0;
-        padding: 0 2px 0 0;
-      }
-
-      body.layout-landscape .readings-panel .header-content {
-        margin: 0 0 5px 0;
-        min-height: 62px;
-      }
-
-      body.layout-landscape .readings-panel .address-title {
-        font-size: 18px;
-      }
-
-      body.layout-landscape .readings-panel .logo-container {
-        gap: 4px;
-        flex-shrink: 0;
-      }
-
-      body.layout-landscape .readings-panel .logo-container img {
-        height: 54px;
-      }
-
-      body.layout-landscape .readings-panel > hr:first-of-type {
-        margin-top: 5px;
-        margin-bottom: 6px;
-      }
-
-      /* SkyCam starts at the top of the content row, removing the empty band. */
-      body.layout-landscape .camera-panel {
-        min-width: 0;
-        align-self: start;
-      }
-
-      body.layout-landscape .camera-panel .skycam-container {
-        margin-top: 0;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-      }
-
-      body.layout-landscape .skycam-nav {
-        width: 44px;
-        height: 64px;
-        font-size: 40px;
-        line-height: 58px;
-      }
-
-      body.layout-landscape .skycam-caption {
-        font-size: 12px;
-        padding: 7px 9px;
-      }
-    }
-
-    /* Media Queries for Mobile Devices */
-    @media only screen and (max-width: 600px) {
-      .main-container {
-  max-width: 400px;
-  margin: 5px auto; /* was 10px auto */
-  padding: 0 5px;
+.two-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 9px;
 }
+.two-card-grid .section-card { margin-bottom: 0; }
 
-      .header-box {
-        padding: 0;
-      }
-    }
+.rain-container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.rain-stat {
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+.rain-stat .metric-label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .4px; }
+.rain-stat .metric-value { display: block; margin-top: 3px; text-align: left; font-size: 13.5px; }
 
-    #dailySummaryBtn {
-  background-color: #006400;
+.soil-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.soil-table th {
+  color: var(--muted);
+  font-size: 9.5px;
+  letter-spacing: .45px;
+  text-transform: uppercase;
+  text-align: right;
+  padding: 0 0 5px 8px;
+}
+.soil-table th:first-child { text-align: left; padding-left: 0; }
+.soil-table td {
+  border-top: 1px solid var(--border);
+  padding: 6px 0 6px 8px;
+  text-align: right;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.soil-table td:first-child { padding-left: 0; text-align: left; color: var(--muted); font-weight: 650; }
+
+.skycam-container {
+  position: relative;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #080b10;
+  box-shadow: var(--shadow-soft);
+  line-height: 0;
+  isolation: isolate;
+}
+.skycam-container img {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 220px;
+  object-fit: cover;
+  cursor: zoom-in;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.skycam-container:fullscreen { display: grid; place-items: center; background: #000; border-radius: 0; border: 0; }
+.skycam-container:fullscreen img { width: 100%; height: 100%; max-height: 100vh; object-fit: contain; cursor: zoom-out; }
+
+.skycam-caption {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
   color: white;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.1;
+}
+.skycam-caption span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(8, 12, 18, .64);
+  border: 1px solid rgba(255,255,255,.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-#dailySummaryBtn:hover {
-  background-color: #004d00;
+.skycam-badge {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 4;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: white;
+  background: rgba(8,12,18,.64);
+  border: 1px solid rgba(255,255,255,.18);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .55px;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.skycam-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #46d47e; box-shadow: 0 0 0 3px rgba(70,212,126,.14); }
+
+.skycam-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  width: 42px;
+  height: 58px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 12px;
+  background: rgba(8, 12, 18, .54);
+  color: white;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+  transform: translateY(-50%);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  transition: background-color .15s ease, opacity .15s ease, transform .1s ease;
+}
+.skycam-nav:hover { background: rgba(8,12,18,.76); transform: translateY(-50%) scale(1.03); }
+.skycam-nav:disabled { opacity: .22; cursor: default; transform: translateY(-50%); }
+.skycam-nav-prev { left: 10px; }
+.skycam-nav-next { right: 10px; }
+
+.spinner-container {
+  display: none;
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 150;
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+.spinner { width: 100%; height: 100%; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0,0,0,0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
-  </style>
+html[data-theme="dark"] #tempVal,
+html[data-theme="dark"] #humidityVal span,
+html[data-theme="dark"] #solarRadVal span,
+html[data-theme="dark"] #blackGlobeTempVal span,
+html[data-theme="dark"] #batteryVal span,
+html[data-theme="dark"] #chargeVal span,
+html[data-theme="dark"] #peakWindGustVal span,
+html[data-theme="dark"] #rainSince9Val span,
+html[data-theme="dark"] #rainInLastMinVal span {
+  filter: brightness(1.38) saturate(.92);
+}
+
+@media only screen and (min-width: 900px) {
+  .desktop-layout-switcher { display: inline-flex; }
+
+  body.layout-landscape .main-container {
+    width: min(100% - 32px, 1280px);
+    margin-top: 14px;
+  }
+  body.layout-landscape .app-header { padding-left: 14px; padding-right: 10px; }
+  body.layout-landscape #weatherData { padding: 11px; }
+  body.layout-landscape .content-layout {
+    display: grid;
+    grid-template-columns: minmax(420px, 0.82fr) minmax(0, 1.38fr);
+    gap: 11px;
+    align-items: start;
+  }
+  body.layout-landscape .camera-panel { position: sticky; top: 76px; }
+  body.layout-landscape .skycam-container img { min-height: 480px; }
+
+  body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
+}
+
+@media only screen and (max-width: 899px) {
+  .theme-label { display: none; }
+}
+
+@media only screen and (max-width: 600px) {
+  body { font-size: 13.5px; }
+  .main-container { width: min(100% - 10px, 430px); margin: 5px auto 16px; }
+  .header-box { border-radius: 14px 14px 0 0; }
+  .app-header { min-height: 56px; padding: 8px 9px; gap: 8px; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 9px; }
+  .brand-title { font-size: 15px; }
+  .brand-subtitle { font-size: 10.5px; margin-top: 2px; }
+  .header-icon-button { height: 32px; min-width: 32px; padding: 0 7px; }
+  #weatherData { padding: 8px; border-radius: 0 0 14px 14px; }
+  .top-toolbar { align-items: center; gap: 7px; padding-bottom: 8px; }
+  .view-tabs { flex: 1 1 auto; }
+  .tab-button { min-height: 30px; padding: 5px 9px; font-size: 12px; }
+  .live-cluster { flex: 1 0 100%; justify-content: flex-end; }
+  .station-strip { padding: 8px 9px; }
+  .address-title { font-size: 15px; }
+  .logo-container img { height: 39px; max-width: 88px; }
+  .primary-card { grid-template-columns: minmax(0, 1fr) 104px; padding: 10px; }
+  .primary-temp { font-size: 38px; }
+  .primary-meta { gap: 5px; }
+  .quick-stat { padding: 7px; }
+  .thermal-stack { gap: 5px; }
+  .big-temp-box { min-height: 45px; font-size: 14px; }
+  .section-card { padding: 9px 10px; }
+  .two-card-grid { grid-template-columns: 1fr; gap: 8px; }
+  .metric-row { min-height: 28px; }
+  .skycam-container img { min-height: 0; }
+  .skycam-nav { width: 38px; height: 54px; }
+  .skycam-caption { left: 7px; right: 7px; bottom: 7px; }
+  .skycam-badge { left: 7px; top: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+</style>
 </head>
 <body>
   <div class="main-container">
-    <!-- Sticky Header -->
     <div class="freeze-pane">
-      <div class="header-box">
-        <h2>Moore's LIVE Weather Data</h2>
-        <div class="desktop-layout-switcher" aria-label="Desktop layout">
-          <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')">&#9647;</button>
-          <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')">&#9645;</button>
+      <header class="header-box">
+        <div class="app-header">
+          <div class="brand-lockup">
+            <div class="brand-mark" aria-hidden="true">
+              <img src="/Weather_Station_App.png" alt="">
+            </div>
+            <div class="brand-copy">
+              <h1 class="brand-title">Moore Weather</h1>
+              <div class="brand-subtitle">West Warwick · Live Station</div>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <button id="themeToggleBtn" class="header-icon-button" type="button" aria-label="Change theme" title="Theme">
+              <span id="themeToggleIcon" class="theme-icon" aria-hidden="true">◐</span>
+              <span id="themeToggleLabel" class="theme-label">Auto</span>
+            </button>
+            <form class="logout-form" method="post" action="/logout">
+              <button class="header-icon-button" type="submit" aria-label="Sign out" title="Sign out">⎋</button>
+            </form>
+            <div class="desktop-layout-switcher" aria-label="Desktop layout">
+              <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')">▯</button>
+              <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')">▭</button>
+            </div>
+          </div>
+        </div>
+      </header>
+    </div>
+
+    <main id="weatherData">
+      <div class="top-toolbar">
+        <div class="view-tabs" role="navigation" aria-label="Weather views">
+          <button id="fetchBtn" class="tab-button active" type="button" onclick="manualFetch()">Current</button>
+          <button id="dailySummaryBtn" class="tab-button" type="button" onclick="location.href='daily.html'">Daily Summary</button>
+        </div>
+        <div class="live-cluster" aria-live="polite">
+          <span id="statusBadge" class="status-badge fetching">● CONNECTING</span>
+          <span id="freshnessText">Waiting for station</span>
+          <span id="status" class="sr-only">Connecting</span>
         </div>
       </div>
-
-    <!-- Weather Data Section -->
-<div id="weatherData">
-
-<!-- Control Button Bar -->
-<div class="control-bar">
-  <div class="control-container">
-    <div class="control-half">
-      <button id="fetchBtn" onclick="manualFetch()">🌦️ Current Readings</button>
-    </div>
-    <div class="control-half">
-      <button id="dailySummaryBtn" onclick="location.href='daily.html'">⛅️ 9AM Daily Summary</button>
-    </div>
-  </div>
-</div>
-
-
-  <hr>
 
       <div class="content-layout">
-        <div class="readings-panel">
-            <!-- Header Section -->
-            <div class="header-content">
-              <div class="title-date-container">
-                <div class="address-title">WEST WARWICK, QLD</div>
-                <div class="date-time">
-                  <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-                  <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
-                </div>
-              </div>
-              <div class="logo-container">
-                <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-              
-                <!-- Clickable link to daily summary -->
-                <a href="daily.html" aria-label="View daily summary">
-                  <img src="/Station_Label.png" alt="Environdata Weather Maestro">
-                </a>
+        <section class="readings-panel" aria-label="Current weather readings">
+          <div class="station-strip">
+            <div class="title-date-container">
+              <div class="address-title">WEST WARWICK, QLD</div>
+              <div class="date-time">
+                <p><b>Date</b> · <span id="dateVal">--</span></p>
+                <p><b>Station time</b> · <span id="timeVal">--</span></p>
               </div>
             </div>
-              
-            <hr>
-      <!-- Main Data Columns -->
-      <div class="wind-logger-container">
-        <div class="wind-column">
-          <p>
-            <b>🌡️ Air Temperature:</b>
-            <span id="tempVal" style="font-weight:bold;">--</span>
-            (<span id="tempDescVal">--</span>)
-          </p>
-          <p><b>🔘 Black Globe Temp:</b> <span id="blackGlobeTempVal">--°C</span></p>
-          <p><b>🌱 Garden Bed Temp:</b> <span id="gardenBedTempVal">--</span>°C</p>
-          <p><b>💦 Humidity:</b> <span id="humidityVal">--%</span></p>
-          <p><b>💨 Wind Speed:</b> <span id="windSpeedVal">--</span> km/h</p>
-          <p><b>🧭 Wind Direction:</b> <span id="windDirDegVal">--</span>° (<span id="windDirTextVal">--</span>)</p>
-          <p><b>☀️ Solar Radiation:</b> <span id="solarRadVal">--</span></p>
-          <p><b>🌀 Pressure:</b> <span id="pressureVal">--</span></p>
-          <div class="rain-container">
-            <p><b>🌧️ Rain Since 9AM:</b> <span id="rainSince9Val">--</span></p>
-            <p><b>🌧️ Rain In Last Min:</b> <span id="rainInLastMinVal">--</span></p>
+            <div class="logo-container">
+              <img src="/Weather_Station_App.png" alt="Weather station">
+              <a href="daily.html" aria-label="View daily summary">
+                <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+              </a>
+            </div>
           </div>
-        </div>
-        <div class="logger-column">
-          <div class="big-temp-box" id="airTempBox">
-            <span id="bigTempVal">16.4°C</span>
-            <span class="label">Air Temp</span>
+
+          <section class="panel-card primary-card">
+            <div>
+              <div class="eyebrow">Air temperature</div>
+              <div id="tempVal" class="primary-temp">--</div>
+              <div id="tempDescVal" class="primary-desc">Waiting for station</div>
+
+              <div class="primary-meta">
+                <div class="quick-stat">
+                  <span class="label">Humidity</span>
+                  <span id="humidityVal" class="value">--</span>
+                </div>
+                <div class="quick-stat">
+                  <span class="label">Wind</span>
+                  <span class="value"><span id="windSpeedVal">--</span> km/h</span>
+                </div>
+                <div class="quick-stat">
+                  <span class="label">Pressure</span>
+                  <span id="pressureVal" class="value">--</span>
+                </div>
+                <div class="quick-stat">
+                  <span class="label">Rain since 9AM</span>
+                  <span id="rainSince9Val" class="value">--</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="thermal-stack" aria-label="Temperature differences">
+              <div class="big-temp-box" id="airTempBox">
+                <span id="bigTempVal">--</span>
+                <span class="label">Air Temp</span>
+              </div>
+              <div class="big-temp-box" id="radiantDiffBox">
+                <span id="radiantDiffVal">--</span>
+                <span class="label">Radiant Δ</span>
+              </div>
+              <div class="big-temp-box" id="dewDiffBox">
+                <span id="dewDiffVal">--</span>
+                <span class="label">Dew Margin</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-card section-card">
+            <div class="section-header"><h2 class="section-title">Conditions</h2></div>
+            <div class="metric-list">
+              <div class="metric-row"><span class="metric-label">Wind direction</span><span class="metric-value"><span id="windDirDegVal">--</span>° <span class="subtle">(<span id="windDirTextVal">--</span>)</span></span></div>
+              <div class="metric-row"><span class="metric-label">Solar radiation</span><span id="solarRadVal" class="metric-value">--</span></div>
+              <div class="metric-row"><span class="metric-label">Black globe</span><span id="blackGlobeTempVal" class="metric-value">--°C</span></div>
+              <div class="metric-row"><span class="metric-label">Garden bed</span><span class="metric-value"><span id="gardenBedTempVal">--</span>°C</span></div>
+              <div class="metric-row"><span class="metric-label">Dew point</span><span class="metric-value"><span id="dewPointVal">--</span>°C</span></div>
+              <div class="metric-row"><span class="metric-label">Max wind gust</span><span id="peakWindGustVal" class="metric-value">--</span></div>
+            </div>
+            <div class="rain-container">
+              <div class="rain-stat">
+                <span class="metric-label">Rain last minute</span>
+                <span id="rainInLastMinVal" class="metric-value">--</span>
+              </div>
+              <div class="rain-stat">
+                <span class="metric-label">Evap / hour</span>
+                <span class="metric-value"><span id="evapRateVal">--</span> mm/h</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="two-card-grid">
+            <section class="panel-card section-card">
+              <div class="section-header"><h2 class="section-title">Power</h2></div>
+              <div class="metric-list">
+                <div class="metric-row"><span class="metric-label">Battery</span><span id="batteryVal" class="metric-value">--</span></div>
+                <div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span> mA</span></div>
+                <div class="metric-row"><span class="metric-label">Solar panel</span><span id="solarPanelVal" class="metric-value">--</span></div>
+                <div class="metric-row"><span class="metric-label">Charge</span><span id="chargeVal" class="metric-value">--</span></div>
+              </div>
+            </section>
+
+            <section class="panel-card section-card">
+              <div class="section-header"><h2 class="section-title">Wind & water</h2></div>
+              <div class="metric-list">
+                <div class="metric-row"><span class="metric-label">Vector speed</span><span class="metric-value"><span id="vectorWindSpeedVal">--</span> km/h</span></div>
+                <div class="metric-row"><span class="metric-label">Vector direction</span><span class="metric-value"><span id="vectorWindDirDegVal">--</span>° <span class="subtle">(<span id="vectorWindDirTextVal">--</span>)</span></span></div>
+                <div class="metric-row"><span class="metric-label">Daily evap</span><span class="metric-value"><span id="dailyEvapVal">--</span> mm</span></div>
+              </div>
+            </section>
           </div>
-          <div class="big-temp-box" id="radiantDiffBox">
-            <span id="radiantDiffVal">--</span>
-            <span class="label" aria-label="Difference between radiant and air temperature">Rad. Heat Diff</span>
+
+          <section class="panel-card section-card">
+            <div class="section-header"><h2 class="section-title">Soil profile</h2></div>
+            <table class="soil-table" aria-label="Soil temperature and moisture by depth">
+              <thead><tr><th>Depth</th><th>Temp</th><th>Moisture</th></tr></thead>
+              <tbody>
+                <tr><td>10 cm</td><td><span id="soilTemp10Val">--</span>°C</td><td><span id="moisture10Val">--</span>%</td></tr>
+                <tr><td>20 cm</td><td><span id="soilTemp20Val">--</span>°C</td><td><span id="moisture20Val">--</span>%</td></tr>
+                <tr><td>30 cm</td><td><span id="soilTemp30Val">--</span>°C</td><td><span id="moisture30Val">--</span>%</td></tr>
+                <tr><td>40 cm</td><td><span id="soilTemp40Val">--</span>°C</td><td><span id="moisture40Val">--</span>%</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </section>
+
+        <section class="camera-panel" aria-label="SkyCam">
+          <div class="skycam-container" title="Click SkyCam for fullscreen">
+            <div class="skycam-badge">SKYCAM · LIVE</div>
+            <button id="skycamPrev" class="skycam-nav skycam-nav-prev" type="button" aria-label="Show older SkyCam image" onclick="stepSkyCam(-1)">‹</button>
+            <img id="skycamImage" src="/skycam/latest.jpg" alt="SkyCam live weather view">
+            <button id="skycamNext" class="skycam-nav skycam-nav-next" type="button" aria-label="Show newer SkyCam image" onclick="stepSkyCam(1)" disabled>›</button>
+            <div class="skycam-caption">
+              <span id="skycamTime">LIVE / latest</span>
+              <span id="skycamPosition">Loading history...</span>
+            </div>
           </div>
-          <div class="big-temp-box" id="dewDiffBox">
-            <span id="dewDiffVal">--</span>
-            <span class="label" aria-label="Temp above dew point">Temp > Dew P.</span>
-          </div>
-        </div>        
+        </section>
       </div>
-      <hr>
-      <!-- Evaporation and Battery Section -->
-      <div class="evap-battery">
-        <div class="evap-col">
-          <p><b>⤴️ Evap/Hr:</b> <span id="evapRateVal">--</span> mm/h</p>
-          <p><b>⬆️ Daily Evap:</b> <span id="dailyEvapVal">--</span> mm</p>
-          <p><b>💧 Dew Point:</b> <span id="dewPointVal">--</span>°C</p>
-          <p><b>🌬️ Max WS Gust:</b> <span id="peakWindGustVal">--</span></p>
-        </div>
-        <div class="battery-col">
-          <p><b>🔋 Battery:</b> <span id="batteryVal">--</span></p>
-          <p><b>⚡ Load:</b> <span id="loadVal">--</span> mA</p>
-          <p><b>☀️ Solar Panel:</b> <span id="solarPanelVal">--</span></p>
-          <p><b>🔌 Charge:</b> <span id="chargeVal">--</span></p>
-        </div>
-      </div>
-      <hr>
-      <!-- Additional Data -->
-      <p><b>🍃 Vector Wind Speed:</b> <span id="vectorWindSpeedVal">--</span> km/h</p>
-      <p>
-        <b>🧭 Vector Wind Direction:</b>
-        <span id="vectorWindDirDegVal">--</span>° (<span id="vectorWindDirTextVal">--</span>)
-      </p>
-      <hr>
-      <div class="soil-moisture">
-        <div class="soiltemp-col">
-          <p><b>🌡️ S. Temp 10cm:</b> <span id="soilTemp10Val">--</span>°C</p>
-          <p><b>🌡️ S. Temp 20cm:</b> <span id="soilTemp20Val">--</span>°C</p>
-          <p><b>🌡️ S. Temp 30cm:</b> <span id="soilTemp30Val">--</span>°C</p>
-          <p><b>🌡️ S. Temp 40cm:</b> <span id="soilTemp40Val">--</span>°C</p>
-        </div>
-        <div class="moisture-col">
-          <p><b>💧 Moist. 10cm:</b> <span id="moisture10Val">--</span>%</p>
-          <p><b>💧 Moist. 20cm:</b> <span id="moisture20Val">--</span>%</p>
-          <p><b>💧 Moist. 30cm:</b> <span id="moisture30Val">--</span>%</p>
-          <p><b>💧 Moist. 40cm:</b> <span id="moisture40Val">--</span>%</p>
-        </div>
-      </div>
-      <hr>
+    </main>
 
-        </div>
-        <div class="camera-panel">
-      <!-- SkyCam -->
-      <div class="skycam-container">
-        <button
-          id="skycamPrev"
-          class="skycam-nav skycam-nav-prev"
-          type="button"
-          aria-label="Show older SkyCam image"
-          onclick="stepSkyCam(-1)"
-        >&#8249;</button>
-
-        <img id="skycamImage" src="/skycam/latest.jpg" alt="SkyCam live weather view">
-
-        <button
-          id="skycamNext"
-          class="skycam-nav skycam-nav-next"
-          type="button"
-          aria-label="Show newer SkyCam image"
-          onclick="stepSkyCam(1)"
-          disabled
-        >&#8250;</button>
-
-        <div class="skycam-caption">
-          <span id="skycamTime">LIVE / latest</span>
-          <span id="skycamPosition">Loading history...</span>
-        </div>
-      </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Spinner -->
-    <div id="spinnerContainer" class="spinner-container">
-      <div class="spinner"></div>
-    </div>
+    <div id="spinnerContainer" class="spinner-container" aria-hidden="true"><div class="spinner"></div></div>
   </div>
 
   <script>
@@ -1342,7 +1429,6 @@ window.addEventListener("load", () => {
   setInterval(refreshSkyCam, 60000);
 });
   </script>
-
   <script>
     /* Desktop layout enhancement isolated from weather-data logic. */
     (function () {
@@ -1428,5 +1514,164 @@ window.addEventListener("load", () => {
       window.addEventListener("resize", initialiseLayoutSafely);
     })();
   </script>
+  <script>
+(function () {
+  const THEME_KEY = "mooreWeatherTheme";
+  const MODES = ["auto", "light", "dark"];
+  const button = document.getElementById("themeToggleBtn");
+  const label = document.getElementById("themeToggleLabel");
+  const icon = document.getElementById("themeToggleIcon");
+  const media = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+  function getSavedMode() {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      return MODES.includes(saved) ? saved : "auto";
+    } catch (error) {
+      return "auto";
+    }
+  }
+
+  function resolvedTheme(mode) {
+    if (mode === "dark" || mode === "light") return mode;
+    return media && media.matches ? "dark" : "light";
+  }
+
+  function renderTheme(mode, persist) {
+    const resolved = resolvedTheme(mode);
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.dataset.themeMode = mode;
+
+    if (persist) {
+      try { localStorage.setItem(THEME_KEY, mode); } catch (error) {}
+    }
+
+    if (button) {
+      button.setAttribute("aria-label", `Theme: ${mode}. Click to change.`);
+      button.title = `Theme: ${mode}`;
+    }
+    if (label) label.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+    if (icon) icon.textContent = mode === "dark" ? "☾" : mode === "light" ? "☀" : "◐";
+  }
+
+  if (button) {
+    button.addEventListener("click", () => {
+      const current = getSavedMode();
+      const next = MODES[(MODES.indexOf(current) + 1) % MODES.length];
+      renderTheme(next, true);
+    });
+  }
+
+  if (media && media.addEventListener) {
+    media.addEventListener("change", () => {
+      if (getSavedMode() === "auto") renderTheme("auto", false);
+    });
+  }
+
+  renderTheme(getSavedMode(), false);
+})();
+
+(function () {
+  const badge = document.getElementById("statusBadge");
+  const detail = document.getElementById("freshnessText");
+  let lastPollMs = null;
+  let pingFailed = false;
+
+  function humanAge(ms) {
+    const seconds = Math.max(0, Math.round(ms / 1000));
+    if (seconds < 5) return "just now";
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ${seconds % 60}s ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m ago`;
+  }
+
+  function paintFreshness() {
+    if (!badge || !detail) return;
+
+    if (!lastPollMs) {
+      badge.textContent = pingFailed ? "● OFFLINE" : "● CONNECTING";
+      badge.className = `status-badge ${pingFailed ? "error" : "fetching"}`;
+      detail.textContent = pingFailed ? "Status unavailable" : "Waiting for station";
+      return;
+    }
+
+    const age = Date.now() - lastPollMs;
+    if (age <= 90000) {
+      badge.textContent = "● LIVE";
+      badge.className = "status-badge connected";
+    } else if (age <= 180000) {
+      badge.textContent = "● DELAYED";
+      badge.className = "status-badge fetching";
+    } else {
+      badge.textContent = "● STALE";
+      badge.className = "status-badge error";
+    }
+    detail.textContent = `Updated ${humanAge(age)}`;
+  }
+
+  async function refreshStatus() {
+    try {
+      const response = await fetch(`/ping?t=${Date.now()}`, { cache: "no-store" });
+      if (response.status === 401) {
+        window.location.assign("/login");
+        return;
+      }
+      if (!response.ok) throw new Error(`Ping returned ${response.status}`);
+      const payload = await response.json();
+      lastPollMs = payload.lastWeatherPoll ? Date.parse(payload.lastWeatherPoll) : null;
+      pingFailed = false;
+    } catch (error) {
+      pingFailed = true;
+    }
+    paintFreshness();
+  }
+
+  refreshStatus();
+  setInterval(refreshStatus, 30000);
+  setInterval(paintFreshness, 1000);
+})();
+
+(function () {
+  const image = document.getElementById("skycamImage");
+  const container = document.querySelector(".skycam-container");
+  if (!image || !container) return;
+
+  image.addEventListener("click", async () => {
+    try {
+      if (!document.fullscreenElement && container.requestFullscreen) {
+        await container.requestFullscreen();
+      } else if (document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      console.warn("SkyCam fullscreen unavailable:", error);
+    }
+  });
+
+  window.addEventListener("keydown", (event) => {
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (event.key === "ArrowLeft") stepSkyCam(-1);
+    if (event.key === "ArrowRight") stepSkyCam(1);
+    if (event.key === "Escape" && document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  });
+
+  let touchStartX = null;
+  image.addEventListener("touchstart", (event) => {
+    if (event.touches.length === 1) touchStartX = event.touches[0].clientX;
+  }, { passive: true });
+  image.addEventListener("touchend", (event) => {
+    if (touchStartX === null || !event.changedTouches.length) return;
+    const delta = event.changedTouches[0].clientX - touchStartX;
+    touchStartX = null;
+    if (Math.abs(delta) < 45) return;
+    stepSkyCam(delta > 0 ? -1 : 1);
+  }, { passive: true });
+})();
+</script>
 </body>
 </html>
