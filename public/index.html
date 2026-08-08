@@ -784,7 +784,7 @@ body.weather-loaded .unit-suffix { display: inline; }
   }
   body.layout-landscape .landscape-left { grid-area: left; }
   body.layout-landscape .landscape-right { grid-area: right; }
-  body.layout-landscape .layout-skycam { position: sticky; top: 76px; }
+  body.layout-landscape .layout-skycam { position: relative; top: auto; }
   body.layout-landscape .skycam-container img { min-height: 480px; }
 
   body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
@@ -989,7 +989,12 @@ body.weather-loaded .unit-suffix { display: inline; }
 <div class="metric-row"><span class="metric-label">Solar panel</span><span class="metric-value" id="solarPanelVal">--</span></div>
 <div class="metric-row"><span class="metric-label">Charge</span><span class="metric-value" id="chargeVal">--</span></div>
 </div>
-</section></div><span aria-hidden="true" class="compat-data" id="airTempBox"><span id="bigTempVal">--</span></span></div>
+</section></div><span aria-hidden="true" class="compat-data" id="airTempBox"><span id="bigTempVal">--</span></span><div class="compat-data" aria-hidden="true">
+<span id="vectorWindSpeedVal">--</span>
+<span id="vectorWindDirDegVal">--</span>
+<span id="vectorWindDirTextVal">--</span>
+<span id="dailyEvapVal">--</span>
+</div></div>
 </main>
 <div aria-hidden="true" class="spinner-container" id="spinnerContainer"><div class="spinner"></div></div>
 </div>
