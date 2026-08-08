@@ -410,6 +410,23 @@ button:disabled {
       white-space: nowrap;
     }
 
+    /* --- SkyCam --- */
+    .skycam-container {
+      margin-top: 8px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f9f9f9;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      line-height: 0;
+    }
+
+    .skycam-container img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
     /* Media Queries for Mobile Devices */
     @media only screen and (max-width: 600px) {
       .main-container {
@@ -556,6 +573,11 @@ button:disabled {
         </div>
       </div>
       <hr>
+
+      <!-- SkyCam -->
+      <div class="skycam-container">
+        <img id="skycamImage" src="/skycam/latest.jpg" alt="SkyCam live weather view">
+      </div>
     </div>
 
     <!-- Spinner -->
@@ -951,7 +973,19 @@ function manualFetch() {
     fetchWeather();
 }
 
-window.addEventListener("load", () => fetchWeather());
+const SKYCAM_ENDPOINT = "/skycam/latest.jpg";
+
+function refreshSkyCam() {
+  const skycamImage = document.getElementById("skycamImage");
+  if (skycamImage) {
+    skycamImage.src = `${SKYCAM_ENDPOINT}?t=${Date.now()}`;
+  }
+}
+
+window.addEventListener("load", () => {
+  fetchWeather();
+  setInterval(refreshSkyCam, 60000);
+});
   </script>
 </body>
 </html>
