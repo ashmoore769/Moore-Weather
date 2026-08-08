@@ -6,8 +6,8 @@ const path = require("path");
 const net = require("net");
 const winston = require("winston"); // If you're using Winston logging
 
-const WEATHER_STATION_HOST = process.env.WEATHER_STATION_HOST || 'myweather.ddns.net';
-const WEATHER_STATION_PORT = Number(process.env.WEATHER_STATION_PORT) || 8899;
+const WEATHER_STATION_HOST = 'myweather.ddns.net';
+const WEATHER_STATION_PORT = 8899;
 const PORT = process.env.PORT || 10000;
 
 // Logger setup
@@ -19,7 +19,7 @@ const logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.Console(),
-    new winston.transports.File({ filename: 'weather.log', maxsize: 5 * 1024 * 1024, maxFiles: 3 }),
+    new winston.transports.File({ filename: 'weather.log' }),
   ],
 });
 
@@ -53,7 +53,7 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
     const cleaned = receivedData.replace(/^r3\s*/, '').trim().replace(/,?END$/, '');
     const fields = cleaned.split(',');
 
-    if (fields.length >= 31) {
+    if (fields.length >= 30) {
       cachedWeatherData = cleaned;
       lastPollTime = new Date();
       logger.info(`Weather data cached at ${lastPollTime.toLocaleTimeString()} (${fields.length} fields)`);
@@ -83,35 +83,12 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
 }
 
 // Fetch DAILY summary (MEM 1 LAST)
-function fetchDailyData(attempt = 1, maxAttempts = 5) {
+function fetchDailyData(attempt = 1, maxAttempts = 3) {
   return new Promise((resolve) => {
     const client = new net.Socket();
     let receivedData = '';
-    let settled = false;
 
     client.setTimeout(5000);
-
-    const finish = (value) => {
-      if (settled) return;
-      settled = true;
-      resolve(value);
-    };
-
-    const retryOrFail = (reason) => {
-      if (settled) return;
-      client.destroy();
-      logger.warn(`[DAILY] ${reason} (attempt ${attempt}/${maxAttempts})`);
-
-      if (attempt < maxAttempts) {
-        settled = true;
-        const delay = Math.min(30000, 5000 * attempt);
-        setTimeout(() => {
-          fetchDailyData(attempt + 1, maxAttempts).then(resolve);
-        }, delay);
-      } else {
-        finish('');
-      }
-    };
 
     client.connect(WEATHER_STATION_PORT, WEATHER_STATION_HOST, () => {
       logger.info(`Connected for daily summary (MEM 1 LAST, attempt ${attempt})`);
@@ -123,34 +100,49 @@ function fetchDailyData(attempt = 1, maxAttempts = 5) {
     });
 
     client.on('close', () => {
-      if (settled) return;
-
+      client.destroy();
+    
+      // Split into lines and find the line that starts with a date (yyyy/mm/dd)
       const lines = receivedData.split(/\r?\n/);
       const dataLine = lines.find(line => /^\d{4}\/\d{2}\/\d{2}/.test(line));
-
+    
       if (!dataLine) {
-        return retryOrFail('No valid dated data line received');
+        logger.warn(`[DAILY] No valid data line found in response:\n${receivedData}`);
+        return resolve('');
       }
-
+    
       const cleaned = dataLine.trim().replace(/,?\s*\\?END.*$/i, '');
       const fields = cleaned.split(',');
-
-      if (fields.length !== 43) {
-        return retryOrFail(`Invalid field count (${fields.length}), expected 43`);
+    
+      if (fields.length === 43) {
+        cachedDailyData = cleaned;
+        lastDailyPollTime = new Date();
+        logger.info(`[DAILY] ✅ Data cached @ ${lastDailyPollTime.toLocaleTimeString()} with ${fields.length} fields`);
+        resolve(cleaned);
+      } else {
+        logger.warn(`[DAILY] ❌ Invalid field count (${fields.length}), expected 41.\nCleaned line: ${cleaned}`);
+        resolve('');
       }
-
-      cachedDailyData = cleaned;
-      lastDailyPollTime = new Date();
-      logger.info(`[DAILY] Data cached @ ${lastDailyPollTime.toLocaleTimeString()} with ${fields.length} fields`);
-      finish(cleaned);
     });
 
     client.on('error', (err) => {
-      retryOrFail(`Socket error: ${err.message}`);
+      logger.error(`Daily fetch error: ${err.message} (attempt ${attempt})`);
+      client.destroy();
+      if (attempt < maxAttempts) {
+        setTimeout(() => fetchDailyData(attempt + 1, maxAttempts).then(resolve), 1000);
+      } else {
+        resolve(''); // Resolve with empty string on failure
+      }
     });
 
     client.on('timeout', () => {
-      retryOrFail('Socket timeout');
+      logger.error(`Daily fetch timeout (attempt ${attempt})`);
+      client.destroy();
+      if (attempt < maxAttempts) {
+        setTimeout(() => fetchDailyData(attempt + 1, maxAttempts).then(resolve), 1000);
+      } else {
+        resolve(''); // Resolve with empty string on timeout
+      }
     });
   });
 }
@@ -161,25 +153,18 @@ function schedulePolling() {
   setInterval(updateWeatherData, 60000);
   updateWeatherData();
 
-  // Daily summary at 9:10 AM Australia/Brisbane time.
-  // Recalculate after every run instead of assuming every day is exactly 24 hours.
-  function scheduleNextDailyFetch() {
-    const now = new Date();
-    const brisbaneNow = new Date(now.toLocaleString('en-US', { timeZone: 'Australia/Brisbane' }));
-    const next = new Date(brisbaneNow);
-    next.setHours(9, 10, 0, 0);
-    if (brisbaneNow >= next) next.setDate(next.getDate() + 1);
+  // Daily summary at 9:01 AM
+  const now = new Date();
+  const next9am = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 1, 0);
+  if (now >= next9am) next9am.setDate(next9am.getDate() + 1);
+  const delay = next9am - now;
 
-    const delay = next - brisbaneNow;
-    logger.info(`Next daily summary poll in ${Math.round(delay / 1000)}s (scheduled for 09:10 Australia/Brisbane)`);
+  logger.info(`Next daily summary poll in ${Math.round(delay / 1000)}s`);
 
-    setTimeout(async () => {
-      await fetchDailyData();
-      scheduleNextDailyFetch();
-    }, delay);
-  }
-
-  scheduleNextDailyFetch();
+  setTimeout(() => {
+    fetchDailyData();
+    setInterval(fetchDailyData, 24 * 60 * 60 * 1000); // 24h
+  }, delay);
 }
 
 // ROUTES
@@ -197,31 +182,13 @@ app.get('/weather', (req, res) => {
 app.get('/daily', async (req, res) => {
   const force = req.query.force === '1';
 
-  // Before 9:10 AEST, yesterday's cached daily summary is expected.
-  // After 9:10 AEST, only serve the cache if it was refreshed today.
-  const brisbaneNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Australia/Brisbane' }));
-  const cutoff = new Date(brisbaneNow);
-  cutoff.setHours(9, 10, 0, 0);
-
-  let cacheIsFresh = false;
-  if (cachedDailyData && lastDailyPollTime) {
-    const cachedBrisbane = new Date(lastDailyPollTime.toLocaleString('en-US', { timeZone: 'Australia/Brisbane' }));
-    cacheIsFresh =
-      cachedBrisbane.getFullYear() === brisbaneNow.getFullYear() &&
-      cachedBrisbane.getMonth() === brisbaneNow.getMonth() &&
-      cachedBrisbane.getDate() === brisbaneNow.getDate();
-  }
-
-  if (!force && cachedDailyData && (brisbaneNow < cutoff || cacheIsFresh)) {
+  if (!force && cachedDailyData) {
     return res.status(200).send(cachedDailyData);
   }
 
   const data = await fetchDailyData();
   if (data && data.split(',').length === 43) {
     res.status(200).send(data);
-  } else if (cachedDailyData) {
-    // Fall back to the last known good summary rather than returning nothing.
-    res.status(200).send(cachedDailyData);
   } else {
     res.status(503).send('Failed to retrieve valid daily summary.');
   }
