@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const net = require("net");
+const http = require("http");
 const winston = require("winston");
 
 const WEATHER_STATION_HOST =
@@ -586,6 +587,44 @@ app.get("/daily", async (req, res) => {
 
 // Lightweight status endpoint used by daily.html to reflect the
 // safety interlock and background/station refresh state.
+app.get("/skycam/latest.jpg", (req, res) => {
+  const upstreamUrl = "http://149.28.187.169/latest.jpg";
+
+  const request = http.get(upstreamUrl, (upstream) => {
+    if (upstream.statusCode !== 200) {
+      upstream.resume();
+      logger.error(
+        `[SKYCAM] Upstream returned HTTP ${upstream.statusCode}`
+      );
+      return res.status(502).send("SkyCam image unavailable.");
+    }
+
+    res.set("Content-Type", "image/jpeg");
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.set("X-Content-Type-Options", "nosniff");
+
+    if (upstream.headers["content-length"]) {
+      res.set("Content-Length", upstream.headers["content-length"]);
+    }
+
+    upstream.pipe(res);
+  });
+
+  request.setTimeout(5000, () => {
+    request.destroy(new Error("SkyCam upstream timeout"));
+  });
+
+  request.on("error", (err) => {
+    logger.error(`[SKYCAM] ${err.message}`);
+
+    if (!res.headersSent) {
+      res.status(502).send("SkyCam image unavailable.");
+    } else {
+      res.destroy();
+    }
+  });
+});
+
 app.get("/ping", (req, res) => {
   res.set("Cache-Control", "no-store");
 
