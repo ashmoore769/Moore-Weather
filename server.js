@@ -181,8 +181,40 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
   let receivedData = "";
   let finished = false;
 
+  // The EW10 TCP server can keep the socket open after the logger has already
+  // returned a complete r3 response. Accept valid received data before treating
+  // a socket timeout/close as a failed poll.
+  const cacheReceivedDataIfValid = () => {
+    if (finished || !receivedData) return false;
+
+    const cleaned = receivedData
+      .replace(/^r3\s*/, "")
+      .trim()
+      .replace(/,?\s*\\?END.*$/i, "");
+
+    const fields = cleaned.split(",");
+
+    if (fields.length < 31) return false;
+
+    finished = true;
+    cachedWeatherData = cleaned;
+    lastPollTime = new Date();
+    client.destroy();
+
+    logger.info(
+      `[CURRENT] Weather data cached (${fields.length} fields)`
+    );
+
+    return true;
+  };
+
   const failAttempt = (reason) => {
     if (finished) return;
+
+    // Preserve the old working behaviour: if the logger replied but the EW10
+    // left TCP open, use the reply instead of throwing it away on timeout.
+    if (cacheReceivedDataIfValid()) return;
+
     finished = true;
     client.destroy();
 
@@ -213,10 +245,17 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
 
   client.on("data", (data) => {
     receivedData += data.toString();
+
+    // If the logger supplies its END marker, there is no reason to wait for
+    // the EW10 to close the TCP connection.
+    if (/\\?END\b/i.test(receivedData)) {
+      cacheReceivedDataIfValid();
+    }
   });
 
   client.on("close", () => {
     if (finished) return;
+    if (cacheReceivedDataIfValid()) return;
     finished = true;
 
     const cleaned = receivedData
@@ -285,6 +324,38 @@ function fetchDailyDataOnce() {
       resolve(value);
     };
 
+    // As with r3, the EW10 may leave TCP open after the complete logger reply
+    // has arrived. Validate/cache the received summary before declaring a
+    // timeout, and finish immediately when END is seen.
+    const acceptReceivedDailyDataIfValid = () => {
+      if (finished || !receivedData) return false;
+
+      const lines = receivedData.split(/\r?\n/);
+      const dataLine = lines.find((line) =>
+        /^\d{4}\/\d{2}\/\d{2}/.test(line)
+      );
+
+      if (!dataLine) return false;
+
+      const cleaned = dataLine
+        .trim()
+        .replace(/,?\s*\\?END.*$/i, "");
+
+      const fields = cleaned.split(",");
+      if (fields.length !== 43) return false;
+
+      cachedDailyData = cleaned;
+      lastDailyPollTime = new Date();
+
+      const status = dailyCacheStatus();
+      logger.info(
+        `[DAILY] Valid summary cached; displayed=${status.displayedDate}, expected=${status.expectedDate}, current=${status.current}`
+      );
+
+      finish(cleaned);
+      return true;
+    };
+
     client.setTimeout(5000);
 
     client.connect(
@@ -298,10 +369,15 @@ function fetchDailyDataOnce() {
 
     client.on("data", (data) => {
       receivedData += data.toString();
+
+      if (/\\?END\b/i.test(receivedData)) {
+        acceptReceivedDailyDataIfValid();
+      }
     });
 
     client.on("close", () => {
       if (finished) return;
+      if (acceptReceivedDailyDataIfValid()) return;
 
       const lines = receivedData.split(/\r?\n/);
       const dataLine = lines.find((line) =>
@@ -339,11 +415,13 @@ function fetchDailyDataOnce() {
     });
 
     client.on("error", (err) => {
+      if (acceptReceivedDailyDataIfValid()) return;
       logger.warn(`[DAILY] Socket error: ${err.message}`);
       finish("");
     });
 
     client.on("timeout", () => {
+      if (acceptReceivedDailyDataIfValid()) return;
       logger.warn("[DAILY] Socket timeout");
       finish("");
     });
