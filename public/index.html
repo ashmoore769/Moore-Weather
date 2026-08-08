@@ -50,6 +50,7 @@
 }
 
 .header-box {
+  position: relative;
   background-color: #1e3a8a;
   border-radius: 10px 10px 0 0;  /* top-left, top-right, bottom-right, bottom-left */
   padding: 5px 5px 5px 5px;
@@ -483,6 +484,90 @@ button:disabled {
       white-space: nowrap;
     }
 
+    /* --- Desktop Portrait / Landscape Layout --- */
+    .desktop-layout-switcher {
+      display: none;
+      position: absolute;
+      top: 50%;
+      right: 6px;
+      transform: translateY(-50%);
+      align-items: center;
+      gap: 4px;
+      z-index: 2;
+    }
+
+    .desktop-layout-switcher button {
+      width: 28px;
+      height: 24px;
+      padding: 0;
+      margin: 0;
+      border: 1px solid rgba(255,255,255,0.55);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.16);
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 22px;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .desktop-layout-switcher button:hover {
+      background: rgba(255,255,255,0.28);
+      transform: none;
+    }
+
+    .desktop-layout-switcher button.active {
+      background: white;
+      color: #1e3a8a;
+      border-color: white;
+    }
+
+    .content-layout {
+      display: block;
+    }
+
+    .readings-panel,
+    .camera-panel {
+      min-width: 0;
+    }
+
+    @media only screen and (min-width: 900px) {
+      .desktop-layout-switcher {
+        display: flex;
+      }
+
+      body.layout-landscape .main-container {
+        max-width: 1040px;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      body.layout-landscape .content-layout {
+        display: grid;
+        grid-template-columns: minmax(430px, 0.88fr) minmax(0, 1.12fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      body.layout-landscape .camera-panel .skycam-container {
+        margin-top: 0;
+      }
+
+      body.layout-landscape .skycam-nav {
+        width: 44px;
+        height: 64px;
+        font-size: 40px;
+        line-height: 58px;
+      }
+
+      body.layout-landscape .skycam-caption {
+        font-size: 12px;
+        padding: 7px 9px;
+      }
+    }
+
     /* Media Queries for Mobile Devices */
     @media only screen and (max-width: 600px) {
       .main-container {
@@ -514,6 +599,10 @@ button:disabled {
     <div class="freeze-pane">
       <div class="header-box">
         <h2>Moore's LIVE Weather Data</h2>
+        <div class="desktop-layout-switcher" aria-label="Desktop layout">
+          <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')">&#9647;</button>
+          <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')">&#9645;</button>
+        </div>
       </div>
 
     <!-- Weather Data Section -->
@@ -555,6 +644,8 @@ button:disabled {
     
   <hr>
 
+      <div class="content-layout">
+        <div class="readings-panel">
       <!-- Main Data Columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
@@ -630,6 +721,8 @@ button:disabled {
       </div>
       <hr>
 
+        </div>
+        <div class="camera-panel">
       <!-- SkyCam -->
       <div class="skycam-container">
         <button
@@ -656,6 +749,8 @@ button:disabled {
           <span id="skycamPosition">Loading history...</span>
         </div>
       </div>
+        </div>
+      </div>
     </div>
 
     <!-- Spinner -->
@@ -665,6 +760,106 @@ button:disabled {
   </div>
 
   <script>
+    /******************************
+    * DESKTOP LAYOUT PREFERENCE  *
+    ******************************/
+    const DESKTOP_LAYOUT_KEY = "mooreWeatherDesktopLayout";
+    const DESKTOP_LANDSCAPE_MIN_WIDTH = 900;
+
+    function isMooreWeatherMobile() {
+      return window.matchMedia("(max-width: 600px)").matches;
+    }
+
+    function getAutomaticDesktopLayout() {
+      if (window.innerWidth >= DESKTOP_LANDSCAPE_MIN_WIDTH && window.innerWidth > window.innerHeight) {
+        return "landscape";
+      }
+      return "portrait";
+    }
+
+    function updateDesktopLayoutButtons(activeLayout) {
+      const portraitBtn = document.getElementById("portraitLayoutBtn");
+      const landscapeBtn = document.getElementById("landscapeLayoutBtn");
+
+      if (!portraitBtn || !landscapeBtn) return;
+
+      portraitBtn.classList.toggle("active", activeLayout === "portrait");
+      landscapeBtn.classList.toggle("active", activeLayout === "landscape");
+      portraitBtn.setAttribute("aria-pressed", activeLayout === "portrait" ? "true" : "false");
+      landscapeBtn.setAttribute("aria-pressed", activeLayout === "landscape" ? "true" : "false");
+    }
+
+    function applyDesktopLayout(requestedLayout, persist = false) {
+      let layout = requestedLayout === "landscape" ? "landscape" : "portrait";
+
+      // Preserve the existing mobile GUI exactly as-is.
+      if (isMooreWeatherMobile()) {
+        document.body.classList.remove("layout-landscape");
+        document.body.classList.add("layout-portrait");
+        updateDesktopLayoutButtons("portrait");
+        return;
+      }
+
+      // Landscape is intended for genuinely wide desktop/tablet viewports.
+      // If the browser is too narrow, render safely as portrait without
+      // destroying the user's saved desktop preference.
+      if (layout === "landscape" && window.innerWidth < DESKTOP_LANDSCAPE_MIN_WIDTH) {
+        layout = "portrait";
+      }
+
+      document.body.classList.toggle("layout-landscape", layout === "landscape");
+      document.body.classList.toggle("layout-portrait", layout === "portrait");
+      updateDesktopLayoutButtons(layout);
+
+      if (persist) {
+        try {
+          localStorage.setItem(DESKTOP_LAYOUT_KEY, requestedLayout);
+        } catch (err) {
+          // Layout still works if localStorage is unavailable.
+        }
+      }
+    }
+
+    function setDesktopLayout(layout) {
+      applyDesktopLayout(layout, true);
+    }
+
+    function initialiseDesktopLayout() {
+      let savedLayout = null;
+
+      try {
+        savedLayout = localStorage.getItem(DESKTOP_LAYOUT_KEY);
+      } catch (err) {
+        savedLayout = null;
+      }
+
+      const initialLayout =
+        savedLayout === "portrait" || savedLayout === "landscape"
+          ? savedLayout
+          : getAutomaticDesktopLayout();
+
+      applyDesktopLayout(initialLayout, false);
+    }
+
+    initialiseDesktopLayout();
+
+    window.addEventListener("resize", () => {
+      let savedLayout = null;
+
+      try {
+        savedLayout = localStorage.getItem(DESKTOP_LAYOUT_KEY);
+      } catch (err) {
+        savedLayout = null;
+      }
+
+      applyDesktopLayout(
+        savedLayout === "portrait" || savedLayout === "landscape"
+          ? savedLayout
+          : getAutomaticDesktopLayout(),
+        false
+      );
+    });
+
     /********************
     * HELPER FUNCTIONS *
     ********************/
