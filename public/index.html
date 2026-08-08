@@ -538,21 +538,67 @@ button:disabled {
         display: flex;
       }
 
+      /* Landscape desktop: compact station console + dominant SkyCam. */
       body.layout-landscape .main-container {
-        max-width: 1040px;
+        max-width: 1180px;
         padding-left: 10px;
         padding-right: 10px;
       }
 
+      body.layout-landscape #weatherData {
+        padding: 8px 10px 10px 10px;
+      }
+
+      body.layout-landscape #weatherData > hr {
+        margin: 6px 0 8px;
+      }
+
       body.layout-landscape .content-layout {
         display: grid;
-        grid-template-columns: minmax(430px, 0.88fr) minmax(0, 1.12fr);
-        gap: 14px;
+        grid-template-columns: minmax(420px, 0.82fr) minmax(0, 1.28fr);
+        gap: 12px;
         align-items: start;
+      }
+
+      /* Keep station identity, timestamp and logos inside the readings column. */
+      body.layout-landscape .readings-panel {
+        min-width: 0;
+        padding: 0 2px 0 0;
+      }
+
+      body.layout-landscape .readings-panel .header-content {
+        margin: 0 0 5px 0;
+        min-height: 62px;
+      }
+
+      body.layout-landscape .readings-panel .address-title {
+        font-size: 18px;
+      }
+
+      body.layout-landscape .readings-panel .logo-container {
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      body.layout-landscape .readings-panel .logo-container img {
+        height: 54px;
+      }
+
+      body.layout-landscape .readings-panel > hr:first-of-type {
+        margin-top: 5px;
+        margin-bottom: 6px;
+      }
+
+      /* SkyCam starts at the top of the content row, removing the empty band. */
+      body.layout-landscape .camera-panel {
+        min-width: 0;
+        align-self: start;
       }
 
       body.layout-landscape .camera-panel .skycam-container {
         margin-top: 0;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
       }
 
       body.layout-landscape .skycam-nav {
@@ -623,29 +669,28 @@ button:disabled {
 
   <hr>
 
-  <!-- Header Section -->
-  <div class="header-content">
-    <div class="title-date-container">
-      <div class="address-title">WEST WARWICK, QLD</div>
-      <div class="date-time">
-        <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
-        <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
-      </div>
-    </div>
-    <div class="logo-container">
-      <img src="/Weather_Station_App.png" alt="Weather Station Icon">
-    
-      <!-- Clickable link to daily summary -->
-      <a href="daily.html" aria-label="View daily summary">
-        <img src="/Station_Label.png" alt="Environdata Weather Maestro">
-      </a>
-    </div>
-  </div>
-    
-  <hr>
-
       <div class="content-layout">
         <div class="readings-panel">
+            <!-- Header Section -->
+            <div class="header-content">
+              <div class="title-date-container">
+                <div class="address-title">WEST WARWICK, QLD</div>
+                <div class="date-time">
+                  <p><b>📆 Date:</b> <span id="dateVal">--</span></p>
+                  <p><b>⏰ Time:</b> <span id="timeVal">--</span></p>
+                </div>
+              </div>
+              <div class="logo-container">
+                <img src="/Weather_Station_App.png" alt="Weather Station Icon">
+              
+                <!-- Clickable link to daily summary -->
+                <a href="daily.html" aria-label="View daily summary">
+                  <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+                </a>
+              </div>
+            </div>
+              
+            <hr>
       <!-- Main Data Columns -->
       <div class="wind-logger-container">
         <div class="wind-column">
