@@ -1,13 +1,14 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="theme-color" content="#1e3a8a">
-  <link rel="apple-touch-icon" href="/Weather_Station_App.png">
-  <title>Moore Weather · West Warwick</title>
-  <script>(function () {
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="noindex, nofollow, noarchive" name="robots"/>
+<meta content="#1e3a8a" name="theme-color"/>
+<link href="/Weather_Station_App.png" rel="apple-touch-icon"/>
+<title>Moore Weather · West Warwick</title>
+<script>(function () {
   try {
     const saved = localStorage.getItem("mooreWeatherTheme") || "auto";
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -19,7 +20,7 @@
     document.documentElement.dataset.themeMode = "auto";
   }
 })();</script>
-  <style>
+<style>
 :root {
   color-scheme: light;
   --page: #eef2f6;
@@ -382,6 +383,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .layout-conditions { grid-area: conditions; margin-bottom: 0; }
 .layout-soil { grid-area: soil; margin-bottom: 0; }
 .layout-power { grid-area: power; margin-top: 0; margin-bottom: 0; }
+.layout-stack { display: contents; }
 
 .station-strip {
   display: flex;
@@ -768,14 +770,20 @@ body.weather-loaded .unit-suffix { display: inline; }
   body.layout-landscape .content-layout {
     display: grid;
     grid-template-columns: minmax(420px, 0.82fr) minmax(0, 1.38fr);
-    grid-template-areas:
-      "station skycam"
-      "primary skycam"
-      "conditions power"
-      "soil power";
+    grid-template-areas: "left right";
     gap: 11px;
     align-items: start;
   }
+  body.layout-landscape .landscape-left,
+  body.layout-landscape .landscape-right {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    min-width: 0;
+    align-self: start;
+  }
+  body.layout-landscape .landscape-left { grid-area: left; }
+  body.layout-landscape .landscape-right { grid-area: right; }
   body.layout-landscape .layout-skycam { position: sticky; top: 76px; }
   body.layout-landscape .skycam-container img { min-height: 480px; }
 
@@ -837,181 +845,155 @@ body.weather-loaded .unit-suffix { display: inline; }
 </style>
 </head>
 <body>
-  <div class="main-container">
-    <div class="freeze-pane">
-      <header class="header-box">
-        <div class="app-header">
-          <div class="brand-lockup">
-            <div class="brand-mark" aria-hidden="true">
-              <img src="/Weather_Station_App.png" alt="">
-            </div>
-            <div class="brand-copy">
-              <h1 class="brand-title">Moore Weather</h1>
-              <div class="brand-subtitle">West Warwick · Live Station</div>
-            </div>
-          </div>
+<div class="main-container">
+<div class="freeze-pane">
+<header class="header-box">
+<div class="app-header">
+<div class="brand-lockup">
+<div aria-hidden="true" class="brand-mark">
+<img alt="" src="/Weather_Station_App.png"/>
+</div>
+<div class="brand-copy">
+<h1 class="brand-title">Moore Weather</h1>
+<div class="brand-subtitle">West Warwick · Live Station</div>
+</div>
+</div>
+<div class="header-actions">
+<button aria-label="Change theme" class="header-icon-button" id="themeToggleBtn" title="Theme" type="button">
+<span aria-hidden="true" class="theme-icon" id="themeToggleIcon">◐</span>
+<span class="theme-label" id="themeToggleLabel">Auto</span>
+</button>
+<form action="/logout" class="logout-form" method="post">
+<button aria-label="Sign out" class="header-icon-button" title="Sign out" type="submit">⎋</button>
+</form>
+<div aria-label="Desktop layout" class="desktop-layout-switcher">
+<button aria-label="Use portrait layout" id="portraitLayoutBtn" onclick="setDesktopLayout('portrait')" title="Portrait layout" type="button">▯</button>
+<button aria-label="Use landscape layout" id="landscapeLayoutBtn" onclick="setDesktopLayout('landscape')" title="Landscape layout" type="button">▭</button>
+</div>
+</div>
+</div>
+</header>
+</div>
+<main id="weatherData">
+<div class="top-toolbar">
+<div aria-label="Weather views" class="view-tabs" role="navigation">
+<button class="tab-button active" id="fetchBtn" onclick="manualFetch()" type="button">Current</button>
+<button class="tab-button" id="dailySummaryBtn" onclick="location.href='daily.html'" type="button">Daily Summary</button>
+</div>
+<div aria-live="polite" class="live-cluster">
+<span class="status-badge fetching" id="statusBadge">● CONNECTING</span>
+<span id="freshnessText">Waiting for station</span>
+<span class="sr-only" id="status">Connecting</span>
+</div>
+</div>
+<div class="content-layout"><div class="layout-stack landscape-left"><div class="station-strip layout-station">
+<div class="title-date-container">
+<div class="address-title">WEST WARWICK, QLD</div>
+<div class="date-time">
+<p><b>Date</b> · <span id="dateVal">--</span></p>
+<p><b>Station time</b> · <span id="timeVal">--</span></p>
+</div>
+</div>
+<div class="logo-container">
+<a aria-label="View daily summary" href="daily.html">
+<img alt="Environdata Weather Maestro" src="/Station_Label.png"/>
+</a>
+</div>
+</div><section aria-label="Primary weather readings" class="panel-card primary-card layout-primary">
+<div class="temperature-heroes">
+<div class="temp-hero">
+<div class="eyebrow">Air temperature</div>
+<div class="primary-temp" id="tempVal">--</div>
+<div class="primary-desc" id="tempDescVal">Waiting for station</div>
+</div>
+<div class="temp-hero">
+<div class="eyebrow">Black globe</div>
+<div class="primary-temp" id="blackGlobeTempVal">--</div>
+<div class="primary-desc" id="blackGlobeDescVal">Waiting for station</div>
+</div>
+</div>
+<div class="primary-meta">
+<div class="quick-stat">
+<span class="label">Humidity</span>
+<span class="value" id="humidityVal">--</span>
+</div>
+<div class="quick-stat">
+<span class="label">Pressure</span>
+<span class="value" id="pressureVal">--</span>
+</div>
+<div class="quick-stat">
+<span class="label">Wind speed</span>
+<span class="value"><span id="windSpeedVal">--</span><span class="unit-suffix"> km/h</span></span>
+</div>
+<div class="quick-stat">
+<span class="label">Wind direction</span>
+<span class="value"><span id="windDirDegVal">--</span><span class="unit-suffix">° <span class="subtle">(<span id="windDirTextVal">--</span>)</span></span></span>
+</div>
+<div class="quick-stat">
+<span class="label">Solar radiation</span>
+<span class="value" id="solarRadVal">--</span>
+</div>
+<div class="quick-stat">
+<span class="label">Rain since 9AM</span>
+<span class="value" id="rainSince9Val">--</span>
+</div>
+</div>
 
-          <div class="header-actions">
-            <button id="themeToggleBtn" class="header-icon-button" type="button" aria-label="Change theme" title="Theme">
-              <span id="themeToggleIcon" class="theme-icon" aria-hidden="true">◐</span>
-              <span id="themeToggleLabel" class="theme-label">Auto</span>
-            </button>
-            <form class="logout-form" method="post" action="/logout">
-              <button class="header-icon-button" type="submit" aria-label="Sign out" title="Sign out">⎋</button>
-            </form>
-            <div class="desktop-layout-switcher" aria-label="Desktop layout">
-              <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')">▯</button>
-              <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')">▭</button>
-            </div>
-          </div>
-        </div>
-      </header>
-    </div>
-
-    <main id="weatherData">
-      <div class="top-toolbar">
-        <div class="view-tabs" role="navigation" aria-label="Weather views">
-          <button id="fetchBtn" class="tab-button active" type="button" onclick="manualFetch()">Current</button>
-          <button id="dailySummaryBtn" class="tab-button" type="button" onclick="location.href='daily.html'">Daily Summary</button>
-        </div>
-        <div class="live-cluster" aria-live="polite">
-          <span id="statusBadge" class="status-badge fetching">● CONNECTING</span>
-          <span id="freshnessText">Waiting for station</span>
-          <span id="status" class="sr-only">Connecting</span>
-        </div>
-      </div>
-
-      <div class="content-layout">
-        <div class="station-strip layout-station">
-          <div class="title-date-container">
-            <div class="address-title">WEST WARWICK, QLD</div>
-            <div class="date-time">
-              <p><b>Date</b> · <span id="dateVal">--</span></p>
-              <p><b>Station time</b> · <span id="timeVal">--</span></p>
-            </div>
-          </div>
-          <div class="logo-container">
-            <a href="daily.html" aria-label="View daily summary">
-              <img src="/Station_Label.png" alt="Environdata Weather Maestro">
-            </a>
-          </div>
-        </div>
-
-        <section class="panel-card primary-card layout-primary" aria-label="Primary weather readings">
-          <div class="temperature-heroes">
-            <div class="temp-hero">
-              <div class="eyebrow">Air temperature</div>
-              <div id="tempVal" class="primary-temp">--</div>
-              <div id="tempDescVal" class="primary-desc">Waiting for station</div>
-            </div>
-            <div class="temp-hero">
-              <div class="eyebrow">Black globe</div>
-              <div id="blackGlobeTempVal" class="primary-temp">--</div>
-              <div id="blackGlobeDescVal" class="primary-desc">Waiting for station</div>
-            </div>
-          </div>
-
-          <div class="primary-meta">
-            <div class="quick-stat">
-              <span class="label">Humidity</span>
-              <span id="humidityVal" class="value">--</span>
-            </div>
-            <div class="quick-stat">
-              <span class="label">Pressure</span>
-              <span id="pressureVal" class="value">--</span>
-            </div>
-            <div class="quick-stat">
-              <span class="label">Wind speed</span>
-              <span class="value"><span id="windSpeedVal">--</span><span class="unit-suffix"> km/h</span></span>
-            </div>
-            <div class="quick-stat">
-              <span class="label">Wind direction</span>
-              <span class="value"><span id="windDirDegVal">--</span><span class="unit-suffix">° <span class="subtle">(<span id="windDirTextVal">--</span>)</span></span></span>
-            </div>
-            <div class="quick-stat">
-              <span class="label">Solar radiation</span>
-              <span id="solarRadVal" class="value">--</span>
-            </div>
-            <div class="quick-stat">
-              <span class="label">Rain since 9AM</span>
-              <span id="rainSince9Val" class="value">--</span>
-            </div>
-          </div>
-
-          <span id="airTempBox" class="compat-data" aria-hidden="true"><span id="bigTempVal">--</span></span>
-        </section>
-
-        <div class="layout-skycam" aria-label="SkyCam">
-          <div class="skycam-container" title="Click SkyCam for fullscreen">
-            <div class="skycam-badge">SKYCAM · LIVE</div>
-            <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
-            <button id="skycamPrev" class="skycam-nav skycam-nav-prev" type="button" aria-label="Show older SkyCam image" onclick="stepSkyCam(-1)">‹</button>
-            <img id="skycamImage" src="/skycam/latest.jpg" alt="SkyCam live weather view">
-            <button id="skycamNext" class="skycam-nav skycam-nav-next" type="button" aria-label="Show newer SkyCam image" onclick="stepSkyCam(1)" disabled>›</button>
-            <div class="skycam-caption">
-              <span id="skycamTime">LIVE / latest</span>
-              <span id="skycamPosition">Loading history...</span>
-            </div>
-          </div>
-        </div>
-
-        <section class="panel-card section-card layout-conditions" aria-label="Conditions">
-          <div class="section-header"><h2 class="section-title">Conditions</h2></div>
-          <div class="metric-list">
-            <div class="metric-row"><span class="metric-label">Max wind gust</span><span id="peakWindGustVal" class="metric-value">--</span></div>
-            <div class="metric-row"><span class="metric-label">Radiant Δ</span><span id="radiantDiffBox" class="metric-value"><span id="radiantDiffVal">--</span></span></div>
-            <div class="metric-row"><span class="metric-label">Dew margin</span><span id="dewDiffBox" class="metric-value"><span id="dewDiffVal">--</span></span></div>
-            <div class="metric-row"><span class="metric-label">Garden bed</span><span class="metric-value"><span id="gardenBedTempVal">--</span><span class="unit-suffix">°C</span></span></div>
-            <div class="metric-row"><span class="metric-label">Dew point</span><span class="metric-value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></span></div>
-          </div>
-          <div class="rain-container">
-            <div class="rain-stat">
-              <span class="metric-label">Rain last minute</span>
-              <span id="rainInLastMinVal" class="metric-value">--</span>
-            </div>
-            <div class="rain-stat">
-              <span class="metric-label">Evap / hour</span>
-              <span class="metric-value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></span>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel-card section-card layout-soil" aria-label="Soil profile">
-          <div class="section-header"><h2 class="section-title">Soil profile</h2></div>
-          <table class="soil-table" aria-label="Soil temperature and moisture by depth">
-            <thead><tr><th>Depth</th><th>Temp</th><th>Moisture</th></tr></thead>
-            <tbody>
-              <tr><td>10 cm</td><td><span id="soilTemp10Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture10Val">--</span><span class="unit-suffix">%</span></td></tr>
-              <tr><td>20 cm</td><td><span id="soilTemp20Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture20Val">--</span><span class="unit-suffix">%</span></td></tr>
-              <tr><td>30 cm</td><td><span id="soilTemp30Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture30Val">--</span><span class="unit-suffix">%</span></td></tr>
-              <tr><td>40 cm</td><td><span id="soilTemp40Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture40Val">--</span><span class="unit-suffix">%</span></td></tr>
-            </tbody>
-          </table>
-        </section>
-
-        <section class="panel-card section-card maintenance-card layout-power" aria-label="Station power and maintenance">
-          <div class="section-header"><h2 class="section-title">Station power</h2></div>
-          <div class="metric-list">
-            <div class="metric-row"><span class="metric-label">Battery</span><span id="batteryVal" class="metric-value">--</span></div>
-            <div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span><span class="unit-suffix"> mA</span></span></div>
-            <div class="metric-row"><span class="metric-label">Solar panel</span><span id="solarPanelVal" class="metric-value">--</span></div>
-            <div class="metric-row"><span class="metric-label">Charge</span><span id="chargeVal" class="metric-value">--</span></div>
-          </div>
-        </section>
-
-        <div class="compat-data" aria-hidden="true">
-          <span id="vectorWindSpeedVal">--</span>
-          <span id="vectorWindDirDegVal">--</span>
-          <span id="vectorWindDirTextVal">--</span>
-          <span id="dailyEvapVal">--</span>
-        </div>
-      </div>
-    </main>
-
-    <div id="spinnerContainer" class="spinner-container" aria-hidden="true"><div class="spinner"></div></div>
-  </div>
-
-  <script>
+</section><section aria-label="Conditions" class="panel-card section-card layout-conditions">
+<div class="section-header"><h2 class="section-title">Conditions</h2></div>
+<div class="metric-list">
+<div class="metric-row"><span class="metric-label">Max wind gust</span><span class="metric-value" id="peakWindGustVal">--</span></div>
+<div class="metric-row"><span class="metric-label">Radiant Δ</span><span class="metric-value" id="radiantDiffBox"><span id="radiantDiffVal">--</span></span></div>
+<div class="metric-row"><span class="metric-label">Dew margin</span><span class="metric-value" id="dewDiffBox"><span id="dewDiffVal">--</span></span></div>
+<div class="metric-row"><span class="metric-label">Garden bed</span><span class="metric-value"><span id="gardenBedTempVal">--</span><span class="unit-suffix">°C</span></span></div>
+<div class="metric-row"><span class="metric-label">Dew point</span><span class="metric-value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></span></div>
+</div>
+<div class="rain-container">
+<div class="rain-stat">
+<span class="metric-label">Rain last minute</span>
+<span class="metric-value" id="rainInLastMinVal">--</span>
+</div>
+<div class="rain-stat">
+<span class="metric-label">Evap / hour</span>
+<span class="metric-value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></span>
+</div>
+</div>
+</section><section aria-label="Soil profile" class="panel-card section-card layout-soil">
+<div class="section-header"><h2 class="section-title">Soil profile</h2></div>
+<table aria-label="Soil temperature and moisture by depth" class="soil-table">
+<thead><tr><th>Depth</th><th>Temp</th><th>Moisture</th></tr></thead>
+<tbody>
+<tr><td>10 cm</td><td><span id="soilTemp10Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture10Val">--</span><span class="unit-suffix">%</span></td></tr>
+<tr><td>20 cm</td><td><span id="soilTemp20Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture20Val">--</span><span class="unit-suffix">%</span></td></tr>
+<tr><td>30 cm</td><td><span id="soilTemp30Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture30Val">--</span><span class="unit-suffix">%</span></td></tr>
+<tr><td>40 cm</td><td><span id="soilTemp40Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture40Val">--</span><span class="unit-suffix">%</span></td></tr>
+</tbody>
+</table>
+</section></div><div class="layout-stack landscape-right"><div aria-label="SkyCam" class="layout-skycam">
+<div class="skycam-container" title="Click SkyCam for fullscreen">
+<div class="skycam-badge">SKYCAM · LIVE</div>
+<div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
+<button aria-label="Show older SkyCam image" class="skycam-nav skycam-nav-prev" id="skycamPrev" onclick="stepSkyCam(-1)" type="button">‹</button>
+<img alt="SkyCam live weather view" id="skycamImage" src="/skycam/latest.jpg"/>
+<button aria-label="Show newer SkyCam image" class="skycam-nav skycam-nav-next" disabled="" id="skycamNext" onclick="stepSkyCam(1)" type="button">›</button>
+<div class="skycam-caption">
+<span id="skycamTime">LIVE / latest</span>
+<span id="skycamPosition">Loading history...</span>
+</div>
+</div>
+</div><section aria-label="Station power and maintenance" class="panel-card section-card maintenance-card layout-power">
+<div class="section-header"><h2 class="section-title">Station power</h2></div>
+<div class="metric-list">
+<div class="metric-row"><span class="metric-label">Battery</span><span class="metric-value" id="batteryVal">--</span></div>
+<div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span><span class="unit-suffix"> mA</span></span></div>
+<div class="metric-row"><span class="metric-label">Solar panel</span><span class="metric-value" id="solarPanelVal">--</span></div>
+<div class="metric-row"><span class="metric-label">Charge</span><span class="metric-value" id="chargeVal">--</span></div>
+</div>
+</section></div><span aria-hidden="true" class="compat-data" id="airTempBox"><span id="bigTempVal">--</span></span></div>
+</main>
+<div aria-hidden="true" class="spinner-container" id="spinnerContainer"><div class="spinner"></div></div>
+</div>
+<script>
     /********************
     * HELPER FUNCTIONS *
     ********************/
@@ -1540,7 +1522,7 @@ window.addEventListener("load", () => {
   setInterval(refreshSkyCam, 60000);
 });
   </script>
-  <script>
+<script>
     /* Desktop layout enhancement isolated from weather-data logic. */
     (function () {
       const LAYOUT_KEY = "mooreWeatherDesktopLayout";
@@ -1625,7 +1607,7 @@ window.addEventListener("load", () => {
       window.addEventListener("resize", initialiseLayoutSafely);
     })();
   </script>
-  <script>
+<script>
 (function () {
   const THEME_KEY = "mooreWeatherTheme";
   const MODES = ["auto", "light", "dark"];
