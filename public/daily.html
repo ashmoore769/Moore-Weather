@@ -1,377 +1,496 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Moore's Daily Summary</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="apple-touch-icon" href="/Weather_Station_App.png">
+  <title>Moore Weather · Daily Summary</title>
+  <script>(function () {
+    try {
+      const saved = localStorage.getItem("mooreWeatherTheme") || "auto";
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const resolved = saved === "auto" ? (prefersDark ? "dark" : "light") : saved;
+      document.documentElement.dataset.theme = resolved;
+      document.documentElement.dataset.themeMode = saved;
+    } catch (error) {
+      document.documentElement.dataset.theme = "light";
+      document.documentElement.dataset.themeMode = "auto";
+    }
+  })();</script>
   <style>
-    /* Styles from index.html for design consistency, adapted for new layout */
-    body {
-      margin: 0;
-      background-color: #f4f4f4;
-      font-family: "Inter", "system-ui", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: 13.5px;
-      font-weight: 400;
-      line-height: 1.40;
-      letter-spacing: 0.15px;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
-      padding-top: env(safe-area-inset-top, 0);
-      color: #333;
-    }
-
-    .main-container {
-      max-width: 400px;
-      margin: 10px auto;
-      padding: 0 5px;
-    }
-
-    .freeze-pane {
-      position: sticky;
-      top: env(safe-area-inset-top, 0);
-      z-index: 100;
-      background: #f4f4f4;
-      padding: 0;
-    }
-
-    .header-box {
-  background-color: #1e3a8a;
-  border-radius: 10px 10px 0 0;
-  padding: 5px;
-  text-align: center;
-  margin-bottom: 0;  /* Ensure this is already here */
+:root {
+  color-scheme: light;
+  --page: #eef2f6;
+  --surface: #ffffff;
+  --surface-soft: #f6f8fb;
+  --surface-raised: #ffffff;
+  --text: #172033;
+  --muted: #667085;
+  --border: #dce3ec;
+  --border-strong: #c8d1dd;
+  --brand: #1e3a8a;
+  --brand-2: #27499e;
+  --accent: #1677ff;
+  --green: #147a42;
+  --green-soft: #eaf7ef;
+  --amber: #a86505;
+  --amber-soft: #fff4dd;
+  --red: #b42318;
+  --red-soft: #fdecea;
+  --blue-soft: #edf4ff;
+  --shadow: 0 14px 34px rgba(17,24,39,.08);
+  --shadow-soft: 0 4px 14px rgba(17,24,39,.06);
+  --radius-xl: 18px;
+  --radius-lg: 14px;
+  --radius-md: 10px;
 }
-
-    .header-box h2 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: bold;
-      color: white;
-      padding: 2px 0;
-      white-space: nowrap;
-    }
-
-    .control-bar {
-  background-color: #eeeeee;
-  padding: 4px 6px;
-  border-radius: 12px;
-  margin-top: -8px;       /* Add this line */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d1219;
+  --surface: #151c25;
+  --surface-soft: #1b2430;
+  --surface-raised: #202a36;
+  --text: #edf2f7;
+  --muted: #9da9b8;
+  --border: #2b3745;
+  --border-strong: #3a4858;
+  --brand: #24489c;
+  --brand-2: #5f8df0;
+  --accent: #68a9ff;
+  --green: #56d58a;
+  --green-soft: rgba(55,186,112,.12);
+  --amber: #f6b94d;
+  --amber-soft: rgba(246,185,77,.12);
+  --red: #ff7a70;
+  --red-soft: rgba(255,122,112,.12);
+  --blue-soft: rgba(80,135,236,.10);
+  --shadow: 0 16px 40px rgba(0,0,0,.28);
+  --shadow-soft: 0 5px 16px rgba(0,0,0,.22);
 }
-
-    .control-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 2px;
-      margin: 0;
-    }
-
-    .control-half {
-      width: 50%;
-      display: flex;
-      justify-content: stretch;
-      align-items: center;
-      white-space: nowrap;
-    }
-
-    button {
-      padding: 4px 8px;
-      font-size: 13px;
-      font-weight: 600;
-      font-family: "Inter", sans-serif;
-      background-color: #FFA500;
-      color: rgb(77, 75, 71);
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.3s ease, transform 0.1s ease;
-      display: inline-block;
-      margin: 2px 0;
-      white-space: nowrap;
-      line-height: 1.2;
-      letter-spacing: 0.3px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-    }
-
-    button:hover {
-      background-color: #e59400;
-      transform: scale(1.02);
-    }
-
-    button:disabled {
-      background-color: gray;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-    
-    .summary-for-box {
-  background: #006400;
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 12px 12px 12px 12px;
-  box-shadow: 0 4px 8px rgba(37, 163, 111, 0.3);
-  font-family: "Inter", sans-serif;
-  font-weight: 600;
-  font-size: 14px;
-  text-align: center;
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
   margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color .18s ease, color .18s ease;
+}
+button { font: inherit; -webkit-tap-highlight-color: transparent; }
+.main-container { width: min(100% - 24px, 500px); margin: 12px auto 24px; }
+.freeze-pane { position: sticky; top: 0; z-index: 100; padding-top: env(safe-area-inset-top, 0); }
+.header-box {
+  background: var(--brand);
+  color: white;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-soft);
+}
+.app-header { min-height: 64px; display: flex; align-items: center; gap: 14px; padding: 10px 12px; }
+.brand-lockup { min-width: 0; display: flex; align-items: center; gap: 10px; flex: 1; }
+.brand-mark {
+  width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,.14);
+  display: grid; place-items: center; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.2); overflow: hidden;
+}
+.brand-mark img { width: 100%; height: 100%; object-fit: cover; }
+.brand-copy { min-width: 0; }
+.brand-title { margin: 0; font-size: 17px; font-weight: 750; letter-spacing: .1px; line-height: 1.05; }
+.brand-subtitle {
+  margin-top: 4px; color: rgba(255,255,255,.72); font-size: 11.5px; font-weight: 600;
+  letter-spacing: .25px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.header-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.header-icon-button, .desktop-layout-switcher button {
+  height: 34px; min-width: 34px; padding: 0 9px; border: 1px solid rgba(255,255,255,.3); border-radius: 10px;
+  background: rgba(255,255,255,.1); color: white; box-shadow: none; cursor: pointer; display: inline-flex;
+  align-items: center; justify-content: center; gap: 6px; transition: background-color .15s ease, border-color .15s ease, transform .1s ease;
+}
+.header-icon-button:hover, .desktop-layout-switcher button:hover { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.48); }
+.header-icon-button:active, .desktop-layout-switcher button:active { transform: translateY(1px); }
+.theme-label { font-size: 11px; font-weight: 700; }
+.theme-icon { font-size: 17px; line-height: 1; }
+.desktop-layout-switcher { display: none; align-items: center; gap: 4px; }
+.desktop-layout-switcher button { padding: 0; font-size: 17px; }
+.desktop-layout-switcher button.active { background: white; color: var(--brand); border-color: white; }
+
+#weatherData {
+  background: var(--surface); border-radius: 0 0 var(--radius-xl) var(--radius-xl); border: 1px solid var(--border);
+  border-top: 0; box-shadow: var(--shadow); padding: 10px; margin-bottom: 16px;
+}
+.top-toolbar {
+  display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 1px 1px 10px; border-bottom: 1px solid var(--border);
+}
+.view-tabs {
+  display: inline-flex; flex: 0 1 auto; width: max-content; max-width: 100%; padding: 3px; gap: 2px;
+  background: var(--surface-soft); border: 1px solid var(--border); border-radius: 11px;
+}
+.tab-button {
+  min-height: 32px; padding: 6px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted);
+  font-weight: 700; cursor: pointer; box-shadow: none; transition: background-color .15s ease, color .15s ease;
+}
+.tab-button:hover { color: var(--text); background: var(--surface); }
+.tab-button.active { background: var(--surface-raised); color: var(--brand-2); box-shadow: 0 1px 4px rgba(17,24,39,.08); }
+.daily-status-cluster {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 0 0 204px; width: 204px; min-width: 204px;
+  color: var(--muted); font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.status-badge {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 86px; width: 86px; min-height: 26px;
+  padding: 4px 6px; border-radius: 999px; font-size: 10.5px; font-weight: 800; letter-spacing: .4px;
+  white-space: nowrap; border: 1px solid transparent;
+}
+.status-badge.connected { color: var(--green); background: var(--green-soft); border-color: color-mix(in srgb, var(--green) 22%, transparent); }
+.status-badge.fetching { color: var(--amber); background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 22%, transparent); }
+.status-badge.error { color: var(--red); background: var(--red-soft); border-color: color-mix(in srgb, var(--red) 22%, transparent); }
+#dailyStatusText { display: inline-block; flex: 0 0 110px; width: 110px; text-align: right; white-space: nowrap; }
+.content-shell { padding-top: 10px; }
+
+.station-strip {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 11px; margin-bottom: 9px;
+  border: 1px solid var(--border); background: var(--surface-soft); border-radius: var(--radius-lg);
+}
+.address-title { margin: 0 0 5px; color: var(--brand-2); font-size: 16px; font-weight: 800; letter-spacing: .2px; }
+.station-subtitle { color: var(--muted); font-size: 12px; font-weight: 650; }
+.logo-container { display: flex; align-items: center; flex: 0 0 auto; }
+.logo-container img { display: block; height: 56px; width: auto; max-width: 132px; object-fit: contain; border-radius: 7px; }
+
+.panel-card { border: 1px solid var(--border); background: var(--surface-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
+.summary-hero {
+  display: grid; grid-template-columns: minmax(0,1.4fr) minmax(118px,.6fr); gap: 10px; align-items: stretch;
+  padding: 12px; margin-bottom: 9px; background: color-mix(in srgb, var(--brand-2) 5%, var(--surface-raised));
+}
+.summary-date-block { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.eyebrow { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .85px; text-transform: uppercase; }
+.summary-date { margin: 4px 0 0; color: var(--text); font-size: 22px; font-weight: 800; line-height: 1.12; letter-spacing: -.4px; }
+.summary-help { margin-top: 5px; color: var(--muted); font-size: 11px; font-weight: 600; }
+.rain-hero {
+  min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 10px 11px;
+  border-radius: 12px; background: var(--blue-soft); border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+}
+.rain-hero .value { margin-top: 3px; color: var(--accent); font-size: 24px; font-weight: 800; letter-spacing: -.4px; white-space: nowrap; }
+.hero-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; padding-top: 2px; }
+.force-button {
+  min-height: 34px; padding: 7px 11px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--surface-soft);
+  color: var(--text); font-weight: 750; cursor: pointer; box-shadow: none;
+}
+.force-button:hover { border-color: var(--accent); color: var(--accent); }
+.force-button:disabled { opacity: .65; cursor: default; }
+.force-button.up-to-date, .force-button.up-to-date:disabled {
+  background: var(--green-soft); color: var(--green); border-color: color-mix(in srgb, var(--green) 25%, var(--border)); opacity: 1;
 }
 
-    .summary-for-box .date {
-      font-size: inherit;
-      letter-spacing: 0;
-      color: inherit;
-      text-transform: uppercase;
-    }
+.summary-columns { display: block; }
+.summary-column { min-width: 0; }
+.section-card { padding: 11px 12px; margin-bottom: 9px; }
+.section-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.section-title { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; color: var(--muted); }
+.section-kicker { color: var(--muted); font-size: 10px; font-weight: 650; }
 
-    #weatherData {
-      background: #ffffff;
-      padding: 8px 10px 12px 10px;
-      border-radius: 0 0 12px 12px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-      font-size: 13.5px;
-      text-align: left;
-      margin-bottom: 15px;
-    }
+.temperature-stack { display: grid; gap: 9px; }
+.temperature-band { border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); padding: 10px; }
+.temperature-band.air { background: color-mix(in srgb, var(--brand-2) 6%, var(--surface-soft)); border-color: color-mix(in srgb, var(--brand-2) 18%, var(--border)); }
+.temperature-band-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.temperature-band-title { color: var(--text); font-size: 12px; font-weight: 800; }
+.temperature-note { min-height: 16px; color: var(--muted); font-size: 10.5px; font-weight: 650; text-align: right; }
+.range-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+.range-stat { min-width: 0; padding: 7px 7px 8px; background: var(--surface-raised); border-radius: 9px; border: 1px solid var(--border); }
+.range-stat .label { display: block; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .45px; }
+.range-stat .value { display: block; margin-top: 3px; color: var(--text); font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.range-stat.min .value, .range-stat.max .value { font-size: 18px; }
 
-    #weatherData p {
-      margin: 2px 0;
-      line-height: 1.3;
-      white-space: nowrap;
-    }
-
-    .cold-temp {
-      color: #0077cc;
-      font-weight: bold;
-    }
-
-    hr { border: none; border-top: 1px solid #e0e0e0; margin: 4px 0; }
-    
-    .address-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #00008B;
-      text-align: left;
-      margin: 10px 0 2px 0;
-      padding-left: 2px;
-    }
-
-    .rain-container { 
-      margin: 10px auto 5px auto; 
-      padding: 8px; 
-      border: 1px solid #ccc; 
-      border-radius: 8px; 
-      background: #f9f9f9; 
-      text-align: center;
-    }
-    .rain-container p { margin: 0; }
-
-    .spinner-container { display: none; margin: 20px auto; width: 40px; height: 40px; }
-    .spinner { width: 100%; height: 100%; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .error-message { color: #d32f2f; text-align: center; margin: 10px 0; font-weight: bold; }
-    
-    @media only screen and (max-width: 600px) {
-      .main-container { max-width: 400px; margin: 5px auto; padding: 0 5px; }
-      .header-box { padding: 0; }
-    }
-
-    .temp-group-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin: 4px 0;
-    }
-
-    .temp-readings p {
-      margin: 2px 0;
-      line-height: 1.2;
-    }
-
-    .temp-box {
-      width: 80px;
-      height: 44px;
-      background-color: #f1f1f1;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 0;
-    }
-
-    #tempBoxValue, #globeTempBoxValue {
-      font-size: 16px;
-      font-weight: bold;
-      color: #004080;
-      line-height: 1;
-      margin-top: 4px;
-    }
-
-    .temp-box div:last-child {
-  font-size: 11px;
-  color: #666;
-  text-align: center;
-  line-height: 1;
-  margin-top: 2px;
-  margin-bottom: 2px;
+.gust-hero {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; margin-bottom: 8px;
+  border: 1px solid var(--border); border-radius: 11px; background: var(--surface-soft);
 }
+.gust-value { color: var(--text); font-size: 24px; font-weight: 820; letter-spacing: -.3px; white-space: nowrap; }
+.gust-note { color: var(--muted); font-size: 11px; font-weight: 650; text-align: right; }
+.quick-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.quick-stat { padding: 8px 9px; border: 1px solid transparent; border-radius: 10px; background: var(--surface-soft); min-width: 0; }
+.quick-stat .label { color: var(--muted); font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .45px; }
+.quick-stat .value { display: block; margin-top: 2px; color: var(--text); font-size: 13.5px; font-weight: 780; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric-list { display: grid; }
+.metric-row { min-height: 32px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: center; border-top: 1px solid var(--border); }
+.metric-row:first-child { border-top: 0; }
+.metric-label { color: var(--muted); font-size: 12px; font-weight: 650; }
+.metric-value { color: var(--text); font-size: 12.5px; font-weight: 760; text-align: right; white-space: nowrap; }
+.descriptor-label, #frostNote, #globeNote, #gustNote, #batteryNote { color: var(--muted); font-size: 10.5px; font-weight: 650; }
 
-    .force-button {
-        background-color: #FFA500;
-        color: rgb(77, 75, 71);
-    }
+.error-message {
+  display: none; margin: 9px 0 0; padding: 9px 10px; border: 1px solid color-mix(in srgb, var(--red) 28%, var(--border));
+  border-radius: 10px; background: var(--red-soft); color: var(--red); font-weight: 700; text-align: center;
+}
+.spinner-container {
+  display: none; position: fixed; right: 18px; bottom: 18px; z-index: 150; width: 34px; height: 34px; padding: 7px;
+  border-radius: 50%; background: var(--surface-raised); border: 1px solid var(--border); box-shadow: var(--shadow-soft);
+}
+.spinner { width: 100%; height: 100%; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.compat-data { display: none !important; }
 
-    .force-button:hover {
-      background-color: #5CA5C7;
-    }
+html[data-theme="dark"] #tempMin, html[data-theme="dark"] #tempMinUnit, html[data-theme="dark"] #globeMin,
+html[data-theme="dark"] #globeMinUnit, html[data-theme="dark"] #solarMax, html[data-theme="dark"] #solarMaxUnit,
+html[data-theme="dark"] #humidityAvg, html[data-theme="dark"] #humidityUnit, html[data-theme="dark"] #gustPeak,
+html[data-theme="dark"] #gustUnit, html[data-theme="dark"] #pressureAvg, html[data-theme="dark"] #pressureUnit,
+html[data-theme="dark"] #batteryMin, html[data-theme="dark"] #batteryUnit { filter: brightness(1.45) saturate(.88); }
+html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color: var(--muted) !important; }
 
-    .force-button:active {
-      background-color: #4C91B3;
-    }
-
-    .force-button:disabled {
-      background-color: gray;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-
-    .control-half button {
-      width: 100%;
-    }
-
-    .control-container {
-      gap: 8px;
-      padding: 0 4px;
-    }
-
-    .rain-highlight {
-      background-color: #f1f1f1;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      padding: 2px 6px;
-      margin: 2px 0 4px 0;
-      font-size: 13px;
-      display: inline-block;
-    }
+@media only screen and (min-width: 900px) {
+  .desktop-layout-switcher { display: inline-flex; }
+  body.layout-landscape .main-container { width: min(100% - 32px, 1080px); margin-top: 14px; }
+  body.layout-landscape #weatherData { padding: 11px; }
+  body.layout-landscape .summary-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 11px; align-items: start; }
+  body.layout-landscape .summary-column .section-card:last-child { margin-bottom: 0; }
+  body.layout-portrait .main-container { width: min(100% - 28px, 520px); }
+}
+@media only screen and (max-width: 899px) { .theme-label { display: none; } }
+@media only screen and (max-width: 600px) {
+  body { font-size: 13.5px; }
+  .main-container { width: min(100% - 10px, 430px); margin: 5px auto 16px; }
+  .header-box { border-radius: 14px 14px 0 0; }
+  .app-header { min-height: 56px; padding: 8px 9px; gap: 8px; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 9px; }
+  .brand-title { font-size: 15px; }
+  .brand-subtitle { font-size: 10.5px; margin-top: 2px; }
+  .header-icon-button { height: 32px; min-width: 32px; padding: 0 7px; }
+  #weatherData { padding: 8px; border-radius: 0 0 14px 14px; }
+  .top-toolbar { gap: 4px; padding-bottom: 8px; }
+  .view-tabs { min-width: 0; }
+  .tab-button { min-height: 30px; padding: 5px 6px; font-size: 11.25px; white-space: nowrap; }
+  .daily-status-cluster { flex: 0 0 168px; width: 168px; min-width: 168px; gap: 4px; font-size: 10px; }
+  .status-badge { flex: 0 0 70px; width: 70px; min-height: 24px; padding: 3px 4px; font-size: 9.2px; }
+  #dailyStatusText { flex: 0 0 94px; width: 94px; font-size: 9.8px; }
+  .station-strip { padding: 8px 9px; }
+  .address-title { font-size: 15px; }
+  .logo-container img { height: 50px; max-width: 112px; }
+  .summary-hero { grid-template-columns: minmax(0,1fr) 112px; padding: 10px; gap: 8px; }
+  .summary-date { font-size: 18px; }
+  .rain-hero { padding: 8px 9px; }
+  .rain-hero .value { font-size: 20px; }
+  .hero-actions { justify-content: stretch; }
+  .force-button { width: 100%; }
+  .section-card { padding: 10px; }
+  .range-stat .value { font-size: 14.5px; }
+  .range-stat.min .value, .range-stat.max .value { font-size: 16.5px; }
+  .gust-value { font-size: 21px; }
+}
+@media only screen and (max-width: 380px) {
+  .brand-subtitle { max-width: 145px; }
+  .daily-status-cluster { flex: 0 0 156px; width: 156px; min-width: 156px; }
+  .status-badge { flex-basis: 66px; width: 66px; }
+  #dailyStatusText { flex-basis: 86px; width: 86px; font-size: 9.2px; }
+  .tab-button { padding-left: 5px; padding-right: 5px; font-size: 10.7px; }
+}
   </style>
 </head>
 <body>
-    <div class="main-container">
-      <div class="freeze-pane">
-        <div class="header-box">
-          <h2>Moore's Daily Summary</h2>
+  <div class="main-container">
+    <div class="freeze-pane">
+      <div class="header-box">
+        <div class="app-header">
+          <div class="brand-lockup">
+            <div class="brand-mark"><img src="/Weather_Station_App.png" alt="Weather station"></div>
+            <div class="brand-copy">
+              <h1 class="brand-title">Moore Weather</h1>
+              <div class="brand-subtitle">West Warwick · Live Station</div>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button id="themeToggleBtn" class="header-icon-button" type="button" aria-label="Change theme" title="Theme">
+              <span id="themeToggleIcon" class="theme-icon">◐</span><span id="themeToggleLabel" class="theme-label">Auto</span>
+            </button>
+            <button class="header-icon-button" type="button" aria-label="Reload page" title="Reload" onclick="location.reload()">↻</button>
+            <div class="desktop-layout-switcher" aria-label="Desktop layout">
+              <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')">▯</button>
+              <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')">▭</button>
+            </div>
+          </div>
         </div>
-  
-        <div id="weatherData">
-          <div class="control-bar">
-            <div class="control-container">
-              <div class="control-half">
-                <button class="back-button" onclick="location.href='index.html'">← Current Readings</button>
-              </div>
-              <div class="control-half">
-                <button id="forceUpdateBtn" class="force-button" onclick="forceSummaryFetch()">🔁 Force Update</button>
-              </div>
-            </div>
-          </div>
-          <div id="summaryForContainer" class="summary-for-box">
-            <span>🌤️ Daily Summary for: </span>
-<span id="summaryForDay" class="date upper">--</span>
-          </div>
-  
-          <hr>
-  
-          <div class="rain-highlight">
-            <p><b>🌧️ Total Rainfall:</b> <span id="rainTotal">--</span></p>
-          </div>
-          <hr>
-          <div class="temp-group-container">
-            <div class="temp-readings">
-              <p><b>🥶 Air Temp Min:</b> <span id="tempMin">--</span> <span id="tempMinUnit">°C</span> <span id="frostNote" style="color: #333; font-weight: normal;"></span></p>
-              <p><b>🥵 Air Temp Max:</b> <span id="tempMax">--</span> °C</p>
-              <p><b>🌡️ Air Temp Avg:</b> <span id="tempAvg">--</span> °C</p>
-            </div>
-            <div class="temp-box">
-              <div id="tempBoxValue">--</div>
-              <div id="tempBoxLabel">Min Temp</div>
-            </div>
-          </div>
-          <hr>
-          <div class="temp-group-container">
-            <div class="temp-readings">
-              <p><b>🔘 Globe Temp Min:</b> <span id="globeMin">--</span> <span id="globeMinUnit">°C</span> <span id="globeNote" style="color: #333; font-weight: normal;"></span></p>
-              <p><b>⭕️ Globe Temp Max:</b> <span id="globeMax">--</span> °C</p>
-              <p><b>⚫️ Globe Temp Avg:</b> <span id="globeAvg">--</span> °C</p>
-            </div>
-            <div class="temp-box">
-              <div id="globeTempBoxValue">--</div>
-              <div id="globeTempBoxLabel">Globe Min</div>
-            </div>
-          </div>
-          <hr>
-          <p><b>⬆️ Total Daily Evap:</b> <span id="evapTotal">--</span> mm</p>
-          <hr>
-          <p><b>💧 Avg Humidity:</b>
-            <span id="humidityAvg">--</span><span id="humidityUnit">%</span>
-            <span id="humidityDesc" class="descriptor-label"></span>
-          </p>
-          <p><b>💧 Avg Dew Point:</b> <span id="dewAvg">--</span> °C</p>
-          <hr>
-          <div class="temp-group-container">
-            <div class="temp-readings">
-              <p><b>💨 Avg Wind Speed:</b> <span id="windAvg">--</span> km/h</p>
-              <p><b>💨 Max Wind Speed:</b> <span id="windMax">--</span> km/h</p>
-              <p><b>🌪️ Peak Wind Gust:</b>
-                <span id="gustPeak">--</span>
-                <span id="gustUnit">km/h</span>
-                <span id="gustNote"></span>
-              </p>
-              <p><b>🧭 Avg Wind Direc:</b> <span id="windDir">--</span>° (<span id="windDirText">--</span>)</p>
-            </div>
-            <div class="temp-box">
-              <div id="gustBoxValue">--</div>
-              <div id="gustBoxLabel">Peak Gust</div>
-            </div>
-          </div>
-          <hr>
-          <p><b>☀️ Solar Radiation Max:</b> <span id="solarMax">--</span> <span id="solarMaxUnit">W/m²</span></p>
-          <p><b>🌤️ Solar Radiation Avg:</b> <span id="solarAvg">--</span> W/m²</p>
-          <hr>
-          <div class="temp-group-container">
-            <div class="temp-readings">
-              <p><b>🌱 Garden Temp Min:</b> <span id="dirtMin">--</span> °C</p>
-              <p><b>🌾 Garden Temp Max:</b> <span id="dirtMax">--</span> °C</p>
-              <p><b>🌿 Garden Temp Avg:</b> <span id="dirtAvg">--</span> °C</p>
-            </div>
-            <div class="temp-box">
-              <div id="gardenTempBoxValue">--</div>
-              <div id="gardenTempBoxLabel">Garden Avg</div>
-            </div>
-          </div>
-          <hr>
-          <p><b>🌀 Avg Pressure:</b> <span id="pressureAvg">--</span> <span id="pressureUnit">hPa</span> <span id="pressureFish" style="font-weight: normal;"></span></p>
-          <hr>
-          <p><b>🌡️ Soil Temp (10cm):</b> <span id="soilTemp">--</span> °C</p>
-          <p><b>💧 Soil Moisture (10cm):</b> <span id="soilMoisture">--</span>%</p>
-          <hr>
-          <p><b>🔋 Battery Min:</b> <span id="batteryMin">--</span> <span id="batteryUnit">V</span> <span id="batteryNote"></span></p>
-          <hr>
-        </div>
-  
-        <div id="spinnerContainer" class="spinner-container">
-          <div class="spinner"></div>
-        </div>
-        <div id="errorMessage" class="error-message" style="display: none;"></div>
       </div>
     </div>
-  
+
+    <div id="weatherData">
+      <div class="top-toolbar">
+        <div class="view-tabs" aria-label="Weather views">
+          <button class="tab-button" type="button" onclick="location.href='index.html'">Current</button>
+          <button class="tab-button active" type="button" aria-current="page">Daily Summary</button>
+        </div>
+        <div class="daily-status-cluster" aria-live="polite">
+          <span id="dailyStatusBadge" class="status-badge fetching">● CHECKING</span>
+          <span id="dailyStatusText">Reading status</span>
+        </div>
+      </div>
+
+      <div class="content-shell">
+        <section class="station-strip">
+          <div>
+            <div class="address-title">WEST WARWICK, QLD</div>
+            <div class="station-subtitle">9AM DAILY SUMMARY · WEATHER MAESTRO</div>
+          </div>
+          <div class="logo-container">
+            <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+          </div>
+        </section>
+
+        <section id="summaryForContainer" class="summary-hero panel-card">
+          <div class="summary-date-block">
+            <span class="eyebrow">Daily summary for</span>
+            <div id="summaryForDay" class="summary-date">--</div>
+            <div class="summary-help">Validated 9AM station summary</div>
+          </div>
+          <div class="rain-hero">
+            <span class="eyebrow">Total rainfall</span>
+            <span id="rainTotal" class="value">--</span>
+          </div>
+          <div class="hero-actions">
+            <button id="forceUpdateBtn" class="force-button" type="button" onclick="forceSummaryFetch()">↻ Check for update</button>
+          </div>
+        </section>
+
+        <div class="summary-columns">
+          <div class="summary-column">
+            <section class="panel-card section-card">
+              <div class="section-header">
+                <h2 class="section-title">Temperature</h2>
+                <span class="section-kicker">Min · Avg · Max</span>
+              </div>
+              <div class="temperature-stack">
+                <div class="temperature-band air">
+                  <div class="temperature-band-header">
+                    <span class="temperature-band-title">Air temperature</span>
+                    <span id="frostNote" class="temperature-note"></span>
+                  </div>
+                  <div class="range-grid">
+                    <div class="range-stat min"><span class="label">Minimum</span><span class="value"><span id="tempMin">--</span><span id="tempMinUnit">°C</span></span></div>
+                    <div class="range-stat"><span class="label">Average</span><span class="value"><span id="tempAvg">--</span>°C</span></div>
+                    <div class="range-stat max"><span class="label">Maximum</span><span class="value"><span id="tempMax">--</span>°C</span></div>
+                  </div>
+                </div>
+
+                <div class="temperature-band">
+                  <div class="temperature-band-header">
+                    <span class="temperature-band-title">Black globe</span>
+                    <span id="globeNote" class="temperature-note"></span>
+                  </div>
+                  <div class="range-grid">
+                    <div class="range-stat min"><span class="label">Minimum</span><span class="value"><span id="globeMin">--</span><span id="globeMinUnit">°C</span></span></div>
+                    <div class="range-stat"><span class="label">Average</span><span class="value"><span id="globeAvg">--</span>°C</span></div>
+                    <div class="range-stat max"><span class="label">Maximum</span><span class="value"><span id="globeMax">--</span>°C</span></div>
+                  </div>
+                </div>
+
+                <div class="temperature-band">
+                  <div class="temperature-band-header"><span class="temperature-band-title">Garden bed</span></div>
+                  <div class="range-grid">
+                    <div class="range-stat min"><span class="label">Minimum</span><span class="value"><span id="dirtMin">--</span>°C</span></div>
+                    <div class="range-stat"><span class="label">Average</span><span class="value"><span id="dirtAvg">--</span>°C</span></div>
+                    <div class="range-stat max"><span class="label">Maximum</span><span class="value"><span id="dirtMax">--</span>°C</span></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel-card section-card">
+              <div class="section-header"><h2 class="section-title">Ground & station</h2></div>
+              <div class="metric-list">
+                <div class="metric-row"><span class="metric-label">Soil temperature · 10cm</span><span class="metric-value"><span id="soilTemp">--</span>°C</span></div>
+                <div class="metric-row"><span class="metric-label">Soil moisture · 10cm</span><span class="metric-value"><span id="soilMoisture">--</span>%</span></div>
+                <div class="metric-row"><span class="metric-label">Battery minimum</span><span class="metric-value"><span id="batteryMin">--</span> <span id="batteryUnit">V</span> <span id="batteryNote"></span></span></div>
+              </div>
+            </section>
+          </div>
+
+          <div class="summary-column">
+            <section class="panel-card section-card">
+              <div class="section-header"><h2 class="section-title">Wind</h2></div>
+              <div class="gust-hero">
+                <div><span class="eyebrow">Peak gust</span><div class="gust-value"><span id="gustPeak">--</span> <span id="gustUnit">km/h</span></div></div>
+                <span id="gustNote" class="gust-note"></span>
+              </div>
+              <div class="quick-grid">
+                <div class="quick-stat"><span class="label">Average speed</span><span class="value"><span id="windAvg">--</span> km/h</span></div>
+                <div class="quick-stat"><span class="label">Maximum speed</span><span class="value"><span id="windMax">--</span> km/h</span></div>
+                <div class="quick-stat" style="grid-column:1/-1"><span class="label">Average direction</span><span class="value"><span id="windDir">--</span>° (<span id="windDirText">--</span>)</span></div>
+              </div>
+            </section>
+
+            <section class="panel-card section-card">
+              <div class="section-header"><h2 class="section-title">Atmosphere & water</h2></div>
+              <div class="metric-list">
+                <div class="metric-row"><span class="metric-label">Average humidity</span><span class="metric-value"><span id="humidityAvg">--</span><span id="humidityUnit">%</span><span id="humidityDesc" class="descriptor-label"></span></span></div>
+                <div class="metric-row"><span class="metric-label">Average dew point</span><span class="metric-value"><span id="dewAvg">--</span>°C</span></div>
+                <div class="metric-row"><span class="metric-label">Average pressure</span><span class="metric-value"><span id="pressureAvg">--</span> <span id="pressureUnit">hPa</span> <span id="pressureFish"></span></span></div>
+                <div class="metric-row"><span class="metric-label">Total daily evap</span><span class="metric-value"><span id="evapTotal">--</span> mm</span></div>
+                <div class="metric-row"><span class="metric-label">Solar radiation max</span><span class="metric-value"><span id="solarMax">--</span> <span id="solarMaxUnit">W/m²</span></span></div>
+                <div class="metric-row"><span class="metric-label">Solar radiation average</span><span class="metric-value"><span id="solarAvg">--</span> W/m²</span></div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="compat-data" aria-hidden="true">
+          <span id="tempBoxValue">--</span><span id="tempBoxLabel">Min Temp</span>
+          <span id="globeTempBoxValue">--</span><span id="globeTempBoxLabel">Globe Min</span>
+          <span id="gardenTempBoxValue">--</span><span id="gardenTempBoxLabel">Garden Avg</span>
+          <span id="gustBoxValue">--</span><span id="gustBoxLabel">Peak Gust</span>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="spinnerContainer" class="spinner-container" aria-hidden="true"><div class="spinner"></div></div>
+
   <script>
     const SUMMARY_ENDPOINT = "/daily";
+    const STATUS_ENDPOINT = "/ping";
+
+    function setForceButtonState(status) {
+      const forceBtn = document.getElementById("forceUpdateBtn");
+      forceBtn.classList.remove("up-to-date");
+
+      if (status && status.dailyUpToDate) {
+        forceBtn.disabled = true;
+        forceBtn.classList.add("up-to-date");
+        forceBtn.textContent = "✅ Summary Up To Date";
+        return;
+      }
+
+      if (status && (status.dailyRefreshInProgress || status.dailyStationRequestInProgress)) {
+        forceBtn.disabled = true;
+        forceBtn.textContent = "⏳ Updating...";
+        return;
+      }
+
+      forceBtn.disabled = false;
+      forceBtn.textContent = "🔁 Force Update";
+    }
+
+    async function refreshForceButtonState() {
+      try {
+        const response = await fetch(STATUS_ENDPOINT, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Status endpoint returned ${response.status}`);
+
+        const status = await response.json();
+        setForceButtonState(status);
+
+        // If the backend is refreshing in the background, keep checking status
+        // without sending any additional command to the weather station.
+        if (!status.dailyUpToDate &&
+            (status.dailyRefreshInProgress || status.dailyStationRequestInProgress)) {
+          setTimeout(refreshForceButtonState, 5000);
+        }
+      } catch (error) {
+        console.warn("Unable to read daily summary status:", error);
+        setForceButtonState(null);
+      }
+    }
 
     function getWindDirection(degrees) {
       const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
@@ -728,15 +847,16 @@ if (!isNaN(batteryMin)) {
 
       if (date && date !== "--") {
         try {
-          const [year, month, day] = date.split('/');
-          const dateObj = new Date(`${year}-${month}-${day}`);
-          dateObj.setDate(dateObj.getDate() - 1);
+          const [year, month, day] = date.split('/').map(Number);
+          const dateObj = new Date(Date.UTC(year, month - 1, day));
+          dateObj.setUTCDate(dateObj.getUTCDate() - 1);
           const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
           const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-          const dayName = dayNames[dateObj.getDay()];
-          const monthName = monthNames[dateObj.getMonth()];
-          const dayWithSuffix = dateObj.getDate() + (dateObj.getDate() % 10 === 1 && dateObj.getDate() !== 11 ? "st" : dateObj.getDate() % 10 === 2 && dateObj.getDate() !== 12 ? "nd" : dateObj.getDate() % 10 === 3 && dateObj.getDate() !== 13 ? "rd" : "th");
-          document.getElementById("summaryForDay").textContent = `${dayName} ${dayWithSuffix} ${monthName} ${dateObj.getFullYear()}`;
+          const dayName = dayNames[dateObj.getUTCDay()];
+          const monthName = monthNames[dateObj.getUTCMonth()];
+          const displayDay = dateObj.getUTCDate();
+          const dayWithSuffix = displayDay + (displayDay % 10 === 1 && displayDay !== 11 ? "st" : displayDay % 10 === 2 && displayDay !== 12 ? "nd" : displayDay % 10 === 3 && displayDay !== 13 ? "rd" : "th");
+          document.getElementById("summaryForDay").textContent = `${dayName} ${dayWithSuffix} ${monthName} ${dateObj.getUTCFullYear()}`;
         } catch (e) {
           document.getElementById("summaryForDay").textContent = "--";
         }
@@ -755,7 +875,9 @@ if (!isNaN(batteryMin)) {
 
       spinner.style.display = "block";
       errorMessage.style.display = "none";
+      forceBtn.classList.remove("up-to-date");
       forceBtn.disabled = true;
+      forceBtn.textContent = isInitialLoad ? "⏳ Loading..." : "⏳ Checking...";
 
       fetch(url)
         .then(response => {
@@ -776,7 +898,7 @@ if (!isNaN(batteryMin)) {
         })
         .finally(() => {
           spinner.style.display = "none";
-          forceBtn.disabled = false;
+          refreshForceButtonState();
         });
     }
 
@@ -785,6 +907,119 @@ if (!isNaN(batteryMin)) {
     }
 
     window.addEventListener("load", startInitialFetch);
+  
+  </script>
+  <script>
+(function () {
+  const THEME_KEY = "mooreWeatherTheme";
+  const MODES = ["auto", "light", "dark"];
+  const button = document.getElementById("themeToggleBtn");
+  const label = document.getElementById("themeToggleLabel");
+  const icon = document.getElementById("themeToggleIcon");
+  const media = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+  function getSavedMode() {
+    try { const saved = localStorage.getItem(THEME_KEY); return MODES.includes(saved) ? saved : "auto"; }
+    catch (error) { return "auto"; }
+  }
+  function resolvedTheme(mode) {
+    if (mode === "dark" || mode === "light") return mode;
+    return media && media.matches ? "dark" : "light";
+  }
+  function renderTheme(mode, persist) {
+    document.documentElement.dataset.theme = resolvedTheme(mode);
+    document.documentElement.dataset.themeMode = mode;
+    if (persist) { try { localStorage.setItem(THEME_KEY, mode); } catch (error) {} }
+    if (button) { button.setAttribute("aria-label", `Theme: ${mode}. Click to change.`); button.title = `Theme: ${mode}`; }
+    if (label) label.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+    if (icon) icon.textContent = mode === "dark" ? "☾" : mode === "light" ? "☀" : "◐";
+  }
+  if (button) button.addEventListener("click", () => {
+    const current = getSavedMode();
+    renderTheme(MODES[(MODES.indexOf(current) + 1) % MODES.length], true);
+  });
+  if (media && media.addEventListener) media.addEventListener("change", () => { if (getSavedMode() === "auto") renderTheme("auto", false); });
+  renderTheme(getSavedMode(), false);
+})();
+
+(function () {
+  const LAYOUT_KEY = "mooreWeatherDesktopLayout";
+  const LANDSCAPE_MIN_WIDTH = 900;
+  function isMobile() { return window.matchMedia && window.matchMedia("(max-width: 600px)").matches; }
+  function automaticLayout() { return window.innerWidth >= LANDSCAPE_MIN_WIDTH && window.innerWidth > window.innerHeight ? "landscape" : "portrait"; }
+  function updateButtons(layout) {
+    const portraitBtn = document.getElementById("portraitLayoutBtn");
+    const landscapeBtn = document.getElementById("landscapeLayoutBtn");
+    if (!portraitBtn || !landscapeBtn) return;
+    portraitBtn.classList.toggle("active", layout === "portrait");
+    landscapeBtn.classList.toggle("active", layout === "landscape");
+    portraitBtn.setAttribute("aria-pressed", layout === "portrait" ? "true" : "false");
+    landscapeBtn.setAttribute("aria-pressed", layout === "landscape" ? "true" : "false");
+  }
+  function applyLayout(requestedLayout, persist) {
+    let layout = requestedLayout === "landscape" ? "landscape" : "portrait";
+    if (isMobile() || (layout === "landscape" && window.innerWidth < LANDSCAPE_MIN_WIDTH)) layout = "portrait";
+    document.body.classList.toggle("layout-landscape", layout === "landscape");
+    document.body.classList.toggle("layout-portrait", layout === "portrait");
+    updateButtons(layout);
+    if (persist) { try { localStorage.setItem(LAYOUT_KEY, requestedLayout); } catch (error) {} }
+  }
+  function savedOrAutomaticLayout() {
+    try { const saved = localStorage.getItem(LAYOUT_KEY); return saved === "portrait" || saved === "landscape" ? saved : automaticLayout(); }
+    catch (error) { return automaticLayout(); }
+  }
+  window.setDesktopLayout = function (layout) { applyLayout(layout, true); };
+  function init() { applyLayout(savedOrAutomaticLayout(), false); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true }); else init();
+  window.addEventListener("resize", init);
+})();
+
+(function () {
+  const badge = document.getElementById("dailyStatusBadge");
+  const detail = document.getElementById("dailyStatusText");
+  if (!badge || !detail) return;
+
+  function paint(payload) {
+    if (!payload) {
+      badge.textContent = "● OFFLINE";
+      badge.className = "status-badge error";
+      detail.textContent = "Status unavailable";
+      return;
+    }
+    if (payload.dailyRefreshInProgress || payload.dailyStationRequestInProgress) {
+      badge.textContent = "● UPDATING";
+      badge.className = "status-badge fetching";
+      detail.textContent = "Checking station";
+      return;
+    }
+    if (payload.dailyUpToDate) {
+      badge.textContent = "● CURRENT";
+      badge.className = "status-badge connected";
+      detail.textContent = "Summary ready";
+      return;
+    }
+    if (payload.dailyCacheAvailable) {
+      badge.textContent = "● STORED";
+      badge.className = "status-badge fetching";
+      detail.textContent = "Older summary";
+      return;
+    }
+    badge.textContent = "● CHECK";
+    badge.className = "status-badge fetching";
+    detail.textContent = "No current cache";
+  }
+
+  async function refresh() {
+    try {
+      const response = await fetch(`/ping?t=${Date.now()}`, { cache: "no-store" });
+      if (response.status === 401) { window.location.assign("/login"); return; }
+      if (!response.ok) throw new Error(`Ping returned ${response.status}`);
+      paint(await response.json());
+    } catch (error) { paint(null); }
+  }
+  refresh();
+  setInterval(refresh, 15000);
+})();
   </script>
 </body>
 </html>
