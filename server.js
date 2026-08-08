@@ -48,6 +48,7 @@ let cachedDailyData = null;
 let lastPollTime = null;
 let lastDailyPollTime = null;
 let dailyRefreshInFlight = null;
+let dailyStationRequestInFlight = null;
 
 /* =========================================================
    BRISBANE DATE HELPERS
@@ -246,7 +247,14 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
    ========================================================= */
 
 function fetchDailyDataOnce() {
-  return new Promise((resolve) => {
+  // Serialize the actual weather-station transaction. If a scheduled refresh,
+  // page load and/or Force Update arrive together, they all share ONE request.
+  if (dailyStationRequestInFlight) {
+    logger.info("[DAILY] Joining existing MEM 1 LAST request");
+    return dailyStationRequestInFlight;
+  }
+
+  const requestPromise = new Promise((resolve) => {
     const client = new net.Socket();
     let receivedData = "";
     let finished = false;
@@ -320,6 +328,14 @@ function fetchDailyDataOnce() {
       logger.warn("[DAILY] Socket timeout");
       finish("");
     });
+  });
+
+  dailyStationRequestInFlight = requestPromise;
+
+  return requestPromise.finally(() => {
+    if (dailyStationRequestInFlight === requestPromise) {
+      dailyStationRequestInFlight = null;
+    }
   });
 }
 
@@ -471,6 +487,8 @@ function schedulePolling() {
    ========================================================= */
 
 app.get("/weather", (req, res) => {
+  res.set("Cache-Control", "no-store");
+
   if (cachedWeatherData) {
     return res.status(200).send(cachedWeatherData);
   }
@@ -479,6 +497,8 @@ app.get("/weather", (req, res) => {
 });
 
 app.get("/daily", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+
   const force = req.query.force === "1";
   const status = dailyCacheStatus();
 
@@ -564,10 +584,11 @@ app.get("/daily", async (req, res) => {
   res.status(503).send("Failed to retrieve valid daily summary.");
 });
 
-// Lightweight status endpoint. dailyUpToDate can later be used by
-// daily.html to disable the Force Update button when the safety interlock
-// says no station request is necessary.
+// Lightweight status endpoint used by daily.html to reflect the
+// safety interlock and background/station refresh state.
 app.get("/ping", (req, res) => {
+  res.set("Cache-Control", "no-store");
+
   const dailyStatus = dailyCacheStatus();
 
   res.json({
@@ -581,6 +602,7 @@ app.get("/ping", (req, res) => {
     dailySummaryDate: dailyStatus.displayedDate,
     expectedDailySummaryDate: dailyStatus.expectedDate,
     dailyRefreshInProgress: Boolean(dailyRefreshInFlight),
+    dailyStationRequestInProgress: Boolean(dailyStationRequestInFlight),
     dailySchedule: "09:10 Australia/Brisbane",
   });
 });

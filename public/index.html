@@ -653,9 +653,9 @@ button:disabled {
   console.log("Parsed lines array:", lines);
 
   if (lines.length < 31) {
-    console.error("Incomplete data received:", lines);
-    document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
-    return;
+    const error = new Error(`Incomplete weather data: received ${lines.length} fields, expected at least 31`);
+    console.error(error.message, lines);
+    throw error;
   } 
       try {
         // Extract data from CSV indices
@@ -692,9 +692,9 @@ button:disabled {
 
         // Validate the data
         if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw) || isNaN(blackGlobeTemp) || isNaN(dewPoint)) {
-          console.error("Invalid data received:", lines);
-          document.getElementById("weatherData").innerHTML = "<b>Error:</b> Invalid data values.";
-          return;
+          const error = new Error("Invalid numeric values in weather data");
+          console.error(error.message, lines);
+          throw error;
         }
 
         // DATE & TIME
@@ -878,8 +878,9 @@ if (dewDiff >= 3.0) {
         document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
 
       } catch (error) {
+        // Preserve the last good readings and let fetchWeather() handle retry/backoff.
         console.error("Error parsing or updating data:", error);
-        document.getElementById("weatherData").innerHTML = "<b>Error:</b> An error occurred while processing the data.";
+        throw error;
       }
     }
 
