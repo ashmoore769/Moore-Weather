@@ -652,7 +652,7 @@ button:disabled {
   const lines = data.replace(/^r3\s*/, "").trim().replace(/,?END$/, "").split(",");
   console.log("Parsed lines array:", lines);
 
-  if (lines.length < 30) {
+  if (lines.length < 31) {
     console.error("Incomplete data received:", lines);
     document.getElementById("weatherData").innerHTML = "<b>Error:</b> Incomplete or malformed data.";
     return;
@@ -691,7 +691,7 @@ button:disabled {
         const blackGlobeTemp = parseFloat(lines[30]);
 
         // Validate the data
-        if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw)) {
+        if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw) || isNaN(blackGlobeTemp) || isNaN(dewPoint)) {
           console.error("Invalid data received:", lines);
           document.getElementById("weatherData").innerHTML = "<b>Error:</b> Invalid data values.";
           return;
@@ -918,21 +918,9 @@ function fetchWeather() {
             console.error("Fetch error:", error);
             retryAttempts++;
 
-            if (retryAttempts >= MAX_RETRY_ATTEMPTS) {
-                // setStatusBadge("Error", "error");
-                // if (statusText) statusText.className = "error";
-                console.log("Max retry reached — retrying again shortly...");
-
-                // ⏱ Retry again quickly after showing Error
-                const retryDelay = 1000; // 1 second
-                refreshTimeout = setTimeout(fetchWeather, retryDelay);
-            } else {
-                // setStatusBadge("Fetching", "fetching");
-                // if (statusText) statusText.className = "connected";
-                const retryDelay = retryAttempts === 1 ? 300 : 800;
-                refreshTimeout = setTimeout(fetchWeather, retryDelay);
-                console.log(`Retrying fetch... (${retryAttempts}/${MAX_RETRY_ATTEMPTS})`);
-            }
+            const retryDelay = Math.min(30000, 1000 * Math.pow(2, retryAttempts - 1));
+            console.log(`Fetch failed — retrying in ${retryDelay / 1000}s (attempt ${retryAttempts})`);
+            refreshTimeout = setTimeout(fetchWeather, retryDelay);
         })
         .finally(() => {
             spinnerContainer.style.display = "none";
@@ -965,4 +953,4 @@ function manualFetch() {
 window.addEventListener("load", () => fetchWeather());
   </script>
 </body>
-</html><!-- new-mac test -->
+</html>
