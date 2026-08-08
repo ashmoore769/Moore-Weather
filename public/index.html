@@ -39,6 +39,40 @@
   --amber-soft: #fff4dd;
   --red: #b42318;
   --red-soft: #fdecea;
+  --rain: #1677ff;
+  --moisture-low: #d97706;
+  --pressure-high: #2678b2;
+  --battery-good: #087a32;
+  --battery-bad: #c9362b;
+  --gust-warn: #d97706;
+  --temp-deep-freeze: #172554;
+  --temp-severe-cold: #243b76;
+  --temp-extreme-cold: #244f91;
+  --temp-very-cold: #2d6ca2;
+  --temp-cold: #3e7da8;
+  --temp-cool: #308b57;
+  --temp-mild: #237447;
+  --temp-warm: #9a7608;
+  --temp-warmer: #c76808;
+  --temp-hot: #d94b1c;
+  --temp-very-hot: #b82e25;
+  --temp-extreme-hot: #8f211b;
+  --humidity-very-dry: #b42318;
+  --humidity-dry: #d9481d;
+  --humidity-low: #b65d22;
+  --humidity-comfort-low: #2c7a45;
+  --humidity-comfort: #18733d;
+  --humidity-moist: #137c82;
+  --humidity-humid: #2d62aa;
+  --humidity-very-humid: #6843a8;
+  --humidity-saturated: #8b3f98;
+  --solar-night: #334e7d;
+  --solar-low: #285fae;
+  --solar-mid: #386fb8;
+  --solar-moderate: #9b7510;
+  --solar-high: #c46c12;
+  --solar-strong: #b94724;
+  --solar-extreme: #9f2b24;
   --shadow: 0 14px 34px rgba(17, 24, 39, 0.08);
   --shadow-soft: 0 4px 14px rgba(17, 24, 39, 0.06);
   --radius-xl: 18px;
@@ -48,25 +82,59 @@
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d1219;
-  --surface: #151c25;
-  --surface-soft: #1b2430;
-  --surface-raised: #202a36;
-  --text: #edf2f7;
-  --muted: #9da9b8;
-  --border: #2b3745;
-  --border-strong: #3a4858;
-  --brand: #24489c;
-  --brand-2: #3155aa;
-  --accent: #68a9ff;
-  --green: #56d58a;
-  --green-soft: rgba(55, 186, 112, 0.12);
-  --amber: #f6b94d;
-  --amber-soft: rgba(246, 185, 77, 0.12);
-  --red: #ff7a70;
-  --red-soft: rgba(255, 122, 112, 0.12);
-  --shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
-  --shadow-soft: 0 5px 16px rgba(0, 0, 0, 0.22);
+  --page: #0b1119;
+  --surface: #121b27;
+  --surface-soft: #182433;
+  --surface-raised: #1d2a3a;
+  --text: #f1f5f9;
+  --muted: #aeb9c8;
+  --border: #314154;
+  --border-strong: #42536a;
+  --brand: #294b9f;
+  --brand-2: #78a9ff;
+  --accent: #7db7ff;
+  --green: #70dda0;
+  --green-soft: rgba(64, 190, 118, 0.14);
+  --amber: #ffd166;
+  --amber-soft: rgba(255, 209, 102, 0.12);
+  --red: #ff867c;
+  --red-soft: rgba(255, 134, 124, 0.12);
+  --rain: #6ab8ff;
+  --moisture-low: #ffb454;
+  --pressure-high: #86c9ff;
+  --battery-good: #72dc97;
+  --battery-bad: #ff8278;
+  --gust-warn: #ffb454;
+  --temp-deep-freeze: #d5e5ff;
+  --temp-severe-cold: #bad5ff;
+  --temp-extreme-cold: #a6ceff;
+  --temp-very-cold: #8bc3ff;
+  --temp-cold: #76b7e8;
+  --temp-cool: #82dda6;
+  --temp-mild: #69d094;
+  --temp-warm: #ffd56f;
+  --temp-warmer: #ffb85c;
+  --temp-hot: #ff936d;
+  --temp-very-hot: #ff7f75;
+  --temp-extreme-hot: #ff9a92;
+  --humidity-very-dry: #ff8b80;
+  --humidity-dry: #ff9a73;
+  --humidity-low: #f4aa69;
+  --humidity-comfort-low: #83d99f;
+  --humidity-comfort: #70d596;
+  --humidity-moist: #73d7dc;
+  --humidity-humid: #84b7ff;
+  --humidity-very-humid: #b7a0ff;
+  --humidity-saturated: #e19be9;
+  --solar-night: #9ab8e7;
+  --solar-low: #82b0ff;
+  --solar-mid: #9ac4ff;
+  --solar-moderate: #ffda72;
+  --solar-high: #ffba63;
+  --solar-strong: #ff9578;
+  --solar-extreme: #ff8178;
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 5px 16px rgba(0, 0, 0, 0.24);
 }
 
 * { box-sizing: border-box; }
@@ -295,8 +363,25 @@ button { -webkit-tap-highlight-color: transparent; }
   font-variant-numeric: tabular-nums;
 }
 
-.content-layout { display: block; padding-top: 10px; }
-.readings-panel, .camera-panel { min-width: 0; }
+.content-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "station"
+    "primary"
+    "skycam"
+    "conditions"
+    "soil"
+    "power";
+  gap: 9px;
+  padding-top: 10px;
+}
+.layout-station { grid-area: station; margin-bottom: 0; }
+.layout-primary { grid-area: primary; margin-bottom: 0; }
+.layout-skycam { grid-area: skycam; min-width: 0; }
+.layout-conditions { grid-area: conditions; margin-bottom: 0; }
+.layout-soil { grid-area: soil; margin-bottom: 0; }
+.layout-power { grid-area: power; margin-top: 0; margin-bottom: 0; }
 
 .station-strip {
   display: flex;
@@ -313,11 +398,11 @@ button { -webkit-tap-highlight-color: transparent; }
 .address-title {
   margin: 0 0 5px;
   color: var(--brand-2);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 800;
   letter-spacing: .2px;
 }
-.date-time { color: var(--muted); font-size: 12px; }
+.date-time { color: var(--muted); font-size: 13px; }
 .date-time p { margin: 1px 0; white-space: nowrap; }
 .logo-container {
   display: flex;
@@ -327,9 +412,9 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .logo-container img {
   display: block;
-  height: 52px;
+  height: 64px;
   width: auto;
-  max-width: 118px;
+  max-width: 144px;
   object-fit: contain;
   border-radius: 7px;
 }
@@ -399,37 +484,25 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .quick-stat .label {
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 750;
   text-transform: uppercase;
-  letter-spacing: .45px;
+  letter-spacing: .48px;
 }
 .quick-stat .value {
   display: block;
   margin-top: 2px;
   color: var(--text);
-  font-size: 14px;
-  font-weight: 750;
+  font-size: 15.5px;
+  font-weight: 760;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.condition-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-width: 76px;
-  min-height: 24px;
-  padding: 3px 7px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  color: white;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1;
-  transition: background-color .18s ease, border-color .18s ease;
-}
+
 .compat-data { display: none !important; }
+.unit-suffix { display: none; }
+body.weather-loaded .unit-suffix { display: inline; }
 @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025); } }
 
 .section-card { padding: 11px 12px; margin-bottom: 9px; }
@@ -442,7 +515,7 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .section-title {
   margin: 0;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 800;
   letter-spacing: .7px;
   text-transform: uppercase;
@@ -461,13 +534,13 @@ button { -webkit-tap-highlight-color: transparent; }
 .metric-row:first-child { border-top: 0; }
 .metric-label {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 13.25px;
+  font-weight: 660;
 }
 .metric-value {
   color: var(--text);
-  font-size: 12.5px;
-  font-weight: 750;
+  font-size: 14.25px;
+  font-weight: 760;
   text-align: right;
   white-space: nowrap;
 }
@@ -496,17 +569,17 @@ button { -webkit-tap-highlight-color: transparent; }
   border-radius: 10px;
   background: var(--surface-soft);
 }
-.rain-stat .metric-label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .4px; }
-.rain-stat .metric-value { display: block; margin-top: 3px; text-align: left; font-size: 13.5px; }
+.rain-stat .metric-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+.rain-stat .metric-value { display: block; margin-top: 3px; text-align: left; font-size: 14.5px; }
 
 .soil-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13.25px;
 }
 .soil-table th {
   color: var(--muted);
-  font-size: 9.5px;
+  font-size: 10.5px;
   letter-spacing: .45px;
   text-transform: uppercase;
   text-align: right;
@@ -515,9 +588,10 @@ button { -webkit-tap-highlight-color: transparent; }
 .soil-table th:first-child { text-align: left; padding-left: 0; }
 .soil-table td {
   border-top: 1px solid var(--border);
-  padding: 6px 0 6px 8px;
+  padding: 7px 0 7px 8px;
   text-align: right;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 720;
   white-space: nowrap;
 }
 .soil-table td:first-child { padding-left: 0; text-align: left; color: var(--muted); font-weight: 650; }
@@ -545,7 +619,12 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .skycam-container:fullscreen { display: grid; place-items: center; background: #000; border-radius: 0; border: 0; }
 .skycam-container:fullscreen img { width: 100%; height: 100%; max-height: 100vh; object-fit: contain; cursor: zoom-out; }
-.maintenance-card { margin-top: 9px; margin-bottom: 0; }
+.maintenance-card { margin-bottom: 0; }
+.layout-station,
+.layout-primary,
+.layout-conditions,
+.layout-soil,
+.layout-power { margin-bottom: 0; }
 
 .skycam-caption {
   position: absolute;
@@ -675,17 +754,7 @@ button { -webkit-tap-highlight-color: transparent; }
   border: 0 !important;
 }
 
-html[data-theme="dark"] #tempVal,
-html[data-theme="dark"] #humidityVal span,
-html[data-theme="dark"] #solarRadVal span,
-html[data-theme="dark"] #blackGlobeTempVal span,
-html[data-theme="dark"] #batteryVal span,
-html[data-theme="dark"] #chargeVal span,
-html[data-theme="dark"] #peakWindGustVal span,
-html[data-theme="dark"] #rainSince9Val span,
-html[data-theme="dark"] #rainInLastMinVal span {
-  filter: brightness(1.38) saturate(.92);
-}
+
 
 @media only screen and (min-width: 900px) {
   .desktop-layout-switcher { display: inline-flex; }
@@ -699,10 +768,15 @@ html[data-theme="dark"] #rainInLastMinVal span {
   body.layout-landscape .content-layout {
     display: grid;
     grid-template-columns: minmax(420px, 0.82fr) minmax(0, 1.38fr);
+    grid-template-areas:
+      "station skycam"
+      "primary skycam"
+      "conditions power"
+      "soil power";
     gap: 11px;
     align-items: start;
   }
-  body.layout-landscape .camera-panel { position: sticky; top: 76px; }
+  body.layout-landscape .layout-skycam { position: sticky; top: 76px; }
   body.layout-landscape .skycam-container img { min-height: 480px; }
 
   body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
@@ -729,18 +803,19 @@ html[data-theme="dark"] #rainInLastMinVal span {
   .status-badge { flex: 0 0 68px; width: 68px; min-height: 24px; padding: 3px 4px; font-size: 9.25px; letter-spacing: .25px; }
   #freshnessText { flex: 0 0 104px; width: 104px; font-size: 10px; white-space: nowrap; text-align: right; }
   .station-strip { padding: 8px 9px; }
-  .address-title { font-size: 15px; }
-  .logo-container img { height: 45px; max-width: 100px; }
+  .address-title { font-size: 16px; }
+  .date-time { font-size: 12.5px; }
+  .logo-container img { height: 62px; max-width: 140px; }
   .primary-card { padding: 10px; }
   .temperature-heroes { gap: 6px; }
   .temp-hero { padding: 9px 9px 10px; }
-  .primary-temp { font-size: 31px; }
-  .primary-desc { font-size: 11.5px; }
+  .primary-temp { font-size: 30px; }
+  .primary-desc { font-size: 12px; }
   .primary-meta { gap: 5px; }
-  .quick-stat { padding: 7px; }
+  .quick-stat { padding: 8px; }
   .section-card { padding: 9px 10px; }
   .two-card-grid { grid-template-columns: 1fr; gap: 8px; }
-  .metric-row { min-height: 28px; }
+  .metric-row { min-height: 32px; }
   .skycam-container img { min-height: 0; }
   .skycam-nav { width: 38px; height: 54px; }
   .skycam-caption { left: 7px; right: 7px; bottom: 7px; }
@@ -753,7 +828,7 @@ html[data-theme="dark"] #rainInLastMinVal span {
   .live-cluster { flex-basis: 166px; width: 166px; min-width: 166px; gap: 3px; font-size: 9.25px; }
   .status-badge { flex-basis: 64px; width: 64px; padding-left: 3px; padding-right: 3px; font-size: 8.6px; }
   #freshnessText { flex-basis: 99px; width: 99px; font-size: 9.25px; }
-  .primary-temp { font-size: 29px; }
+  .primary-temp { font-size: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -807,109 +882,66 @@ html[data-theme="dark"] #rainInLastMinVal span {
       </div>
 
       <div class="content-layout">
-        <section class="readings-panel" aria-label="Current weather readings">
-          <div class="station-strip">
-            <div class="title-date-container">
-              <div class="address-title">WEST WARWICK, QLD</div>
-              <div class="date-time">
-                <p><b>Date</b> · <span id="dateVal">--</span></p>
-                <p><b>Station time</b> · <span id="timeVal">--</span></p>
-              </div>
+        <div class="station-strip layout-station">
+          <div class="title-date-container">
+            <div class="address-title">WEST WARWICK, QLD</div>
+            <div class="date-time">
+              <p><b>Date</b> · <span id="dateVal">--</span></p>
+              <p><b>Station time</b> · <span id="timeVal">--</span></p>
             </div>
-            <div class="logo-container">
-              <a href="daily.html" aria-label="View daily summary">
-                <img src="/Station_Label.png" alt="Environdata Weather Maestro">
-              </a>
+          </div>
+          <div class="logo-container">
+            <a href="daily.html" aria-label="View daily summary">
+              <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+            </a>
+          </div>
+        </div>
+
+        <section class="panel-card primary-card layout-primary" aria-label="Primary weather readings">
+          <div class="temperature-heroes">
+            <div class="temp-hero">
+              <div class="eyebrow">Air temperature</div>
+              <div id="tempVal" class="primary-temp">--</div>
+              <div id="tempDescVal" class="primary-desc">Waiting for station</div>
+            </div>
+            <div class="temp-hero">
+              <div class="eyebrow">Black globe</div>
+              <div id="blackGlobeTempVal" class="primary-temp">--</div>
+              <div id="blackGlobeDescVal" class="primary-desc">Waiting for station</div>
             </div>
           </div>
 
-          <section class="panel-card primary-card">
-            <div class="temperature-heroes">
-              <div class="temp-hero">
-                <div class="eyebrow">Air temperature</div>
-                <div id="tempVal" class="primary-temp">--</div>
-                <div id="tempDescVal" class="primary-desc">Waiting for station</div>
-              </div>
-              <div class="temp-hero">
-                <div class="eyebrow">Black globe</div>
-                <div id="blackGlobeTempVal" class="primary-temp">--°C</div>
-                <div id="blackGlobeDescVal" class="primary-desc">Waiting for station</div>
-              </div>
+          <div class="primary-meta">
+            <div class="quick-stat">
+              <span class="label">Humidity</span>
+              <span id="humidityVal" class="value">--</span>
             </div>
-
-            <div class="primary-meta">
-              <div class="quick-stat">
-                <span class="label">Humidity</span>
-                <span id="humidityVal" class="value">--</span>
-              </div>
-              <div class="quick-stat">
-                <span class="label">Pressure</span>
-                <span id="pressureVal" class="value">--</span>
-              </div>
-              <div class="quick-stat">
-                <span class="label">Wind speed</span>
-                <span class="value"><span id="windSpeedVal">--</span> km/h</span>
-              </div>
-              <div class="quick-stat">
-                <span class="label">Wind direction</span>
-                <span class="value"><span id="windDirDegVal">--</span>° <span class="subtle">(<span id="windDirTextVal">--</span>)</span></span>
-              </div>
-              <div class="quick-stat">
-                <span class="label">Solar radiation</span>
-                <span id="solarRadVal" class="value">--</span>
-              </div>
-              <div class="quick-stat">
-                <span class="label">Rain since 9AM</span>
-                <span id="rainSince9Val" class="value">--</span>
-              </div>
+            <div class="quick-stat">
+              <span class="label">Pressure</span>
+              <span id="pressureVal" class="value">--</span>
             </div>
-
-            <span id="airTempBox" class="compat-data" aria-hidden="true"><span id="bigTempVal">--</span></span>
-          </section>
-
-          <section class="panel-card section-card">
-            <div class="section-header"><h2 class="section-title">Conditions</h2></div>
-            <div class="metric-list">
-              <div class="metric-row"><span class="metric-label">Max wind gust</span><span id="peakWindGustVal" class="metric-value">--</span></div>
-              <div class="metric-row"><span class="metric-label">Radiant Δ</span><span id="radiantDiffBox" class="condition-pill"><span id="radiantDiffVal">--</span></span></div>
-              <div class="metric-row"><span class="metric-label">Dew margin</span><span id="dewDiffBox" class="condition-pill"><span id="dewDiffVal">--</span></span></div>
-              <div class="metric-row"><span class="metric-label">Garden bed</span><span class="metric-value"><span id="gardenBedTempVal">--</span>°C</span></div>
-              <div class="metric-row"><span class="metric-label">Dew point</span><span class="metric-value"><span id="dewPointVal">--</span>°C</span></div>
+            <div class="quick-stat">
+              <span class="label">Wind speed</span>
+              <span class="value"><span id="windSpeedVal">--</span><span class="unit-suffix"> km/h</span></span>
             </div>
-            <div class="rain-container">
-              <div class="rain-stat">
-                <span class="metric-label">Rain last minute</span>
-                <span id="rainInLastMinVal" class="metric-value">--</span>
-              </div>
-              <div class="rain-stat">
-                <span class="metric-label">Evap / hour</span>
-                <span class="metric-value"><span id="evapRateVal">--</span> mm/h</span>
-              </div>
+            <div class="quick-stat">
+              <span class="label">Wind direction</span>
+              <span class="value"><span id="windDirDegVal">--</span><span class="unit-suffix">° <span class="subtle">(<span id="windDirTextVal">--</span>)</span></span></span>
             </div>
-          </section>
-
-          <div class="compat-data" aria-hidden="true">
-            <span id="vectorWindSpeedVal">--</span>
-            <span id="vectorWindDirDegVal">--</span>
-            <span id="vectorWindDirTextVal">--</span>
-            <span id="dailyEvapVal">--</span>
+            <div class="quick-stat">
+              <span class="label">Solar radiation</span>
+              <span id="solarRadVal" class="value">--</span>
+            </div>
+            <div class="quick-stat">
+              <span class="label">Rain since 9AM</span>
+              <span id="rainSince9Val" class="value">--</span>
+            </div>
           </div>
 
-          <section class="panel-card section-card">
-            <div class="section-header"><h2 class="section-title">Soil profile</h2></div>
-            <table class="soil-table" aria-label="Soil temperature and moisture by depth">
-              <thead><tr><th>Depth</th><th>Temp</th><th>Moisture</th></tr></thead>
-              <tbody>
-                <tr><td>10 cm</td><td><span id="soilTemp10Val">--</span>°C</td><td><span id="moisture10Val">--</span>%</td></tr>
-                <tr><td>20 cm</td><td><span id="soilTemp20Val">--</span>°C</td><td><span id="moisture20Val">--</span>%</td></tr>
-                <tr><td>30 cm</td><td><span id="soilTemp30Val">--</span>°C</td><td><span id="moisture30Val">--</span>%</td></tr>
-                <tr><td>40 cm</td><td><span id="soilTemp40Val">--</span>°C</td><td><span id="moisture40Val">--</span>%</td></tr>
-              </tbody>
-            </table>
-          </section>
+          <span id="airTempBox" class="compat-data" aria-hidden="true"><span id="bigTempVal">--</span></span>
         </section>
 
-        <section class="camera-panel" aria-label="SkyCam">
+        <div class="layout-skycam" aria-label="SkyCam">
           <div class="skycam-container" title="Click SkyCam for fullscreen">
             <div class="skycam-badge">SKYCAM · LIVE</div>
             <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
@@ -921,17 +953,58 @@ html[data-theme="dark"] #rainInLastMinVal span {
               <span id="skycamPosition">Loading history...</span>
             </div>
           </div>
+        </div>
 
-          <section class="panel-card section-card maintenance-card" aria-label="Station power and maintenance">
-            <div class="section-header"><h2 class="section-title">Station power</h2></div>
-            <div class="metric-list">
-              <div class="metric-row"><span class="metric-label">Battery</span><span id="batteryVal" class="metric-value">--</span></div>
-              <div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span> mA</span></div>
-              <div class="metric-row"><span class="metric-label">Solar panel</span><span id="solarPanelVal" class="metric-value">--</span></div>
-              <div class="metric-row"><span class="metric-label">Charge</span><span id="chargeVal" class="metric-value">--</span></div>
+        <section class="panel-card section-card layout-conditions" aria-label="Conditions">
+          <div class="section-header"><h2 class="section-title">Conditions</h2></div>
+          <div class="metric-list">
+            <div class="metric-row"><span class="metric-label">Max wind gust</span><span id="peakWindGustVal" class="metric-value">--</span></div>
+            <div class="metric-row"><span class="metric-label">Radiant Δ</span><span id="radiantDiffBox" class="metric-value"><span id="radiantDiffVal">--</span></span></div>
+            <div class="metric-row"><span class="metric-label">Dew margin</span><span id="dewDiffBox" class="metric-value"><span id="dewDiffVal">--</span></span></div>
+            <div class="metric-row"><span class="metric-label">Garden bed</span><span class="metric-value"><span id="gardenBedTempVal">--</span><span class="unit-suffix">°C</span></span></div>
+            <div class="metric-row"><span class="metric-label">Dew point</span><span class="metric-value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></span></div>
+          </div>
+          <div class="rain-container">
+            <div class="rain-stat">
+              <span class="metric-label">Rain last minute</span>
+              <span id="rainInLastMinVal" class="metric-value">--</span>
             </div>
-          </section>
+            <div class="rain-stat">
+              <span class="metric-label">Evap / hour</span>
+              <span class="metric-value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></span>
+            </div>
+          </div>
         </section>
+
+        <section class="panel-card section-card layout-soil" aria-label="Soil profile">
+          <div class="section-header"><h2 class="section-title">Soil profile</h2></div>
+          <table class="soil-table" aria-label="Soil temperature and moisture by depth">
+            <thead><tr><th>Depth</th><th>Temp</th><th>Moisture</th></tr></thead>
+            <tbody>
+              <tr><td>10 cm</td><td><span id="soilTemp10Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture10Val">--</span><span class="unit-suffix">%</span></td></tr>
+              <tr><td>20 cm</td><td><span id="soilTemp20Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture20Val">--</span><span class="unit-suffix">%</span></td></tr>
+              <tr><td>30 cm</td><td><span id="soilTemp30Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture30Val">--</span><span class="unit-suffix">%</span></td></tr>
+              <tr><td>40 cm</td><td><span id="soilTemp40Val">--</span><span class="unit-suffix">°C</span></td><td><span id="moisture40Val">--</span><span class="unit-suffix">%</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="panel-card section-card maintenance-card layout-power" aria-label="Station power and maintenance">
+          <div class="section-header"><h2 class="section-title">Station power</h2></div>
+          <div class="metric-list">
+            <div class="metric-row"><span class="metric-label">Battery</span><span id="batteryVal" class="metric-value">--</span></div>
+            <div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span><span class="unit-suffix"> mA</span></span></div>
+            <div class="metric-row"><span class="metric-label">Solar panel</span><span id="solarPanelVal" class="metric-value">--</span></div>
+            <div class="metric-row"><span class="metric-label">Charge</span><span id="chargeVal" class="metric-value">--</span></div>
+          </div>
+        </section>
+
+        <div class="compat-data" aria-hidden="true">
+          <span id="vectorWindSpeedVal">--</span>
+          <span id="vectorWindDirDegVal">--</span>
+          <span id="vectorWindDirTextVal">--</span>
+          <span id="dailyEvapVal">--</span>
+        </div>
       </div>
     </main>
 
@@ -975,38 +1048,38 @@ html[data-theme="dark"] #rainInLastMinVal span {
 
     function getTemperatureColorAndDesc(temp) {
       let color, desc;
-      if (temp < -20) { color = "#000000"; desc = ""; }
-      else if (temp < -10) { color = "#191970"; desc = "Severely cold"; }
-      else if (temp < 0) { color = "#00008B"; desc = "Extremely cold"; }
-      else if (temp < 6) { color = "#104E8B"; desc = "Very cold"; }
-      else if (temp < 11) { color = "#4682B4"; desc = "Cold"; }
-      else if (temp < 16) { color = "#32CD32"; desc = "Cool"; }
-      else if (temp < 21) { color = "#228B22"; desc = "Mild"; }
-      else if (temp < 28) { color = "#D4A017"; desc = "Warm"; }
-      else if (temp < 32) { color = "#FF8C00"; desc = "Warmer"; }
-      else if (temp < 36) { color = "#FF4500"; desc = "Hot"; }
-      else if (temp < 41) { color = "#B22222"; desc = "Very hot"; }
-      else if (temp <= 60) { color = "#8B0000"; desc = "Extremely hot"; }
-      else { color = "#000000"; desc = ""; }
+      if (temp < -20) { color = "var(--temp-deep-freeze)"; desc = ""; }
+      else if (temp < -10) { color = "var(--temp-severe-cold)"; desc = "Severely cold"; }
+      else if (temp < 0) { color = "var(--temp-extreme-cold)"; desc = "Extremely cold"; }
+      else if (temp < 6) { color = "var(--temp-very-cold)"; desc = "Very cold"; }
+      else if (temp < 11) { color = "var(--temp-cold)"; desc = "Cold"; }
+      else if (temp < 16) { color = "var(--temp-cool)"; desc = "Cool"; }
+      else if (temp < 21) { color = "var(--temp-mild)"; desc = "Mild"; }
+      else if (temp < 28) { color = "var(--temp-warm)"; desc = "Warm"; }
+      else if (temp < 32) { color = "var(--temp-warmer)"; desc = "Warmer"; }
+      else if (temp < 36) { color = "var(--temp-hot)"; desc = "Hot"; }
+      else if (temp < 41) { color = "var(--temp-very-hot)"; desc = "Very hot"; }
+      else if (temp <= 60) { color = "var(--temp-extreme-hot)"; desc = "Extremely hot"; }
+      else { color = "var(--text)"; desc = ""; }
       return { color, desc };
     }
 
     function colorMoisture(val) {
       let display = val.toFixed(1);
-      if (val < 20) { display = `<span style="color:#FF8C00; font-weight:bold;">${display}</span>`; }
+      if (val < 20) { display = `<span style="color:var(--moisture-low); font-weight:bold;">${display}</span>`; }
       return display;
     }
 
     function getHumidityColor(humidity) {
-  if (humidity <= 10) return "#B22222";   // Firebrick
-  if (humidity <= 20) return "#FF4500";   // OrangeRed
-  if (humidity <= 30) return "#D2691E";   // Chocolate
-  if (humidity <= 40) return "#228B22";   // ForestGreen
-  if (humidity <= 60) return "#006400";   // DarkGreen
-  if (humidity <= 70) return "#008B8B";   // DarkCyan
-  if (humidity <= 80) return "#00008B";   // DarkBlue
-  if (humidity <= 90) return "#4B0082";   // Indigo
-  return "#800080";                       // Purple
+  if (humidity <= 10) return "var(--humidity-very-dry)";
+  if (humidity <= 20) return "var(--humidity-dry)";
+  if (humidity <= 30) return "var(--humidity-low)";
+  if (humidity <= 40) return "var(--humidity-comfort-low)";
+  if (humidity <= 60) return "var(--humidity-comfort)";
+  if (humidity <= 70) return "var(--humidity-moist)";
+  if (humidity <= 80) return "var(--humidity-humid)";
+  if (humidity <= 90) return "var(--humidity-very-humid)";
+  return "var(--humidity-saturated)";
 }
  
     /*****************************
@@ -1102,7 +1175,7 @@ document.getElementById("humidityVal").innerHTML = humidityFormatted;
         // RAIN SINCE 9AM
         let rainSince9Display = rainSince9.toFixed(1) + " mm";
         if (rainSince9 >= 0.2) {
-          rainSince9Display = `<span style="color:#1E90FF; font-weight:bold;">${rainSince9Display}</span>`;
+          rainSince9Display = `<span style="color:var(--rain); font-weight:bold;">${rainSince9Display}</span>`;
         }
         document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
 
@@ -1113,18 +1186,18 @@ document.getElementById("humidityVal").innerHTML = humidityFormatted;
         }
         let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
         if (rainInLastMinRaw >= 0.2) {
-          rainInLastMinDisplay = `<span style="color:#1E90FF; font-weight:bold;">${rainInLastMinDisplay}</span>`;
+          rainInLastMinDisplay = `<span style="color:var(--rain); font-weight:bold;">${rainInLastMinDisplay}</span>`;
         }
         document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
 
         // SOLAR RADIATION
         const solarRad = Math.max(0, solarRadRaw);
-        let solarRadColor = solarRad === 0 ? "#000033" :
-          solarRad <= 100 ? "#000080" :
-          solarRad <= 299 ? "#27408B" :
-          solarRad <= 600 ? "#DAA520" :
-          solarRad <= 800 ? "#FF9933" :
-          solarRad <= 1100 ? "#BF360C" : "#B71C1C";
+        let solarRadColor = solarRad === 0 ? "var(--solar-night)" :
+          solarRad <= 100 ? "var(--solar-low)" :
+          solarRad <= 299 ? "var(--solar-mid)" :
+          solarRad <= 600 ? "var(--solar-moderate)" :
+          solarRad <= 800 ? "var(--solar-high)" :
+          solarRad <= 1100 ? "var(--solar-strong)" : "var(--solar-extreme)";
         let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
         if (solarRad < 10) {
           solarRadDisplay += " 🌙";
@@ -1151,16 +1224,10 @@ const radiantDiffBox = document.getElementById("radiantDiffBox");
 const diffFormatted = (radiantDiff >= 0 ? "+" : "") + radiantDiff.toFixed(1) + "°C";
 radiantDiffElem.textContent = diffFormatted;
 
-// Set color theme
-if (radiantDiff >= 0) {
-  // Hotter than air
-  radiantDiffBox.style.backgroundColor = "#d94a38";  // warm red
-  radiantDiffElem.style.color = "white";
-} else {
-  // Cooler than air
-  radiantDiffBox.style.backgroundColor = "#4682B4";  // steel blue
-  radiantDiffElem.style.color = "white";
-}
+// Radiant difference uses the same neutral Conditions styling as other metrics.
+radiantDiffBox.style.backgroundColor = "";
+radiantDiffBox.style.borderColor = "";
+radiantDiffElem.style.color = "";
 
 // Temp Above Dew Point
 const dewDiff = temperatureRaw - dewPoint;
@@ -1171,17 +1238,10 @@ const dewDiffBox = document.getElementById("dewDiffBox");
 const dewFormatted = (dewDiff >= 0 ? "+" : "") + dewDiff.toFixed(1) + "°C";
 dewDiffElem.textContent = dewFormatted;
 
-// Color logic
-if (dewDiff >= 3.0) {
-  dewDiffBox.style.backgroundColor = "#BBAA98";  // dry air - red
-  dewDiffElem.style.color = "white";
-} else if (dewDiff < 1.5) {
-  dewDiffBox.style.backgroundColor = "#A6C6C9";  // humid air - blue
-  dewDiffElem.style.color = "white";
-} else {
-  dewDiffBox.style.backgroundColor = "#A6C6C9";  // neutral gray
-  dewDiffElem.style.color = "white";
-}
+// Dew margin uses the same neutral Conditions styling as other metrics.
+dewDiffBox.style.backgroundColor = "";
+dewDiffBox.style.borderColor = "";
+dewDiffElem.style.color = "";
 
 
         // GARDEN BED TEMP
@@ -1191,16 +1251,16 @@ if (dewDiff >= 3.0) {
         let adjustedPressure = pressureRaw - 1.9;
         let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
         if (adjustedPressure >= 1020) {
-          pressureDisplay = `<span style="color:green; font-weight:bold;">${pressureDisplay} 🐟</span>`;
+          pressureDisplay = `<span style="color:var(--pressure-high); font-weight:bold;">${pressureDisplay} 🐟</span>`;
         }
         document.getElementById("pressureVal").innerHTML = pressureDisplay;
 
         // BATTERY
         const batteryVoltage = batteryVoltageVal.toFixed(1);
-        let batteryColor = batteryVoltageVal < 12.5 ? "red" : "green";
+        let batteryColor = batteryVoltageVal < 12.5 ? "var(--battery-bad)" : "var(--battery-good)";
         let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
         if (batteryVoltageVal >= 13.8) {
-          batteryVoltageDisplay = `<span style="color:green; font-weight:bold;">${batteryVoltage} V</span>`;
+          batteryVoltageDisplay = `<span style="color:var(--battery-good); font-weight:bold;">${batteryVoltage} V</span>`;
         }
         document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
 
@@ -1218,17 +1278,17 @@ if (dewDiff >= 3.0) {
         let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
         if (batteryVoltageVal < 13.80) {
           chargeDisplay = chargeCurrent > loadCurrent
-            ? `<span style="color:green;">${chargeDisplay}</span>`
-            : `<span style="color:red;">${chargeDisplay}</span>`;
+            ? `<span style="color:var(--battery-good);">${chargeDisplay}</span>`
+            : `<span style="color:var(--battery-bad);">${chargeDisplay}</span>`;
         }
         document.getElementById("chargeVal").innerHTML = chargeDisplay;
 
         // PEAK WIND GUST
         let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
         if (peakWindGustVal > 25) {
-          peakWindGustDisplay = `<span style="color:red; font-weight:bold;">${peakWindGustDisplay}</span>`;
+          peakWindGustDisplay = `<span style="color:var(--red); font-weight:bold;">${peakWindGustDisplay}</span>`;
         } else if (peakWindGustVal > 10) {
-          peakWindGustDisplay = `<span style="color:#FF8C00; font-weight:bold;">${peakWindGustDisplay}</span>`;
+          peakWindGustDisplay = `<span style="color:var(--gust-warn); font-weight:bold;">${peakWindGustDisplay}</span>`;
         }
         document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
 
@@ -1252,6 +1312,8 @@ if (dewDiff >= 3.0) {
         document.getElementById("moisture20Val").innerHTML = colorMoisture(moisture20Val);
         document.getElementById("moisture30Val").innerHTML = colorMoisture(moisture30Val);
         document.getElementById("moisture40Val").innerHTML = colorMoisture(moisture40Val);
+
+        document.body.classList.add("weather-loaded");
 
       } catch (error) {
         // Preserve the last good readings and let fetchWeather() handle retry/backoff.
