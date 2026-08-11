@@ -926,8 +926,8 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 </div>
 <div class="header-actions">
 <button aria-label="Change theme" class="header-icon-button" id="themeToggleBtn" title="Theme" type="button">
-<span aria-hidden="true" class="theme-icon" id="themeToggleIcon">🌙</span>
-<span class="theme-label" id="themeToggleLabel">Dark</span>
+<span aria-hidden="true" class="theme-icon" id="themeToggleIcon">☀️</span>
+<span class="theme-label" id="themeToggleLabel">Light</span>
 </button>
 <div aria-label="Desktop layout" class="desktop-layout-switcher">
 <button aria-label="Use portrait layout" id="portraitLayoutBtn" onclick="setDesktopLayout('portrait')" title="Portrait layout" type="button">▯</button>
@@ -1878,12 +1878,15 @@ window.addEventListener("load", () => {
       try { localStorage.setItem(THEME_KEY, current); } catch (error) {}
     }
 
+    const currentLabel = current === "dark" ? "Dark" : "Light";
+    const targetLabel = target === "dark" ? "Dark" : "Light";
+
     if (button) {
-      button.setAttribute("aria-label", `Switch to ${target} theme`);
-      button.title = `Switch to ${target} theme`;
+      button.setAttribute("aria-label", `${currentLabel} theme active; switch to ${targetLabel} theme`);
+      button.title = `${currentLabel} theme active · switch to ${targetLabel}`;
     }
-    if (label) label.textContent = target === "dark" ? "Dark" : "Light";
-    if (icon) icon.textContent = target === "dark" ? "🌙" : "☀️";
+    if (label) label.textContent = currentLabel;
+    if (icon) icon.textContent = current === "dark" ? "🌙" : "☀️";
   }
 
   if (button) {

@@ -45,6 +45,35 @@
   --red: #b42318;
   --red-soft: #fdecea;
   --blue-soft: #edf4ff;
+  --daily-rain: #1e90ff;
+  --daily-frost: #004080;
+  --daily-very-cold: #005ca9;
+  --daily-cold: #2b7bb9;
+  --daily-chilly: #4a9ecf;
+  --daily-cool: #73b7de;
+  --daily-mild-cool: #a2cde8;
+  --daily-solar-extreme: #cc5c00;
+  --daily-solar-strong: #e67e22;
+  --daily-solar-high: #d4ac0d;
+  --daily-solar-moderate: #b7950b;
+  --daily-humidity-very-dry: #994c00;
+  --daily-humidity-dry: #aa6e00;
+  --daily-humidity-comfort: #006400;
+  --daily-humidity-humid: #006699;
+  --daily-humidity-very-humid: #003366;
+  --daily-garden-hot: #b22222;
+  --daily-garden-warm: #cc7a00;
+  --daily-garden-cool: #2678b2;
+  --daily-garden-cold: #005ca9;
+  --daily-gust-calm: #006699;
+  --daily-gust-light: #2678b2;
+  --daily-gust-breezy: #b7950b;
+  --daily-gust-windy: #e67e22;
+  --daily-gust-strong: #cc0000;
+  --daily-pressure-high: #2678b2;
+  --daily-battery-critical: #b30000;
+  --daily-battery-low: #e67e22;
+  --daily-battery-good: #007700;
   --shadow: 0 14px 34px rgba(17,24,39,.08);
   --shadow-soft: 0 4px 14px rgba(17,24,39,.06);
   --radius-xl: 18px;
@@ -71,6 +100,35 @@ html[data-theme="dark"] {
   --red: #ff7a70;
   --red-soft: rgba(255,122,112,.12);
   --blue-soft: rgba(80,135,236,.10);
+  --daily-rain: #6ab8ff;
+  --daily-frost: #d5e5ff;
+  --daily-very-cold: #bad5ff;
+  --daily-cold: #a6ceff;
+  --daily-chilly: #8bc3ff;
+  --daily-cool: #76b7e8;
+  --daily-mild-cool: #9ac4ff;
+  --daily-solar-extreme: #ff8178;
+  --daily-solar-strong: #ff9578;
+  --daily-solar-high: #ffba63;
+  --daily-solar-moderate: #ffda72;
+  --daily-humidity-very-dry: #ff9a73;
+  --daily-humidity-dry: #f4aa69;
+  --daily-humidity-comfort: #70d596;
+  --daily-humidity-humid: #84b7ff;
+  --daily-humidity-very-humid: #b7a0ff;
+  --daily-garden-hot: #ff7f75;
+  --daily-garden-warm: #ffb85c;
+  --daily-garden-cool: #76b7e8;
+  --daily-garden-cold: #bad5ff;
+  --daily-gust-calm: #73d7dc;
+  --daily-gust-light: #84b7ff;
+  --daily-gust-breezy: #ffda72;
+  --daily-gust-windy: #ffba63;
+  --daily-gust-strong: #ff867c;
+  --daily-pressure-high: #86c9ff;
+  --daily-battery-critical: #ff867c;
+  --daily-battery-low: #ffb454;
+  --daily-battery-good: #70dda0;
   --shadow: 0 16px 40px rgba(0,0,0,.28);
   --shadow-soft: 0 5px 16px rgba(0,0,0,.22);
 }
@@ -260,11 +318,6 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 @keyframes spin { to { transform: rotate(360deg); } }
 .compat-data { display: none !important; }
 
-html[data-theme="dark"] #tempMin, html[data-theme="dark"] #tempMinUnit, html[data-theme="dark"] #globeMin,
-html[data-theme="dark"] #globeMinUnit, html[data-theme="dark"] #solarMax, html[data-theme="dark"] #solarMaxUnit,
-html[data-theme="dark"] #humidityAvg, html[data-theme="dark"] #humidityUnit, html[data-theme="dark"] #gustPeak,
-html[data-theme="dark"] #gustUnit, html[data-theme="dark"] #pressureAvg, html[data-theme="dark"] #pressureUnit,
-html[data-theme="dark"] #batteryMin, html[data-theme="dark"] #batteryUnit { filter: brightness(1.45) saturate(.88); }
 html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color: var(--muted) !important; }
 
 @media only screen and (min-width: 900px) {
@@ -329,7 +382,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
           </div>
           <div class="header-actions">
             <button id="themeToggleBtn" class="header-icon-button" type="button" aria-label="Change theme" title="Theme">
-              <span id="themeToggleIcon" class="theme-icon">🌙</span><span id="themeToggleLabel" class="theme-label">Dark</span>
+              <span id="themeToggleIcon" class="theme-icon">☀️</span><span id="themeToggleLabel" class="theme-label">Light</span>
             </button>
             <button class="header-icon-button" type="button" aria-label="Reload page" title="Reload" onclick="location.reload()">↻</button>
             <div class="desktop-layout-switcher" aria-label="Desktop layout">
@@ -547,7 +600,7 @@ const rainElem = document.getElementById("rainTotal");
 if (!isNaN(rainVal)) {
   const formatted = `${rainVal.toFixed(1)} mm`;
   if (rainVal >= 0.2) {
-    rainElem.innerHTML = `<span style="color:#1E90FF; font-weight:bold;">${formatted}</span>`;
+    rainElem.innerHTML = `<span style="color:var(--daily-rain); font-weight:bold;">${formatted}</span>`;
   } else {
     rainElem.textContent = formatted;
   }
@@ -568,39 +621,39 @@ if (!isNaN(rainVal)) {
 
       if (!isNaN(tempMin) && tempMin <= 10) {
         if (tempMin <= 0) {
-          tempMinElem.style.color = "#004080";
+          tempMinElem.style.color = "var(--daily-frost)";
           tempMinElem.style.fontWeight = "bold";
-          tempMinUnitElem.style.color = "#004080";
+          tempMinUnitElem.style.color = "var(--daily-frost)";
           tempMinUnitElem.style.fontWeight = "bold";
           frostNoteElem.textContent = "(Frost 🥶)";
         } else if (tempMin <= 2) {
-          tempMinElem.style.color = "#005ca9";
+          tempMinElem.style.color = "var(--daily-very-cold)";
           tempMinElem.style.fontWeight = "bold";
-          tempMinUnitElem.style.color = "#005ca9";
+          tempMinUnitElem.style.color = "var(--daily-very-cold)";
           tempMinUnitElem.style.fontWeight = "bold";
           frostNoteElem.textContent = "(Very Cold)";
         } else if (tempMin <= 4) {
-          tempMinElem.style.color = "#2b7bb9";
+          tempMinElem.style.color = "var(--daily-cold)";
           tempMinElem.style.fontWeight = "bold";
-          tempMinUnitElem.style.color = "#2b7bb9";
+          tempMinUnitElem.style.color = "var(--daily-cold)";
           tempMinUnitElem.style.fontWeight = "bold";
           frostNoteElem.textContent = "(Cold)";
         } else if (tempMin <= 6) {
-          tempMinElem.style.color = "#4a9ecf";
+          tempMinElem.style.color = "var(--daily-chilly)";
           tempMinElem.style.fontWeight = "bold";
-          tempMinUnitElem.style.color = "#4a9ecf";
+          tempMinUnitElem.style.color = "var(--daily-chilly)";
           tempMinUnitElem.style.fontWeight = "bold";
           frostNoteElem.textContent = "(Chilly)";
         } else if (tempMin <= 8) {
-          tempMinElem.style.color = "#73b7de";
+          tempMinElem.style.color = "var(--daily-cool)";
           tempMinElem.style.fontWeight = "bold";
-          tempMinUnitElem.style.color = "#73b7de";
+          tempMinUnitElem.style.color = "var(--daily-cool)";
           tempMinUnitElem.style.fontWeight = "bold";
           frostNoteElem.textContent = "(Cool)";
         } else if (tempMin <= 10) {
-          tempMinElem.style.color = "#a2cde8";
+          tempMinElem.style.color = "var(--daily-mild-cool)";
           tempMinElem.style.fontWeight = "bold";
-          tempMinUnitElem.style.color = "#a2cde8";
+          tempMinUnitElem.style.color = "var(--daily-mild-cool)";
           tempMinUnitElem.style.fontWeight = "bold";
           frostNoteElem.textContent = "(Mild Cool)";
         }
@@ -630,39 +683,39 @@ if (!isNaN(rainVal)) {
 
       if (!isNaN(globeMin) && globeMin <= 10) {
         if (globeMin <= 0) {
-          globeMinElem.style.color = "#004080";
+          globeMinElem.style.color = "var(--daily-frost)";
           globeMinElem.style.fontWeight = "bold";
-          globeMinUnitElem.style.color = "#004080";
+          globeMinUnitElem.style.color = "var(--daily-frost)";
           globeMinUnitElem.style.fontWeight = "bold";
           globeNoteElem.textContent = "(Frost 🥶)";
         } else if (globeMin <= 2) {
-          globeMinElem.style.color = "#005ca9";
+          globeMinElem.style.color = "var(--daily-very-cold)";
           globeMinElem.style.fontWeight = "bold";
-          globeMinUnitElem.style.color = "#005ca9";
+          globeMinUnitElem.style.color = "var(--daily-very-cold)";
           globeMinUnitElem.style.fontWeight = "bold";
           globeNoteElem.textContent = "(Very Cold)";
         } else if (globeMin <= 4) {
-          globeMinElem.style.color = "#2b7bb9";
+          globeMinElem.style.color = "var(--daily-cold)";
           globeMinElem.style.fontWeight = "bold";
-          globeMinUnitElem.style.color = "#2b7bb9";
+          globeMinUnitElem.style.color = "var(--daily-cold)";
           globeMinUnitElem.style.fontWeight = "bold";
           globeNoteElem.textContent = "(Cold)";
         } else if (globeMin <= 6) {
-          globeMinElem.style.color = "#4a9ecf";
+          globeMinElem.style.color = "var(--daily-chilly)";
           globeMinElem.style.fontWeight = "bold";
-          globeMinUnitElem.style.color = "#4a9ecf";
+          globeMinUnitElem.style.color = "var(--daily-chilly)";
           globeMinUnitElem.style.fontWeight = "bold";
           globeNoteElem.textContent = "(Chilly)";
         } else if (globeMin <= 8) {
-          globeMinElem.style.color = "#73b7de";
+          globeMinElem.style.color = "var(--daily-cool)";
           globeMinElem.style.fontWeight = "bold";
-          globeMinUnitElem.style.color = "#73b7de";
+          globeMinUnitElem.style.color = "var(--daily-cool)";
           globeMinUnitElem.style.fontWeight = "bold";
           globeNoteElem.textContent = "(Cool)";
         } else if (globeMin <= 10) {
-          globeMinElem.style.color = "#a2cde8";
+          globeMinElem.style.color = "var(--daily-mild-cool)";
           globeMinElem.style.fontWeight = "bold";
-          globeMinUnitElem.style.color = "#a2cde8";
+          globeMinUnitElem.style.color = "var(--daily-mild-cool)";
           globeMinUnitElem.style.fontWeight = "bold";
           globeNoteElem.textContent = "(Mild Cool)";
         }
@@ -693,10 +746,10 @@ if (!isNaN(rainVal)) {
 
       let colour = "";
       if (!isNaN(solarMax)) {
-        if      (solarMax >= 1000) colour = "#cc5c00";
-        else if (solarMax >= 800)  colour = "#e67e22";
-        else if (solarMax >= 600)  colour = "#d4ac0d";
-        else if (solarMax >= 400)  colour = "#b7950b";
+        if      (solarMax >= 1000) colour = "var(--daily-solar-extreme)";
+        else if (solarMax >= 800)  colour = "var(--daily-solar-strong)";
+        else if (solarMax >= 600)  colour = "var(--daily-solar-high)";
+        else if (solarMax >= 400)  colour = "var(--daily-solar-moderate)";
       }
 
       if (colour) {
@@ -726,19 +779,19 @@ if (!isNaN(rainVal)) {
         let descriptor = "";
 
         if (humidity <= 20) {
-          color = "#994C00";
+          color = "var(--daily-humidity-very-dry)";
           descriptor = "(Very Dry)";
         } else if (humidity <= 40) {
-          color = "#AA6E00";
+          color = "var(--daily-humidity-dry)";
           descriptor = "(Dry)";
         } else if (humidity <= 60) {
-          color = "#006400";
+          color = "var(--daily-humidity-comfort)";
           descriptor = "(Comfortable)";
         } else if (humidity <= 80) {
-          color = "#006699";
+          color = "var(--daily-humidity-humid)";
           descriptor = "(Humid)";
         } else {
-          color = "#003366";
+          color = "var(--daily-humidity-very-humid)";
           descriptor = "(Very Humid)";
         }
 
@@ -760,10 +813,10 @@ if (!isNaN(dirtAvg)) {
   gardenTempBoxLabel.textContent = "Garden Avg";
 
   // Optional theme coloring
-  if (dirtAvg >= 30) gardenTempBoxValue.style.color = "#b22222"; // hot
-  else if (dirtAvg >= 20) gardenTempBoxValue.style.color = "#cc7a00"; // warm
-  else if (dirtAvg >= 10) gardenTempBoxValue.style.color = "#2678B2"; // cool
-  else gardenTempBoxValue.style.color = "#005ca9"; // cold
+  if (dirtAvg >= 30) gardenTempBoxValue.style.color = "var(--daily-garden-hot)"; // hot
+  else if (dirtAvg >= 20) gardenTempBoxValue.style.color = "var(--daily-garden-warm)"; // warm
+  else if (dirtAvg >= 10) gardenTempBoxValue.style.color = "var(--daily-garden-cool)"; // cool
+  else gardenTempBoxValue.style.color = "var(--daily-garden-cold)"; // cold
 
   gardenTempBoxValue.style.fontWeight = "bold";
 } else {
@@ -788,13 +841,13 @@ if (!isNaN(gustPeak)) {
   gustInline.style.fontWeight = "bold";
   gustUnitElem.style.fontWeight = "bold";
 
-  let color = "#006699", desc = "(Calm)";
+  let color = "var(--daily-gust-calm)", desc = "(Calm)";
 
-  if (gustPeak < 10) { color = "#006699"; desc = "(Calm)"; }
-  else if (gustPeak < 20) { color = "#2678B2"; desc = "(Light 🍃)"; }
-  else if (gustPeak < 30) { color = "#b7950b"; desc = "(Breezy)"; }
-  else if (gustPeak < 40) { color = "#e67e22"; desc = "(Windy)"; }
-  else                   { color = "#cc0000"; desc = "(Strong Gusts)"; }
+  if (gustPeak < 10) { color = "var(--daily-gust-calm)"; desc = "(Calm)"; }
+  else if (gustPeak < 20) { color = "var(--daily-gust-light)"; desc = "(Light 🍃)"; }
+  else if (gustPeak < 30) { color = "var(--daily-gust-breezy)"; desc = "(Breezy)"; }
+  else if (gustPeak < 40) { color = "var(--daily-gust-windy)"; desc = "(Windy)"; }
+  else                   { color = "var(--daily-gust-strong)"; desc = "(Strong Gusts)"; }
 
   // 👉 add these two lines so the big box matches
   gustBoxValue.style.color = color;
@@ -804,7 +857,7 @@ if (!isNaN(gustPeak)) {
   gustUnitElem.style.color = color;
 
   gustNoteElem.textContent = desc;
-  gustNoteElem.style.color = "#333";
+  gustNoteElem.style.color = "var(--muted)";
   gustNoteElem.style.fontWeight = "normal";
 } else {
   gustBoxValue.textContent = "--";
@@ -832,9 +885,9 @@ if (!isNaN(gustPeak)) {
         pressureElem.textContent = rounded;
 
         if (pressure >= 1020.0) {
-          pressureElem.style.color = "#2678B2";
+          pressureElem.style.color = "var(--daily-pressure-high)";
           pressureElem.style.fontWeight = "bold";
-          pressureUnitElem.style.color = "#2678B2";
+          pressureUnitElem.style.color = "var(--daily-pressure-high)";
           pressureUnitElem.style.fontWeight = "bold";
           pressureFishElem.textContent = "🐟";
         }
@@ -855,20 +908,20 @@ if (!isNaN(batteryMin)) {
   batteryUnitElem.style.fontWeight = "bold";
 
   if (batteryMin < 12.0) {
-    batteryElem.style.color = "#b30000"; // deep red
-    batteryUnitElem.style.color = "#b30000";
+    batteryElem.style.color = "var(--daily-battery-critical)"; // deep red
+    batteryUnitElem.style.color = "var(--daily-battery-critical)";
     batteryNoteElem.textContent = "(Critical)";
   } else if (batteryMin < 12.3) {
-    batteryElem.style.color = "#e67e22"; // orange
-    batteryUnitElem.style.color = "#e67e22";
+    batteryElem.style.color = "var(--daily-battery-low)"; // orange
+    batteryUnitElem.style.color = "var(--daily-battery-low)";
     batteryNoteElem.textContent = "(Low)";
   } else {
-    batteryElem.style.color = "#007700"; // green
-    batteryUnitElem.style.color = "#007700";
+    batteryElem.style.color = "var(--daily-battery-good)"; // green
+    batteryUnitElem.style.color = "var(--daily-battery-good)";
     batteryNoteElem.textContent = "(Healthy)";
   }
 
-  batteryNoteElem.style.color = "#333";
+  batteryNoteElem.style.color = "var(--muted)";
   batteryNoteElem.style.fontWeight = "normal";
 } else {
   batteryElem.textContent = "--";
@@ -968,12 +1021,15 @@ if (!isNaN(batteryMin)) {
       try { localStorage.setItem(THEME_KEY, current); } catch (error) {}
     }
 
+    const currentLabel = current === "dark" ? "Dark" : "Light";
+    const targetLabel = target === "dark" ? "Dark" : "Light";
+
     if (button) {
-      button.setAttribute("aria-label", `Switch to ${target} theme`);
-      button.title = `Switch to ${target} theme`;
+      button.setAttribute("aria-label", `${currentLabel} theme active; switch to ${targetLabel} theme`);
+      button.title = `${currentLabel} theme active · switch to ${targetLabel}`;
     }
-    if (label) label.textContent = target === "dark" ? "Dark" : "Light";
-    if (icon) icon.textContent = target === "dark" ? "🌙" : "☀️";
+    if (label) label.textContent = currentLabel;
+    if (icon) icon.textContent = current === "dark" ? "🌙" : "☀️";
   }
 
   if (button) {

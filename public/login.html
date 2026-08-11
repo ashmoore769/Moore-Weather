@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="theme-color" content="#1e3a8a">
-  <title>Moore Weather · Private Access</title>
+  <title>Moore Weather · Access</title>
   <script>
     (function () {
       try {
@@ -140,12 +140,55 @@
     }
 
     .intro {
-      margin: 10px 0 22px;
+      margin: 10px 0 16px;
       color: var(--muted);
       font-size: 14px;
       line-height: 1.5;
     }
 
+    .access-note {
+      display: grid;
+      gap: 3px;
+      margin: 0 0 22px;
+      padding: 11px 13px;
+      border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+      border-radius: 11px;
+      background: color-mix(in srgb, var(--accent) 7%, var(--surface-soft));
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .access-note strong {
+      color: var(--brand-2);
+      font-size: 13px;
+    }
+
+
+    .contact-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      width: fit-content;
+      margin-top: 7px;
+      padding: 7px 11px;
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+      border-radius: 9px;
+      background: var(--surface-raised);
+      color: var(--brand-2);
+      font-size: 12.5px;
+      font-weight: 750;
+      line-height: 1.2;
+      text-decoration: none;
+    }
+
+    .contact-button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .contact-button:active { transform: translateY(1px); }
     label {
       display: block;
       margin-bottom: 8px;
@@ -249,14 +292,23 @@
       <img class="brand-icon" src="/Weather_Station_App.png" alt="">
       <div>
         <div class="brand-title">Moore Weather</div>
-        <div class="brand-subtitle">West Warwick · Private Station</div>
+        <div class="brand-subtitle">West Warwick · Community Weather</div>
       </div>
     </header>
 
     <section class="login-body">
-      <p class="eyebrow">Private weather portal</p>
-      <h1 id="loginTitle">Welcome back</h1>
-      <p class="intro">Enter the shared access password to view live station data, Daily Summary and SkyCam.</p>
+      <p class="eyebrow">Free community weather service</p>
+      <h1 id="loginTitle">Welcome to Moore Weather</h1>
+      <p class="intro">Moore Weather is a free community weather service for West Warwick. Enter the shared access password to view live station data, Daily Summary and SkyCam.</p>
+
+      <div class="access-note">
+        <strong>Need the password?</strong>
+        <span>Access is free — please contact Ash Moore for the password.</span>
+        <a
+          class="contact-button"
+          href="mailto:ashmoore01@hotmail.com?subject=Moore%20Weather%20access&amp;body=Hi%20Ash%2C%0D%0A%0D%0AMy%20name%20is%20________.%0D%0ACould%20I%20please%20have%20the%20Moore%20Weather%20password%3F%0D%0A%0D%0AThanks%21"
+        >✉ Email Ash for access</a>
+      </div>
 
       <div class="error-box" id="errorBox" role="alert"></div>
       <div class="success-box" id="successBox" role="status">This device has been signed out.</div>
