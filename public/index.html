@@ -10,14 +10,19 @@
 <title>Moore Weather · West Warwick</title>
 <script>(function () {
   try {
-    const saved = localStorage.getItem("mooreWeatherTheme") || "auto";
+    const saved = localStorage.getItem("mooreWeatherTheme");
     const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const resolved = saved === "auto" ? (prefersDark ? "dark" : "light") : saved;
-    document.documentElement.dataset.theme = resolved;
-    document.documentElement.dataset.themeMode = saved;
+    const mode = saved === "light" || saved === "dark"
+      ? saved
+      : (prefersDark ? "dark" : "light");
+
+    // Migrate the old Auto setting to one explicit, persistent choice.
+    if (saved !== mode) localStorage.setItem("mooreWeatherTheme", mode);
+    document.documentElement.dataset.theme = mode;
+    document.documentElement.dataset.themeMode = mode;
   } catch (error) {
     document.documentElement.dataset.theme = "light";
-    document.documentElement.dataset.themeMode = "auto";
+    document.documentElement.dataset.themeMode = "light";
   }
 })();</script>
 <style>
@@ -258,7 +263,6 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .theme-label { font-size: 11px; font-weight: 700; }
 .theme-icon { font-size: 17px; line-height: 1; }
-.logout-form { margin: 0; display: flex; }
 
 .desktop-layout-switcher {
   display: none;
@@ -644,7 +648,7 @@ body.weather-loaded .unit-suffix { display: inline; }
   font-weight: 750;
   line-height: 1.1;
 }
-.skycam-caption span {
+.skycam-caption > span {
   display: inline-flex;
   align-items: center;
   min-height: 28px;
@@ -654,6 +658,46 @@ body.weather-loaded .unit-suffix { display: inline; }
   border: 1px solid rgba(255,255,255,.18);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+}
+
+.skycam-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  pointer-events: auto;
+  line-height: 1;
+}
+.skycam-action {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(8,12,18,.64);
+  color: white;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: .35px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.skycam-action:hover:not(:disabled) { background: rgba(8,12,18,.82); }
+.skycam-action:disabled { opacity: .44; cursor: default; }
+.skycam-action:focus-visible { outline: 2px solid #8ec7ff; outline-offset: 2px; }
+@media only screen and (max-width: 600px) {
+  .skycam-caption { gap: 5px; font-size: 9.5px; }
+  .skycam-caption > span { min-height: 27px; padding: 6px 7px; }
+  .skycam-action { min-width: 28px; min-height: 27px; padding: 6px 7px; }
+  #skycamTimelapse .skycam-action-text,
+  #skycamDownload .skycam-action-text { display: none; }
 }
 
 .skycam-badge {
@@ -726,6 +770,28 @@ body.weather-loaded .unit-suffix { display: inline; }
 .skycam-nav:disabled { opacity: .22; cursor: default; transform: translateY(-50%); }
 .skycam-nav-prev { left: 10px; }
 .skycam-nav-next { right: 10px; }
+
+.app-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2px 0 18px;
+}
+.app-footer form { margin: 0; }
+.footer-signout {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.footer-signout:hover { color: var(--text); text-decoration: underline; }
+.footer-signout:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 7px; }
+html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.90); }
 
 .spinner-container {
   display: none;
@@ -860,12 +926,9 @@ body.weather-loaded .unit-suffix { display: inline; }
 </div>
 <div class="header-actions">
 <button aria-label="Change theme" class="header-icon-button" id="themeToggleBtn" title="Theme" type="button">
-<span aria-hidden="true" class="theme-icon" id="themeToggleIcon">◐</span>
-<span class="theme-label" id="themeToggleLabel">Auto</span>
+<span aria-hidden="true" class="theme-icon" id="themeToggleIcon">🌙</span>
+<span class="theme-label" id="themeToggleLabel">Dark</span>
 </button>
-<form action="/logout" class="logout-form" method="post">
-<button aria-label="Sign out" class="header-icon-button" title="Sign out" type="submit">⎋</button>
-</form>
 <div aria-label="Desktop layout" class="desktop-layout-switcher">
 <button aria-label="Use portrait layout" id="portraitLayoutBtn" onclick="setDesktopLayout('portrait')" title="Portrait layout" type="button">▯</button>
 <button aria-label="Use landscape layout" id="landscapeLayoutBtn" onclick="setDesktopLayout('landscape')" title="Landscape layout" type="button">▭</button>
@@ -971,13 +1034,18 @@ body.weather-loaded .unit-suffix { display: inline; }
 </table>
 </section></div><div class="layout-stack landscape-right"><div aria-label="SkyCam" class="layout-skycam">
 <div class="skycam-container" title="Click SkyCam for fullscreen">
-<div class="skycam-badge">SKYCAM · LIVE</div>
+<div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
 <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
 <button aria-label="Show older SkyCam image" class="skycam-nav skycam-nav-prev" id="skycamPrev" onclick="stepSkyCam(-1)" type="button">‹</button>
 <img alt="SkyCam live weather view" id="skycamImage" src="/skycam/latest.jpg"/>
 <button aria-label="Show newer SkyCam image" class="skycam-nav skycam-nav-next" disabled="" id="skycamNext" onclick="stepSkyCam(1)" type="button">›</button>
 <div class="skycam-caption">
 <span id="skycamTime">LIVE / latest</span>
+<div class="skycam-actions" aria-label="SkyCam playback controls">
+<button class="skycam-action" id="skycamTimelapse" type="button" onclick="toggleSkyCamTimelapse()" aria-label="Play the last 24 hours" aria-pressed="false" title="Play the last 24 hours"><span id="skycamTimelapseIcon" aria-hidden="true">▶</span><span class="skycam-action-text" id="skycamTimelapseLabel">Timelapse</span></button>
+<button class="skycam-action" id="skycamDownload" type="button" onclick="downloadSkyCamFrame()" aria-label="Download this SkyCam image" title="Download this image"><span aria-hidden="true">↓</span><span class="skycam-action-text">Download</span></button>
+<button class="skycam-action" id="skycamLive" type="button" onclick="goSkyCamLive()" aria-label="Jump to live SkyCam image" title="Jump to live"><span aria-hidden="true">●</span><span class="skycam-action-text">Live</span></button>
+</div>
 <span id="skycamPosition">Loading history...</span>
 </div>
 </div>
@@ -996,6 +1064,11 @@ body.weather-loaded .unit-suffix { display: inline; }
 <span id="dailyEvapVal">--</span>
 </div></div>
 </main>
+<footer class="app-footer">
+<form action="/logout" method="post">
+<button class="footer-signout" type="submit">Sign out</button>
+</form>
+</footer>
 <div aria-hidden="true" class="spinner-container" id="spinnerContainer"><div class="spinner"></div></div>
 </div>
 <script>
@@ -1378,9 +1451,13 @@ function manualFetch() {
 
 const SKYCAM_ENDPOINT = "/skycam/latest.jpg";
 const SKYCAM_HISTORY_ENDPOINT = "/skycam/history";
+const SKYCAM_TIMELAPSE_WINDOW_MS = 24 * 60 * 60 * 1000;
+const SKYCAM_TIMELAPSE_MAX_FRAMES = 72;
+const SKYCAM_TIMELAPSE_FRAME_MS = 500;
 let skycamHistory = [];
 let skycamHistoryIndex = -1;
-let skycamShowingLatest = true;
+let skycamPlaying = false;
+let skycamPlaybackToken = 0;
 
 function formatSkyCamTime(isoString) {
   const date = new Date(isoString);
@@ -1398,25 +1475,63 @@ function formatSkyCamTime(isoString) {
   }).format(date) + " AEST";
 }
 
+function isSkyCamLive() {
+  return skycamHistory.length > 0 && skycamHistoryIndex === skycamHistory.length - 1;
+}
+
+function stopSkyCamPlayback(update = true) {
+  if (skycamPlaying) {
+    skycamPlaying = false;
+    skycamPlaybackToken += 1;
+  }
+  if (update) updateSkyCamControls();
+}
+
 function updateSkyCamControls() {
   const prevBtn = document.getElementById("skycamPrev");
   const nextBtn = document.getElementById("skycamNext");
+  const liveBtn = document.getElementById("skycamLive");
+  const downloadBtn = document.getElementById("skycamDownload");
+  const timelapseBtn = document.getElementById("skycamTimelapse");
+  const timelapseIcon = document.getElementById("skycamTimelapseIcon");
+  const timelapseLabel = document.getElementById("skycamTimelapseLabel");
+  const badge = document.getElementById("skycamBadge");
   const timeLabel = document.getElementById("skycamTime");
   const positionLabel = document.getElementById("skycamPosition");
 
   if (!prevBtn || !nextBtn || !timeLabel || !positionLabel) return;
 
-  prevBtn.disabled =
-    skycamHistory.length === 0 ||
-    (!skycamShowingLatest && skycamHistoryIndex <= 0);
+  const hasHistory = skycamHistory.length > 0;
+  const live = isSkyCamLive();
 
-  nextBtn.disabled = skycamShowingLatest;
+  prevBtn.disabled = !hasHistory || skycamHistoryIndex <= 0;
+  nextBtn.disabled = !hasHistory || live;
+  if (liveBtn) liveBtn.disabled = !hasHistory || live;
+  if (downloadBtn) {
+    const entry = hasHistory && skycamHistoryIndex >= 0 ? skycamHistory[skycamHistoryIndex] : null;
+    downloadBtn.disabled = !entry || !entry.id;
+    downloadBtn.title = entry ? `Download ${entry.id}.jpg` : "Download this image";
+  }
 
-  if (skycamShowingLatest) {
+  if (timelapseBtn) {
+    timelapseBtn.disabled = skycamHistory.length < 2;
+    timelapseBtn.setAttribute("aria-pressed", skycamPlaying ? "true" : "false");
+    timelapseBtn.title = skycamPlaying ? "Pause timelapse" : "Play the last 24 hours";
+  }
+  if (timelapseIcon) timelapseIcon.textContent = skycamPlaying ? "❚❚" : "▶";
+  if (timelapseLabel) timelapseLabel.textContent = skycamPlaying ? "Pause" : "Timelapse";
+
+  if (badge) {
+    badge.textContent = skycamPlaying
+      ? "SKYCAM · TIMELAPSE"
+      : live
+        ? "SKYCAM · LIVE"
+        : "SKYCAM · HISTORY";
+  }
+
+  if (!hasHistory || skycamHistoryIndex < 0) {
     timeLabel.textContent = "LIVE / latest";
-    positionLabel.textContent = skycamHistory.length
-      ? `${skycamHistory.length} cached`
-      : "History building...";
+    positionLabel.textContent = "History building...";
     return;
   }
 
@@ -1424,55 +1539,172 @@ function updateSkyCamControls() {
   if (!entry) return;
 
   timeLabel.textContent = formatSkyCamTime(entry.capturedAt);
-  positionLabel.textContent = `${skycamHistoryIndex + 1} of ${skycamHistory.length}`;
+  positionLabel.textContent = `${skycamHistoryIndex + 1} of ${skycamHistory.length}${live ? " · LIVE" : ""}`;
 }
 
-function showSkyCamLatest() {
-  const skycamImage = document.getElementById("skycamImage");
-  if (!skycamImage) return;
-
-  skycamShowingLatest = true;
-  skycamHistoryIndex = -1;
-  skycamImage.src = `${SKYCAM_ENDPOINT}?t=${Date.now()}`;
-  updateSkyCamControls();
-}
-
-function showSkyCamHistory(index) {
+function showSkyCamHistory(index, options = {}) {
   if (!skycamHistory.length) return;
+  if (options.manual !== false) stopSkyCamPlayback(false);
 
   const safeIndex = Math.max(0, Math.min(index, skycamHistory.length - 1));
   const entry = skycamHistory[safeIndex];
-  const skycamImage = document.getElementById("skycamImage");
+  const image = document.getElementById("skycamImage");
+  if (!entry || !image) return;
 
-  if (!entry || !skycamImage) return;
-
-  skycamShowingLatest = false;
   skycamHistoryIndex = safeIndex;
-  skycamImage.src = entry.url;
+  if (image.getAttribute("src") !== entry.url) image.src = entry.url;
+  updateSkyCamControls();
+}
+
+function downloadSkyCamFrame() {
+  if (!skycamHistory.length || skycamHistoryIndex < 0) return;
+  const entry = skycamHistory[skycamHistoryIndex];
+  if (!entry || !entry.id) return;
+
+  // The authenticated Render endpoint supplies Content-Disposition so Safari,
+  // mobile browsers and desktop browsers all receive the original JPEG as a
+  // download without exposing the private Vultr origin.
+  const link = document.createElement("a");
+  link.href = `/skycam/download/${encodeURIComponent(entry.id)}`;
+  link.download = `${entry.id}.jpg`;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function goSkyCamLive(options = {}) {
+  if (options.manual !== false) stopSkyCamPlayback(false);
+
+  if (skycamHistory.length) {
+    showSkyCamHistory(skycamHistory.length - 1, { manual: false });
+    return;
+  }
+
+  const image = document.getElementById("skycamImage");
+  if (image) image.src = `${SKYCAM_ENDPOINT}?t=${Date.now()}`;
+  skycamHistoryIndex = -1;
   updateSkyCamControls();
 }
 
 function stepSkyCam(direction) {
-  if (direction < 0) {
-    if (skycamShowingLatest) {
-      showSkyCamHistory(skycamHistory.length - 1);
-    } else if (skycamHistoryIndex > 0) {
-      showSkyCamHistory(skycamHistoryIndex - 1);
-    }
+  stopSkyCamPlayback(false);
+  if (!skycamHistory.length) {
+    updateSkyCamControls();
     return;
   }
 
-  if (skycamShowingLatest) return;
+  if (skycamHistoryIndex < 0) skycamHistoryIndex = skycamHistory.length - 1;
+  const target = Math.max(0, Math.min(skycamHistoryIndex + direction, skycamHistory.length - 1));
+  showSkyCamHistory(target, { manual: false });
+}
 
-  if (skycamHistoryIndex < skycamHistory.length - 1) {
-    showSkyCamHistory(skycamHistoryIndex + 1);
-  } else {
-    showSkyCamLatest();
+function sampleSkyCamTimelapseIndices() {
+  if (!skycamHistory.length) return [];
+
+  const latestMs = Date.parse(skycamHistory[skycamHistory.length - 1].capturedAt);
+  if (!Number.isFinite(latestMs)) return skycamHistory.map((_, index) => index);
+
+  const cutoffMs = latestMs - SKYCAM_TIMELAPSE_WINDOW_MS;
+  const candidates = [];
+  skycamHistory.forEach((entry, index) => {
+    const capturedMs = Date.parse(entry.capturedAt);
+    if (Number.isFinite(capturedMs) && capturedMs >= cutoffMs && capturedMs <= latestMs) {
+      candidates.push(index);
+    }
+  });
+
+  if (candidates.length <= SKYCAM_TIMELAPSE_MAX_FRAMES) return candidates;
+
+  const sampled = [];
+  for (let i = 0; i < SKYCAM_TIMELAPSE_MAX_FRAMES; i += 1) {
+    const position = Math.round(i * (candidates.length - 1) / (SKYCAM_TIMELAPSE_MAX_FRAMES - 1));
+    const index = candidates[position];
+    if (sampled[sampled.length - 1] !== index) sampled.push(index);
+  }
+  return sampled;
+}
+
+function preloadSkyCamFrame(url) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
+    image.src = url;
+  });
+}
+
+function prefetchSkyCamFrames(indices, startAt) {
+  for (let offset = 1; offset <= 2; offset += 1) {
+    const nextIndex = indices[startAt + offset];
+    const entry = Number.isInteger(nextIndex) ? skycamHistory[nextIndex] : null;
+    if (entry) {
+      const image = new Image();
+      image.src = entry.url;
+    }
   }
 }
 
+function waitForSkyCamPlayback(ms, token) {
+  return new Promise((resolve) => {
+    window.setTimeout(() => resolve(token === skycamPlaybackToken && skycamPlaying), ms);
+  });
+}
+
+async function startSkyCamTimelapse() {
+  const indices = sampleSkyCamTimelapseIndices();
+  if (indices.length < 2) {
+    goSkyCamLive({ manual: false });
+    return;
+  }
+
+  stopSkyCamPlayback(false);
+  skycamPlaying = true;
+  skycamPlaybackToken += 1;
+  const token = skycamPlaybackToken;
+  updateSkyCamControls();
+
+  for (let position = 0; position < indices.length; position += 1) {
+    if (!skycamPlaying || token !== skycamPlaybackToken) return;
+
+    const historyIndex = indices[position];
+    const entry = skycamHistory[historyIndex];
+    if (!entry) continue;
+
+    await preloadSkyCamFrame(entry.url);
+    if (!skycamPlaying || token !== skycamPlaybackToken) return;
+
+    showSkyCamHistory(historyIndex, { manual: false });
+    prefetchSkyCamFrames(indices, position);
+
+    if (position < indices.length - 1) {
+      const keepPlaying = await waitForSkyCamPlayback(SKYCAM_TIMELAPSE_FRAME_MS, token);
+      if (!keepPlaying) return;
+    }
+  }
+
+  if (token !== skycamPlaybackToken) return;
+  skycamPlaying = false;
+  goSkyCamLive({ manual: false });
+}
+
+function toggleSkyCamTimelapse() {
+  if (skycamPlaying) {
+    stopSkyCamPlayback(true);
+    return;
+  }
+  startSkyCamTimelapse().catch((error) => {
+    console.error("SkyCam timelapse error:", error);
+    stopSkyCamPlayback(true);
+  });
+}
+
 async function loadSkyCamHistory() {
-  const selectedId = !skycamShowingLatest && skycamHistory[skycamHistoryIndex]
+  const wasLive = skycamHistoryIndex < 0 || isSkyCamLive();
+  const selectedId = !wasLive && skycamHistory[skycamHistoryIndex]
+    ? skycamHistory[skycamHistoryIndex].id
+    : null;
+  const previousLiveId = isSkyCamLive() && skycamHistory[skycamHistoryIndex]
     ? skycamHistory[skycamHistoryIndex].id
     : null;
 
@@ -1480,38 +1712,45 @@ async function loadSkyCamHistory() {
     cache: "no-store",
   });
 
-  if (!response.ok) {
-    throw new Error(`SkyCam history returned ${response.status}`);
+  if (response.status === 401) {
+    window.location.assign("/login");
+    return;
   }
+  if (!response.ok) throw new Error(`SkyCam history returned ${response.status}`);
 
   const payload = await response.json();
-  skycamHistory = Array.isArray(payload.images) ? payload.images : [];
+  const images = Array.isArray(payload.images) ? payload.images : [];
+  skycamHistory = images.filter((entry) => entry && entry.id && entry.url && entry.capturedAt);
 
-  if (selectedId) {
-    const newIndex = skycamHistory.findIndex((item) => item.id === selectedId);
-
-    if (newIndex >= 0) {
-      skycamHistoryIndex = newIndex;
-    } else if (skycamHistory.length) {
-      // If the selected frame was the oldest and has just rolled out of cache,
-      // stay at the oldest frame still available.
-      skycamHistoryIndex = 0;
-      showSkyCamHistory(0);
-      return;
-    } else {
-      showSkyCamLatest();
-      return;
-    }
+  if (!skycamHistory.length) {
+    skycamHistoryIndex = -1;
+    updateSkyCamControls();
+    return;
   }
 
-  updateSkyCamControls();
+  if (wasLive) {
+    const newestIndex = skycamHistory.length - 1;
+    const newestId = skycamHistory[newestIndex].id;
+    skycamHistoryIndex = newestIndex;
+    if (newestId !== previousLiveId) showSkyCamHistory(newestIndex, { manual: false });
+    else updateSkyCamControls();
+    return;
+  }
+
+  const newIndex = skycamHistory.findIndex((entry) => entry.id === selectedId);
+  if (newIndex >= 0) {
+    skycamHistoryIndex = newIndex;
+    updateSkyCamControls();
+    return;
+  }
+
+  // If a very old selected frame has rolled out of the retained history,
+  // remain at the oldest frame still available instead of unexpectedly jumping live.
+  showSkyCamHistory(0, { manual: false });
 }
 
 function refreshSkyCam() {
-  if (skycamShowingLatest) {
-    showSkyCamLatest();
-  }
-
+  if (skycamPlaying) return;
   loadSkyCamHistory().catch((error) => {
     console.error("SkyCam history error:", error);
     updateSkyCamControls();
@@ -1615,58 +1854,46 @@ window.addEventListener("load", () => {
 <script>
 (function () {
   const THEME_KEY = "mooreWeatherTheme";
-  const MODES = ["auto", "light", "dark"];
   const button = document.getElementById("themeToggleBtn");
   const label = document.getElementById("themeToggleLabel");
   const icon = document.getElementById("themeToggleIcon");
-  const media = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
-  function getSavedMode() {
+  function getSavedTheme() {
     try {
       const saved = localStorage.getItem(THEME_KEY);
-      return MODES.includes(saved) ? saved : "auto";
-    } catch (error) {
-      return "auto";
-    }
+      if (saved === "light" || saved === "dark") return saved;
+    } catch (error) {}
+
+    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   }
 
-  function resolvedTheme(mode) {
-    if (mode === "dark" || mode === "light") return mode;
-    return media && media.matches ? "dark" : "light";
-  }
+  function renderTheme(theme, persist) {
+    const current = theme === "dark" ? "dark" : "light";
+    const target = current === "dark" ? "light" : "dark";
 
-  function renderTheme(mode, persist) {
-    const resolved = resolvedTheme(mode);
-    document.documentElement.dataset.theme = resolved;
-    document.documentElement.dataset.themeMode = mode;
+    document.documentElement.dataset.theme = current;
+    document.documentElement.dataset.themeMode = current;
 
     if (persist) {
-      try { localStorage.setItem(THEME_KEY, mode); } catch (error) {}
+      try { localStorage.setItem(THEME_KEY, current); } catch (error) {}
     }
 
     if (button) {
-      button.setAttribute("aria-label", `Theme: ${mode}. Click to change.`);
-      button.title = `Theme: ${mode}`;
+      button.setAttribute("aria-label", `Switch to ${target} theme`);
+      button.title = `Switch to ${target} theme`;
     }
-    if (label) label.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
-    if (icon) icon.textContent = mode === "dark" ? "☾" : mode === "light" ? "☀" : "◐";
+    if (label) label.textContent = target === "dark" ? "Dark" : "Light";
+    if (icon) icon.textContent = target === "dark" ? "🌙" : "☀️";
   }
 
   if (button) {
     button.addEventListener("click", () => {
-      const current = getSavedMode();
-      const next = MODES[(MODES.indexOf(current) + 1) % MODES.length];
-      renderTheme(next, true);
+      const current = getSavedTheme();
+      renderTheme(current === "dark" ? "light" : "dark", true);
     });
   }
 
-  if (media && media.addEventListener) {
-    media.addEventListener("change", () => {
-      if (getSavedMode() === "auto") renderTheme("auto", false);
-    });
-  }
-
-  renderTheme(getSavedMode(), false);
+  renderTheme(getSavedTheme(), false);
 })();
 
 (function () {

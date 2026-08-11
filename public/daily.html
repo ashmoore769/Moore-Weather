@@ -9,14 +9,19 @@
   <title>Moore Weather · Daily Summary</title>
   <script>(function () {
     try {
-      const saved = localStorage.getItem("mooreWeatherTheme") || "auto";
+      const saved = localStorage.getItem("mooreWeatherTheme");
       const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const resolved = saved === "auto" ? (prefersDark ? "dark" : "light") : saved;
-      document.documentElement.dataset.theme = resolved;
-      document.documentElement.dataset.themeMode = saved;
+      const mode = saved === "light" || saved === "dark"
+        ? saved
+        : (prefersDark ? "dark" : "light");
+
+      // Migrate the old Auto setting to one explicit, persistent choice.
+      if (saved !== mode) localStorage.setItem("mooreWeatherTheme", mode);
+      document.documentElement.dataset.theme = mode;
+      document.documentElement.dataset.themeMode = mode;
     } catch (error) {
       document.documentElement.dataset.theme = "light";
-      document.documentElement.dataset.themeMode = "auto";
+      document.documentElement.dataset.themeMode = "light";
     }
   })();</script>
   <style>
@@ -225,6 +230,28 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
   display: none; margin: 9px 0 0; padding: 9px 10px; border: 1px solid color-mix(in srgb, var(--red) 28%, var(--border));
   border-radius: 10px; background: var(--red-soft); color: var(--red); font-weight: 700; text-align: center;
 }
+.app-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2px 0 18px;
+}
+.app-footer form { margin: 0; }
+.footer-signout {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.footer-signout:hover { color: var(--text); text-decoration: underline; }
+.footer-signout:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 7px; }
+html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.90); }
+
 .spinner-container {
   display: none; position: fixed; right: 18px; bottom: 18px; z-index: 150; width: 34px; height: 34px; padding: 7px;
   border-radius: 50%; background: var(--surface-raised); border: 1px solid var(--border); box-shadow: var(--shadow-soft);
@@ -302,7 +329,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
           </div>
           <div class="header-actions">
             <button id="themeToggleBtn" class="header-icon-button" type="button" aria-label="Change theme" title="Theme">
-              <span id="themeToggleIcon" class="theme-icon">◐</span><span id="themeToggleLabel" class="theme-label">Auto</span>
+              <span id="themeToggleIcon" class="theme-icon">🌙</span><span id="themeToggleLabel" class="theme-label">Dark</span>
             </button>
             <button class="header-icon-button" type="button" aria-label="Reload page" title="Reload" onclick="location.reload()">↻</button>
             <div class="desktop-layout-switcher" aria-label="Desktop layout">
@@ -443,6 +470,11 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
         <div id="errorMessage" class="error-message"></div>
       </div>
     </div>
+    <footer class="app-footer">
+<form action="/logout" method="post">
+<button class="footer-signout" type="submit">Sign out</button>
+</form>
+</footer>
   </div>
 
   <div id="spinnerContainer" class="spinner-container" aria-hidden="true"><div class="spinner"></div></div>
@@ -912,34 +944,46 @@ if (!isNaN(batteryMin)) {
   <script>
 (function () {
   const THEME_KEY = "mooreWeatherTheme";
-  const MODES = ["auto", "light", "dark"];
   const button = document.getElementById("themeToggleBtn");
   const label = document.getElementById("themeToggleLabel");
   const icon = document.getElementById("themeToggleIcon");
-  const media = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
-  function getSavedMode() {
-    try { const saved = localStorage.getItem(THEME_KEY); return MODES.includes(saved) ? saved : "auto"; }
-    catch (error) { return "auto"; }
+  function getSavedTheme() {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === "light" || saved === "dark") return saved;
+    } catch (error) {}
+
+    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   }
-  function resolvedTheme(mode) {
-    if (mode === "dark" || mode === "light") return mode;
-    return media && media.matches ? "dark" : "light";
+
+  function renderTheme(theme, persist) {
+    const current = theme === "dark" ? "dark" : "light";
+    const target = current === "dark" ? "light" : "dark";
+
+    document.documentElement.dataset.theme = current;
+    document.documentElement.dataset.themeMode = current;
+
+    if (persist) {
+      try { localStorage.setItem(THEME_KEY, current); } catch (error) {}
+    }
+
+    if (button) {
+      button.setAttribute("aria-label", `Switch to ${target} theme`);
+      button.title = `Switch to ${target} theme`;
+    }
+    if (label) label.textContent = target === "dark" ? "Dark" : "Light";
+    if (icon) icon.textContent = target === "dark" ? "🌙" : "☀️";
   }
-  function renderTheme(mode, persist) {
-    document.documentElement.dataset.theme = resolvedTheme(mode);
-    document.documentElement.dataset.themeMode = mode;
-    if (persist) { try { localStorage.setItem(THEME_KEY, mode); } catch (error) {} }
-    if (button) { button.setAttribute("aria-label", `Theme: ${mode}. Click to change.`); button.title = `Theme: ${mode}`; }
-    if (label) label.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
-    if (icon) icon.textContent = mode === "dark" ? "☾" : mode === "light" ? "☀" : "◐";
+
+  if (button) {
+    button.addEventListener("click", () => {
+      const current = getSavedTheme();
+      renderTheme(current === "dark" ? "light" : "dark", true);
+    });
   }
-  if (button) button.addEventListener("click", () => {
-    const current = getSavedMode();
-    renderTheme(MODES[(MODES.indexOf(current) + 1) % MODES.length], true);
-  });
-  if (media && media.addEventListener) media.addEventListener("change", () => { if (getSavedMode() === "auto") renderTheme("auto", false); });
-  renderTheme(getSavedMode(), false);
+
+  renderTheme(getSavedTheme(), false);
 })();
 
 (function () {

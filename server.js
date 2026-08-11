@@ -5,6 +5,7 @@ const cors = require("cors");
 const path = require("path");
 const net = require("net");
 const http = require("http");
+const https = require("https");
 const crypto = require("crypto");
 const winston = require("winston");
 
@@ -16,17 +17,70 @@ const WEATHER_STATION_PORT =
 
 const PORT = process.env.PORT || 10000;
 
-const SKYCAM_UPSTREAM_URL =
-  process.env.SKYCAM_UPSTREAM_URL || "http://149.28.187.169/latest.jpg";
+const SKYCAM_ORIGIN_BASE_URL =
+  process.env.SKYCAM_ORIGIN_BASE_URL || "http://149.28.187.169";
+const SKYCAM_ORIGIN_TOKEN = process.env.SKYCAM_ORIGIN_TOKEN || "";
+const SKYCAM_ORIGIN_CA_CERT_B64 =
+  process.env.SKYCAM_ORIGIN_CA_CERT_B64 || "";
+const SKYCAM_HISTORY_CACHE_TTL_MS = Math.max(5000,
+  Number(process.env.SKYCAM_HISTORY_CACHE_TTL_MS) || 10000
+);
+const SKYCAM_ORIGIN_TIMEOUT_MS = Math.max(3000,
+  Number(process.env.SKYCAM_ORIGIN_TIMEOUT_MS) || 10000
+);
+const SKYCAM_MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const SKYCAM_MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
+const SKYCAM_MAX_HISTORY_IMAGES = 1000;
 
-// Rolling SkyCam cache. The byte cap protects the Render process from
-// unbounded memory growth; the oldest images are discarded first.
-const SKYCAM_HISTORY_INTERVAL_MS =
-  Number(process.env.SKYCAM_HISTORY_INTERVAL_MS) || 60000;
-const SKYCAM_HISTORY_MAX_IMAGES =
-  Number(process.env.SKYCAM_HISTORY_MAX_IMAGES) || 1000;
-const SKYCAM_HISTORY_MAX_BYTES =
-  Number(process.env.SKYCAM_HISTORY_MAX_BYTES) || 128 * 1024 * 1024;
+let SKYCAM_ORIGIN_URL;
+try {
+  SKYCAM_ORIGIN_URL = new URL(SKYCAM_ORIGIN_BASE_URL);
+} catch (error) {
+  throw new Error("SKYCAM_ORIGIN_BASE_URL is not a valid URL.");
+}
+
+if (!["http:", "https:"].includes(SKYCAM_ORIGIN_URL.protocol)) {
+  throw new Error("SKYCAM_ORIGIN_BASE_URL must use http:// or https://.");
+}
+
+const IS_RENDER = process.env.RENDER === "true";
+if (IS_RENDER && SKYCAM_ORIGIN_URL.protocol !== "https:") {
+  throw new Error(
+    "Render must use an HTTPS SkyCam origin. Set SKYCAM_ORIGIN_BASE_URL to the protected Vultr HTTPS endpoint."
+  );
+}
+if (IS_RENDER && SKYCAM_ORIGIN_TOKEN.length < 32) {
+  throw new Error(
+    "SKYCAM_ORIGIN_TOKEN is missing or too short. Run the Vultr origin installer first and save its generated token in Render."
+  );
+}
+
+let skycamOriginCa = null;
+if (SKYCAM_ORIGIN_CA_CERT_B64) {
+  try {
+    skycamOriginCa = Buffer.from(SKYCAM_ORIGIN_CA_CERT_B64, "base64").toString("utf8");
+  } catch (error) {
+    throw new Error("SKYCAM_ORIGIN_CA_CERT_B64 could not be decoded.");
+  }
+
+  if (!skycamOriginCa.includes("BEGIN CERTIFICATE")) {
+    throw new Error("SKYCAM_ORIGIN_CA_CERT_B64 did not decode to a PEM certificate.");
+  }
+}
+
+if (SKYCAM_ORIGIN_URL.protocol === "https:" && !skycamOriginCa) {
+  throw new Error(
+    "SKYCAM_ORIGIN_CA_CERT_B64 is required for the self-signed HTTPS SkyCam origin."
+  );
+}
+
+const skycamHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 8 });
+const skycamHttpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 8,
+  ca: skycamOriginCa || undefined,
+  rejectUnauthorized: true,
+});
 
 // Queensland / Brisbane is UTC+10 year-round (no daylight saving).
 const BRISBANE_OFFSET_MS = 10 * 60 * 60 * 1000;
@@ -54,7 +108,332 @@ const logger = winston.createLogger({
 });
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(cors());
+app.use(express.urlencoded({ extended: false, limit: "2kb" }));
+
+/* =========================================================
+   SHARED-PASSWORD AUTHENTICATION
+
+   The password hash and cookie signing secret live ONLY in Render
+   environment variables. No password is embedded in HTML or source.
+   ========================================================= */
+
+const AUTH_COOKIE_NAME = "moore_auth";
+const AUTH_VERSION = process.env.MOORE_AUTH_VERSION || "1";
+const configuredAuthMaxAgeDays = Number(process.env.MOORE_AUTH_MAX_AGE_DAYS);
+const AUTH_MAX_AGE_DAYS = Number.isFinite(configuredAuthMaxAgeDays)
+  ? Math.min(3650, Math.max(1, configuredAuthMaxAgeDays))
+  : 730;
+const AUTH_MAX_AGE_MS = AUTH_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+const AUTH_REFRESH_AFTER_MS = Math.min(
+  AUTH_MAX_AGE_MS / 4,
+  30 * 24 * 60 * 60 * 1000
+);
+const AUTH_PASSWORD_HASH = process.env.MOORE_AUTH_PASSWORD_HASH || "";
+const AUTH_COOKIE_SECRET = process.env.MOORE_AUTH_COOKIE_SECRET || "";
+const AUTH_FAILURE_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_LOCKOUT_MS = 30 * 60 * 1000;
+const AUTH_MAX_FAILURES = 8;
+
+function parsePasswordHash(value) {
+  const parts = String(value).split("$");
+  if (parts.length !== 3 || parts[0] !== "scrypt") return null;
+
+  try {
+    const salt = Buffer.from(parts[1], "base64url");
+    const hash = Buffer.from(parts[2], "base64url");
+
+    if (salt.length < 16 || hash.length < 32) return null;
+    return { salt, hash };
+  } catch (error) {
+    return null;
+  }
+}
+
+const AUTH_PASSWORD_CONFIG = parsePasswordHash(AUTH_PASSWORD_HASH);
+
+if (!AUTH_PASSWORD_CONFIG) {
+  throw new Error(
+    "MOORE_AUTH_PASSWORD_HASH is missing or invalid. Run tools/generate-auth-env.js and save the generated value in Render before deploying."
+  );
+}
+
+if (AUTH_COOKIE_SECRET.length < 32) {
+  throw new Error(
+    "MOORE_AUTH_COOKIE_SECRET is missing or too short. Run tools/generate-auth-env.js and save the generated value in Render before deploying."
+  );
+}
+
+function verifySharedPassword(password) {
+  if (typeof password !== "string" || password.length === 0 || password.length > 256) {
+    return false;
+  }
+
+  try {
+    const derived = crypto.scryptSync(
+      password,
+      AUTH_PASSWORD_CONFIG.salt,
+      AUTH_PASSWORD_CONFIG.hash.length
+    );
+
+    return crypto.timingSafeEqual(derived, AUTH_PASSWORD_CONFIG.hash);
+  } catch (error) {
+    return false;
+  }
+}
+
+function signAuthBody(body) {
+  return crypto
+    .createHmac("sha256", AUTH_COOKIE_SECRET)
+    .update(body)
+    .digest("base64url");
+}
+
+function createAuthToken(now = Date.now()) {
+  const payload = {
+    v: AUTH_VERSION,
+    iat: now,
+    exp: now + AUTH_MAX_AGE_MS,
+  };
+
+  const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return `${body}.${signAuthBody(body)}`;
+}
+
+function verifyAuthToken(token) {
+  if (typeof token !== "string" || token.length > 2048) return null;
+
+  const separator = token.lastIndexOf(".");
+  if (separator <= 0 || separator === token.length - 1) return null;
+
+  const body = token.slice(0, separator);
+  const suppliedSignature = token.slice(separator + 1);
+  const expectedSignature = signAuthBody(body);
+
+  let supplied;
+  let expected;
+
+  try {
+    supplied = Buffer.from(suppliedSignature, "base64url");
+    expected = Buffer.from(expectedSignature, "base64url");
+  } catch (error) {
+    return null;
+  }
+
+  if (supplied.length !== expected.length) return null;
+  if (!crypto.timingSafeEqual(supplied, expected)) return null;
+
+  try {
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+
+    if (!payload || payload.v !== AUTH_VERSION) return null;
+    if (!Number.isFinite(payload.iat) || !Number.isFinite(payload.exp)) return null;
+    if (payload.iat > Date.now() + 5 * 60 * 1000) return null;
+    if (payload.exp <= Date.now()) return null;
+    if (payload.exp - payload.iat > AUTH_MAX_AGE_MS + 60 * 1000) return null;
+
+    return payload;
+  } catch (error) {
+    return null;
+  }
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || "";
+  const cookies = Object.create(null);
+
+  for (const pair of header.split(";")) {
+    const index = pair.indexOf("=");
+    if (index <= 0) continue;
+
+    const name = pair.slice(0, index).trim();
+    const value = pair.slice(index + 1).trim();
+    if (name) cookies[name] = value;
+  }
+
+  return cookies;
+}
+
+function authCookieOptions(maxAge = AUTH_MAX_AGE_MS) {
+  return {
+    httpOnly: true,
+    secure: process.env.RENDER === "true" || process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge,
+  };
+}
+
+function setAuthCookie(res) {
+  res.cookie(AUTH_COOKIE_NAME, createAuthToken(), authCookieOptions());
+}
+
+function clearAuthCookie(res) {
+  const options = authCookieOptions(0);
+  delete options.maxAge;
+  res.clearCookie(AUTH_COOKIE_NAME, options);
+}
+
+function authenticatedPayload(req) {
+  const cookies = parseCookies(req);
+  return verifyAuthToken(cookies[AUTH_COOKIE_NAME]);
+}
+
+function safeReturnPath(value) {
+  if (typeof value !== "string") return "/";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/";
+  if (value.startsWith("/login") || value.startsWith("/logout")) return "/";
+  if (value.includes("\\") || /[\r\n]/.test(value)) return "/";
+  return value;
+}
+
+function isHtmlNavigation(req) {
+  if (req.method !== "GET") return false;
+  const accept = req.get("accept") || "";
+  return accept.includes("text/html");
+}
+
+const authFailures = new Map();
+
+function clientKey(req) {
+  return String(req.ip || req.socket.remoteAddress || "unknown");
+}
+
+function sweepAuthFailures(now = Date.now()) {
+  if (authFailures.size < 100) return;
+
+  for (const [key, state] of authFailures) {
+    const staleAfter = Math.max(state.windowStartedAt + AUTH_FAILURE_WINDOW_MS, state.lockedUntil || 0);
+    if (staleAfter < now) authFailures.delete(key);
+  }
+}
+
+function loginIsLocked(req, now = Date.now()) {
+  const state = authFailures.get(clientKey(req));
+  return Boolean(state && state.lockedUntil && state.lockedUntil > now);
+}
+
+function recordLoginFailure(req, now = Date.now()) {
+  const key = clientKey(req);
+  let state = authFailures.get(key);
+
+  if (!state || now - state.windowStartedAt > AUTH_FAILURE_WINDOW_MS) {
+    state = { count: 0, windowStartedAt: now, lockedUntil: 0 };
+  }
+
+  state.count += 1;
+
+  if (state.count >= AUTH_MAX_FAILURES) {
+    state.lockedUntil = now + AUTH_LOCKOUT_MS;
+  }
+
+  authFailures.set(key, state);
+  sweepAuthFailures(now);
+  return state;
+}
+
+function clearLoginFailures(req) {
+  authFailures.delete(clientKey(req));
+}
+
+// Search engines should not index this private portal, even if they discover it.
+app.use((req, res, next) => {
+  res.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  res.set("Referrer-Policy", "no-referrer");
+  res.set("X-Frame-Options", "DENY");
+  res.set("X-Content-Type-Options", "nosniff");
+  next();
+});
+
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain");
+  res.set("Cache-Control", "public, max-age=86400");
+  res.send("User-agent: *\nDisallow: /\n");
+});
+
+// The station icon is the only public image. It lets the login screen retain
+// Moore Weather branding without exposing weather data, SkyCam or app assets.
+app.get("/Weather_Station_App.png", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "Weather_Station_App.png"));
+});
+
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+app.get("/login", (req, res) => {
+  const nextPath = safeReturnPath(req.query.next);
+
+  if (authenticatedPayload(req)) {
+    return res.redirect(302, nextPath);
+  }
+
+  res.set("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+app.post("/login", (req, res) => {
+  const nextPath = safeReturnPath(req.body.next);
+
+  if (loginIsLocked(req)) {
+    return res.redirect(
+      303,
+      `/login?error=locked&next=${encodeURIComponent(nextPath)}`
+    );
+  }
+
+  if (!verifySharedPassword(req.body.password)) {
+    const state = recordLoginFailure(req);
+    const errorCode = state.lockedUntil > Date.now() ? "locked" : "invalid";
+
+    return res.redirect(
+      303,
+      `/login?error=${errorCode}&next=${encodeURIComponent(nextPath)}`
+    );
+  }
+
+  clearLoginFailures(req);
+  setAuthCookie(res);
+  logger.info("[AUTH] Device authorised");
+  res.redirect(303, nextPath);
+});
+
+function handleLogout(req, res) {
+  clearAuthCookie(res);
+  res.set("Cache-Control", "no-store");
+  res.redirect(req.method === "POST" ? 303 : 302, "/login?loggedOut=1");
+}
+
+app.get("/logout", handleLogout);
+app.post("/logout", handleLogout);
+
+app.use((req, res, next) => {
+  const payload = authenticatedPayload(req);
+
+  if (!payload) {
+    clearAuthCookie(res);
+    res.set("Cache-Control", "no-store");
+
+    if (isHtmlNavigation(req)) {
+      const nextPath = safeReturnPath(req.originalUrl || req.url || "/");
+      return res.redirect(302, `/login?next=${encodeURIComponent(nextPath)}`);
+    }
+
+    return res.status(401).send("Authentication required.");
+  }
+
+  // Long-lived cookie with sliding renewal. Once a cookie is at least 30 days
+  // old (or one quarter of a shorter configured lifetime), any normal use
+  // renews the full remembered-device period.
+  if (Date.now() - payload.iat >= AUTH_REFRESH_AFTER_MS) {
+    setAuthCookie(res);
+  }
+
+  req.mooreAuth = payload;
+  next();
+});
+
+// Static application files are intentionally mounted AFTER authentication.
+// This protects index.html, daily.html, station branding and every other asset.
 app.use(express.static(path.join(__dirname, "public")));
 
 let cachedWeatherData = null;
@@ -92,10 +471,9 @@ function runStationTransaction(label, task) {
   return run;
 }
 
-const skycamHistory = [];
-let skycamHistoryBytes = 0;
-let skycamLastHash = null;
-let skycamSnapshotInFlight = null;
+let skycamManifestCache = null;
+let skycamManifestFetchedAt = 0;
+let skycamManifestInFlight = null;
 
 /* =========================================================
    BRISBANE DATE HELPERS
@@ -561,114 +939,166 @@ async function refreshDailyDataWithRetries(
 }
 
 /* =========================================================
-   SKYCAM ROLLING HISTORY CACHE
+   SKYCAM PERSISTENT ORIGIN
+
+   Vultr is the source of truth for SkyCam history. Render keeps only a
+   short-lived JSON manifest cache; JPEGs are fetched on demand and never
+   accumulated in process RAM. A Render restart therefore does not erase
+   history.
    ========================================================= */
 
-function fetchSkyCamBuffer() {
+function skyCamOriginTarget(relativePath) {
+  const pathValue = String(relativePath || "");
+  if (!pathValue.startsWith("/")) {
+    throw new Error("SkyCam origin paths must begin with '/'.");
+  }
+  return new URL(pathValue, SKYCAM_ORIGIN_URL.origin);
+}
+
+function fetchSkyCamOriginBuffer(relativePath, maxBytes) {
   return new Promise((resolve, reject) => {
-    const request = http.get(SKYCAM_UPSTREAM_URL, (upstream) => {
-      if (upstream.statusCode !== 200) {
-        upstream.resume();
-        return reject(
-          new Error(`Upstream returned HTTP ${upstream.statusCode}`)
-        );
-      }
+    const target = skyCamOriginTarget(relativePath);
+    const transport = target.protocol === "https:" ? https : http;
+    const agent = target.protocol === "https:" ? skycamHttpsAgent : skycamHttpAgent;
+    const headers = {
+      Accept: "*/*",
+      "User-Agent": "Moore-Weather-Render/2",
+    };
 
-      const chunks = [];
-      let totalBytes = 0;
-      const MAX_SINGLE_IMAGE_BYTES = 10 * 1024 * 1024;
+    if (SKYCAM_ORIGIN_TOKEN) {
+      headers["X-SkyCam-Origin-Token"] = SKYCAM_ORIGIN_TOKEN;
+    }
 
-      upstream.on("data", (chunk) => {
-        totalBytes += chunk.length;
-
-        if (totalBytes > MAX_SINGLE_IMAGE_BYTES) {
-          request.destroy(new Error("SkyCam image exceeded 10 MB safety limit"));
+    const request = transport.request(
+      target,
+      {
+        method: "GET",
+        headers,
+        agent,
+      },
+      (upstream) => {
+        if (upstream.statusCode !== 200) {
+          upstream.resume();
+          reject(new Error(`SkyCam origin ${relativePath} returned HTTP ${upstream.statusCode}`));
           return;
         }
 
-        chunks.push(chunk);
-      });
+        const chunks = [];
+        let totalBytes = 0;
 
-      upstream.on("end", () => {
-        resolve({
-          buffer: Buffer.concat(chunks),
-          lastModified: upstream.headers["last-modified"] || null,
+        upstream.on("data", (chunk) => {
+          totalBytes += chunk.length;
+          if (totalBytes > maxBytes) {
+            request.destroy(
+              new Error(`SkyCam origin response exceeded ${maxBytes} byte safety limit`)
+            );
+            return;
+          }
+          chunks.push(chunk);
         });
-      });
-    });
 
-    request.setTimeout(5000, () => {
-      request.destroy(new Error("SkyCam upstream timeout"));
-    });
+        upstream.on("end", () => {
+          resolve({
+            buffer: Buffer.concat(chunks),
+            headers: upstream.headers,
+          });
+        });
+      }
+    );
 
+    request.setTimeout(SKYCAM_ORIGIN_TIMEOUT_MS, () => {
+      request.destroy(new Error(`SkyCam origin timeout for ${relativePath}`));
+    });
     request.on("error", reject);
+    request.end();
   });
 }
 
-function addSkyCamSnapshot(buffer, capturedAt = new Date()) {
-  const hash = crypto.createHash("sha256").update(buffer).digest("hex");
+function skyCamArchivePathFromId(id) {
+  const match = String(id || "").match(/^SkyCam_00_(\d{4})(\d{2})(\d{2})(\d{6})$/);
+  if (!match) return null;
+  return `/archive/${match[1]}/${match[2]}/${match[3]}/${id}.jpg`;
+}
 
-  // The camera may leave latest.jpg unchanged between captures.
-  // Do not waste memory storing duplicate frames.
-  if (hash === skycamLastHash) {
-    return false;
+function normalizeSkyCamManifest(payload) {
+  if (!payload || !Array.isArray(payload.images)) {
+    throw new Error("SkyCam history manifest did not contain an images array");
   }
 
-  const timestamp = capturedAt instanceof Date && !Number.isNaN(capturedAt.getTime())
-    ? capturedAt
-    : new Date();
+  const images = [];
+  const seen = new Set();
 
-  const entry = {
-    id: `${timestamp.getTime()}-${hash.slice(0, 12)}`,
-    capturedAt: timestamp.toISOString(),
-    hash,
-    size: buffer.length,
-    buffer,
+  for (const raw of payload.images) {
+    if (!raw || typeof raw !== "object") continue;
+    const id = String(raw.id || "");
+    if (!skyCamArchivePathFromId(id) || seen.has(id)) continue;
+
+    const captured = new Date(raw.capturedAt);
+    if (Number.isNaN(captured.getTime())) continue;
+
+    seen.add(id);
+    images.push({
+      id,
+      capturedAt: captured.toISOString(),
+      size: Number.isFinite(Number(raw.size)) ? Number(raw.size) : null,
+    });
+  }
+
+  images.sort((a, b) => Date.parse(a.capturedAt) - Date.parse(b.capturedAt));
+  if (images.length > SKYCAM_MAX_HISTORY_IMAGES) {
+    images.splice(0, images.length - SKYCAM_MAX_HISTORY_IMAGES);
+  }
+
+  return {
+    generatedAt: payload.generatedAt || null,
+    maxImages: Math.min(SKYCAM_MAX_HISTORY_IMAGES, Number(payload.maxImages) || SKYCAM_MAX_HISTORY_IMAGES),
+    count: images.length,
+    latestId: images.length ? images[images.length - 1].id : null,
+    images,
   };
+}
 
-  skycamHistory.push(entry);
-  skycamHistoryBytes += entry.size;
-  skycamLastHash = hash;
-
-  while (
-    skycamHistory.length > SKYCAM_HISTORY_MAX_IMAGES ||
-    skycamHistoryBytes > SKYCAM_HISTORY_MAX_BYTES
-  ) {
-    const removed = skycamHistory.shift();
-    if (!removed) break;
-    skycamHistoryBytes -= removed.size;
-  }
-
-  logger.info(
-    `[SKYCAM] Cached frame ${entry.id}; ${skycamHistory.length} images, ${Math.round(skycamHistoryBytes / 1024 / 1024)} MB`
+async function fetchSkyCamManifestFromOrigin() {
+  const { buffer } = await fetchSkyCamOriginBuffer(
+    "/history.json",
+    SKYCAM_MAX_MANIFEST_BYTES
   );
 
-  return true;
-}
-
-function captureSkyCamSnapshot() {
-  if (skycamSnapshotInFlight) {
-    return skycamSnapshotInFlight;
+  let parsed;
+  try {
+    parsed = JSON.parse(buffer.toString("utf8"));
+  } catch (error) {
+    throw new Error("SkyCam origin history.json was not valid JSON");
   }
 
-  skycamSnapshotInFlight = (async () => {
-    try {
-      const { buffer, lastModified } = await fetchSkyCamBuffer();
-      const parsedLastModified = lastModified ? new Date(lastModified) : new Date();
-      addSkyCamSnapshot(buffer, parsedLastModified);
-    } catch (err) {
-      logger.warn(`[SKYCAM] History capture failed: ${err.message}`);
-    } finally {
-      skycamSnapshotInFlight = null;
-    }
-  })();
-
-  return skycamSnapshotInFlight;
+  const manifest = normalizeSkyCamManifest(parsed);
+  skycamManifestCache = manifest;
+  skycamManifestFetchedAt = Date.now();
+  logger.info(`[SKYCAM] Origin manifest refreshed (${manifest.count} images)`);
+  return manifest;
 }
 
-function scheduleSkyCamHistory() {
-  captureSkyCamSnapshot();
-  setInterval(captureSkyCamSnapshot, SKYCAM_HISTORY_INTERVAL_MS);
+async function getSkyCamManifest(force = false) {
+  const age = Date.now() - skycamManifestFetchedAt;
+  if (!force && skycamManifestCache && age < SKYCAM_HISTORY_CACHE_TTL_MS) {
+    return skycamManifestCache;
+  }
+
+  if (skycamManifestInFlight) return skycamManifestInFlight;
+
+  skycamManifestInFlight = fetchSkyCamManifestFromOrigin()
+    .catch((error) => {
+      if (skycamManifestCache) {
+        logger.warn(`[SKYCAM] Manifest refresh failed; serving stale manifest: ${error.message}`);
+        return skycamManifestCache;
+      }
+      throw error;
+    })
+    .finally(() => {
+      skycamManifestInFlight = null;
+    });
+
+  return skycamManifestInFlight;
 }
 
 /* =========================================================
@@ -705,7 +1135,6 @@ function schedulePolling() {
   }
 
   scheduleNextDailyFetch();
-  scheduleSkyCamHistory();
 }
 
 /* =========================================================
@@ -812,70 +1241,109 @@ app.get("/daily", async (req, res) => {
 
 // Lightweight status endpoint used by daily.html to reflect the
 // safety interlock and background/station refresh state.
-app.get("/skycam/latest.jpg", (req, res) => {
-  const request = http.get(SKYCAM_UPSTREAM_URL, (upstream) => {
-    if (upstream.statusCode !== 200) {
-      upstream.resume();
-      logger.error(
-        `[SKYCAM] Upstream returned HTTP ${upstream.statusCode}`
-      );
-      return res.status(502).send("SkyCam image unavailable.");
-    }
+app.get("/skycam/latest.jpg", async (req, res) => {
+  try {
+    const { buffer, headers } = await fetchSkyCamOriginBuffer(
+      "/latest.jpg",
+      SKYCAM_MAX_IMAGE_BYTES
+    );
 
-    res.set("Content-Type", "image/jpeg");
+    res.set("Content-Type", headers["content-type"] || "image/jpeg");
+    res.set("Content-Length", String(buffer.length));
     res.set("Cache-Control", "no-store, no-cache, must-revalidate");
     res.set("X-Content-Type-Options", "nosniff");
-
-    if (upstream.headers["content-length"]) {
-      res.set("Content-Length", upstream.headers["content-length"]);
-    }
-
-    upstream.pipe(res);
-  });
-
-  request.setTimeout(5000, () => {
-    request.destroy(new Error("SkyCam upstream timeout"));
-  });
-
-  request.on("error", (err) => {
-    logger.error(`[SKYCAM] ${err.message}`);
-
-    if (!res.headersSent) {
-      res.status(502).send("SkyCam image unavailable.");
-    } else {
-      res.destroy();
-    }
-  });
+    res.send(buffer);
+  } catch (error) {
+    logger.error(`[SKYCAM] Latest image failed: ${error.message}`);
+    res.status(502).send("SkyCam image unavailable.");
+  }
 });
 
-app.get("/skycam/history", (req, res) => {
+app.get("/skycam/history", async (req, res) => {
   res.set("Cache-Control", "no-store");
 
-  res.json({
-    count: skycamHistory.length,
-    bytes: skycamHistoryBytes,
-    maxImages: SKYCAM_HISTORY_MAX_IMAGES,
-    maxBytes: SKYCAM_HISTORY_MAX_BYTES,
-    images: skycamHistory.map((entry) => ({
-      id: entry.id,
-      capturedAt: entry.capturedAt,
-      url: `/skycam/history/${encodeURIComponent(entry.id)}`,
-    })),
-  });
+  try {
+    const manifest = await getSkyCamManifest(req.query.refresh === "1");
+    res.json({
+      count: manifest.count,
+      maxImages: manifest.maxImages,
+      generatedAt: manifest.generatedAt,
+      persistent: true,
+      images: manifest.images.map((entry) => ({
+        id: entry.id,
+        capturedAt: entry.capturedAt,
+        url: `/skycam/history/${encodeURIComponent(entry.id)}`,
+      })),
+    });
+  } catch (error) {
+    logger.error(`[SKYCAM] History manifest failed: ${error.message}`);
+    res.status(502).json({ error: "SkyCam history unavailable." });
+  }
 });
 
-app.get("/skycam/history/:id", (req, res) => {
-  const entry = skycamHistory.find((item) => item.id === req.params.id);
-
-  if (!entry) {
+app.get("/skycam/history/:id", async (req, res) => {
+  const archivePath = skyCamArchivePathFromId(req.params.id);
+  if (!archivePath) {
     return res.status(404).send("SkyCam history image not found.");
   }
 
-  res.set("Content-Type", "image/jpeg");
-  res.set("Content-Length", String(entry.size));
-  res.set("Cache-Control", "public, max-age=31536000, immutable");
-  res.set("X-Content-Type-Options", "nosniff");
-  res.send(entry.buffer);
+  try {
+    const manifest = await getSkyCamManifest(false);
+    const entry = manifest.images.find((item) => item.id === req.params.id);
+    if (!entry) {
+      return res.status(404).send("SkyCam history image not found.");
+    }
+
+    const { buffer, headers } = await fetchSkyCamOriginBuffer(
+      archivePath,
+      SKYCAM_MAX_IMAGE_BYTES
+    );
+
+    res.set("Content-Type", headers["content-type"] || "image/jpeg");
+    res.set("Content-Length", String(buffer.length));
+    res.set("Cache-Control", "private, max-age=31536000, immutable");
+    res.set("X-Content-Type-Options", "nosniff");
+    res.send(buffer);
+  } catch (error) {
+    logger.error(`[SKYCAM] History image ${req.params.id} failed: ${error.message}`);
+    res.status(502).send("SkyCam history image unavailable.");
+  }
+});
+
+app.get("/skycam/download/:id", async (req, res) => {
+  const archivePath = skyCamArchivePathFromId(req.params.id);
+  if (!archivePath) {
+    return res.status(404).send("SkyCam history image not found.");
+  }
+
+  try {
+    const manifest = await getSkyCamManifest(false);
+    const entry = manifest.images.find((item) => item.id === req.params.id);
+    if (!entry) {
+      return res.status(404).send("SkyCam history image not found.");
+    }
+
+    const { buffer, headers } = await fetchSkyCamOriginBuffer(
+      archivePath,
+      SKYCAM_MAX_IMAGE_BYTES
+    );
+
+    // The strict ID validator above makes this filename header-safe.
+    const filename = entry.id.replace(
+      /^SkyCam_00_(\d{8})(\d{6})$/,
+      "SkyCam_$1_$2"
+    ) + ".jpg";
+
+    res.set("Content-Type", headers["content-type"] || "image/jpeg");
+    res.set("Content-Length", String(buffer.length));
+    res.set("Content-Disposition", `attachment; filename="${filename}"`);
+    res.set("Cache-Control", "private, no-store");
+    res.set("X-Content-Type-Options", "nosniff");
+    res.send(buffer);
+  } catch (error) {
+    logger.error(`[SKYCAM] Download ${req.params.id} failed: ${error.message}`);
+    res.status(502).send("SkyCam image download unavailable.");
+  }
 });
 
 app.get("/ping", (req, res) => {
@@ -896,6 +1364,11 @@ app.get("/ping", (req, res) => {
     dailyRefreshInProgress: Boolean(dailyRefreshInFlight),
     dailyStationRequestInProgress: Boolean(dailyStationRequestInFlight),
     stationTransactionActive,
+    skycamHistoryCount: skycamManifestCache ? skycamManifestCache.count : null,
+    skycamManifestLastRefresh: skycamManifestFetchedAt
+      ? new Date(skycamManifestFetchedAt).toISOString()
+      : null,
+    skycamHistoryPersistent: true,
     dailySchedule: "09:10 Australia/Brisbane",
   });
 });
