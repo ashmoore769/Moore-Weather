@@ -613,18 +613,107 @@ body.weather-loaded .unit-suffix { display: inline; }
   line-height: 0;
   isolation: isolate;
 }
-.skycam-container img {
+.skycam-image-stage {
+  position: relative;
+  width: 100%;
+  min-height: 220px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #05070a;
+  cursor: zoom-in;
+}
+.skycam-frame {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
-  height: auto;
-  min-height: 220px;
+  height: 100%;
   object-fit: cover;
-  cursor: zoom-in;
+  opacity: 0;
+  transition: opacity .34s cubic-bezier(.22, .61, .36, 1);
   user-select: none;
   -webkit-user-drag: none;
+  pointer-events: none;
+  will-change: opacity;
 }
-.skycam-container:fullscreen { display: grid; place-items: center; background: #000; border-radius: 0; border: 0; }
-.skycam-container:fullscreen img { width: 100%; height: 100%; max-height: 100vh; object-fit: contain; cursor: zoom-out; }
+.skycam-frame.is-active { opacity: 1; }
+
+.skycam-container:fullscreen,
+.skycam-container.skycam-focus-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+  box-shadow: none;
+  display: grid;
+  place-items: center;
+}
+.skycam-container:fullscreen .skycam-image-stage,
+.skycam-container.skycam-focus-mode .skycam-image-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+  cursor: default;
+}
+.skycam-container:fullscreen .skycam-frame,
+.skycam-container.skycam-focus-mode .skycam-frame { object-fit: contain; }
+body.skycam-focus-open { overflow: hidden; overscroll-behavior: none; }
+
+.skycam-container:fullscreen .skycam-badge,
+.skycam-container.skycam-focus-mode .skycam-badge {
+  left: max(12px, env(safe-area-inset-left));
+  top: max(12px, env(safe-area-inset-top));
+}
+.skycam-container:fullscreen .skycam-interval-badge,
+.skycam-container.skycam-focus-mode .skycam-interval-badge {
+  right: max(12px, env(safe-area-inset-right));
+  top: max(12px, env(safe-area-inset-top));
+}
+.skycam-container:fullscreen .skycam-nav-prev,
+.skycam-container.skycam-focus-mode .skycam-nav-prev { left: max(12px, env(safe-area-inset-left)); }
+.skycam-container:fullscreen .skycam-nav-next,
+.skycam-container.skycam-focus-mode .skycam-nav-next { right: max(12px, env(safe-area-inset-right)); }
+.skycam-container:fullscreen .skycam-caption,
+.skycam-container.skycam-focus-mode .skycam-caption {
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+}
+.skycam-rotate-hint {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: max(52px, calc(env(safe-area-inset-top) + 44px));
+  z-index: 6;
+  transform: translateX(-50%);
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: rgba(255,255,255,.92);
+  background: rgba(8,12,18,.62);
+  border: 1px solid rgba(255,255,255,.18);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .2px;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+@media only screen and (max-width: 900px) and (orientation: portrait) {
+  .skycam-container.skycam-focus-mode .skycam-rotate-hint { display: inline-flex; }
+}
 .maintenance-card { margin-bottom: 0; }
 .layout-station,
 .layout-primary,
@@ -697,7 +786,8 @@ body.weather-loaded .unit-suffix { display: inline; }
   .skycam-caption > span { min-height: 27px; padding: 6px 7px; }
   .skycam-action { min-width: 28px; min-height: 27px; padding: 6px 7px; }
   #skycamTimelapse .skycam-action-text,
-  #skycamDownload .skycam-action-text { display: none; }
+  #skycamDownload .skycam-action-text,
+  #skycamFocus .skycam-action-text { display: none; }
 }
 
 .skycam-badge {
@@ -851,7 +941,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   body.layout-landscape .landscape-left { grid-area: left; }
   body.layout-landscape .landscape-right { grid-area: right; }
   body.layout-landscape .layout-skycam { position: relative; top: auto; }
-  body.layout-landscape .skycam-container img { min-height: 480px; }
+  body.layout-landscape .skycam-image-stage { min-height: 480px; }
 
   body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
 }
@@ -890,7 +980,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   .section-card { padding: 9px 10px; }
   .two-card-grid { grid-template-columns: 1fr; gap: 8px; }
   .metric-row { min-height: 32px; }
-  .skycam-container img { min-height: 0; }
+  .skycam-image-stage { min-height: 0; }
   .skycam-nav { width: 38px; height: 54px; }
   .skycam-caption { left: 7px; right: 7px; bottom: 7px; }
   .skycam-badge { left: 7px; top: 7px; }
@@ -1033,17 +1123,22 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 </tbody>
 </table>
 </section></div><div class="layout-stack landscape-right"><div aria-label="SkyCam" class="layout-skycam">
-<div class="skycam-container" title="Click SkyCam for fullscreen">
+<div class="skycam-container" title="SkyCam">
 <div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
 <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
+<div class="skycam-rotate-hint" id="skycamRotateHint" aria-hidden="true">↻ Landscape gives the best view</div>
 <button aria-label="Show older SkyCam image" class="skycam-nav skycam-nav-prev" id="skycamPrev" onclick="stepSkyCam(-1)" type="button">‹</button>
-<img alt="SkyCam live weather view" id="skycamImage" src="/skycam/latest.jpg"/>
+<div class="skycam-image-stage" id="skycamImageStage" aria-label="SkyCam image viewer">
+<img alt="SkyCam live weather view" class="skycam-frame is-active" id="skycamImage" src="/skycam/latest.jpg"/>
+<img alt="" aria-hidden="true" class="skycam-frame" id="skycamImageNext"/>
+</div>
 <button aria-label="Show newer SkyCam image" class="skycam-nav skycam-nav-next" disabled="" id="skycamNext" onclick="stepSkyCam(1)" type="button">›</button>
 <div class="skycam-caption">
 <span id="skycamTime">LIVE / latest</span>
 <div class="skycam-actions" aria-label="SkyCam playback controls">
 <button class="skycam-action" id="skycamTimelapse" type="button" onclick="toggleSkyCamTimelapse()" aria-label="Play the last 24 hours" aria-pressed="false" title="Play the last 24 hours"><span id="skycamTimelapseIcon" aria-hidden="true">▶</span><span class="skycam-action-text" id="skycamTimelapseLabel">Timelapse</span></button>
 <button class="skycam-action" id="skycamDownload" type="button" onclick="downloadSkyCamFrame()" aria-label="Download this SkyCam image" title="Download this image"><span aria-hidden="true">↓</span><span class="skycam-action-text">Download</span></button>
+<button class="skycam-action" id="skycamFocus" type="button" onclick="toggleSkyCamFocus()" aria-label="Maximise SkyCam" aria-pressed="false" title="Maximise SkyCam"><span id="skycamFocusIcon" aria-hidden="true">⛶</span><span class="skycam-action-text" id="skycamFocusLabel">Maximise</span></button>
 <button class="skycam-action" id="skycamLive" type="button" onclick="goSkyCamLive()" aria-label="Jump to live SkyCam image" title="Jump to live"><span aria-hidden="true">●</span><span class="skycam-action-text">Live</span></button>
 </div>
 <span id="skycamPosition">Loading history...</span>
@@ -1454,10 +1549,15 @@ const SKYCAM_HISTORY_ENDPOINT = "/skycam/history";
 const SKYCAM_TIMELAPSE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const SKYCAM_TIMELAPSE_MAX_FRAMES = 72;
 const SKYCAM_TIMELAPSE_FRAME_MS = 500;
+const SKYCAM_FADE_MS = 340;
+const SKYCAM_TIMELAPSE_FADE_MS = 180;
 let skycamHistory = [];
 let skycamHistoryIndex = -1;
 let skycamPlaying = false;
 let skycamPlaybackToken = 0;
+let skycamImageLayer = 0;
+let skycamImageTransitionToken = 0;
+let skycamFocusMode = false;
 
 function formatSkyCamTime(isoString) {
   const date = new Date(isoString);
@@ -1495,6 +1595,9 @@ function updateSkyCamControls() {
   const timelapseBtn = document.getElementById("skycamTimelapse");
   const timelapseIcon = document.getElementById("skycamTimelapseIcon");
   const timelapseLabel = document.getElementById("skycamTimelapseLabel");
+  const focusBtn = document.getElementById("skycamFocus");
+  const focusIcon = document.getElementById("skycamFocusIcon");
+  const focusLabel = document.getElementById("skycamFocusLabel");
   const badge = document.getElementById("skycamBadge");
   const timeLabel = document.getElementById("skycamTime");
   const positionLabel = document.getElementById("skycamPosition");
@@ -1521,6 +1624,14 @@ function updateSkyCamControls() {
   if (timelapseIcon) timelapseIcon.textContent = skycamPlaying ? "❚❚" : "▶";
   if (timelapseLabel) timelapseLabel.textContent = skycamPlaying ? "Pause" : "Timelapse";
 
+  if (focusBtn) {
+    focusBtn.setAttribute("aria-pressed", skycamFocusMode ? "true" : "false");
+    focusBtn.setAttribute("aria-label", skycamFocusMode ? "Exit maximised SkyCam" : "Maximise SkyCam");
+    focusBtn.title = skycamFocusMode ? "Exit maximised SkyCam" : "Maximise SkyCam";
+  }
+  if (focusIcon) focusIcon.textContent = skycamFocusMode ? "✕" : "⛶";
+  if (focusLabel) focusLabel.textContent = skycamFocusMode ? "Exit" : "Maximise";
+
   if (badge) {
     badge.textContent = skycamPlaying
       ? "SKYCAM · TIMELAPSE"
@@ -1542,17 +1653,71 @@ function updateSkyCamControls() {
   positionLabel.textContent = `${skycamHistoryIndex + 1} of ${skycamHistory.length}${live ? " · LIVE" : ""}`;
 }
 
+function getSkyCamImageLayers() {
+  return [
+    document.getElementById("skycamImage"),
+    document.getElementById("skycamImageNext"),
+  ];
+}
+
+function normalizeSkyCamImageUrl(url) {
+  try {
+    return new URL(url, document.baseURI).href;
+  } catch (error) {
+    return url;
+  }
+}
+
+async function transitionSkyCamImage(url, durationMs = SKYCAM_FADE_MS) {
+  if (!url) return false;
+
+  const layers = getSkyCamImageLayers();
+  const active = layers[skycamImageLayer];
+  const nextLayerIndex = skycamImageLayer === 0 ? 1 : 0;
+  const next = layers[nextLayerIndex];
+  if (!active || !next) return false;
+
+  const targetUrl = normalizeSkyCamImageUrl(url);
+  if (normalizeSkyCamImageUrl(active.getAttribute("src") || "") === targetUrl) return true;
+
+  const transitionToken = ++skycamImageTransitionToken;
+  const loaded = await preloadSkyCamFrame(url);
+  if (!loaded || transitionToken !== skycamImageTransitionToken) return false;
+
+  const safeDuration = Math.max(0, Number(durationMs) || 0);
+  active.style.transitionDuration = `${safeDuration}ms`;
+  next.style.transitionDuration = `${safeDuration}ms`;
+  next.src = url;
+
+  // The frame has already been decoded into the browser cache above. Moving the
+  // active class on the next animation frame gives us a true image-to-image
+  // crossfade instead of a flash to black while the new JPEG loads.
+  window.requestAnimationFrame(() => {
+    if (transitionToken !== skycamImageTransitionToken) return;
+    next.classList.add("is-active");
+    active.classList.remove("is-active");
+    skycamImageLayer = nextLayerIndex;
+  });
+
+  return true;
+}
+
 function showSkyCamHistory(index, options = {}) {
   if (!skycamHistory.length) return;
   if (options.manual !== false) stopSkyCamPlayback(false);
 
   const safeIndex = Math.max(0, Math.min(index, skycamHistory.length - 1));
   const entry = skycamHistory[safeIndex];
-  const image = document.getElementById("skycamImage");
-  if (!entry || !image) return;
+  if (!entry) return;
 
   skycamHistoryIndex = safeIndex;
-  if (image.getAttribute("src") !== entry.url) image.src = entry.url;
+  const transitionMs = Number.isFinite(options.transitionMs)
+    ? options.transitionMs
+    : (skycamPlaying ? SKYCAM_TIMELAPSE_FADE_MS : SKYCAM_FADE_MS);
+
+  transitionSkyCamImage(entry.url, transitionMs).catch((error) => {
+    console.error("SkyCam image transition error:", error);
+  });
   updateSkyCamControls();
 }
 
@@ -1581,8 +1746,9 @@ function goSkyCamLive(options = {}) {
     return;
   }
 
-  const image = document.getElementById("skycamImage");
-  if (image) image.src = `${SKYCAM_ENDPOINT}?t=${Date.now()}`;
+  transitionSkyCamImage(`${SKYCAM_ENDPOINT}?t=${Date.now()}`, SKYCAM_FADE_MS).catch((error) => {
+    console.error("SkyCam live transition error:", error);
+  });
   skycamHistoryIndex = -1;
   updateSkyCamControls();
 }
@@ -1628,7 +1794,15 @@ function sampleSkyCamTimelapseIndices() {
 function preloadSkyCamFrame(url) {
   return new Promise((resolve) => {
     const image = new Image();
-    image.onload = () => resolve(true);
+    image.decoding = "async";
+    image.onload = async () => {
+      try {
+        if (typeof image.decode === "function") await image.decode();
+      } catch (error) {
+        // The image is already loaded; decoding hints are best-effort only.
+      }
+      resolve(true);
+    };
     image.onerror = () => resolve(false);
     image.src = url;
   });
@@ -1747,6 +1921,79 @@ async function loadSkyCamHistory() {
   // If a very old selected frame has rolled out of the retained history,
   // remain at the oldest frame still available instead of unexpectedly jumping live.
   showSkyCamHistory(0, { manual: false });
+}
+
+function applySkyCamFocusState(enabled) {
+  const container = document.querySelector(".skycam-container");
+  if (!container) return;
+
+  skycamFocusMode = Boolean(enabled);
+  container.classList.toggle("skycam-focus-mode", skycamFocusMode);
+  document.body.classList.toggle("skycam-focus-open", skycamFocusMode);
+  updateSkyCamControls();
+}
+
+async function enterSkyCamFocus() {
+  const container = document.querySelector(".skycam-container");
+  if (!container || skycamFocusMode) return;
+
+  applySkyCamFocusState(true);
+
+  // Use native fullscreen where the browser supports it. iPhone Safari may not
+  // expose Element.requestFullscreen for ordinary HTML, so the CSS focus mode
+  // above is the dependable fallback and still keeps every SkyCam control usable.
+  try {
+    if (!document.fullscreenElement && typeof container.requestFullscreen === "function") {
+      await container.requestFullscreen();
+    }
+  } catch (error) {
+    // CSS focus mode remains active when native fullscreen is unavailable/denied.
+  }
+
+  // Orientation locking is best-effort and standards-compliant browsers may
+  // require native fullscreen first. The viewer still works when this is denied.
+  try {
+    if (
+      document.fullscreenElement === container &&
+      screen.orientation &&
+      typeof screen.orientation.lock === "function"
+    ) {
+      await screen.orientation.lock("landscape");
+    }
+  } catch (error) {
+    // Portrait users get a subtle landscape hint instead; never block the viewer.
+  }
+}
+
+async function exitSkyCamFocus() {
+  const container = document.querySelector(".skycam-container");
+  if (!container) return;
+
+  applySkyCamFocusState(false);
+
+  try {
+    if (screen.orientation && typeof screen.orientation.unlock === "function") {
+      screen.orientation.unlock();
+    }
+  } catch (error) {
+    // Orientation unlock is advisory only.
+  }
+
+  try {
+    if (document.fullscreenElement === container && typeof document.exitFullscreen === "function") {
+      await document.exitFullscreen();
+    }
+  } catch (error) {
+    // CSS focus state is already cleared.
+  }
+}
+
+function toggleSkyCamFocus() {
+  if (skycamFocusMode) {
+    exitSkyCamFocus();
+  } else {
+    enterSkyCamFocus();
+  }
 }
 
 function refreshSkyCam() {
@@ -1962,19 +2209,23 @@ window.addEventListener("load", () => {
 })();
 
 (function () {
-  const image = document.getElementById("skycamImage");
+  const stage = document.getElementById("skycamImageStage");
   const container = document.querySelector(".skycam-container");
-  if (!image || !container) return;
+  if (!stage || !container) return;
 
-  image.addEventListener("click", async () => {
-    try {
-      if (!document.fullscreenElement && container.requestFullscreen) {
-        await container.requestFullscreen();
-      } else if (document.fullscreenElement && document.exitFullscreen) {
-        await document.exitFullscreen();
-      }
-    } catch (error) {
-      console.warn("SkyCam fullscreen unavailable:", error);
+  // Preserve the convenient click-to-expand behavior on mouse/trackpad devices.
+  // Touch devices use the explicit maximise button so swiping frames never exits
+  // the viewer by accident.
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+  stage.addEventListener("click", () => {
+    if (finePointer.matches && !skycamFocusMode) enterSkyCamFocus();
+  });
+
+  document.addEventListener("fullscreenchange", () => {
+    if (skycamFocusMode && !document.fullscreenElement) {
+      applySkyCamFocusState(false);
+    } else if (document.fullscreenElement === container && !skycamFocusMode) {
+      applySkyCamFocusState(true);
     }
   });
 
@@ -1983,16 +2234,17 @@ window.addEventListener("load", () => {
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     if (event.key === "ArrowLeft") stepSkyCam(-1);
     if (event.key === "ArrowRight") stepSkyCam(1);
-    if (event.key === "Escape" && document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen().catch(() => {});
+    if (event.key === "Escape" && skycamFocusMode) {
+      event.preventDefault();
+      exitSkyCamFocus();
     }
   });
 
   let touchStartX = null;
-  image.addEventListener("touchstart", (event) => {
+  stage.addEventListener("touchstart", (event) => {
     if (event.touches.length === 1) touchStartX = event.touches[0].clientX;
   }, { passive: true });
-  image.addEventListener("touchend", (event) => {
+  stage.addEventListener("touchend", (event) => {
     if (touchStartX === null || !event.changedTouches.length) return;
     const delta = event.changedTouches[0].clientX - touchStartX;
     touchStartX = null;
