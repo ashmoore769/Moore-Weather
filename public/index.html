@@ -375,8 +375,8 @@ button { -webkit-tap-highlight-color: transparent; }
     "station"
     "primary"
     "skycam"
-    "conditions"
     "soil"
+    "conditions"
     "power";
   gap: 9px;
   padding-top: 10px;
@@ -615,12 +615,39 @@ body.weather-loaded .unit-suffix { display: inline; }
   height: 37px;
   border-bottom: 2px solid rgba(54, 78, 35, .72);
   background:
-    radial-gradient(ellipse at 8% 107%, #4f7337 0 11px, transparent 12px),
-    radial-gradient(ellipse at 24% 104%, #608843 0 14px, transparent 15px),
-    radial-gradient(ellipse at 42% 108%, #486b32 0 12px, transparent 13px),
-    radial-gradient(ellipse at 62% 105%, #628b45 0 15px, transparent 16px),
-    radial-gradient(ellipse at 82% 108%, #4d7236 0 13px, transparent 14px),
-    linear-gradient(180deg, #8fc365 0 47%, #56773c 48% 100%);
+    radial-gradient(ellipse at 7% 111%, #496b34 0 11px, transparent 12px),
+    radial-gradient(ellipse at 21% 106%, #5c8241 0 14px, transparent 15px),
+    radial-gradient(ellipse at 39% 110%, #42642f 0 12px, transparent 13px),
+    radial-gradient(ellipse at 58% 106%, #638a46 0 15px, transparent 16px),
+    radial-gradient(ellipse at 78% 111%, #486c34 0 13px, transparent 14px),
+    radial-gradient(ellipse at 94% 107%, #5b8140 0 12px, transparent 13px),
+    linear-gradient(180deg, #9acd6d 0 42%, #75a950 43% 58%, #4f7138 59% 100%);
+}
+.soil-surface::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 1px 0 auto;
+  height: 23px;
+  opacity: .68;
+  background-image:
+    repeating-linear-gradient(102deg, transparent 0 7px, rgba(37,83,32,.86) 7.5px 8.5px, transparent 9px 15px),
+    repeating-linear-gradient(78deg, transparent 0 10px, rgba(95,139,67,.92) 10.5px 11.5px, transparent 12px 19px);
+  background-position: 0 1px, 5px 5px;
+  background-size: 23px 22px, 29px 19px;
+}
+.soil-surface::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: auto 0 0;
+  height: 12px;
+  opacity: .58;
+  background:
+    radial-gradient(ellipse at 14% 100%, rgba(44,67,31,.75) 0 8px, transparent 9px),
+    radial-gradient(ellipse at 45% 105%, rgba(54,78,38,.66) 0 10px, transparent 11px),
+    radial-gradient(ellipse at 73% 102%, rgba(42,65,30,.72) 0 9px, transparent 10px),
+    radial-gradient(ellipse at 92% 108%, rgba(57,80,40,.64) 0 10px, transparent 11px);
 }
 .soil-surface-label {
   position: absolute;
@@ -652,6 +679,47 @@ body.weather-loaded .unit-suffix { display: inline; }
   transition: background-color .45s ease;
 }
 .soil-layer:first-child { border-top: 0; }
+.soil-layer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+.soil-layer:nth-child(1)::before {
+  opacity: .22;
+  background-image:
+    linear-gradient(112deg, transparent 0 48%, rgba(230,219,184,.50) 49% 50%, transparent 51%),
+    linear-gradient(68deg, transparent 0 58%, rgba(230,219,184,.35) 59% 60%, transparent 61%),
+    radial-gradient(ellipse, rgba(36,24,15,.55) 0 1.5px, transparent 2.5px);
+  background-size: 92px 76px, 118px 94px, 27px 23px;
+  background-position: 13px 6px, 46px 11px, 0 0;
+}
+.soil-layer:nth-child(2)::before {
+  opacity: .24;
+  background-image:
+    radial-gradient(ellipse, rgba(241,224,184,.48) 0 1.5px, transparent 2.5px),
+    radial-gradient(ellipse, rgba(34,22,14,.52) 0 2px, transparent 3px);
+  background-size: 31px 27px, 47px 39px;
+  background-position: 4px 7px, 19px 3px;
+}
+.soil-layer:nth-child(3)::before {
+  opacity: .27;
+  background-image:
+    radial-gradient(ellipse, rgba(244,225,184,.50) 0 2px, transparent 3px),
+    radial-gradient(ellipse, rgba(39,25,15,.56) 0 2.5px, transparent 3.5px);
+  background-size: 37px 31px, 54px 43px;
+  background-position: 9px 5px, 26px 14px;
+}
+.soil-layer:nth-child(4)::before {
+  opacity: .30;
+  background-image:
+    radial-gradient(ellipse, rgba(246,229,191,.55) 0 2.5px, transparent 3.5px),
+    radial-gradient(ellipse, rgba(45,29,17,.58) 0 3px, transparent 4px),
+    radial-gradient(circle, rgba(255,246,218,.36) 0 1px, transparent 2px);
+  background-size: 45px 37px, 68px 52px, 23px 19px;
+  background-position: 7px 3px, 31px 17px, 13px 8px;
+}
 .soil-layer::after {
   content: "";
   position: absolute;
@@ -663,6 +731,10 @@ body.weather-loaded .unit-suffix { display: inline; }
     radial-gradient(circle at 42% 82%, rgba(255,255,255,.18) 0 1px, transparent 1.5px);
   background-size: 31px 27px, 37px 33px, 43px 39px;
 }
+.soil-layer:nth-child(1)::after { opacity: .20; }
+.soil-layer:nth-child(2)::after { opacity: .23; }
+.soil-layer:nth-child(3)::after { opacity: .26; }
+.soil-layer:nth-child(4)::after { opacity: .30; }
 .soil-depth-scale {
   position: absolute;
   z-index: 7;
@@ -1140,7 +1212,9 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   }
   body.layout-landscape .landscape-left { grid-area: left; }
   body.layout-landscape .landscape-right { grid-area: right; }
-  body.layout-landscape .layout-skycam { position: relative; top: auto; }
+  body.layout-landscape .layout-skycam { position: relative; top: auto; order: 1; }
+  body.layout-landscape .layout-soil { order: 2; }
+  body.layout-landscape .layout-power { order: 3; }
   body.layout-landscape .skycam-image-stage { min-height: 480px; }
 
   body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
@@ -1324,7 +1398,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <span class="metric-value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></span>
 </div>
 </div>
-</section><section aria-label="Soil profile" class="panel-card section-card layout-soil">
+</section></div><div class="layout-stack landscape-right"><section aria-label="Soil profile" class="panel-card section-card layout-soil">
 <div class="section-header soil-profile-header">
 <h2 class="section-title">Soil profile</h2>
 <span class="soil-profile-badge">EnviroPro · 4 CH</span>
@@ -1347,7 +1421,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <span class="soil-depth-tick" style="--reading-y:88.889%">40 cm</span>
 </div>
 <div class="soil-probe-window" aria-hidden="true">
-<img class="soil-probe-image" src="/enviropro-4ch-probe.png" alt=""/>
+<img class="soil-probe-image" src="/enviropro-4ch-probe-clean.png" alt=""/>
 </div>
 <div class="soil-readings">
 <div class="soil-reading" id="soilDepth10" style="--reading-y:22.222%">
@@ -1372,7 +1446,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 </div>
 </div>
 </div>
-</section></div><div class="layout-stack landscape-right"><div aria-label="SkyCam" class="layout-skycam">
+</section><div aria-label="SkyCam" class="layout-skycam">
 <div class="skycam-container" title="SkyCam">
 <div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
 <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
