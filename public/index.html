@@ -652,9 +652,12 @@ body.weather-loaded .unit-suffix { display: inline; }
 .soil-surface-label {
   position: absolute;
   z-index: 8;
-  top: 7px;
+  top: 6px;
   right: 8px;
-  padding: 3px 6px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 7px;
   border-radius: 999px;
   color: rgba(255,255,255,.9);
   background: rgba(32, 48, 27, .55);
@@ -663,6 +666,14 @@ body.weather-loaded .unit-suffix { display: inline; }
   letter-spacing: .55px;
   line-height: 1;
   text-transform: uppercase;
+}
+.soil-surface-label strong {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
 }
 .soil-layers {
   position: absolute;
@@ -1385,7 +1396,6 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <div class="metric-row"><span class="metric-label">Max wind gust</span><span class="metric-value" id="peakWindGustVal">--</span></div>
 <div class="metric-row"><span class="metric-label">Radiant Δ</span><span class="metric-value" id="radiantDiffBox"><span id="radiantDiffVal">--</span></span></div>
 <div class="metric-row"><span class="metric-label">Dew margin</span><span class="metric-value" id="dewDiffBox"><span id="dewDiffVal">--</span></span></div>
-<div class="metric-row"><span class="metric-label">Garden bed</span><span class="metric-value"><span id="gardenBedTempVal">--</span><span class="unit-suffix">°C</span></span></div>
 <div class="metric-row"><span class="metric-label">Dew point</span><span class="metric-value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></span></div>
 </div>
 <div class="rain-container">
@@ -1406,7 +1416,10 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <p class="soil-profile-caption">Moisture shading by measured sensor zone · temperature shown separately</p>
 <div class="soil-profile-plot" role="group" aria-label="Live soil moisture and temperature from the EnviroPro probe at 10, 20, 30 and 40 centimetres">
 <div class="soil-surface" aria-hidden="true"></div>
-<span class="soil-surface-label" aria-hidden="true">Ground level</span>
+<span class="soil-surface-label" title="Temperature measured in the shallow soil below the surface">
+<span>Ground temp</span>
+<strong><span id="gardenBedTempVal">--</span><span class="unit-suffix">°C</span></strong>
+</span>
 <div class="soil-layers" aria-hidden="true">
 <div class="soil-layer" id="soilLayer10"></div>
 <div class="soil-layer" id="soilLayer20"></div>
