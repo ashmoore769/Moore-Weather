@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Solar System • Live Status</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f4f4f4; --panel:#ffffff; --ink:#222; --muted:#666; --border:#e5e7eb;
+      --brand:#1e3a8a; --good:#16a34a; --warn:#f59e0b; --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:13.5px/1.4 "Inter",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    .main{max-width:400px;margin:10px auto;padding:0 6px}
+    .freeze{position:sticky;top:0;background:var(--bg);z-index:10}
+    .header{background:var(--brand);color:#fff;border-radius:10px 10px 0 0;padding:6px;text-align:center}
+    .header h2{margin:0;font-size:18px;font-weight:700}
+    .panel{background:#fff;border-radius:0 0 12px 12px;box-shadow:0 2px 4px rgba(0,0,0,.08);padding:10px}
+    .controls{background:#eee;border-radius:12px;padding:6px;margin-bottom:6px;display:flex;gap:8px}
+    .controls button{flex:1;padding:6px 10px;border:0;border-radius:10px;font-weight:600;cursor:pointer;background:#FFA500;color:#4d4b47;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+    .row{display:flex;justify-content:space-between;gap:10px}
+    .stat{flex:1;background:#f7f7f7;border:1px solid #ddd;border-radius:10px;padding:8px;text-align:center}
+    .stat .label{font-size:12px;color:#444}
+    .stat .value{font-size:18px;font-weight:700;margin-top:2px}
+    .status-pill{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700;border:2px solid transparent}
+    .status-green{background:#16a34a;color:#fff;border-color:#16a34a}
+    .status-amber{color:#b45309;border-color:#f59e0b;background:#fff}
+    .status-red{color:#b91c1c;border-color:#dc2626;background:#fff}
+    hr{border:none;border-top:1px solid #e0e0e0;margin:8px 0}
+    .money{font-weight:700}
+    .muted{color:var(--muted)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    .small{font-size:12px}
+    .good{color:#16a34a;font-weight:700}
+    .amber{color:#b45309;font-weight:700}
+    .bad{color:#b91c1c;font-weight:700}
+  </style>
+</head>
+<body>
+  <div class="main">
+    <div class="freeze">
+      <div class="header"><h2>Home Solar • Live Status</h2></div>
+      <div class="panel">
+        <div class="controls">
+          <button onclick="location.href='index.html'">← Weather Dashboard</button>
+          <button onclick="refreshNow()">🔄 Refresh</button>
+        </div>
+
+        <div id="systemState" class="status-pill status-red">Waiting…</div>
+        <div class="small muted" id="tsLine" style="margin-top:6px;">Time: --</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:8px;">
+      <div class="row">
+        <div class="stat">
+          <div class="label">GRID FEED IN</div>
+          <div class="value" id="gridIn">-- W</div>
+        </div>
+        <div class="stat">
+          <div class="label">GRID FEED OUT</div>
+          <div class="value" id="gridOut">-- W</div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <div class="stat">
+          <div class="label">SOLAR SYSTEM OUT</div>
+          <div class="value" id="pvOut">-- W</div>
+        </div>
+        <div class="stat">
+          <div class="label">HOUSE LOAD</div>
+          <div class="value" id="houseLoad">-- W</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="row">
+        <div class="stat">
+          <div class="label">Exported Today</div>
+          <div class="value" id="exportToday">-- kWh</div>
+          <div class="small money">Earned @ $0.08/kWh: <span id="earnedToday">--</span> AUD</div>
+        </div>
+        <div class="stat">
+          <div class="label">Our Usage Today</div>
+          <div class="value" id="consumptionToday">-- kWh</div>
+          <div class="small">From Solar: <span id="solarUsedToday">--</span> kWh</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="row">
+        <div class="stat">
+          <div class="label">Lifetime Generation (Meter)</div>
+          <div class="value" id="lifetime">-- kWh</div>
+        </div>
+        <div class="stat">
+          <div class="label">Inverter State</div>
+          <div class="value small mono" id="invState">--</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="small muted" style="text-align:center;margin-top:8px;">
+      Updates every 10 s. Source: local Fronius API via server proxy.
+    </div>
+  </div>
+
+<script>
+const POLL_MS = 10000;
+const EARNING_RATE = 0.08; // AUD per kWh
+
+function fmtW(w){ return Math.round(w).toLocaleString('en-AU') + " W"; }
+function fmtKWh(k){ return (Math.round(k * 100)/100).toFixed(2) + " kWh"; }
+function fmtAUD(a){ return a.toLocaleString('en-AU',{style:'currency',currency:'AUD'}); }
+
+function setState(pvW, houseW, gridW){
+  // gridW: +import, -export
+  const pill = document.getElementById('systemState');
+  let cls = 'status-red', text = 'On Grid (No PV)';
+  if (pvW > 50 && gridW < -10 && pvW >= houseW) { cls='status-green'; text='Exporting (Solar > Load)'; }
+  else if (pvW > 50 && gridW >= 10) { cls='status-amber'; text='Part Grid Assist (Solar < Load)'; }
+  else if (pvW > 50 && Math.abs(gridW) <= 10) { cls='status-green'; text='Self-Sufficient (~0 Grid)'; }
+  pill.className = 'status-pill ' + cls;
+  pill.textContent = text;
+}
+
+async function fetchJSON(url){
+  const r = await fetch(url, {cache:'no-store'});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}
+
+async function refreshNow(){
+  try{
+    // live snapshot
+    const flow = await fetchJSON('/solar/powerflow');
+    const headTs = flow.Head && flow.Head.Timestamp ? flow.Head.Timestamp : null;
+    if (headTs) document.getElementById('tsLine').textContent = "Time: " + headTs;
+
+    const site = flow.Body.Data.Site;
+    const pvW = Math.max(0, site.P_PV || 0);
+    const houseW = Math.abs(site.P_Load || 0);
+    const gridW = site.P_Grid || 0;
+
+    document.getElementById('pvOut').textContent    = fmtW(pvW);
+    document.getElementById('houseLoad').textContent= fmtW(houseW);
+    document.getElementById('gridIn').textContent   = fmtW(Math.max(0, -gridW)); // export
+    document.getElementById('gridOut').textContent  = fmtW(Math.max(0, gridW));  // import
+
+    setState(pvW, houseW, gridW);
+
+    // totals & lifetime
+    const totals = await fetchJSON('/solar/today');
+    document.getElementById('exportToday').textContent = fmtKWh(totals.export_kwh);
+    document.getElementById('earnedToday').textContent = fmtAUD(totals.export_kwh * EARNING_RATE);
+    document.getElementById('consumptionToday').textContent = fmtKWh(totals.consumption_kwh);
+    document.getElementById('solarUsedToday').textContent = fmtKWh(totals.solar_used_kwh);
+    document.getElementById('lifetime').textContent = fmtKWh(totals.lifetime_kwh);
+    document.getElementById('invState').textContent = totals.inverter_state || '--';
+  }catch(e){
+    console.error(e);
+    const pill = document.getElementById('systemState');
+    pill.className = 'status-pill status-red';
+    pill.textContent = 'Error contacting server';
+  }
+}
+
+refreshNow();
+setInterval(refreshNow, POLL_MS);
+</script>
+</body>
+</html>
