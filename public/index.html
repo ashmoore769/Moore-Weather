@@ -560,23 +560,74 @@ body.weather-loaded .unit-suffix { display: inline; }
 }
 .two-card-grid .section-card { margin-bottom: 0; }
 
-.rain-container {
+.conditions-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 7px;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--brand-2) 22%, var(--border));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--brand-2) 7%, var(--surface-soft));
+}
+.conditions-feature-label,
+.condition-context {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 820;
+  letter-spacing: .55px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.conditions-feature-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10.25px;
+  font-weight: 620;
+}
+.conditions-feature-value {
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 820;
+  line-height: 1;
+  letter-spacing: -.45px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.conditions-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
-  margin-top: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
 }
-.rain-stat {
+.condition-tile {
+  min-width: 0;
   padding: 8px 9px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface-soft);
 }
-.rain-stat .metric-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
-.rain-stat .metric-value { display: block; margin-top: 3px; text-align: left; font-size: 14.5px; }
+.condition-label {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10.25px;
+  font-weight: 660;
+  line-height: 1.1;
+}
+.condition-value {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 780;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 
 .soil-profile-header { align-items: center; margin-bottom: 0; }
 .soil-profile-badge {
@@ -649,31 +700,56 @@ body.weather-loaded .unit-suffix { display: inline; }
     radial-gradient(ellipse at 73% 102%, rgba(42,65,30,.72) 0 9px, transparent 10px),
     radial-gradient(ellipse at 92% 108%, rgba(57,80,40,.64) 0 10px, transparent 11px);
 }
-.soil-surface-label {
+.soil-surface-reading {
   position: absolute;
   z-index: 8;
-  top: 6px;
-  right: 8px;
-  display: inline-flex;
-  align-items: baseline;
+  top: 4px;
+  right: 7px;
+  left: 91px;
+  display: grid;
+  grid-template-columns: 44px repeat(2, minmax(0, 1fr));
   gap: 5px;
-  padding: 4px 7px;
-  border-radius: 999px;
-  color: rgba(255,255,255,.9);
-  background: rgba(32, 48, 27, .55);
-  font-size: 8px;
-  font-weight: 850;
-  letter-spacing: .55px;
-  line-height: 1;
-  text-transform: uppercase;
+  padding: 0 5px;
+  pointer-events: none;
 }
-.soil-surface-label strong {
-  color: #fff;
-  font-size: 10px;
+.soil-surface-temperature {
+  grid-column: 2;
+  min-width: 0;
+  height: 29px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid rgba(255,255,255,.23);
+  border-left: 3px solid var(--ground-temp-color, #f4b85b);
+  border-radius: 8px;
+  color: rgba(255,255,255,.9);
+  background: rgba(22,27,31,.72);
+  box-shadow: 0 2px 7px rgba(19,13,8,.16);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.soil-surface-temperature-label {
+  overflow: hidden;
+  color: rgba(255,255,255,.68);
+  font-size: 7.25px;
   font-weight: 850;
+  letter-spacing: .4px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.soil-surface-temperature strong {
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 850;
+  line-height: 1;
   letter-spacing: 0;
   text-transform: none;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .soil-layers {
   position: absolute;
@@ -1284,6 +1360,16 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   .soil-probe-window { left: 42px; width: 44px; }
   .soil-probe-image { left: -26px; height: 296px; }
   .soil-readings { left: 84px; right: 5px; }
+  .soil-surface-reading {
+    left: 84px;
+    right: 5px;
+    grid-template-columns: 39px repeat(2, minmax(0, 1fr));
+    gap: 3px;
+    padding: 0 4px;
+  }
+  .soil-surface-temperature { padding-left: 5px; padding-right: 5px; }
+  .soil-surface-temperature-label { font-size: 6.75px; }
+  .soil-surface-temperature strong { font-size: 10.75px; }
   .soil-reading {
     grid-template-columns: 39px repeat(2, minmax(0, 1fr));
     gap: 3px;
@@ -1392,20 +1478,43 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 
 </section><section aria-label="Conditions" class="panel-card section-card layout-conditions">
 <div class="section-header"><h2 class="section-title">Conditions</h2></div>
-<div class="metric-list">
-<div class="metric-row"><span class="metric-label">Max wind gust</span><span class="metric-value" id="peakWindGustVal">--</span></div>
-<div class="metric-row"><span class="metric-label">Radiant Δ</span><span class="metric-value" id="radiantDiffBox"><span id="radiantDiffVal">--</span></span></div>
-<div class="metric-row"><span class="metric-label">Dew margin</span><span class="metric-value" id="dewDiffBox"><span id="dewDiffVal">--</span></span></div>
-<div class="metric-row"><span class="metric-label">Dew point</span><span class="metric-value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></span></div>
+<div class="conditions-feature" id="feelsLikeBox" title="Estimated from air temperature, humidity and wind speed">
+<div>
+<span class="conditions-feature-label">Feels like</span>
+<span class="conditions-feature-note" id="feelsLikeNote">Wind + humidity estimate</span>
 </div>
-<div class="rain-container">
-<div class="rain-stat">
-<span class="metric-label">Rain last minute</span>
-<span class="metric-value" id="rainInLastMinVal">--</span>
+<strong class="conditions-feature-value" id="feelsLikeVal">--</strong>
 </div>
-<div class="rain-stat">
-<span class="metric-label">Evap / hour</span>
-<span class="metric-value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></span>
+<div class="conditions-grid">
+<div class="condition-tile">
+<span class="condition-context">Condensation</span>
+<span class="condition-label">Dew point</span>
+<strong class="condition-value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></strong>
+</div>
+<div class="condition-tile">
+<span class="condition-context">Condensation</span>
+<span class="condition-label">Above dew point</span>
+<strong class="condition-value" id="dewDiffBox"><span id="dewDiffVal">--</span></strong>
+</div>
+<div class="condition-tile">
+<span class="condition-context">Wind</span>
+<span class="condition-label">Maximum gust</span>
+<strong class="condition-value" id="peakWindGustVal">--</strong>
+</div>
+<div class="condition-tile" title="Black globe temperature minus air temperature">
+<span class="condition-context">Radiation</span>
+<span class="condition-label">Globe − air</span>
+<strong class="condition-value" id="radiantDiffBox"><span id="radiantDiffVal">--</span></strong>
+</div>
+<div class="condition-tile">
+<span class="condition-context">Water</span>
+<span class="condition-label">Rain now</span>
+<strong class="condition-value" id="rainInLastMinVal">--</strong>
+</div>
+<div class="condition-tile">
+<span class="condition-context">Water</span>
+<span class="condition-label">Evaporation rate</span>
+<strong class="condition-value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></strong>
 </div>
 </div>
 </section></div><div class="layout-stack landscape-right"><section aria-label="Soil profile" class="panel-card section-card layout-soil">
@@ -1413,13 +1522,15 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <h2 class="section-title">Soil profile</h2>
 <span class="soil-profile-badge">EnviroPro · 4 CH</span>
 </div>
-<p class="soil-profile-caption">Moisture shading by measured sensor zone · temperature shown separately</p>
+<p class="soil-profile-caption">Temperature and moisture readings from the surface down to 40 cm</p>
 <div class="soil-profile-plot" role="group" aria-label="Live soil moisture and temperature from the EnviroPro probe at 10, 20, 30 and 40 centimetres">
 <div class="soil-surface" aria-hidden="true"></div>
-<span class="soil-surface-label" title="Temperature measured in the shallow soil below the surface">
-<span>Ground temp</span>
+<div class="soil-surface-reading" id="groundTempReading" title="Temperature measured in the shallow soil below the surface">
+<div class="soil-surface-temperature">
+<span class="soil-surface-temperature-label">Ground temp</span>
 <strong><span id="gardenBedTempVal">--</span><span class="unit-suffix">°C</span></strong>
-</span>
+</div>
+</div>
 <div class="soil-layers" aria-hidden="true">
 <div class="soil-layer" id="soilLayer10"></div>
 <div class="soil-layer" id="soilLayer20"></div>
@@ -1613,6 +1724,13 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   if (humidity <= 90) return "var(--humidity-very-humid)";
   return "var(--humidity-saturated)";
 }
+
+    function getApparentTemperature(temperatureC, humidityPercent, windSpeedKmh) {
+      const vapourPressure = (humidityPercent / 100) * 6.105 *
+        Math.exp((17.27 * temperatureC) / (237.7 + temperatureC));
+      const windSpeedMs = Math.max(0, windSpeedKmh) / 3.6;
+      return temperatureC + (0.33 * vapourPressure) - (0.70 * windSpeedMs) - 4.00;
+    }
  
     /*****************************
     * GLOBAL STATE & RETRIES *
@@ -1697,6 +1815,29 @@ document.getElementById("humidityVal").innerHTML = humidityFormatted;
         tempSpan.style.color = tempData.color;
         document.getElementById("tempDescVal").textContent = tempData.desc;
 
+        // BOM-style non-radiation apparent temperature: air temperature,
+        // humidity and wind speed. This is a local station estimate.
+        const apparentTemperature = getApparentTemperature(temperatureRaw, humidityRaw, windSpeed);
+        const apparentTempData = getTemperatureColorAndDesc(apparentTemperature);
+        const feelsLikeElement = document.getElementById("feelsLikeVal");
+        const feelsLikeNote = document.getElementById("feelsLikeNote");
+        const feelsLikeBox = document.getElementById("feelsLikeBox");
+        const apparentDifference = apparentTemperature - temperatureRaw;
+
+        feelsLikeElement.textContent = apparentTemperature.toFixed(1) + "°C";
+        feelsLikeElement.style.color = apparentTempData.color;
+
+        if (Math.abs(apparentDifference) < 0.5) {
+          feelsLikeNote.textContent = "Similar to the air temperature";
+        } else {
+          feelsLikeNote.textContent = `${Math.abs(apparentDifference).toFixed(1)}°C ${apparentDifference > 0 ? "warmer" : "cooler"} than the air`;
+        }
+
+        feelsLikeBox.setAttribute(
+          "aria-label",
+          `Feels like ${apparentTemperature.toFixed(1)} degrees Celsius; ${feelsLikeNote.textContent}`
+        );
+
         // Big Temperature Box: update text and container background color dynamically
         const bigTempElement = document.getElementById("bigTempVal");
         bigTempElement.textContent = temperatureRaw.toFixed(1) + "°C";
@@ -1776,8 +1917,24 @@ dewDiffBox.style.borderColor = "";
 dewDiffElem.style.color = "";
 
 
-        // GARDEN BED TEMP
-        document.getElementById("gardenBedTempVal").textContent = gardenBedTemp.toFixed(1);
+        // SHALLOW GROUND TEMPERATURE
+        const groundTempElement = document.getElementById("gardenBedTempVal");
+        const groundTempReading = document.getElementById("groundTempReading");
+        const hasGroundTemperature = Number.isFinite(gardenBedTemp);
+        groundTempElement.textContent = hasGroundTemperature ? gardenBedTemp.toFixed(1) : "--";
+
+        if (groundTempReading) {
+          groundTempReading.style.setProperty(
+            "--ground-temp-color",
+            hasGroundTemperature ? getTemperatureColorAndDesc(gardenBedTemp).color : "var(--muted)"
+          );
+          groundTempReading.setAttribute(
+            "aria-label",
+            hasGroundTemperature
+              ? `Ground temperature ${gardenBedTemp.toFixed(1)} degrees Celsius`
+              : "Ground temperature unavailable"
+          );
+        }
 
         // PRESSURE (with 1.9 hPa offset)
         let adjustedPressure = pressureRaw - 1.9;
