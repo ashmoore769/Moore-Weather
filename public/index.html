@@ -162,7 +162,7 @@ button, input { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
 
 .main-container {
-  width: min(100% - 24px, 470px);
+  width: min(100% - 24px, 500px);
   margin: 12px auto 24px;
 }
 
@@ -501,6 +501,18 @@ button { -webkit-tap-highlight-color: transparent; }
   font-size: 12.5px;
   font-weight: 650;
 }
+.primary-linked-reading {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+.primary-linked-reading strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
 .primary-meta {
   margin-top: 8px;
   display: grid;
@@ -564,6 +576,22 @@ button { -webkit-tap-highlight-color: transparent; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.quick-stat-subline {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quick-stat-subline strong {
+  color: var(--text);
+  font-weight: 780;
   font-variant-numeric: tabular-nums;
 }
 
@@ -689,6 +717,15 @@ body.weather-loaded .unit-suffix { display: inline; }
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+.condition-detail {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 620;
+  line-height: 1.1;
+}
+.condition-detail strong { color: var(--text); font-weight: 780; }
 
 .soil-profile-header { align-items: center; margin-bottom: 0; }
 .soil-profile-badge {
@@ -1360,9 +1397,12 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   }
   body.layout-landscape .landscape-left { grid-area: left; }
   body.layout-landscape .landscape-right { grid-area: right; }
+  body.layout-landscape .landscape-left .layout-station { order: 1; }
+  body.layout-landscape .landscape-left .layout-primary { order: 2; }
+  body.layout-landscape .landscape-left .layout-soil { order: 3; }
+  body.layout-landscape .landscape-left .layout-conditions { order: 4; }
   body.layout-landscape .layout-skycam { position: relative; top: auto; order: 1; }
-  body.layout-landscape .layout-soil { order: 2; }
-  body.layout-landscape .layout-power { order: 3; }
+  body.layout-landscape .layout-power { order: 2; }
   body.layout-landscape .skycam-image-stage { min-height: 480px; }
 
   body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
@@ -1511,12 +1551,16 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <div class="temp-hero">
 <div class="eyebrow">Air temperature</div>
 <div class="primary-temp" id="tempVal">--</div>
-<div class="primary-desc" id="tempDescVal">Waiting for station</div>
+<div class="primary-desc primary-linked-reading" id="feelsLikeBox" title="Estimated from air temperature, humidity and wind speed">
+<span>Feels like</span><strong id="feelsLikeVal">--</strong><span class="sr-only" id="feelsLikeNote">Wind and humidity estimate</span>
+</div>
 </div>
 <div class="temp-hero">
 <div class="eyebrow">Black globe</div>
 <div class="primary-temp" id="blackGlobeTempVal">--</div>
-<div class="primary-desc" id="blackGlobeDescVal">Waiting for station</div>
+<div class="primary-desc primary-linked-reading" id="radiantDiffBox" title="Black globe temperature minus air temperature">
+<span>Globe − air</span><strong id="radiantDiffVal">--</strong>
+</div>
 </div>
 </div>
 <div class="primary-meta">
@@ -1530,7 +1574,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 </div>
 <div class="quick-stat" style="--stat-accent:var(--accent)">
 <span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8h10.5a2.5 2.5 0 1 0-2.3-3.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.3 3.5"/><path d="M3 16h6"/></svg></span>
-<span class="quick-stat-copy"><span class="label">Wind speed</span><span class="value"><span id="windSpeedVal">--</span><span class="unit-suffix"> km/h</span></span></span>
+<span class="quick-stat-copy"><span class="label">Wind speed</span><span class="value"><span id="windSpeedVal">--</span><span class="unit-suffix"> km/h</span></span><span class="quick-stat-subline">Peak <strong id="peakWindGustVal">--</strong></span></span>
 </div>
 <div class="quick-stat" style="--stat-accent:var(--accent)">
 <span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"/></svg></span>
@@ -1542,52 +1586,27 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 </div>
 <div class="quick-stat" style="--stat-accent:var(--rain)">
 <span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 15.5h10a3.5 3.5 0 0 0 .5-7A5.5 5.5 0 0 0 7.2 7.3 4.1 4.1 0 0 0 7 15.5Z"/><path d="m8 18-1 2M12 18l-1 2M16 18l-1 2"/></svg></span>
-<span class="quick-stat-copy"><span class="label">Rain since 9AM</span><span class="value" id="rainSince9Val">--</span></span>
+<span class="quick-stat-copy"><span class="label">Rain since 9AM</span><span class="value" id="rainSince9Val">--</span><span class="quick-stat-subline">Now <strong id="rainInLastMinVal">--</strong></span></span>
 </div>
 </div>
 
 </section><section aria-label="Conditions" class="panel-card section-card layout-conditions">
 <div class="section-header"><h2 class="section-title">Conditions</h2></div>
-<div class="conditions-feature" id="feelsLikeBox" title="Estimated from air temperature, humidity and wind speed">
-<div>
-<span class="conditions-feature-label">Feels like</span>
-<span class="conditions-feature-note" id="feelsLikeNote">Wind + humidity estimate</span>
-</div>
-<strong class="conditions-feature-value" id="feelsLikeVal">--</strong>
-</div>
 <div class="conditions-grid">
 <div class="condition-tile">
 <span class="condition-context">Condensation</span>
 <span class="condition-label">Dew point</span>
 <strong class="condition-value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></strong>
-</div>
-<div class="condition-tile">
-<span class="condition-context">Condensation</span>
-<span class="condition-label">Above dew point</span>
-<strong class="condition-value" id="dewDiffBox"><span id="dewDiffVal">--</span></strong>
-</div>
-<div class="condition-tile">
-<span class="condition-context">Wind</span>
-<span class="condition-label">Maximum gust</span>
-<strong class="condition-value" id="peakWindGustVal">--</strong>
-</div>
-<div class="condition-tile" title="Black globe temperature minus air temperature">
-<span class="condition-context">Radiation</span>
-<span class="condition-label">Globe − air</span>
-<strong class="condition-value" id="radiantDiffBox"><span id="radiantDiffVal">--</span></strong>
+<span class="condition-detail" id="dewDiffBox">Air is <strong id="dewDiffVal">--</strong> <span id="dewRelationText">above</span></span>
 </div>
 <div class="condition-tile">
 <span class="condition-context">Water</span>
-<span class="condition-label">Rain now</span>
-<strong class="condition-value" id="rainInLastMinVal">--</strong>
-</div>
-<div class="condition-tile">
-<span class="condition-context">Water</span>
-<span class="condition-label">Evaporation rate</span>
+<span class="condition-label">Evaporation</span>
 <strong class="condition-value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></strong>
+<span class="condition-detail">Estimated hourly rate</span>
 </div>
 </div>
-</section></div><div class="layout-stack landscape-right"><section aria-label="Soil profile" class="panel-card section-card layout-soil">
+</section><section aria-label="Soil profile" class="panel-card section-card layout-soil">
 <div class="section-header soil-profile-header">
 <h2 class="section-title">Soil profile</h2>
 <span class="soil-profile-badge">EnviroPro · 4 CH</span>
@@ -1640,7 +1659,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 </div>
 </div>
 </div>
-</section><div aria-label="SkyCam" class="layout-skycam">
+</section></div><div class="layout-stack landscape-right"><div aria-label="SkyCam" class="layout-skycam">
 <div class="skycam-container" title="SkyCam">
 <div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
 <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
@@ -1884,7 +1903,6 @@ document.getElementById("humidityVal").innerHTML = humidityFormatted;
         tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
         tempSpan.style.color = tempData.color;
         tempSpan.closest(".temp-hero")?.style.setProperty("--hero-accent", tempData.color);
-        document.getElementById("tempDescVal").textContent = tempData.desc;
 
         // BOM-style non-radiation apparent temperature: air temperature,
         // humidity and wind speed. This is a local station estimate.
@@ -1954,8 +1972,6 @@ document.getElementById("humidityVal").innerHTML = humidityFormatted;
 const globeElem = document.getElementById("blackGlobeTempVal");
 globeElem.innerHTML = `<span style="color:${globeTempData.color}; font-weight:bold;">${blackGlobeTemp.toFixed(1)}°C</span>`;
 globeElem.closest(".temp-hero")?.style.setProperty("--hero-accent", globeTempData.color);
-const globeDescElem = document.getElementById("blackGlobeDescVal");
-if (globeDescElem) globeDescElem.textContent = globeTempData.desc;
  
 // Radiant Heat Diff Calculation
 const radiantDiff = blackGlobeTemp - temperatureRaw;
@@ -1975,10 +1991,12 @@ radiantDiffElem.style.color = "";
 const dewDiff = temperatureRaw - dewPoint;
 const dewDiffElem = document.getElementById("dewDiffVal");
 const dewDiffBox = document.getElementById("dewDiffBox");
+const dewRelationText = document.getElementById("dewRelationText");
 
-// Format +/− display
-const dewFormatted = (dewDiff >= 0 ? "+" : "") + dewDiff.toFixed(1) + "°C";
+// Express the absolute margin in plain language underneath dew point.
+const dewFormatted = Math.abs(dewDiff).toFixed(1) + "°C";
 dewDiffElem.textContent = dewFormatted;
+dewRelationText.textContent = dewDiff >= 0 ? "above" : "below";
 
 // Dew margin uses the same neutral Conditions styling as other metrics.
 dewDiffBox.style.backgroundColor = "";

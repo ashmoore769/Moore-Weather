@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="theme-color" content="#1e3a8a">
+  <meta name="theme-color" content="#123742">
   <link rel="apple-touch-icon" href="/Weather_Station_App.png">
   <title>Moore Weather · Daily Summary</title>
   <script>(function () {
@@ -35,9 +35,9 @@
   --muted: #667085;
   --border: #dce3ec;
   --border-strong: #c8d1dd;
-  --brand: #1e3a8a;
-  --brand-2: #27499e;
-  --accent: #1677ff;
+  --brand: #123742;
+  --brand-2: #176b69;
+  --accent: #178a84;
   --green: #147a42;
   --green-soft: #eaf7ef;
   --amber: #a86505;
@@ -90,9 +90,9 @@ html[data-theme="dark"] {
   --muted: #9da9b8;
   --border: #2b3745;
   --border-strong: #3a4858;
-  --brand: #24489c;
-  --brand-2: #5f8df0;
-  --accent: #68a9ff;
+  --brand: #102f39;
+  --brand-2: #62c9c0;
+  --accent: #69d2c8;
   --green: #56d58a;
   --green-soft: rgba(55,186,112,.12);
   --amber: #f6b94d;
@@ -149,7 +149,9 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .main-container { width: min(100% - 24px, 500px); margin: 12px auto 24px; }
 .freeze-pane { position: sticky; top: 0; z-index: 100; padding-top: env(safe-area-inset-top, 0); }
 .header-box {
-  background: var(--brand);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(72,160,155,.16), transparent 42%),
+    linear-gradient(115deg, #123742 0%, #102f39 58%, #172d3a 100%);
   color: white;
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   box-shadow: var(--shadow-soft);
@@ -176,10 +178,18 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .header-icon-button:hover, .desktop-layout-switcher button:hover { background: rgba(255,255,255,.2); border-color: rgba(255,255,255,.48); }
 .header-icon-button:active, .desktop-layout-switcher button:active { transform: translateY(1px); }
 .theme-label { font-size: 11px; font-weight: 700; }
-.theme-icon { font-size: 17px; line-height: 1; }
+.theme-icon { width: 17px; height: 17px; display: grid; place-items: center; line-height: 1; }
+.theme-icon svg {
+  width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.header-icon-button > svg {
+  width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
 .desktop-layout-switcher { display: none; align-items: center; gap: 4px; }
 .desktop-layout-switcher button { padding: 0; font-size: 17px; }
-.desktop-layout-switcher button.active { background: white; color: var(--brand); border-color: white; }
+.desktop-layout-switcher button.active { background: rgba(255,255,255,.94); color: #123742; border-color: rgba(255,255,255,.94); }
 
 #weatherData {
   background: var(--surface); border-radius: 0 0 var(--radius-xl) var(--radius-xl); border: 1px solid var(--border);
@@ -198,7 +208,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
   font-weight: 700; cursor: pointer; box-shadow: none; transition: background-color .15s ease, color .15s ease;
 }
 .tab-button:hover { color: var(--text); background: var(--surface); }
-.tab-button.active { background: var(--surface-raised); color: var(--brand-2); box-shadow: 0 1px 4px rgba(17,24,39,.08); }
+.tab-button.active { background: var(--surface-raised); color: var(--accent); box-shadow: 0 1px 4px rgba(17,24,39,.08); }
 .daily-status-cluster {
   display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 0 0 204px; width: 204px; min-width: 204px;
   color: var(--muted); font-size: 11.5px; font-weight: 600; white-space: nowrap;
@@ -226,7 +236,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .panel-card { border: 1px solid var(--border); background: var(--surface-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
 .summary-hero {
   display: grid; grid-template-columns: minmax(0,1.4fr) minmax(118px,.6fr); gap: 10px; align-items: stretch;
-  padding: 12px; margin-bottom: 9px; background: color-mix(in srgb, var(--brand-2) 5%, var(--surface-raised));
+  padding: 12px; margin-bottom: 9px; background: color-mix(in srgb, var(--accent) 4%, var(--surface-raised));
 }
 .summary-date-block { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .eyebrow { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .85px; text-transform: uppercase; }
@@ -234,7 +244,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .summary-help { margin-top: 5px; color: var(--muted); font-size: 11px; font-weight: 600; }
 .rain-hero {
   min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 10px 11px;
-  border-radius: 12px; background: var(--blue-soft); border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  border-radius: 12px; background: color-mix(in srgb, var(--daily-rain) 7%, var(--surface-soft)); border: 1px solid color-mix(in srgb, var(--daily-rain) 22%, var(--border));
 }
 .rain-hero .value { margin-top: 3px; color: var(--accent); font-size: 24px; font-weight: 800; letter-spacing: -.4px; white-space: nowrap; }
 .hero-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; padding-top: 2px; }
@@ -257,7 +267,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 
 .temperature-stack { display: grid; gap: 9px; }
 .temperature-band { border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); padding: 10px; }
-.temperature-band.air { background: color-mix(in srgb, var(--brand-2) 6%, var(--surface-soft)); border-color: color-mix(in srgb, var(--brand-2) 18%, var(--border)); }
+.temperature-band.air { background: color-mix(in srgb, var(--accent) 5%, var(--surface-soft)); border-color: color-mix(in srgb, var(--accent) 20%, var(--border)); }
 .temperature-band-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .temperature-band-title { color: var(--text); font-size: 12px; font-weight: 800; }
 .temperature-note { min-height: 16px; color: var(--muted); font-size: 10.5px; font-weight: 650; text-align: right; }
@@ -283,6 +293,40 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .metric-label { color: var(--muted); font-size: 12px; font-weight: 650; }
 .metric-value { color: var(--text); font-size: 12.5px; font-weight: 760; text-align: right; white-space: nowrap; }
 .descriptor-label, #frostNote, #globeNote, #gustNote, #batteryNote { color: var(--muted); font-size: 10.5px; font-weight: 650; }
+
+.title-with-icon, .rain-hero-heading, .gust-heading { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.daily-icon {
+  width: 28px; height: 28px; display: grid; place-items: center; flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--icon-accent, var(--accent)) 24%, var(--border));
+  border-radius: 8px; color: var(--icon-accent, var(--accent));
+  background: color-mix(in srgb, var(--icon-accent, var(--accent)) 8%, var(--surface-raised));
+}
+.daily-icon svg {
+  width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.temperature-band-title { display: flex; align-items: center; gap: 7px; }
+.temperature-band-title .daily-icon { width: 26px; height: 26px; }
+
+.metric-card-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.metric-card {
+  min-width: 0; min-height: 64px; display: grid; grid-template-columns: 30px minmax(0,1fr);
+  align-items: center; gap: 8px; padding: 8px 9px; border: 1px solid var(--border);
+  border-radius: 10px; background: var(--surface-soft);
+}
+.metric-card.wide { grid-column: 1 / -1; }
+.metric-card .daily-icon { width: 30px; height: 30px; }
+.metric-card-copy { min-width: 0; }
+.metric-card-label {
+  display: block; overflow: hidden; color: var(--muted); font-size: 9px; font-weight: 780;
+  letter-spacing: .42px; line-height: 1.1; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap;
+}
+.metric-card-value {
+  display: block; margin-top: 4px; overflow: hidden; color: var(--text); font-size: 14px;
+  font-weight: 790; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.metric-card-note { color: var(--muted); font-size: 9px; font-weight: 620; }
+.gust-hero .daily-icon { width: 34px; height: 34px; }
 
 .error-message {
   display: none; margin: 9px 0 0; padding: 9px 10px; border: 1px solid color-mix(in srgb, var(--red) 28%, var(--border));
@@ -322,11 +366,11 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
 
 @media only screen and (min-width: 900px) {
   .desktop-layout-switcher { display: inline-flex; }
-  body.layout-landscape .main-container { width: min(100% - 32px, 1080px); margin-top: 14px; }
+  body.layout-landscape .main-container { width: min(100% - 32px, 1280px); margin-top: 14px; }
   body.layout-landscape #weatherData { padding: 11px; }
   body.layout-landscape .summary-columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 11px; align-items: start; }
   body.layout-landscape .summary-column .section-card:last-child { margin-bottom: 0; }
-  body.layout-portrait .main-container { width: min(100% - 28px, 520px); }
+  body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
 }
 @media only screen and (max-width: 899px) { .theme-label { display: none; } }
 @media only screen and (max-width: 600px) {
@@ -358,6 +402,9 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
   .range-stat .value { font-size: 14.5px; }
   .range-stat.min .value, .range-stat.max .value { font-size: 16.5px; }
   .gust-value { font-size: 21px; }
+  .metric-card { grid-template-columns: 28px minmax(0,1fr); gap: 7px; padding: 8px; }
+  .metric-card .daily-icon { width: 28px; height: 28px; }
+  .metric-card-value { font-size: 13.5px; }
 }
 @media only screen and (max-width: 380px) {
   .brand-subtitle { max-width: 145px; }
@@ -365,6 +412,13 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
   .status-badge { flex-basis: 66px; width: 66px; }
   #dailyStatusText { flex-basis: 86px; width: 86px; font-size: 9.2px; }
   .tab-button { padding-left: 5px; padding-right: 5px; font-size: 10.7px; }
+  .metric-card { min-height: 68px; }
+  .metric-card-label {
+    overflow: visible;
+    line-height: 1.05;
+    text-overflow: clip;
+    white-space: normal;
+  }
 }
   </style>
 </head>
@@ -382,9 +436,9 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
           </div>
           <div class="header-actions">
             <button id="themeToggleBtn" class="header-icon-button" type="button" aria-label="Change theme" title="Theme">
-              <span id="themeToggleIcon" class="theme-icon">☀️</span><span id="themeToggleLabel" class="theme-label">Light</span>
+              <span id="themeToggleIcon" class="theme-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg></span><span id="themeToggleLabel" class="theme-label">Light</span>
             </button>
-            <button class="header-icon-button" type="button" aria-label="Reload page" title="Reload" onclick="location.reload()">↻</button>
+            <button class="header-icon-button" type="button" aria-label="Reload page" title="Reload" onclick="location.reload()"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></button>
             <div class="desktop-layout-switcher" aria-label="Desktop layout">
               <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')">▯</button>
               <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')">▭</button>
@@ -424,7 +478,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
             <div class="summary-help">Validated 9AM station summary</div>
           </div>
           <div class="rain-hero">
-            <span class="eyebrow">Total rainfall</span>
+            <div class="rain-hero-heading"><span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.7 12 3.5 12 3.5Z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.6"/></svg></span><span class="eyebrow">Total rainfall</span></div>
             <span id="rainTotal" class="value">--</span>
           </div>
           <div class="hero-actions">
@@ -442,7 +496,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
               <div class="temperature-stack">
                 <div class="temperature-band air">
                   <div class="temperature-band-header">
-                    <span class="temperature-band-title">Air temperature</span>
+                    <span class="temperature-band-title"><span class="daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0V5Z"/><path d="M12 9v7"/></svg></span>Air temperature</span>
                     <span id="frostNote" class="temperature-note"></span>
                   </div>
                   <div class="range-grid">
@@ -454,7 +508,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
 
                 <div class="temperature-band">
                   <div class="temperature-band-header">
-                    <span class="temperature-band-title">Black globe</span>
+                    <span class="temperature-band-title"><span class="daily-icon" style="--icon-accent:var(--daily-solar-moderate)" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg></span>Black globe</span>
                     <span id="globeNote" class="temperature-note"></span>
                   </div>
                   <div class="range-grid">
@@ -465,7 +519,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
                 </div>
 
                 <div class="temperature-band">
-                  <div class="temperature-band-header"><span class="temperature-band-title">Garden bed</span></div>
+                  <div class="temperature-band-header"><span class="temperature-band-title"><span class="daily-icon" style="--icon-accent:var(--daily-garden-cool)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0V5Z"/><path d="M12 9v7"/><path d="M4 19h4M16 19h4"/></svg></span>Ground temperature</span></div>
                   <div class="range-grid">
                     <div class="range-stat min"><span class="label">Minimum</span><span class="value"><span id="dirtMin">--</span>°C</span></div>
                     <div class="range-stat"><span class="label">Average</span><span class="value"><span id="dirtAvg">--</span>°C</span></div>
@@ -477,10 +531,10 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
 
             <section class="panel-card section-card">
               <div class="section-header"><h2 class="section-title">Ground & station</h2></div>
-              <div class="metric-list">
-                <div class="metric-row"><span class="metric-label">Soil temperature · 10cm</span><span class="metric-value"><span id="soilTemp">--</span>°C</span></div>
-                <div class="metric-row"><span class="metric-label">Soil moisture · 10cm</span><span class="metric-value"><span id="soilMoisture">--</span>%</span></div>
-                <div class="metric-row"><span class="metric-label">Battery minimum</span><span class="metric-value"><span id="batteryMin">--</span> <span id="batteryUnit">V</span> <span id="batteryNote"></span></span></div>
+              <div class="metric-card-grid">
+                <div class="metric-card"><span class="daily-icon" style="--icon-accent:var(--daily-garden-cool)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0V5Z"/><path d="M12 9v7"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Soil temp · 10cm</span><strong class="metric-card-value"><span id="soilTemp">--</span>°C</strong></span></div>
+                <div class="metric-card"><span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.7 12 3.5 12 3.5Z"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Soil moisture · 10cm</span><strong class="metric-card-value"><span id="soilMoisture">--</span>%</strong></span></div>
+                <div class="metric-card wide"><span class="daily-icon" style="--icon-accent:var(--daily-battery-good)" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="15" height="10" rx="2"/><path d="M19 10h2v4h-2M7 10v4M10 10v4M13 10v4"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Battery minimum</span><strong class="metric-card-value"><span id="batteryMin">--</span> <span id="batteryUnit">V</span> <span id="batteryNote" class="metric-card-note"></span></strong></span></div>
               </div>
             </section>
           </div>
@@ -489,25 +543,25 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
             <section class="panel-card section-card">
               <div class="section-header"><h2 class="section-title">Wind</h2></div>
               <div class="gust-hero">
-                <div><span class="eyebrow">Peak gust</span><div class="gust-value"><span id="gustPeak">--</span> <span id="gustUnit">km/h</span></div></div>
+                <div class="gust-heading"><span class="daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8h10.5a2.5 2.5 0 1 0-2.3-3.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.3 3.5"/><path d="M3 16h6"/></svg></span><div><span class="eyebrow">Peak gust</span><div class="gust-value"><span id="gustPeak">--</span> <span id="gustUnit">km/h</span></div></div></div>
                 <span id="gustNote" class="gust-note"></span>
               </div>
-              <div class="quick-grid">
-                <div class="quick-stat"><span class="label">Average speed</span><span class="value"><span id="windAvg">--</span> km/h</span></div>
-                <div class="quick-stat"><span class="label">Maximum speed</span><span class="value"><span id="windMax">--</span> km/h</span></div>
-                <div class="quick-stat" style="grid-column:1/-1"><span class="label">Average direction</span><span class="value"><span id="windDir">--</span>° (<span id="windDirText">--</span>)</span></div>
+              <div class="metric-card-grid">
+                <div class="metric-card"><span class="daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9h12a2 2 0 1 0-1.8-2.8"/><path d="M3 13h16"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Average speed</span><strong class="metric-card-value"><span id="windAvg">--</span> km/h</strong></span></div>
+                <div class="metric-card"><span class="daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8h12a2.5 2.5 0 1 0-2.3-3.5"/><path d="M3 12h16M3 16h9"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Maximum speed</span><strong class="metric-card-value"><span id="windMax">--</span> km/h</strong></span></div>
+                <div class="metric-card wide"><span class="daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Average direction</span><strong class="metric-card-value"><span id="windDir">--</span>° (<span id="windDirText">--</span>)</strong></span></div>
               </div>
             </section>
 
             <section class="panel-card section-card">
               <div class="section-header"><h2 class="section-title">Atmosphere & water</h2></div>
-              <div class="metric-list">
-                <div class="metric-row"><span class="metric-label">Average humidity</span><span class="metric-value"><span id="humidityAvg">--</span><span id="humidityUnit">%</span><span id="humidityDesc" class="descriptor-label"></span></span></div>
-                <div class="metric-row"><span class="metric-label">Average dew point</span><span class="metric-value"><span id="dewAvg">--</span>°C</span></div>
-                <div class="metric-row"><span class="metric-label">Average pressure</span><span class="metric-value"><span id="pressureAvg">--</span> <span id="pressureUnit">hPa</span> <span id="pressureFish"></span></span></div>
-                <div class="metric-row"><span class="metric-label">Total daily evap</span><span class="metric-value"><span id="evapTotal">--</span> mm</span></div>
-                <div class="metric-row"><span class="metric-label">Solar radiation max</span><span class="metric-value"><span id="solarMax">--</span> <span id="solarMaxUnit">W/m²</span></span></div>
-                <div class="metric-row"><span class="metric-label">Solar radiation average</span><span class="metric-value"><span id="solarAvg">--</span> W/m²</span></div>
+              <div class="metric-card-grid">
+                <div class="metric-card"><span class="daily-icon" style="--icon-accent:var(--daily-humidity-humid)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.7 12 3.5 12 3.5Z"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Average humidity</span><strong class="metric-card-value"><span id="humidityAvg">--</span><span id="humidityUnit">%</span><span id="humidityDesc" class="descriptor-label"></span></strong></span></div>
+                <div class="metric-card"><span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4.5S8 9.2 8 12.5a4 4 0 0 0 8 0C16 9.2 12 4.5 12 4.5Z"/><path d="M5 19h14"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Average dew point</span><strong class="metric-card-value"><span id="dewAvg">--</span>°C</strong></span></div>
+                <div class="metric-card"><span class="daily-icon" style="--icon-accent:var(--daily-pressure-high)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 17a7 7 0 1 1 14 0"/><path d="m12 14 3.2-3.2M7 17h10"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Average pressure</span><strong class="metric-card-value"><span id="pressureAvg">--</span> <span id="pressureUnit">hPa</span><span id="pressureFish"></span></strong></span></div>
+                <div class="metric-card"><span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 15a3 3 0 0 0 6 0c0-2.5-3-6-3-6s-3 3.5-3 6Z"/><path d="M18 8V4m0 0-2 2m2-2 2 2"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Total evaporation</span><strong class="metric-card-value"><span id="evapTotal">--</span> mm</strong></span></div>
+                <div class="metric-card"><span class="daily-icon" style="--icon-accent:var(--daily-solar-strong)" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Solar maximum</span><strong class="metric-card-value"><span id="solarMax">--</span> <span id="solarMaxUnit">W/m²</span></strong></span></div>
+                <div class="metric-card"><span class="daily-icon" style="--icon-accent:var(--daily-solar-moderate)" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg></span><span class="metric-card-copy"><span class="metric-card-label">Solar average</span><strong class="metric-card-value"><span id="solarAvg">--</span> W/m²</strong></span></div>
               </div>
             </section>
           </div>
@@ -516,7 +570,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
         <div class="compat-data" aria-hidden="true">
           <span id="tempBoxValue">--</span><span id="tempBoxLabel">Min Temp</span>
           <span id="globeTempBoxValue">--</span><span id="globeTempBoxLabel">Globe Min</span>
-          <span id="gardenTempBoxValue">--</span><span id="gardenTempBoxLabel">Garden Avg</span>
+          <span id="gardenTempBoxValue">--</span><span id="gardenTempBoxLabel">Ground Avg</span>
           <span id="gustBoxValue">--</span><span id="gustBoxLabel">Peak Gust</span>
         </div>
 
@@ -543,7 +597,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
       if (status && status.dailyUpToDate) {
         forceBtn.disabled = true;
         forceBtn.classList.add("up-to-date");
-        forceBtn.textContent = "✅ Summary Up To Date";
+        forceBtn.textContent = "Summary up to date";
         return;
       }
 
@@ -810,7 +864,7 @@ const gardenTempBoxLabel = document.getElementById("gardenTempBoxLabel");
 
 if (!isNaN(dirtAvg)) {
   gardenTempBoxValue.textContent = `${dirtAvg}°C`;
-  gardenTempBoxLabel.textContent = "Garden Avg";
+  gardenTempBoxLabel.textContent = "Ground Avg";
 
   // Optional theme coloring
   if (dirtAvg >= 30) gardenTempBoxValue.style.color = "var(--daily-garden-hot)"; // hot
@@ -821,7 +875,7 @@ if (!isNaN(dirtAvg)) {
   gardenTempBoxValue.style.fontWeight = "bold";
 } else {
   gardenTempBoxValue.textContent = "--";
-  gardenTempBoxLabel.textContent = "Garden Avg";
+  gardenTempBoxLabel.textContent = "Ground Avg";
 }
 document.getElementById("dirtAvg").textContent = !isNaN(dirtAvg) ? dirtAvg.toFixed(1) : "--";
       document.getElementById("windMax").textContent = vals[0] || "--";
@@ -841,15 +895,14 @@ if (!isNaN(gustPeak)) {
   gustInline.style.fontWeight = "bold";
   gustUnitElem.style.fontWeight = "bold";
 
-  let color = "var(--daily-gust-calm)", desc = "(Calm)";
+  let color = "var(--daily-gust-calm)", desc = "Calm";
 
-  if (gustPeak < 10) { color = "var(--daily-gust-calm)"; desc = "(Calm)"; }
-  else if (gustPeak < 20) { color = "var(--daily-gust-light)"; desc = "(Light 🍃)"; }
-  else if (gustPeak < 30) { color = "var(--daily-gust-breezy)"; desc = "(Breezy)"; }
-  else if (gustPeak < 40) { color = "var(--daily-gust-windy)"; desc = "(Windy)"; }
-  else                   { color = "var(--daily-gust-strong)"; desc = "(Strong Gusts)"; }
+  if (gustPeak < 10) { color = "var(--daily-gust-calm)"; desc = "Calm"; }
+  else if (gustPeak < 20) { color = "var(--daily-gust-light)"; desc = "Light"; }
+  else if (gustPeak < 30) { color = "var(--daily-gust-breezy)"; desc = "Breezy"; }
+  else if (gustPeak < 40) { color = "var(--daily-gust-windy)"; desc = "Windy"; }
+  else                   { color = "var(--daily-gust-strong)"; desc = "Strong gusts"; }
 
-  // 👉 add these two lines so the big box matches
   gustBoxValue.style.color = color;
   gustBoxValue.style.fontWeight = "bold";
 
@@ -889,7 +942,6 @@ if (!isNaN(gustPeak)) {
           pressureElem.style.fontWeight = "bold";
           pressureUnitElem.style.color = "var(--daily-pressure-high)";
           pressureUnitElem.style.fontWeight = "bold";
-          pressureFishElem.textContent = "🐟";
         }
       } else {
         pressureElem.textContent = "--";
@@ -1000,6 +1052,12 @@ if (!isNaN(batteryMin)) {
   const button = document.getElementById("themeToggleBtn");
   const label = document.getElementById("themeToggleLabel");
   const icon = document.getElementById("themeToggleIcon");
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+
+  const THEME_ICONS = {
+    light: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>',
+    dark: '<svg viewBox="0 0 24 24"><path d="M20 14.3A8 8 0 0 1 9.7 4a8 8 0 1 0 10.3 10.3Z"/></svg>'
+  };
 
   function getSavedTheme() {
     try {
@@ -1029,7 +1087,8 @@ if (!isNaN(batteryMin)) {
       button.title = `${currentLabel} theme active · switch to ${targetLabel}`;
     }
     if (label) label.textContent = currentLabel;
-    if (icon) icon.textContent = current === "dark" ? "🌙" : "☀️";
+    if (icon) icon.innerHTML = THEME_ICONS[current];
+    if (themeColor) themeColor.content = current === "dark" ? "#102f39" : "#123742";
   }
 
   if (button) {
