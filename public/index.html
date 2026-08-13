@@ -6,7 +6,12 @@
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <meta content="noindex, nofollow, noarchive" name="robots"/>
 <meta content="#123742" name="theme-color"/>
-<link href="/Weather_Station_App.png" rel="apple-touch-icon"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Moore Weather" name="apple-mobile-web-app-title"/>
+<link href="/site.webmanifest" rel="manifest"/>
+<link href="/moore-weather-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
+<link href="/favicon.png" rel="icon" sizes="64x64" type="image/png"/>
 <title>Moore Weather · West Warwick</title>
 <script>(function () {
   try {
@@ -393,7 +398,6 @@ button { -webkit-tap-highlight-color: transparent; }
     "primary"
     "skycam"
     "soil"
-    "conditions"
     "power";
   gap: 9px;
   padding-top: 10px;
@@ -401,7 +405,6 @@ button { -webkit-tap-highlight-color: transparent; }
 .layout-station { grid-area: station; margin-bottom: 0; }
 .layout-primary { grid-area: primary; margin-bottom: 0; }
 .layout-skycam { grid-area: skycam; min-width: 0; }
-.layout-conditions { grid-area: conditions; margin-bottom: 0; }
 .layout-soil { grid-area: soil; margin-bottom: 0; }
 .layout-power { grid-area: power; margin-top: 0; margin-bottom: 0; }
 .layout-stack { display: contents; }
@@ -761,7 +764,7 @@ body.weather-loaded .unit-suffix { display: inline; }
   position: absolute;
   z-index: 5;
   inset: 0 0 auto;
-  height: 37px;
+  height: 47px;
   border-bottom: 2px solid rgba(54, 78, 35, .72);
   background:
     radial-gradient(ellipse at 7% 111%, #496b34 0 11px, transparent 12px),
@@ -777,7 +780,7 @@ body.weather-loaded .unit-suffix { display: inline; }
   position: absolute;
   z-index: 1;
   inset: 1px 0 auto;
-  height: 23px;
+  height: 31px;
   opacity: .68;
   background-image:
     repeating-linear-gradient(102deg, transparent 0 7px, rgba(37,83,32,.86) 7.5px 8.5px, transparent 9px 15px),
@@ -803,22 +806,46 @@ body.weather-loaded .unit-suffix { display: inline; }
   z-index: 8;
   top: 4px;
   right: 7px;
-  left: 91px;
+  left: 64px;
   display: grid;
   grid-template-columns: 44px repeat(2, minmax(0, 1fr));
   gap: 5px;
   padding: 0 5px;
   pointer-events: none;
 }
+.soil-surface-depth {
+  grid-column: 1;
+  min-width: 0;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 8px;
+  color: rgba(255,255,255,.9);
+  background: rgba(22,27,31,.68);
+  font-size: 9.5px;
+  font-weight: 850;
+  line-height: 1.05;
+  text-align: center;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.soil-surface-depth span {
+  display: block;
+  font-size: 8px;
+  opacity: .72;
+}
 .soil-surface-temperature {
   grid-column: 2;
   min-width: 0;
-  height: 29px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
+  height: 39px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 7px;
   border: 1px solid rgba(255,255,255,.23);
   border-left: 3px solid var(--ground-temp-color, #f4b85b);
   border-radius: 8px;
@@ -829,13 +856,11 @@ body.weather-loaded .unit-suffix { display: inline; }
   -webkit-backdrop-filter: blur(4px);
 }
 .soil-surface-temperature-label {
-  overflow: hidden;
   color: rgba(255,255,255,.68);
   font-size: 7.25px;
   font-weight: 850;
   letter-spacing: .4px;
   line-height: 1;
-  text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -852,7 +877,7 @@ body.weather-loaded .unit-suffix { display: inline; }
 .soil-layers {
   position: absolute;
   z-index: 1;
-  inset: 37px 0 0;
+  inset: 47px 0 0;
   display: grid;
   grid-template-rows: 3fr 2fr 2fr 2fr;
 }
@@ -920,45 +945,12 @@ body.weather-loaded .unit-suffix { display: inline; }
 .soil-layer:nth-child(2)::after { opacity: .23; }
 .soil-layer:nth-child(3)::after { opacity: .26; }
 .soil-layer:nth-child(4)::after { opacity: .30; }
-.soil-depth-scale {
-  position: absolute;
-  z-index: 7;
-  inset: 37px auto 0 0;
-  width: 42px;
-  border-right: 1px solid rgba(255,255,255,.24);
-  background: linear-gradient(90deg, rgba(26,20,15,.42), rgba(26,20,15,.12));
-  color: rgba(255,255,255,.9);
-  font-size: 9px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-.soil-depth-zero {
-  position: absolute;
-  top: 3px;
-  right: 6px;
-  opacity: .78;
-}
-.soil-depth-tick {
-  position: absolute;
-  right: 6px;
-  top: var(--reading-y);
-  transform: translateY(-50%);
-  white-space: nowrap;
-}
-.soil-depth-tick::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: calc(100% + 5px);
-  width: 6px;
-  border-top: 1px solid rgba(255,255,255,.65);
-}
 .soil-probe-window {
   position: absolute;
   z-index: 4;
   top: 18px;
   bottom: 7px;
-  left: 44px;
+  left: 16px;
   width: 48px;
   overflow: hidden;
   pointer-events: none;
@@ -976,7 +968,7 @@ body.weather-loaded .unit-suffix { display: inline; }
 .soil-readings {
   position: absolute;
   z-index: 6;
-  inset: 37px 7px 0 91px;
+  inset: 47px 7px 0 64px;
 }
 .soil-reading {
   position: absolute;
@@ -1003,14 +995,14 @@ body.weather-loaded .unit-suffix { display: inline; }
   position: absolute;
   top: 50%;
   right: 100%;
-  width: 38px;
+  width: 24px;
   border-top: 1px solid rgba(255,255,255,.62);
 }
 .soil-reading::after {
   content: "";
   position: absolute;
   top: 50%;
-  right: calc(100% + 36px);
+  right: calc(100% + 24px);
   width: 7px;
   height: 7px;
   border: 2px solid rgba(255,255,255,.85);
@@ -1093,7 +1085,8 @@ body.weather-loaded .unit-suffix { display: inline; }
   pointer-events: none;
   will-change: opacity;
 }
-.skycam-frame.is-active { opacity: 1; }
+.skycam-frame.is-active { z-index: 1; opacity: 1; }
+.skycam-frame.is-entering { z-index: 2; }
 
 .skycam-container:fullscreen,
 .skycam-container.skycam-focus-mode {
@@ -1400,7 +1393,6 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   body.layout-landscape .landscape-left .layout-station { order: 1; }
   body.layout-landscape .landscape-left .layout-primary { order: 2; }
   body.layout-landscape .landscape-left .layout-soil { order: 3; }
-  body.layout-landscape .landscape-left .layout-conditions { order: 4; }
   body.layout-landscape .layout-skycam { position: relative; top: auto; order: 1; }
   body.layout-landscape .layout-power { order: 2; }
   body.layout-landscape .skycam-image-stage { min-height: 480px; }
@@ -1448,6 +1440,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   .quick-stat-icon svg { width: 16px; height: 16px; }
   .quick-stat .label { font-size: 8.75px; }
   .quick-stat .value { font-size: 15px; }
+  .quick-stat.evap-stat .value { font-size: 13.75px; }
   .section-card { padding: 9px 10px; }
   .soil-profile-plot { height: 330px; }
   .soil-probe-image { height: 306px; }
@@ -1467,16 +1460,19 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   #freshnessText { flex-basis: 99px; width: 99px; font-size: 9.25px; }
   .primary-temp { font-size: 28px; }
   .soil-profile-plot { height: 320px; }
-  .soil-probe-window { left: 42px; width: 44px; }
+  .soil-probe-window { left: 14px; width: 44px; }
   .soil-probe-image { left: -26px; height: 296px; }
-  .soil-readings { left: 84px; right: 5px; }
+  .soil-readings { left: 57px; right: 5px; }
   .soil-surface-reading {
-    left: 84px;
+    left: 57px;
     right: 5px;
     grid-template-columns: 39px repeat(2, minmax(0, 1fr));
     gap: 3px;
     padding: 0 4px;
   }
+  .soil-reading::before { width: 21px; }
+  .soil-reading::after { right: calc(100% + 21px); }
+  .soil-surface-depth { height: 39px; font-size: 8.5px; }
   .soil-surface-temperature { padding-left: 5px; padding-right: 5px; }
   .soil-surface-temperature-label { font-size: 6.75px; }
   .soil-surface-temperature strong { font-size: 10.75px; }
@@ -1588,24 +1584,16 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 15.5h10a3.5 3.5 0 0 0 .5-7A5.5 5.5 0 0 0 7.2 7.3 4.1 4.1 0 0 0 7 15.5Z"/><path d="m8 18-1 2M12 18l-1 2M16 18l-1 2"/></svg></span>
 <span class="quick-stat-copy"><span class="label">Rain since 9AM</span><span class="value" id="rainSince9Val">--</span><span class="quick-stat-subline">Now <strong id="rainInLastMinVal">--</strong></span></span>
 </div>
+<div class="quick-stat" style="--stat-accent:var(--rain)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4.5S8 9.2 8 12.5a4 4 0 0 0 8 0C16 9.2 12 4.5 12 4.5Z"/><path d="M5 19h14"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Dew point</span><span class="value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></span><span class="quick-stat-subline" id="dewDiffBox">Air is <strong id="dewDiffVal">--</strong> <span id="dewRelationText">above</span></span></span>
+</div>
+<div class="quick-stat evap-stat" style="--stat-accent:var(--rain)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 15a3 3 0 0 0 6 0c0-2.5-3-6-3-6s-3 3.5-3 6Z"/><path d="M18 8V4m0 0-2 2m2-2 2 2"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Evaporation</span><span class="value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></span><span class="quick-stat-subline">Hourly estimate</span></span>
+</div>
 </div>
 
-</section><section aria-label="Conditions" class="panel-card section-card layout-conditions">
-<div class="section-header"><h2 class="section-title">Conditions</h2></div>
-<div class="conditions-grid">
-<div class="condition-tile">
-<span class="condition-context">Condensation</span>
-<span class="condition-label">Dew point</span>
-<strong class="condition-value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></strong>
-<span class="condition-detail" id="dewDiffBox">Air is <strong id="dewDiffVal">--</strong> <span id="dewRelationText">above</span></span>
-</div>
-<div class="condition-tile">
-<span class="condition-context">Water</span>
-<span class="condition-label">Evaporation</span>
-<strong class="condition-value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></strong>
-<span class="condition-detail">Estimated hourly rate</span>
-</div>
-</div>
 </section><section aria-label="Soil profile" class="panel-card section-card layout-soil">
 <div class="section-header soil-profile-header">
 <h2 class="section-title">Soil profile</h2>
@@ -1615,6 +1603,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <div class="soil-profile-plot" role="group" aria-label="Live soil moisture and temperature from the EnviroPro probe at 10, 20, 30 and 40 centimetres">
 <div class="soil-surface" aria-hidden="true"></div>
 <div class="soil-surface-reading" id="groundTempReading" title="Temperature measured in the shallow soil below the surface">
+<div class="soil-surface-depth" aria-hidden="true">0<span>cm</span></div>
 <div class="soil-surface-temperature">
 <span class="soil-surface-temperature-label">Ground temp</span>
 <strong><span id="gardenBedTempVal">--</span><span class="unit-suffix">°C</span></strong>
@@ -1625,13 +1614,6 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <div class="soil-layer" id="soilLayer20"></div>
 <div class="soil-layer" id="soilLayer30"></div>
 <div class="soil-layer" id="soilLayer40"></div>
-</div>
-<div class="soil-depth-scale" aria-hidden="true">
-<span class="soil-depth-zero">0</span>
-<span class="soil-depth-tick" style="--reading-y:22.222%">10</span>
-<span class="soil-depth-tick" style="--reading-y:44.444%">20</span>
-<span class="soil-depth-tick" style="--reading-y:66.667%">30</span>
-<span class="soil-depth-tick" style="--reading-y:88.889%">40 cm</span>
 </div>
 <div class="soil-probe-window" aria-hidden="true">
 <img class="soil-probe-image" src="/enviropro-4ch-probe-clean.png" alt=""/>
@@ -2303,20 +2285,47 @@ async function transitionSkyCamImage(url, durationMs = SKYCAM_FADE_MS) {
   if (!loaded || transitionToken !== skycamImageTransitionToken) return false;
 
   const safeDuration = Math.max(0, Number(durationMs) || 0);
-  active.style.transitionDuration = `${safeDuration}ms`;
-  next.style.transitionDuration = `${safeDuration}ms`;
   next.src = url;
+  next.classList.remove("is-active");
+  next.classList.add("is-entering");
+  next.style.transitionDuration = "0ms";
 
-  // The frame has already been decoded into the browser cache above. Moving the
-  // active class on the next animation frame gives us a true image-to-image
-  // crossfade instead of a flash to black while the new JPEG loads.
-  window.requestAnimationFrame(() => {
-    if (transitionToken !== skycamImageTransitionToken) return;
-    next.classList.add("is-active");
-    active.classList.remove("is-active");
-    skycamImageLayer = nextLayerIndex;
+  // Keep the previous frame completely opaque underneath the incoming frame.
+  // Only the new frame fades, which prevents the two opacities dipping together
+  // and briefly exposing the black SkyCam stage on Safari/iOS.
+  void next.offsetWidth;
+  next.style.transitionDuration = `${safeDuration}ms`;
+
+  await new Promise((resolve) => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      next.removeEventListener("transitionend", onTransitionEnd);
+      resolve();
+    };
+    const onTransitionEnd = (event) => {
+      if (event.target === next && event.propertyName === "opacity") finish();
+    };
+
+    next.addEventListener("transitionend", onTransitionEnd);
+    window.setTimeout(finish, safeDuration + 90);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (transitionToken !== skycamImageTransitionToken) return finish();
+        next.classList.add("is-active");
+        if (safeDuration === 0) finish();
+      });
+    });
   });
 
+  if (transitionToken !== skycamImageTransitionToken) {
+    return false;
+  }
+
+  active.classList.remove("is-active");
+  next.classList.remove("is-entering");
+  skycamImageLayer = nextLayerIndex;
   return true;
 }
 

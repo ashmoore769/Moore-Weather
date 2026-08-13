@@ -122,9 +122,19 @@ app.use(express.urlencoded({ extended: false, limit: "2kb" }));
 const AUTH_COOKIE_NAME = "moore_auth";
 const AUTH_VERSION = process.env.MOORE_AUTH_VERSION || "1";
 const configuredAuthMaxAgeDays = Number(process.env.MOORE_AUTH_MAX_AGE_DAYS);
-const AUTH_MAX_AGE_DAYS = Number.isFinite(configuredAuthMaxAgeDays)
-  ? Math.min(3650, Math.max(1, configuredAuthMaxAgeDays))
-  : 730;
+// This portal deliberately uses a remembered-device login. Treat an old
+// one-day environment value as stale configuration rather than unexpectedly
+// signing every user out overnight. Explicit lifetimes of 30–3650 days remain
+// configurable; otherwise the secure default is two years.
+const AUTH_MAX_AGE_DAYS =
+  Number.isFinite(configuredAuthMaxAgeDays) && configuredAuthMaxAgeDays >= 30
+    ? Math.min(3650, configuredAuthMaxAgeDays)
+    : 730;
+if (Number.isFinite(configuredAuthMaxAgeDays) && configuredAuthMaxAgeDays < 30) {
+  logger.warn(
+    `[AUTH] Ignoring short MOORE_AUTH_MAX_AGE_DAYS=${configuredAuthMaxAgeDays}; using ${AUTH_MAX_AGE_DAYS} days`
+  );
+}
 const AUTH_MAX_AGE_MS = AUTH_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
 const AUTH_REFRESH_AFTER_MS = Math.min(
   AUTH_MAX_AGE_MS / 4,
@@ -255,23 +265,30 @@ function parseCookies(req) {
   return cookies;
 }
 
-function authCookieOptions(maxAge = AUTH_MAX_AGE_MS) {
+function authCookieOptions(maxAge = AUTH_MAX_AGE_MS, now = Date.now()) {
   return {
     httpOnly: true,
     secure: process.env.RENDER === "true" || process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge,
+    expires: new Date(now + maxAge),
   };
 }
 
 function setAuthCookie(res) {
-  res.cookie(AUTH_COOKIE_NAME, createAuthToken(), authCookieOptions());
+  const now = Date.now();
+  res.cookie(
+    AUTH_COOKIE_NAME,
+    createAuthToken(now),
+    authCookieOptions(AUTH_MAX_AGE_MS, now)
+  );
 }
 
 function clearAuthCookie(res) {
-  const options = authCookieOptions(0);
+  const options = authCookieOptions();
   delete options.maxAge;
+  delete options.expires;
   res.clearCookie(AUTH_COOKIE_NAME, options);
 }
 
@@ -352,13 +369,25 @@ app.get("/robots.txt", (req, res) => {
   res.send("User-agent: *\nDisallow: /\n");
 });
 
-// The station icon is the only public image. It lets the login screen retain
-// Moore Weather branding without exposing weather data, SkyCam or app assets.
-app.get("/Weather_Station_App.png", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "Weather_Station_App.png"));
-});
+// Public branding metadata lets browsers install the portal before/after the
+// authenticated application shell without exposing readings or SkyCam data.
+const PUBLIC_APP_ASSETS = new Map([
+  ["/Weather_Station_App.png", "Weather_Station_App.png"],
+  ["/moore-weather-touch-icon.png", "moore-weather-touch-icon.png"],
+  ["/apple-touch-icon.png", "apple-touch-icon.png"],
+  ["/icon-192.png", "icon-192.png"],
+  ["/icon-512.png", "icon-512.png"],
+  ["/favicon.png", "favicon.png"],
+  ["/favicon.ico", "favicon.png"],
+  ["/site.webmanifest", "site.webmanifest"],
+]);
 
-app.get("/favicon.ico", (req, res) => res.status(204).end());
+for (const [route, filename] of PUBLIC_APP_ASSETS) {
+  app.get(route, (req, res) => {
+    res.set("Cache-Control", "public, max-age=86400");
+    res.sendFile(path.join(__dirname, "public", filename));
+  });
+}
 
 app.get("/login", (req, res) => {
   const nextPath = safeReturnPath(req.query.next);
@@ -421,10 +450,12 @@ app.use((req, res, next) => {
     return res.status(401).send("Authentication required.");
   }
 
-  // Long-lived cookie with sliding renewal. Once a cookie is at least 30 days
-  // old (or one quarter of a shorter configured lifetime), any normal use
-  // renews the full remembered-device period.
-  if (Date.now() - payload.iat >= AUTH_REFRESH_AFTER_MS) {
+  // Long-lived cookie with sliding renewal. Also upgrade any still-valid token
+  // issued under the former one-day configuration as soon as that device next
+  // uses the portal, so active users do not have to wait for it to expire.
+  const issuedLifetime = payload.exp - payload.iat;
+  const hasLegacyShortLifetime = issuedLifetime < AUTH_MAX_AGE_MS - 60 * 1000;
+  if (hasLegacyShortLifetime || Date.now() - payload.iat >= AUTH_REFRESH_AFTER_MS) {
     setAuthCookie(res);
   }
 
