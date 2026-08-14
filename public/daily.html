@@ -249,6 +249,13 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .station-subtitle { color: var(--muted); font-size: 12px; font-weight: 650; }
 .logo-container { display: flex; align-items: center; flex: 0 0 auto; }
 .logo-container img { display: block; height: 56px; width: auto; max-width: 132px; object-fit: contain; border-radius: 7px; }
+.station-refresh-control {
+  appearance: none; display: block; margin: 0; padding: 0; border: 0; border-radius: 7px;
+  background: transparent; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.station-refresh-control:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.station-refresh-control.refreshing img { opacity: .62; }
+.station-refresh-control:disabled { cursor: wait; }
 
 .panel-card { border: 1px solid var(--border); background: var(--surface-raised); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
 .summary-hero {
@@ -446,6 +453,89 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 }
 .soil-parameter-grid .parameter-value { font-size: 17px; }
 
+/* Current-page scan pattern, adapted for daily extremes and totals. */
+.daily-readings-panel { padding: 11px 12px; margin-bottom: 9px; }
+.daily-reading-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.daily-reading-card {
+  --reading-accent: var(--accent);
+  position: relative; min-width: 0; min-height: 88px; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center; padding: 10px;
+  border: 1px solid var(--border); border-radius: 11px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--reading-accent) 7%, transparent), transparent 62%),
+    var(--surface-soft);
+}
+.daily-reading-card::after {
+  content: ""; position: absolute; inset: auto 10px 0; height: 2px; border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--reading-accent) 42%, transparent);
+}
+.reading-card-heading { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.reading-card-heading .daily-icon { width: 29px; height: 29px; }
+.reading-card-label {
+  overflow: hidden; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .58px;
+  line-height: 1.1; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap;
+}
+.reading-card-value {
+  display: block; margin-top: 7px; overflow: hidden; color: var(--text); font-size: 20px; font-weight: 820;
+  line-height: 1.04; letter-spacing: -.35px; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.reading-card-subline {
+  display: block; margin-top: 5px; overflow: hidden; color: var(--muted); font-size: 9.5px; font-weight: 650;
+  line-height: 1.18; text-overflow: ellipsis; white-space: nowrap;
+}
+.reading-card-subline strong { color: var(--text); font-weight: 800; }
+
+.daily-reading-card.temperature-compact {
+  --reading-accent: var(--temperature-accent, var(--accent));
+  min-height: 152px; justify-content: flex-start; padding: 10px;
+}
+.compact-temperature-range {
+  display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: end;
+  gap: 4px; margin-top: 10px;
+}
+.compact-temperature-point { min-width: 0; }
+.compact-temperature-point.high { text-align: right; }
+.compact-temperature-label {
+  display: block; color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .48px; text-transform: uppercase;
+}
+.compact-temperature-value {
+  display: block; margin-top: 2px; color: var(--text); font-size: clamp(19px,5.7vw,25px); font-weight: 830;
+  line-height: 1; letter-spacing: -.65px; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.compact-temperature-divider { padding-bottom: 3px; color: var(--muted); font-size: 9px; font-weight: 800; }
+.compact-temperature-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; padding-top: 9px;
+  color: var(--muted); font-size: 9.5px; font-weight: 680;
+}
+.compact-temperature-footer strong { color: var(--text); font-size: 11.5px; font-weight: 820; white-space: nowrap; }
+.temperature-condition {
+  position: absolute; top: 10px; right: 10px; max-width: 46%; overflow: hidden; padding: 3px 6px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface-raised);
+  color: var(--muted); font-size: 8px; font-weight: 750; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap;
+}
+.temperature-compact .reading-card-heading { padding-right: 42%; }
+
+.wind-combined-value { font-size: 23px; }
+.wind-combined-details { display: flex; gap: 8px; margin-top: 5px; color: var(--muted); font-size: 9px; font-weight: 680; }
+.wind-combined-details strong { color: var(--text); font-weight: 800; }
+
+.soil-daily-section { padding: 11px 12px; }
+.soil-daily-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.soil-daily-grid .temperature-compact { min-height: 148px; }
+.soil-depth-card {
+  min-width: 0; display: grid; align-content: center; gap: 7px; padding: 10px;
+  border: 1px solid var(--border); border-radius: 11px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--daily-garden-cool) 7%, transparent), transparent 62%), var(--surface-soft);
+}
+.soil-depth-heading { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .58px; text-transform: uppercase; }
+.soil-depth-reading {
+  min-width: 0; display: grid; grid-template-columns: 27px minmax(0,1fr); align-items: center; gap: 7px;
+  padding: 7px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-raised);
+}
+.soil-depth-reading .daily-icon { width: 27px; height: 27px; }
+.soil-depth-reading .label { display: block; color: var(--muted); font-size: 8px; font-weight: 780; letter-spacing: .4px; text-transform: uppercase; }
+.soil-depth-reading .value { display: block; margin-top: 2px; color: var(--text); font-size: 15px; font-weight: 820; white-space: nowrap; }
+
 .error-message {
   display: none; margin: 9px 0 0; padding: 9px 10px; border: 1px solid color-mix(in srgb, var(--red) 28%, var(--border));
   border-radius: 10px; background: var(--red-soft); color: var(--red); font-weight: 700; text-align: center;
@@ -499,6 +589,8 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
   body.layout-landscape .soil-section { grid-area: soil; }
   body.layout-landscape .atmosphere-section { grid-area: atmosphere; }
   body.layout-landscape .summary-dashboard .section-card { height: 100%; }
+  body.layout-landscape .daily-reading-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  body.layout-landscape .soil-daily-section { width: min(100%, 640px); margin-left: auto; margin-right: auto; }
   body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
 }
 @media only screen and (max-width: 899px) { .theme-label { display: none; } }
@@ -533,6 +625,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
   .feature-value { font-size: 20px; }
   .parameter-card { grid-template-columns: 28px minmax(0,1fr); gap: 7px; padding: 8px; }
   .parameter-card .daily-icon { width: 28px; height: 28px; }
+  .daily-readings-panel, .soil-daily-section { padding: 10px; }
 }
 @media only screen and (max-width: 380px) {
   .brand-subtitle { max-width: 145px; }
@@ -548,6 +641,10 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
     white-space: normal;
   }
   .feature-grid { grid-template-columns: minmax(0,1fr); }
+  .daily-reading-card { padding: 8px; }
+  .reading-card-value { font-size: 18px; }
+  .compact-temperature-value { font-size: 19px; }
+  .temperature-condition { top: 8px; right: 8px; max-width: 45%; }
 }
   </style>
 </head>
@@ -596,7 +693,9 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
             <div class="station-subtitle">9AM DAILY SUMMARY · WEATHER MAESTRO</div>
           </div>
           <div class="logo-container">
-            <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+            <button id="stationRefreshBtn" class="station-refresh-control" type="button" onclick="forceSummaryFetch()" aria-label="Manually request the latest daily summary from the weather station" title="Weather Maestro">
+              <img src="/Station_Label.png" alt="Environdata Weather Maestro">
+            </button>
           </div>
         </section>
 
@@ -611,106 +710,146 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
             <span id="rainTotal" class="value">--</span>
             <span id="rainNote" class="feature-subline">24 hours to 9AM</span>
           </div>
-          <div class="hero-actions">
-            <button id="forceUpdateBtn" class="force-button" type="button" onclick="forceSummaryFetch()">↻ Check for update</button>
+        </section>
+
+        <section class="panel-card daily-readings-panel" aria-label="Daily weather readings">
+          <div class="daily-reading-grid">
+            <article class="daily-reading-card temperature-compact" id="airTempSummary" style="--temperature-accent:var(--accent)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0V5Z"/><path d="M12 9v7"/></svg></span>
+                <span class="reading-card-label">Air temperature</span>
+              </div>
+              <span id="frostNote" class="temperature-condition">Daily range</span>
+              <div class="compact-temperature-range">
+                <div class="compact-temperature-point"><span class="compact-temperature-label">Low</span><strong class="compact-temperature-value value"><span id="tempMin">--</span><span id="tempMinUnit">°C</span></strong></div>
+                <span class="compact-temperature-divider" aria-hidden="true">to</span>
+                <div class="compact-temperature-point high"><span class="compact-temperature-label">High</span><strong class="compact-temperature-value value"><span id="tempMax">--</span>°C</strong></div>
+              </div>
+              <div class="compact-temperature-footer"><span>Daily average</span><strong><span id="tempAvg">--</span>°C</strong></div>
+            </article>
+
+            <article class="daily-reading-card temperature-compact" id="globeTempSummary" style="--temperature-accent:var(--daily-solar-moderate)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-solar-moderate)" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg></span>
+                <span class="reading-card-label">Black globe</span>
+              </div>
+              <span id="globeNote" class="temperature-condition">Daily range</span>
+              <div class="compact-temperature-range">
+                <div class="compact-temperature-point"><span class="compact-temperature-label">Low</span><strong class="compact-temperature-value value"><span id="globeMin">--</span><span id="globeMinUnit">°C</span></strong></div>
+                <span class="compact-temperature-divider" aria-hidden="true">to</span>
+                <div class="compact-temperature-point high"><span class="compact-temperature-label">High</span><strong class="compact-temperature-value value"><span id="globeMax">--</span>°C</strong></div>
+              </div>
+              <div class="compact-temperature-footer"><span>Daily average</span><strong><span id="globeAvg">--</span>°C</strong></div>
+            </article>
+
+            <article class="daily-reading-card" style="--reading-accent:var(--daily-humidity-humid)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-humidity-humid)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.7 12 3.5 12 3.5Z"/></svg></span>
+                <span class="reading-card-label">Humidity</span>
+              </div>
+              <strong class="reading-card-value"><span id="humidityAvg">--</span><span id="humidityUnit">%</span></strong>
+              <span id="humidityDesc" class="reading-card-subline descriptor-label">Daily average</span>
+            </article>
+
+            <article class="daily-reading-card" style="--reading-accent:var(--daily-pressure-high)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-pressure-high)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 17a7 7 0 1 1 14 0"/><path d="m12 14 3.2-3.2M7 17h10"/></svg></span>
+                <span class="reading-card-label">Pressure</span>
+              </div>
+              <strong class="reading-card-value"><span id="pressureAvg">--</span> <span id="pressureUnit">hPa</span><span id="pressureFish"></span></strong>
+              <span class="reading-card-subline">Daily average</span>
+            </article>
+
+            <article class="daily-reading-card" style="--reading-accent:var(--daily-gust-light)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-gust-light)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8h10.5a2.5 2.5 0 1 0-2.3-3.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.3 3.5"/><path d="M3 16h6"/></svg></span>
+                <span class="reading-card-label">Peak wind gust</span>
+              </div>
+              <strong class="reading-card-value wind-combined-value"><span id="gustPeak">--</span> <span id="gustUnit">km/h</span></strong>
+              <span id="gustNote" class="reading-card-subline"></span>
+              <div class="wind-combined-details"><span>Avg <strong><span id="windAvg">--</span></strong></span><span>Max <strong><span id="windMax">--</span></strong> km/h</span></div>
+            </article>
+
+            <article class="daily-reading-card" style="--reading-accent:var(--accent)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"/></svg></span>
+                <span class="reading-card-label">Prevailing wind</span>
+              </div>
+              <strong class="reading-card-value"><span id="windDir">--</span>° (<span id="windDirText">--</span>)</strong>
+              <span class="reading-card-subline">Daily average direction</span>
+            </article>
+
+            <article class="daily-reading-card" style="--reading-accent:var(--daily-solar-strong)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-solar-strong)" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg></span>
+                <span class="reading-card-label">Solar radiation</span>
+              </div>
+              <strong class="reading-card-value"><span id="solarMax">--</span> <span id="solarMaxUnit">W/m²</span></strong>
+              <span class="reading-card-subline">Daily average <strong><span id="solarAvg">--</span> W/m²</strong></span>
+            </article>
+
+            <article class="daily-reading-card" style="--reading-accent:var(--daily-rain)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4.5S8 9.2 8 12.5a4 4 0 0 0 8 0C16 9.2 12 4.5 12 4.5Z"/><path d="M5 19h14"/></svg></span>
+                <span class="reading-card-label">Dew point</span>
+              </div>
+              <strong class="reading-card-value"><span id="dewAvg">--</span>°C</strong>
+              <span class="reading-card-subline">Daily average</span>
+            </article>
+
+            <article class="daily-reading-card" style="--reading-accent:var(--daily-rain)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 15a3 3 0 0 0 6 0c0-2.5-3-6-3-6s-3 3.5-3 6Z"/><path d="M18 8V4m0 0-2 2m2-2 2 2"/></svg></span>
+                <span class="reading-card-label">Evaporation</span>
+              </div>
+              <strong class="reading-card-value"><span id="evapTotal">--</span> mm</strong>
+              <span class="reading-card-subline">FAO-56 · 24 hours to 9AM</span>
+            </article>
+
+            <article class="daily-reading-card" style="--reading-accent:var(--daily-battery-good)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-battery-good)" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="15" height="10" rx="2"/><path d="M19 10h2v4h-2M7 10v4M10 10v4M13 10v4"/></svg></span>
+                <span class="reading-card-label">Battery minimum</span>
+              </div>
+              <strong class="reading-card-value"><span id="batteryMin">--</span> <span id="batteryUnit">V</span></strong>
+              <span id="batteryNote" class="reading-card-subline"></span>
+            </article>
           </div>
         </section>
 
-        <div class="summary-dashboard">
-          <section class="panel-card section-card temperature-section" aria-labelledby="temperatureSummaryTitle">
-            <div class="section-header">
-              <h2 class="section-title" id="temperatureSummaryTitle">Temperature extremes</h2>
-              <span class="section-kicker">Low · Average · High</span>
-            </div>
-            <div class="temperature-summary-stack">
-              <article class="temperature-summary-card air" id="airTempSummary">
-                <div class="temperature-summary-header">
-                  <span class="temperature-band-title"><span class="daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0V5Z"/><path d="M12 9v7"/></svg></span>Air temperature</span>
-                  <span id="frostNote" class="temperature-note">Daily range</span>
-                </div>
-                <div class="temperature-extremes">
-                  <div class="temperature-extreme low"><span class="label">Low</span><span class="value"><span id="tempMin">--</span><span id="tempMinUnit">°C</span></span></div>
-                  <span class="temperature-extreme-divider" aria-hidden="true">to</span>
-                  <div class="temperature-extreme high"><span class="label">High</span><span class="value"><span id="tempMax">--</span>°C</span></div>
-                </div>
-                <div class="temperature-average"><span>Daily average</span><strong><span id="tempAvg">--</span>°C</strong></div>
-              </article>
+        <section class="panel-card soil-daily-section" aria-labelledby="soilDailyTitle">
+          <div class="section-header">
+            <h2 class="section-title" id="soilDailyTitle">Ground & soil</h2>
+            <span class="section-kicker">Daily profile</span>
+          </div>
+          <div class="soil-daily-grid">
+            <article class="daily-reading-card temperature-compact" id="groundTempSummary" style="--temperature-accent:var(--daily-garden-cool)">
+              <div class="reading-card-heading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-garden-cool)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0V5Z"/><path d="M12 9v7"/><path d="M4 19h4M16 19h4"/></svg></span>
+                <span class="reading-card-label">Ground temperature</span>
+              </div>
+              <span id="dirtNote" class="temperature-condition">Daily range</span>
+              <div class="compact-temperature-range">
+                <div class="compact-temperature-point"><span class="compact-temperature-label">Low</span><strong class="compact-temperature-value value"><span id="dirtMin">--</span>°C</strong></div>
+                <span class="compact-temperature-divider" aria-hidden="true">to</span>
+                <div class="compact-temperature-point high"><span class="compact-temperature-label">High</span><strong class="compact-temperature-value value"><span id="dirtMax">--</span>°C</strong></div>
+              </div>
+              <div class="compact-temperature-footer"><span>Daily average</span><strong><span id="dirtAvg">--</span>°C</strong></div>
+            </article>
 
-              <article class="temperature-summary-card" id="globeTempSummary" style="--temperature-accent:var(--daily-solar-moderate)">
-                <div class="temperature-summary-header">
-                  <span class="temperature-band-title"><span class="daily-icon" style="--icon-accent:var(--daily-solar-moderate)" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg></span>Black globe</span>
-                  <span id="globeNote" class="temperature-note">Daily range</span>
-                </div>
-                <div class="temperature-extremes">
-                  <div class="temperature-extreme low"><span class="label">Low</span><span class="value"><span id="globeMin">--</span><span id="globeMinUnit">°C</span></span></div>
-                  <span class="temperature-extreme-divider" aria-hidden="true">to</span>
-                  <div class="temperature-extreme high"><span class="label">High</span><span class="value"><span id="globeMax">--</span>°C</span></div>
-                </div>
-                <div class="temperature-average"><span>Daily average</span><strong><span id="globeAvg">--</span>°C</strong></div>
-              </article>
-
-              <article class="temperature-summary-card" id="groundTempSummary" style="--temperature-accent:var(--daily-garden-cool)">
-                <div class="temperature-summary-header">
-                  <span class="temperature-band-title"><span class="daily-icon" style="--icon-accent:var(--daily-garden-cool)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0V5Z"/><path d="M12 9v7"/><path d="M4 19h4M16 19h4"/></svg></span>Ground temperature</span>
-                  <span id="dirtNote" class="temperature-note">Daily range</span>
-                </div>
-                <div class="temperature-extremes">
-                  <div class="temperature-extreme low"><span class="label">Low</span><span class="value"><span id="dirtMin">--</span>°C</span></div>
-                  <span class="temperature-extreme-divider" aria-hidden="true">to</span>
-                  <div class="temperature-extreme high"><span class="label">High</span><span class="value"><span id="dirtMax">--</span>°C</span></div>
-                </div>
-                <div class="temperature-average"><span>Daily average</span><strong><span id="dirtAvg">--</span>°C</strong></div>
-              </article>
-            </div>
-          </section>
-
-          <section class="panel-card section-card wind-section">
-            <div class="section-header"><h2 class="section-title">Wind</h2><span class="section-kicker">Peak & prevailing</span></div>
-            <div class="gust-hero">
-              <div class="gust-heading"><span class="daily-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8h10.5a2.5 2.5 0 1 0-2.3-3.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.3 3.5"/><path d="M3 16h6"/></svg></span><div><span class="eyebrow">Peak gust</span><div class="gust-value"><span id="gustPeak">--</span> <span id="gustUnit">km/h</span></div></div></div>
-              <span id="gustNote" class="gust-note"></span>
-            </div>
-            <div class="wind-details">
-              <div class="wind-detail"><span class="label">Average speed</span><strong class="value"><span id="windAvg">--</span> km/h</strong></div>
-              <div class="wind-detail"><span class="label">Maximum speed</span><strong class="value"><span id="windMax">--</span> km/h</strong></div>
-              <div class="wind-detail"><span class="label">Prevailing</span><strong class="value"><span id="windDir">--</span>° (<span id="windDirText">--</span>)</strong></div>
-            </div>
-          </section>
-
-          <section class="panel-card section-card sun-water-section">
-            <div class="section-header"><h2 class="section-title">Sun & water</h2><span class="section-kicker">Daily totals</span></div>
-            <div class="feature-grid">
-              <article class="feature-stat" style="--feature-accent:var(--daily-solar-strong)">
-                <div class="feature-heading"><span class="daily-icon" style="--icon-accent:var(--daily-solar-strong)" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg></span><span class="eyebrow">Peak solar radiation</span></div>
-                <div class="feature-value"><span id="solarMax">--</span> <span id="solarMaxUnit">W/m²</span></div>
-                <span class="feature-subline">Daily average <strong><span id="solarAvg">--</span> W/m²</strong></span>
-              </article>
-              <article class="feature-stat" style="--feature-accent:var(--daily-rain)">
-                <div class="feature-heading"><span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 15a3 3 0 0 0 6 0c0-2.5-3-6-3-6s-3 3.5-3 6Z"/><path d="M18 8V4m0 0-2 2m2-2 2 2"/></svg></span><span class="eyebrow">Total evaporation</span></div>
-                <div class="feature-value"><span id="evapTotal">--</span> mm</div>
-                <span class="feature-subline">FAO-56 · 24 hours to 9AM</span>
-              </article>
-            </div>
-          </section>
-
-          <section class="panel-card section-card soil-section">
-            <div class="section-header"><h2 class="section-title">Soil · 10 cm</h2><span class="section-kicker">EnviroPro</span></div>
-            <div class="parameter-grid soil-parameter-grid">
-              <article class="parameter-card"><span class="daily-icon" style="--icon-accent:var(--daily-garden-cool)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0V5Z"/><path d="M12 9v7"/></svg></span><span class="parameter-copy"><span class="parameter-label">Temperature</span><strong class="parameter-value"><span id="soilTemp">--</span>°C</strong><span class="parameter-subline">Daily reading</span></span></article>
-              <article class="parameter-card"><span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.7 12 3.5 12 3.5Z"/></svg></span><span class="parameter-copy"><span class="parameter-label">Moisture</span><strong class="parameter-value"><span id="soilMoisture">--</span>%</strong><span class="parameter-subline">Daily reading</span></span></article>
-            </div>
-          </section>
-
-          <section class="panel-card section-card atmosphere-section">
-            <div class="section-header"><h2 class="section-title">Atmosphere & station</h2><span class="section-kicker">Daily averages</span></div>
-            <div class="parameter-grid">
-              <article class="parameter-card"><span class="daily-icon" style="--icon-accent:var(--daily-humidity-humid)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.7 12 3.5 12 3.5Z"/></svg></span><span class="parameter-copy"><span class="parameter-label">Humidity</span><strong class="parameter-value"><span id="humidityAvg">--</span><span id="humidityUnit">%</span></strong><span id="humidityDesc" class="parameter-subline descriptor-label"></span></span></article>
-              <article class="parameter-card"><span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4.5S8 9.2 8 12.5a4 4 0 0 0 8 0C16 9.2 12 4.5 12 4.5Z"/><path d="M5 19h14"/></svg></span><span class="parameter-copy"><span class="parameter-label">Dew point</span><strong class="parameter-value"><span id="dewAvg">--</span>°C</strong><span class="parameter-subline">Daily average</span></span></article>
-              <article class="parameter-card"><span class="daily-icon" style="--icon-accent:var(--daily-pressure-high)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 17a7 7 0 1 1 14 0"/><path d="m12 14 3.2-3.2M7 17h10"/></svg></span><span class="parameter-copy"><span class="parameter-label">Pressure</span><strong class="parameter-value"><span id="pressureAvg">--</span> <span id="pressureUnit">hPa</span><span id="pressureFish"></span></strong><span class="parameter-subline">Daily average</span></span></article>
-              <article class="parameter-card"><span class="daily-icon" style="--icon-accent:var(--daily-battery-good)" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="15" height="10" rx="2"/><path d="M19 10h2v4h-2M7 10v4M10 10v4M13 10v4"/></svg></span><span class="parameter-copy"><span class="parameter-label">Battery minimum</span><strong class="parameter-value"><span id="batteryMin">--</span> <span id="batteryUnit">V</span></strong><span id="batteryNote" class="parameter-subline"></span></span></article>
-            </div>
-          </section>
-        </div>
+            <article class="soil-depth-card">
+              <div class="soil-depth-heading">EnviroPro · 10 cm</div>
+              <div class="soil-depth-reading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-garden-cool)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M10 5a2 2 0 0 1 4 0v8.2a4 4 0 1 1-4 0V5Z"/><path d="M12 9v7"/></svg></span>
+                <span><span class="label">Temperature</span><strong class="value"><span id="soilTemp">--</span>°C</strong></span>
+              </div>
+              <div class="soil-depth-reading">
+                <span class="daily-icon" style="--icon-accent:var(--daily-rain)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.7 12 3.5 12 3.5Z"/></svg></span>
+                <span><span class="label">Moisture</span><strong class="value"><span id="soilMoisture">--</span>%</strong></span>
+              </div>
+            </article>
+          </div>
+        </section>
 
         <div class="compat-data" aria-hidden="true">
           <span id="tempBoxValue">--</span><span id="tempBoxLabel">Min Temp</span>
@@ -736,24 +875,12 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
     const STATUS_ENDPOINT = "/ping";
 
     function setForceButtonState(status) {
-      const forceBtn = document.getElementById("forceUpdateBtn");
-      forceBtn.classList.remove("up-to-date");
-
-      if (status && status.dailyUpToDate) {
-        forceBtn.disabled = true;
-        forceBtn.classList.add("up-to-date");
-        forceBtn.textContent = "Summary up to date";
-        return;
-      }
-
-      if (status && (status.dailyRefreshInProgress || status.dailyStationRequestInProgress)) {
-        forceBtn.disabled = true;
-        forceBtn.textContent = "⏳ Updating...";
-        return;
-      }
-
-      forceBtn.disabled = false;
-      forceBtn.textContent = "🔁 Force Update";
+      const forceBtn = document.getElementById("stationRefreshBtn");
+      if (!forceBtn) return;
+      const busy = Boolean(status && (status.dailyRefreshInProgress || status.dailyStationRequestInProgress));
+      forceBtn.disabled = busy;
+      forceBtn.classList.toggle("refreshing", busy);
+      forceBtn.setAttribute("aria-busy", busy ? "true" : "false");
     }
 
     async function refreshForceButtonState() {
@@ -1211,14 +1338,16 @@ if (!isNaN(batteryMin)) {
     function forceSummaryFetch(isInitialLoad = false) {
       const spinner = document.getElementById("spinnerContainer");
       const errorMessage = document.getElementById("errorMessage");
-      const forceBtn = document.getElementById("forceUpdateBtn");
-      const url = isInitialLoad ? SUMMARY_ENDPOINT : `${SUMMARY_ENDPOINT}?force=1`;
+      const forceBtn = document.getElementById("stationRefreshBtn");
+      const url = isInitialLoad ? SUMMARY_ENDPOINT : `${SUMMARY_ENDPOINT}?force=1&manual=1`;
 
       spinner.style.display = "block";
       errorMessage.style.display = "none";
-      forceBtn.classList.remove("up-to-date");
-      forceBtn.disabled = true;
-      forceBtn.textContent = isInitialLoad ? "⏳ Loading..." : "⏳ Checking...";
+      if (forceBtn) {
+        forceBtn.disabled = true;
+        forceBtn.classList.add("refreshing");
+        forceBtn.setAttribute("aria-busy", "true");
+      }
 
       fetch(url)
         .then(response => {

@@ -1186,7 +1186,28 @@ app.get("/daily", async (req, res) => {
   res.set("Cache-Control", "no-store");
 
   const force = req.query.force === "1";
+  const manualForce = force && req.query.manual === "1";
   const status = dailyCacheStatus();
+
+  // The Weather Maestro label is the deliberately hidden maintenance control.
+  // It sends exactly one bounded MEM 1 LAST request, even when today's cache is
+  // already current. Concurrent taps still join the same serialized request.
+  if (manualForce) {
+    logger.info("[DAILY] Manual station-label refresh requested");
+    const data = await fetchDailyDataOnce();
+
+    if (data) {
+      return res.status(200).send(data);
+    }
+
+    if (cachedDailyData) {
+      return res.status(200).send(cachedDailyData);
+    }
+
+    return res
+      .status(503)
+      .send("Failed to retrieve valid daily summary.");
+  }
 
   // HARD SAFETY INTERLOCK:
   // If yesterday's summary is already cached, NEVER send MEM 1 LAST,
