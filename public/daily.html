@@ -455,7 +455,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 
 /* Current-page scan pattern, adapted for daily extremes and totals. */
 .daily-readings-panel { padding: 11px 12px; margin-bottom: 9px; }
-.daily-reading-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.daily-reading-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; }
 .daily-reading-card {
   --reading-accent: var(--accent);
   position: relative; min-width: 0; min-height: 88px; overflow: hidden;
@@ -470,13 +470,13 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
   background: color-mix(in srgb, var(--reading-accent) 42%, transparent);
 }
 .reading-card-heading { display: flex; align-items: center; gap: 7px; min-width: 0; }
-.reading-card-heading .daily-icon { width: 29px; height: 29px; }
+.reading-card-heading .daily-icon { width: 31px; height: 31px; }
 .reading-card-label {
-  overflow: hidden; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .58px;
+  overflow: hidden; color: var(--muted); font-size: 9.5px; font-weight: 800; letter-spacing: .58px;
   line-height: 1.1; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap;
 }
 .reading-card-value {
-  display: block; margin-top: 7px; overflow: hidden; color: var(--text); font-size: 20px; font-weight: 820;
+  display: block; margin-top: 7px; overflow: hidden; color: var(--text); font-size: 21px; font-weight: 820;
   line-height: 1.04; letter-spacing: -.35px; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums;
 }
 .reading-card-subline {
@@ -484,6 +484,19 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
   line-height: 1.18; text-overflow: ellipsis; white-space: nowrap;
 }
 .reading-card-subline strong { color: var(--text); font-weight: 800; }
+
+.daily-reading-card:not(.temperature-compact) {
+  min-height: 76px; display: grid; grid-template-columns: minmax(0,1fr) auto;
+  grid-template-areas: "heading value" "heading subline"; column-gap: 16px; row-gap: 2px;
+  align-items: center; justify-content: stretch;
+}
+.daily-reading-card:not(.temperature-compact) .reading-card-heading { grid-area: heading; }
+.daily-reading-card:not(.temperature-compact) .reading-card-value {
+  grid-area: value; margin-top: 0; text-align: right;
+}
+.daily-reading-card:not(.temperature-compact) .reading-card-subline {
+  grid-area: subline; margin-top: 2px; text-align: right;
+}
 
 .daily-reading-card.temperature-compact {
   --reading-accent: var(--temperature-accent, var(--accent));
@@ -495,6 +508,9 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 }
 .compact-temperature-point { min-width: 0; }
 .compact-temperature-point.high { text-align: right; }
+.compact-temperature-point {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-raised);
+}
 .compact-temperature-label {
   display: block; color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .48px; text-transform: uppercase;
 }
@@ -504,7 +520,8 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 }
 .compact-temperature-divider { padding-bottom: 3px; color: var(--muted); font-size: 9px; font-weight: 800; }
 .compact-temperature-footer {
-  display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; padding-top: 9px;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; padding: 6px 8px;
+  border-radius: 8px; background: color-mix(in srgb, var(--surface-raised) 78%, transparent);
   color: var(--muted); font-size: 9.5px; font-weight: 680;
 }
 .compact-temperature-footer strong { color: var(--text); font-size: 11.5px; font-weight: 820; white-space: nowrap; }
@@ -516,11 +533,17 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 .temperature-compact .reading-card-heading { padding-right: 42%; }
 
 .wind-combined-value { font-size: 23px; }
-.wind-combined-details { display: flex; gap: 8px; margin-top: 5px; color: var(--muted); font-size: 9px; font-weight: 680; }
+.daily-reading-card.wind-summary-card {
+  grid-template-areas: "heading value" "heading subline" "details details";
+}
+.wind-combined-details {
+  grid-area: details; display: flex; justify-content: flex-end; gap: 14px; margin-top: 6px; padding-top: 7px;
+  border-top: 1px solid var(--border); color: var(--muted); font-size: 9.5px; font-weight: 680;
+}
 .wind-combined-details strong { color: var(--text); font-weight: 800; }
 
 .soil-daily-section { padding: 11px 12px; }
-.soil-daily-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.soil-daily-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; }
 .soil-daily-grid .temperature-compact { min-height: 148px; }
 .soil-depth-card {
   min-width: 0; display: grid; align-content: center; gap: 7px; padding: 10px;
@@ -533,8 +556,9 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
   padding: 7px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-raised);
 }
 .soil-depth-reading .daily-icon { width: 27px; height: 27px; }
+.soil-depth-reading > span:last-child { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .soil-depth-reading .label { display: block; color: var(--muted); font-size: 8px; font-weight: 780; letter-spacing: .4px; text-transform: uppercase; }
-.soil-depth-reading .value { display: block; margin-top: 2px; color: var(--text); font-size: 15px; font-weight: 820; white-space: nowrap; }
+.soil-depth-reading .value { display: block; margin-top: 0; color: var(--text); font-size: 17px; font-weight: 820; white-space: nowrap; }
 
 .error-message {
   display: none; margin: 9px 0 0; padding: 9px 10px; border: 1px solid color-mix(in srgb, var(--red) 28%, var(--border));
@@ -589,8 +613,8 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
   body.layout-landscape .soil-section { grid-area: soil; }
   body.layout-landscape .atmosphere-section { grid-area: atmosphere; }
   body.layout-landscape .summary-dashboard .section-card { height: 100%; }
-  body.layout-landscape .daily-reading-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
-  body.layout-landscape .soil-daily-section { width: min(100%, 640px); margin-left: auto; margin-right: auto; }
+  body.layout-landscape .daily-readings-panel,
+  body.layout-landscape .soil-daily-section { width: min(100%, 760px); margin-left: auto; margin-right: auto; }
   body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
 }
 @media only screen and (max-width: 899px) { .theme-label { display: none; } }
@@ -760,7 +784,7 @@ html[data-theme="dark"] #gustNote, html[data-theme="dark"] #batteryNote { color:
               <span class="reading-card-subline">Daily average</span>
             </article>
 
-            <article class="daily-reading-card" style="--reading-accent:var(--daily-gust-light)">
+            <article class="daily-reading-card wind-summary-card" style="--reading-accent:var(--daily-gust-light)">
               <div class="reading-card-heading">
                 <span class="daily-icon" style="--icon-accent:var(--daily-gust-light)" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8h10.5a2.5 2.5 0 1 0-2.3-3.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.3 3.5"/><path d="M3 16h6"/></svg></span>
                 <span class="reading-card-label">Peak wind gust</span>
