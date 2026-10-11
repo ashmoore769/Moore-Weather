@@ -474,6 +474,20 @@ let lastDailyPollTime = null;
 let dailyRefreshInFlight = null;
 let dailyStationRequestInFlight = null;
 
+// Optional SQL persistence shares the existing polling owner and adds no logger
+// connections. Blank WEATHER_DB_PATH leaves production behaviour unchanged.
+const persistence = require('./lib/weather-persistence').createPersistence(process.env, logger);
+const restoredCurrent = persistence.latest('r3');
+const restoredDaily = persistence.latest('mem1');
+if (restoredCurrent) {
+  cachedWeatherData = restoredCurrent.raw_line.trim();
+  lastPollTime = new Date(restoredCurrent.observed_at);
+}
+if (restoredDaily) {
+  cachedDailyData = restoredDaily.raw_line.trim();
+  lastDailyPollTime = new Date(restoredDaily.observed_at);
+}
+
 // All commands share one physical UART/RS232 path through the EW10.
 // Serialize CURRENT and DAILY transactions so replies can never cross between
 // separate TCP clients.
@@ -501,6 +515,12 @@ function runStationTransaction(label, task) {
 
   return run;
 }
+
+const historyCollector = require('./lib/weather-history-collector').createHistoryCollector({
+  enabled: process.env.WEATHER_HISTORY_ENABLED === 'true', persistence,
+  runTransaction: runStationTransaction, host: WEATHER_STATION_HOST, port: WEATHER_STATION_PORT, logger
+});
+const databaseBackups = require('./lib/database-backups').createBackupScheduler(process.env, persistence, logger);
 
 let skycamManifestCache = null;
 let skycamManifestFetchedAt = 0;
@@ -649,6 +669,7 @@ function runCurrentWeatherAttempt(attempt = 1, maxAttempts = 3) {
 
       cachedWeatherData = cleaned;
       lastPollTime = new Date();
+      persistence.record('r3', cleaned);
 
       logger.info(
         `[CURRENT] Weather data cached (${fields.length} fields)`
@@ -771,6 +792,7 @@ function fetchDailyDataOnce() {
 
       cachedDailyData = cleaned;
       lastDailyPollTime = new Date();
+      persistence.record('mem1', cleaned);
 
       const status = dailyCacheStatus();
       logger.info(
@@ -829,6 +851,7 @@ function fetchDailyDataOnce() {
 
       cachedDailyData = cleaned;
       lastDailyPollTime = new Date();
+      persistence.record('mem1', cleaned);
 
       const status = dailyCacheStatus();
 
@@ -1151,9 +1174,19 @@ function scheduleNextDailyFetch() {
 }
 
 function schedulePolling() {
+  setTimeout(() => databaseBackups.run(), 90000);
+  setInterval(() => databaseBackups.run(), 3600000);
   // Current readings every minute.
   setInterval(updateWeatherData, 60000);
   updateWeatherData();
+  // Stagger history reads between current polls; each tick requests one small
+  // tail and shares the same serial transaction queue as the current/daily feed.
+  if (process.env.WEATHER_HISTORY_ENABLED === 'true') {
+    setTimeout(() => {
+      historyCollector.tick();
+      setInterval(() => historyCollector.tick(), 60000);
+    }, 25000);
+  }
 
   // If Render starts/restarts after 09:10 Brisbane time and there is
   // no current daily cache, recover it in the background.
@@ -1405,6 +1438,9 @@ app.get("/ping", (req, res) => {
 
   res.json({
     status: "online",
+    database: persistence.status(),
+    history: historyCollector.status(),
+    databaseBackups: databaseBackups.status(),
     weatherStationHost: WEATHER_STATION_HOST,
     weatherStationPort: WEATHER_STATION_PORT,
     lastWeatherPoll: lastPollTime ? lastPollTime.toISOString() : null,

@@ -1,0 +1,9 @@
+; Restores the original sensor 6 lower limit. Pressure calibration is unchanged.
+; Use only in a coordinated logger maintenance session.
+MEMOFF
+SENSOR 6 5.00000 6 -500.00000 1 "Sun UV" "Watts/m2" "SR" "0000-0000" 3000.00000 -5.00000 13
+SAVE
+MEMON 1
+MEMON 2
+MEMON 3
+MEMON 4

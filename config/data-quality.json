@@ -1,0 +1,18 @@
+{
+  "stationId": "moore-weather",
+  "earliestLocalTimestamp": "2025-06-12T00:00:00",
+  "pressureMinHpa": 850,
+  "pressureMaxHpa": 1100,
+  "sensorLimits": [
+    { "sensorKey": "4", "minimum": -15, "maximum": 55, "note": "Conservative local air-temperature screening; preserve genuine frost. Owner authorised screening on 11 October 2026." },
+    { "sensorKey": "58", "minimum": -15, "maximum": 85, "note": "Black globe may exceed air temperature in sunlight." },
+    { "sensorKey": "9", "minimum": -15, "maximum": 80, "note": "Surface soil can be hotter than air." },
+    { "sensorKey": "46", "minimum": -15, "maximum": 65, "note": "Buried soil temperature screening." },
+    { "sensorKey": "47", "minimum": -15, "maximum": 65, "note": "Buried soil temperature screening." },
+    { "sensorKey": "48", "minimum": -15, "maximum": 65, "note": "Buried soil temperature screening." },
+    { "sensorKey": "49", "minimum": -15, "maximum": 65, "note": "Buried soil temperature screening." },
+    { "sensorKey": "34", "minimum": -60, "maximum": 55, "note": "Dew point may be much lower than air temperature in dry conditions." },
+    { "sensorKey": "6", "minimum": -5, "maximum": 2000, "floorZero": true, "note": "Floor plausible negative sensor-baseline readings at zero in usable data. More extreme values are excluded, not disguised as zero. Original readings retained. Aggregate flooring cannot reconstruct sample-level clamping." }
+  ],
+  "note": "Owner authorised omitting history before the current format and vetting obvious junk on 30 September 2026. Start usable history on the date of the first verified current-format daily record. Station pressure was repeatedly stuck around 809.2 hPa from July to October 2025, with a minimum at the configured zero-input offset of 804.2. Treat pressure outside 850–1100 hPa as suspect at this station and omit pressure aggregates from any affected record; keep its other sensors. Original records remain archived. This is screening, not a calibration correction."
+}

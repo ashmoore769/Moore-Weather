@@ -1,0 +1,10 @@
+; Candidate only: see docs/LOGGER-CONDITIONING.md before applying.
+; Changes only sensor 6's lower limit. Pressure calibration is unchanged.
+; No memory allocation, reset, clear, or MEMWRITE commands are included.
+MEMOFF
+SENSOR 6 5.00000 6 -500.00000 1 "Sun UV" "Watts/m2" "SR" "0000-0000" 3000.00000 0.00000 13
+SAVE
+MEMON 1
+MEMON 2
+MEMON 3
+MEMON 4
