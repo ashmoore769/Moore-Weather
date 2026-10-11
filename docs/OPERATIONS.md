@@ -45,7 +45,7 @@ The local schema, importer, duplicate handling, versioned sensor mapping, origin
 
 The owner approved and attached a 5 GB persistent disk at `/var/data`, costing an additional US$1.25/month. The existing Starter service remains a single instance. Disk-backed deployments restart the service briefly. No managed PostgreSQL service is required: this application uses SQLite SQL on the attached disk.
 
-Deployment order: upload the verified initial snapshot; verify its checksum, integrity and counts; configure the values below; publish the tested source to `main`; verify the automatic deployment and authenticated `/ping` status. Initial transfer and deployment verification are in progress when these notes were prepared.
+The initial snapshot was uploaded, checked against compressed/uncompressed SHA-256 hashes, checked for integrity and foreign-key errors, and confirmed to contain 1,369,930 measurements before recording was enabled. The source was published to `main`, Render deployed automatically, and the authenticated `/ping` confirmed successful database writes and recent-history imports. The production runtime selected Node 24.21.0. The local database remains the import snapshot rather than a live replica.
 
 ```
 WEATHER_DB_PATH=/var/data/weather.sqlite
@@ -62,3 +62,5 @@ Backups run in a child process, verify native SQLite copies and keep three compr
 Check `/ping` for `database.ready`, `database.lastWrite`, each history feed's last success/error/warning and `databaseBackups`. Database errors leave the current dashboard working but require attention to avoid collection gaps. Stop only history collection with `WEATHER_HISTORY_ENABLED=false`; blank `WEATHER_DB_PATH` disables all SQL recording without deleting the database. Do not delete/recreate the disk or overwrite a live database for rollback. Preserve a native backup before any future repair.
 
 The graph cards, history query endpoints and final GUI redesign are separate follow-up work. Pressure conditioning and the logger schedule remain unchanged during this deployment.
+
+Render's build reported five advisories in older Express dependencies. Compatible lockfile updates resolved them without changing the declared application dependencies. The resulting package audit reported zero known vulnerabilities; 22 database tests, 11 isolated HTTP/login/access checks and 28 syntax checks passed.

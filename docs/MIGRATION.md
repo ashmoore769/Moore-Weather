@@ -19,7 +19,7 @@ Installed dependencies were removed from the Git index but remain on disk. `pack
 
 No old watcher process was found on this PC. The legacy scripts and hooks were archived rather than restarted. GitHub push authentication from this PC still needs verification before a release. Reading GitHub succeeded; it does not prove write access.
 
-The consolidation is saved on a local cleanup branch. It has not been pushed or deployed, and Render's automatic deployment settings have not been changed.
+The consolidation was initially saved on a local cleanup branch. On 11 October 2026, it was published to GitHub and deployed to Render with the database implementation. Render's existing automatic deployment from `main` remains enabled. GitHub connector writes were verified; local SSH push credentials were not added.
 
 ## Verification
 

@@ -1,10 +1,10 @@
 # Weather database
 
-The database is `data/weather.sqlite`. It is a local SQLite SQL database, built from the supplied exports, five live checks on 30 September 2026, and four terminal captures supplied on 11 October. The source files, captures, database and backups are excluded from Git. No Render deployment or infrastructure change has been made.
+The initial database is `data/weather.sqlite`, built from the supplied exports, five live checks on 30 September 2026, and four terminal captures supplied on 11 October. Its verified copy was deployed on 11 October to `/var/data/weather.sqlite` on Render's persistent disk, where ongoing observations are collected. The PC copy is an initial snapshot, not a live replica. Source files, captures, databases and backups are excluded from Git.
 
 Use Node.js 24.14 or later in the 24 release line. Storage uses Node's built-in SQLite library; no database server, new package installation or credentials are needed on this PC.
 
-## Current status: 11 October 2026
+## Initial imported snapshot: 11 October 2026
 
 The database contains **1,369,930 measurements**, including 46 estimated values across two explicitly labelled records. **1,367,580 usable measurements across 57,722 weather records** remain after screening. The October captures added 8,486 measured records (202,414 measurements); the two gap fills added another 46 measurements. There are 5,539 retained diagnostic entries and 34 source entries, representing 24 original export/capture files plus five September inspections (multi-stream captures have a source entry per stream).
 
@@ -114,7 +114,7 @@ Owner direction, 30 September 2026: build a sophisticated, polished weather dash
 - Use actual available sensor history. Ten-minute data is the initial candidate for the small five-hour trends, subject to coverage and field availability. Do not invent a ten-minute channel for a variable absent from that memory; indicate unavailable history or use a clearly labelled supported source.
 - Preserve the meaning of each statistic: averages, minima/maxima, rainfall totals and wind direction require appropriate displays. Missing or excluded data must remain visible as gaps, not fabricated zeroes or an apparently continuous trace. Keep historical calibration changes identifiable, including the planned pressure adjustment in `LOGGER-CONDITIONING.md`.
 
-Implementation order: durable production storage and backups; reliable collection and catch-up for memories 1–4; coverage/freshness verification; bounded history queries for each sensor and resolution; then the graph cards and popup. The present local import and optional current/daily persistence do not yet satisfy the collection prerequisites. Historical gaps that cannot be recovered should be disclosed rather than block use of otherwise valid history.
+Implementation order: durable production storage and backups; reliable collection and catch-up for memories 1–4; coverage/freshness verification; bounded history queries for each sensor and resolution; then the graph cards and popup. Production storage and bounded collection are implemented. Historical gaps that cannot be recovered should be disclosed rather than block use of otherwise valid history.
 
 ## Everyday commands
 
@@ -163,7 +163,7 @@ Do not copy an actively written `.sqlite` file alone: committed data may still b
 
 `WEATHER_HISTORY_ENABLED=true` enables bounded recent-history downloads through the same station queue: memory 3 every ten minutes, memory 2 hourly, memory 4 every five minutes and memory 1 every six hours. Requests are staggered, with at most one history request per minute. They use `MEM n LAST 8` (eight kilobytes), or four kilobytes for memory 1, rather than a full-memory search. Replies require a completion marker and valid chronological rows before import; a 20-second deadline and 32 KB response cap limit failures. Overlapping records deduplicate. A missing overlap is reported in `/ping` and logs; long outages may still require a manually downloaded history file.
 
-The owner approved a 5 GB persistent disk on 11 October 2026 at US$1.25/month, mounted at `/var/data`. Initial database transfer and production verification are in progress. The SQLite adapter only enables writes on Render beneath that actual persistent mount and refuses to create an empty initial database. Set `WEATHER_DB_PATH=/var/data/weather.sqlite` after uploading and verifying the historical snapshot. Local recording remains disabled in this PC's private `.env`.
+The owner approved a 5 GB persistent disk on 11 October 2026 at US$1.25/month, mounted at `/var/data`. The initial transfer passed compressed and uncompressed SHA-256 comparisons, integrity and foreign-key checks, and the expected measurement count. Production recording is enabled with `WEATHER_DB_PATH=/var/data/weather.sqlite`. The adapter only enables writes beneath that actual persistent mount and refuses to create an empty initial database. Local recording remains disabled in this PC's private `.env`.
 
 Set `WEATHER_BACKUP_DIR=/var/data/backups` for automatic native SQLite backups, with integrity and foreign-key checks before gzip compression. The scheduler checks hourly, creates a backup when the last one is at least 23 hours old and retains three completed compressed copies. Backup work runs in a separate process. These backups share the database disk: retain the verified PC copy and periodically download a recent backup for independent disaster recovery. Render disk snapshots are not a substitute for consistent SQLite backups.
 
