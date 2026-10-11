@@ -42,6 +42,13 @@ test('collector staggers requests, avoids concurrent ticks and backs off after e
   const failing = createHistoryCollector({ enabled: true, persistence: { status: () => ({ ready: true }) }, runTransaction: (label, fn) => fn(), host: '', port: 1, logger, now: () => clock, read: async () => { throw new Error('offline'); } });
   await failing.tick(); assert.equal(failing.status().feeds.mem3.error, 'offline');
   await failing.tick(); assert.equal(failing.status().feeds.mem2.error, 'offline');
+  await failing.tick(); await failing.tick();
+  let attempts = 0;
+  const retries = createHistoryCollector({ enabled: true, persistence: { status: () => ({ ready: true }) }, runTransaction: (label, fn) => fn(), host: '', port: 1, logger, now: () => clock, read: async () => { attempts++; throw new Error('damaged reply'); } });
+  for (let i = 0; i < 4; i++) await retries.tick();
+  await retries.tick(); assert.equal(attempts, 4);
+  clock += 299999; await retries.tick(); assert.equal(attempts, 4);
+  clock++; await retries.tick(); await retries.tick(); assert.equal(attempts, 6);
 });
 
 test('socket transfer sends a kilobyte-bounded command and rejects partial or oversized replies', async t => {
