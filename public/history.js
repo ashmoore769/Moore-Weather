@@ -20,7 +20,7 @@
   };
   const bindings = dailyPage ? [
     ['tempAvg', 'air'], ['globeAvg', 'globe'], ['humidityAvg', 'humidity'], ['pressureAvg', 'pressure'], ['gustPeak', 'gust'],
-    ['windDir', 'direction'], ['solarAvg', 'solar'], ['rainTotal', 'rain'], ['dewAvg', 'dew'], ['evapTotal', 'evaporation-total'], ['batteryMin', 'battery'], ['dirtAvg', 'ground'], ['soilTemp', 'soil-temp-10'], ['soilMoisture', 'soil-moisture-10']
+    ['windDir', 'direction'], ['solarAvg', 'solar'], ['rainTotal', 'rain'], ['dewAvg', 'dew'], ['evapTotal', 'evaporation-total'], ['batteryMin', 'battery'], ['dirtAvg', 'ground'], ...[10, 20, 30, 40].flatMap(depth => [[`soilTemp${depth}`, `soil-temp-${depth}`], [`soilMoisture${depth}`, `soil-moisture-${depth}`]])
   ] : [
     ['tempVal', 'air'], ['blackGlobeTempVal', 'globe'], ['humidityVal', 'humidity'], ['pressureVal', 'pressure'], ['windSpeedVal', 'wind'],
     ['windDirDegVal', 'direction'], ['solarRadVal', 'solar'], ['rainSince9Val', 'rain'], ['dewPointVal', 'dew'], ['evapRateVal', 'evaporation'],
@@ -56,7 +56,9 @@
   const dialog = document.createElement('dialog');
   dialog.className = 'history-dialog'; dialog.setAttribute('aria-labelledby', 'historyTitle');
   dialog.innerHTML = `
-    <div class="history-heading"><div><p class="history-kicker">Moore Weather / Station history</p><h2 id="historyTitle">Weather history</h2><p id="historySubtitle">West Warwick · all times AEST</p></div><button type="button" class="history-close" aria-label="Close history">×</button></div>
+    <div class="history-header"><div class="history-brand"><strong>Moore Weather</strong><span>Station history</span></div><button type="button" class="history-close" aria-label="Close history"><span>Close</span><span aria-hidden="true">×</span></button></div>
+    <div class="history-scroll">
+    <div class="history-heading"><h2 id="historyTitle">Weather history</h2><p id="historySubtitle">West Warwick · all times AEST</p></div>
     <div class="history-controls">
       <label>Measurement<select id="historyMetric" aria-label="Measurement"></select></label>
       <label>Time span<select id="historyRange" aria-label="Time span"></select></label>
@@ -72,7 +74,7 @@
       <div class="history-inspect" id="historyInspect" aria-live="polite">Point to the chart or use the arrow keys to inspect a reading.</div>
       <div class="history-legend" id="historyLegend"></div><p class="history-note" id="historyNote"></p>
       <details class="history-table" id="historyTable"><summary>View readings as a table</summary><div class="history-table-scroll"></div></details>
-    </div>`;
+    </div></div>`;
   document.body.append(dialog);
   const close = () => dialog.close();
   dialog.querySelector('.history-close').addEventListener('click', close);
@@ -166,6 +168,7 @@
   async function openHistory(metric) {
     selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 24, endDate: null };
     if (!dialog.open) dialog.showModal();
+    dialog.querySelector('.history-scroll').scrollTop = 0;
     $('historyMessage').hidden = false; $('historyMessage').textContent = 'Loading history…';
     if (!catalog.length) {
       try { const data = await getJson('/api/trends?view=current', AbortSignal.timeout(20000)); setCatalog(data); }

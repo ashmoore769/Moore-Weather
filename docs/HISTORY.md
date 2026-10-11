@@ -2,6 +2,16 @@
 
 The two dashboards share `public/history.js`, `history-chart.js` and `history.css`. SVG charts are rendered locally without a CDN or chart dependency. A native dialog provides measurement, resolution, span and end-date controls. Cards refresh their trends once a minute while the page is visible. An open detail view stays still for inspection; “Latest readings” refreshes it.
 
+The graph dialog reserves all four `safe-area-inset` margins and uses the dynamic viewport height. Its Moore Weather header and labelled 44px Close control sit outside the scrolling content. Narrow screens give the measurement selector a full row and constrain native date-input sizing. This follows [WebKit's safe-area guidance](https://webkit.org/blog/7929/designing-websites-for-iphone-x/); simulated insets validate layout, while final installed-iPhone behavior still needs a device check.
+
+## Daily report and freshness
+
+`daily.css` and `daily-summary.js` provide a responsive daily report: air range, rainfall and gust highlights, atmospheric averages, sun/exposure, ground temperature, all four EnviroPro depths and battery health. Each measured tile retains its native history. The displayed reporting date and explicit 9 AM–9 AM AEST boundaries come from the received MEM1 record, independent of the viewer's timezone. A record remains the latest complete day across midnight until the next 9 AM boundary.
+
+The page checks existing server status every 15 seconds while visible. When status reports a newly cached daily record, it reads that cache into the page. Only the explicit “Request station update” control uses the existing bounded manual-refresh route; it replaces the old hidden logo control. The current page's freshness badge now checks the displayed station timestamp as well as the server poll timestamp, and shows a failed status request as offline.
+
+This UI pass changes neither collection scheduling nor database contents. Daily solar values have a presentation floor of zero; missing values remain unavailable. Pressure retains the existing separate Current/history conventions described below.
+
 ## Sources and interpretation
 
 | Resolution | Native feed | Maximum query | Usual range |

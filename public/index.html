@@ -1488,10 +1488,26 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Comfortable shared navigation and controls on touch screens. */
+.freeze-pane { background: var(--page); }
+.header-icon-button { min-width: 44px; min-height: 44px; }
+.tab-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; text-decoration: none; }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .top-toolbar { flex-wrap: wrap; gap: 10px; padding-bottom: 12px; }
+  .view-tabs { width: 100%; flex: 1 1 100%; }
+  .tab-button { flex: 1; font-size: 13px; padding: 8px 12px; }
+  .live-cluster { width: auto; min-width: 0; flex: 1 1 auto; justify-content: flex-start; gap: 8px; }
+  .live-cluster .status-badge { width: auto; min-width: 74px; flex: 0 0 auto; padding: 4px 8px; }
+  #freshnessText { width: auto; flex: 0 1 auto; text-align: left; font-size: 11px; }
+  .history-guide { font-size: 10px; }
+  .app-footer { padding-bottom: max(18px, env(safe-area-inset-bottom,0px)); }
+}
 </style>
-<link href="/history.css?v=1" rel="stylesheet"/>
+<link href="/history.css?v=2" rel="stylesheet"/>
 <script defer src="/history-chart.js?v=1"></script>
-<script defer src="/history.js?v=1"></script>
+<script defer src="/history.js?v=2"></script>
 </head>
 <body>
 <div class="main-container">
@@ -1523,13 +1539,12 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
 <main id="weatherData">
 <div class="top-toolbar">
 <div aria-label="Weather views" class="view-tabs" role="navigation">
-<button class="tab-button active" id="fetchBtn" onclick="manualFetch()" type="button">Current</button>
-<button class="tab-button" id="dailySummaryBtn" onclick="location.href='daily.html'" type="button">Daily Summary</button>
+<button aria-current="page" title="Refresh current readings" class="tab-button active" id="fetchBtn" onclick="manualFetch()" type="button">Current</button>
+<a class="tab-button" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
 </div>
 <div aria-live="polite" class="live-cluster">
 <span class="status-badge fetching" id="statusBadge">● CONNECTING</span>
 <span id="freshnessText">Waiting for station</span>
-<span class="sr-only" id="status">Connecting</span>
 </div>
 </div>
 <div class="content-layout"><div class="layout-stack landscape-left"><div class="station-strip layout-station">
@@ -1871,6 +1886,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
         // DATE & TIME
         document.getElementById("dateVal").textContent = formatDateString(dateStr);
         document.getElementById("timeVal").textContent = timeStr + " AEST";
+        document.getElementById("weatherData").dataset.observedAt = dateStr.replaceAll("/", "-") + "T" + timeStr + "+10:00";
 
         // WIND
         document.getElementById("windSpeedVal").textContent = windSpeed.toFixed(1);
@@ -2802,14 +2818,18 @@ window.addEventListener("load", () => {
   function paintFreshness() {
     if (!badge || !detail) return;
 
-    if (!lastPollMs) {
+    const observedMs = Date.parse(document.getElementById("weatherData")?.dataset.observedAt || "");
+    if (pingFailed || !lastPollMs || !Number.isFinite(observedMs)) {
       badge.textContent = pingFailed ? "● OFFLINE" : "● CONNECTING";
       badge.className = `status-badge ${pingFailed ? "error" : "fetching"}`;
       detail.textContent = pingFailed ? "Status unavailable" : "Waiting for station";
       return;
     }
 
-    const age = Date.now() - lastPollMs;
+    if (observedMs > Date.now() + 90000) {
+      badge.textContent = "● CHECK"; badge.className = "status-badge fetching"; detail.textContent = "Check station clock"; return;
+    }
+    const age = Math.max(Date.now() - lastPollMs, Date.now() - observedMs);
     if (age <= 90000) {
       badge.textContent = "● LIVE";
       badge.className = "status-badge connected";
@@ -2820,7 +2840,7 @@ window.addEventListener("load", () => {
       badge.textContent = "● STALE";
       badge.className = "status-badge error";
     }
-    detail.textContent = `Updated ${humanAge(age)}`;
+    detail.textContent = `Observed ${humanAge(age)}`;
   }
 
   async function refreshStatus() {

@@ -1,0 +1,139 @@
+/* Daily report: shared station identity, a readable day, and native measurements. */
+html[data-theme="light"] { --daily-rain: #167bb9; }
+.main-container { width: min(100% - 24px, 560px); }
+.freeze-pane { background: var(--page); }
+.header-icon-button { min-height: 44px; min-width: 44px; }
+#weatherData { padding: 18px; }
+.top-toolbar { flex-wrap: wrap; gap: 12px; padding-bottom: 16px; }
+.tab-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 14px; text-decoration: none; }
+.daily-status-cluster { flex: 1 1 auto; width: auto; min-width: 0; gap: 8px; font-size: 11px; }
+#dailyStatusText { flex: 0 1 auto; width: auto; }
+.status-badge { width: auto; flex-basis: auto; padding: 5px 9px; }
+.content-shell { padding-top: 0; }
+.summary-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 28px 2px 24px; }
+.summary-date-block { min-width: 0; }
+.eyebrow { color: var(--accent); font-size: 10px; font-weight: 750; letter-spacing: 1.1px; text-transform: uppercase; }
+.summary-date { margin: 9px 0 7px; font-size: clamp(26px, 3vw, 36px); line-height: 1.15; font-weight: 750; letter-spacing: -1px; }
+.summary-help { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.summary-station-logo { width: 84px; height: 68px; object-fit: contain; border-radius: 8px; }
+html[data-theme="dark"] .summary-station-logo { filter: brightness(.8); }
+.daily-section { margin: 0 0 28px; }
+.section-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+.section-header h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.2px; }
+.section-header > span { color: var(--muted); font-size: 11px; text-align: right; }
+.daily-grid, .daily-overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.daily-overview-grid > .temperature-compact, .sun-section .temperature-compact { grid-column: 1 / -1; }
+.daily-reading-card { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 17px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface-soft); transition: border-color .15s ease, background-color .15s ease; }
+.daily-reading-card::after { content: none; }
+.reading-card-heading, .rain-hero-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.reading-card-label { color: var(--muted); font-size: 12px; font-weight: 700; line-height: 1.4; }
+.daily-icon { display: inline-grid; place-items: center; color: var(--icon-accent, var(--accent)); width: 25px; height: 25px; flex: 0 0 25px; }
+.daily-icon svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.reading-card-value { display: block; color: var(--text); font-size: 27px; font-weight: 700; line-height: 1.3; letter-spacing: -.7px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.reading-card-value > span[id$="Unit"], .wind-combined-value > span[id$="Unit"] { font-size: 14px; letter-spacing: 0; font-weight: 550; }
+.reading-card-subline, .wind-combined-details { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.reading-card-subline strong { font-weight: 600; }
+.wind-combined-details { display: flex; flex-wrap: wrap; gap: 3px 14px; }
+.wind-combined-details strong { color: var(--text); }
+.rain-hero { background: color-mix(in srgb, var(--daily-rain) 6%, var(--surface-soft)); }
+.rain-hero .value { color: var(--daily-rain); }
+.temperature-compact { display: grid; grid-template-columns: minmax(0,1fr) auto; background: color-mix(in srgb, var(--accent) 5%, var(--surface-soft)); }
+.temperature-condition { align-self: center; color: var(--muted); font-size: 10px; text-align: right; max-width: 140px; }
+.compact-temperature-range { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 20px; padding: 12px 0 8px; }
+.compact-temperature-point { display: flex; flex-direction: column; gap: 5px; }
+.compact-temperature-point.high { text-align: right; }
+.compact-temperature-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.compact-temperature-value { font-size: 38px; letter-spacing: -1.2px; line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; }
+.compact-temperature-divider { color: var(--muted); font-size: 12px; }
+.compact-temperature-footer { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+.compact-temperature-footer strong { color: var(--text); font-weight: 650; }
+.daily-reading-card .history-spark { margin-top: auto; padding-top: 12px; }
+.temperature-compact .history-spark { padding-top: 4px; }
+.daily-reading-card .history-spark svg { height: 34px; }
+.daily-readings-panel .history-guide { padding: 12px 14px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 10px; font-size: 11px; }
+.history-guide button { min-height: 44px; }
+.ground-summary { display: grid; gap: 16px; margin-bottom: 12px; }
+.ground-summary > p { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 0; align-self: center; }
+.soil-profile-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.soil-depth-card { min-width: 0; padding: 14px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface-soft); }
+.soil-depth-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 12px; margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.soil-depth-heading strong { font-size: 24px; font-weight: 650; color: var(--accent); }
+.soil-depth-heading small { font-size: 11px; margin-left: 4px; }
+.soil-depth-heading > span { font-size: 10px; color: var(--muted); font-weight: 500; }
+.soil-depth-reading { display: grid; grid-template-columns: minmax(0,1fr); gap: 3px; padding: 8px 0; border-radius: 5px; }
+.soil-depth-reading .daily-icon { display: none; }
+.soil-reading-copy .label { display: block; font-size: 10px; color: var(--muted); }
+.soil-reading-copy .value { display: block; margin-top: 3px; font-size: 23px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.soil-reading-copy small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.soil-depth-reading + .soil-depth-reading { margin-top: 5px; border-top: 1px solid var(--border); }
+.soil-depth-reading .history-spark { margin-top: 6px; }
+.station-health-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.3fr); gap: 16px; }
+.station-update { padding: 8px 0; font-size: 12px; }
+.station-update strong { font-weight: 650; }
+.station-update p { color: var(--muted); line-height: 1.7; }
+.station-refresh-control { font: inherit; min-height: 44px; padding: 8px 11px; background: var(--surface); color: var(--accent); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.station-refresh-control:disabled { opacity: .65; cursor: wait; }
+#refreshFeedback { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; }
+.error-message { display: none; margin-bottom: 14px; padding: 12px; border: 1px solid var(--red); border-radius: 10px; color: var(--red); background: var(--red-soft); }
+.app-footer { text-align: center; padding-bottom: max(18px, env(safe-area-inset-bottom,0px)); }
+.app-footer form { margin: 0; }
+.footer-signout { background: transparent; color: var(--muted); border: 0; min-height: 44px; padding: 8px 16px; cursor: pointer; font-size: 12px; }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.spinner-container { display: none; position: fixed; right: 18px; bottom: max(18px, env(safe-area-inset-bottom,0px)); z-index: 150; width: 34px; height: 34px; padding: 7px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); }
+.spinner { width: 100%; height: 100%; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (min-width:900px) {
+  .desktop-layout-switcher { display: inline-flex; }
+  body.layout-landscape .main-container { width: min(100% - 48px,1180px); }
+  body.layout-landscape #weatherData { padding: 24px 28px; }
+  body.layout-landscape .daily-overview-grid { grid-template-columns: minmax(0,1.6fr) repeat(2,minmax(0,1fr)); }
+  body.layout-landscape .daily-overview-grid > .temperature-compact { grid-column: auto; }
+  body.layout-landscape .atmosphere-section .daily-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  body.layout-landscape .sun-section .daily-grid { grid-template-columns: minmax(0,1.6fr) repeat(2,minmax(0,1fr)); }
+  body.layout-landscape .sun-section .temperature-compact { grid-column: auto; }
+  body.layout-landscape .ground-summary { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 28px; }
+  body.layout-landscape .soil-profile-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  body.layout-landscape .station-health-grid { grid-template-columns: minmax(0,1fr) minmax(0,2fr); gap: 28px; }
+  body.layout-landscape .station-update { max-width: 500px; }
+  body.layout-landscape .daily-overview-grid .reading-card-value { font-size: 38px; }
+}
+@media (max-width:899px) { .theme-label { display: none; } }
+@media (max-width:600px) {
+  .main-container { width: calc(100% - 16px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)); margin: 8px auto 16px; }
+  .app-header { gap: 6px; padding: 10px; }
+  .brand-lockup { gap: 8px; }
+  .brand-mark { width: 32px; height: 32px; }
+  .brand-title { font-size: 16px; }
+  .brand-subtitle { font-size: 9px; }
+  .header-actions { gap: 4px; }
+  #weatherData { padding: 14px 12px; }
+  .top-toolbar { gap: 10px; }
+  .view-tabs { width: 100%; }
+  .tab-button { flex: 1; }
+  .daily-status-cluster { justify-content: flex-start; }
+  .summary-hero { padding: 24px 0 20px; gap: 12px; }
+  .summary-station-logo { display: none; }
+  .summary-date { font-size: 28px; }
+  .eyebrow { font-size: 9px; letter-spacing: .7px; }
+  .daily-grid, .daily-overview-grid, .soil-profile-grid { gap: 10px; }
+  .daily-reading-card { padding: 13px; gap: 7px; }
+  .reading-card-label { font-size: 11px; }
+  .reading-card-heading, .rain-hero-heading { gap: 5px; }
+  .daily-icon { width: 20px; flex-basis: 20px; }
+  .daily-icon svg { width: 18px; height: 18px; }
+  .reading-card-value { font-size: 24px; }
+  .reading-card-value > span[id$="Unit"] { font-size: 11px; }
+  .compact-temperature-value { font-size: 37px; }
+  .daily-readings-panel .history-guide { font-size: 10px; padding: 8px 10px; gap: 8px; }
+  .section-header > span { font-size: 10px; max-width: 45%; }
+  .section-header h2 { font-size: 15px; }
+  .soil-depth-card { padding: 12px; }
+  .station-health-grid { gap: 12px; }
+}
+@media (max-width:350px) {
+  .brand-mark { display: none; }
+  .reading-card-value { font-size: 21px; }
+  .reading-card-heading .daily-icon { display: none; }
+  .compact-temperature-value { font-size: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation-duration: 1.5s !important; } }
