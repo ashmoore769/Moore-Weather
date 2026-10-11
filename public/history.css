@@ -140,3 +140,9 @@ body:has(.history-dialog[open]) { overflow: hidden; }
   .history-controls { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .history-card { transition: none; } }
+
+.history-trend-control { display:flex; align-items:center; flex-wrap:wrap; gap:4px 16px; padding:0 24px 12px; color:var(--muted); font-size:12px; }
+.history-trend-control label { display:inline-flex; align-items:center; gap:9px; min-height:44px; color:var(--text); font-weight:600; cursor:pointer; }
+.history-trend-control input { width:18px; height:18px; accent-color:var(--accent); }
+.history-key-trend::before { background:none; border-top:2px dashed var(--text); height:0; }
+@media(max-width:600px) { .history-trend-control { padding-left:16px; padding-right:16px; } }

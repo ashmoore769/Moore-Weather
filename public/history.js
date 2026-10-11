@@ -68,6 +68,7 @@
     <div class="history-resolution-row"><div class="history-resolutions" role="group" aria-label="Graph resolution">
       <button type="button" data-resolution="10m" aria-pressed="true">10 minute</button><button type="button" data-resolution="hourly" aria-pressed="false">Hourly</button><button type="button" data-resolution="daily" aria-pressed="false">Daily</button>
     </div><span class="history-period" id="historyPeriod"></span></div>
+    <div class="history-trend-control"><label><input type="checkbox" id="historyTrend"> Fitted trend line</label><span id="historyTrendStatus" role="status"></span></div>
     <div class="history-body">
       <div class="history-summary" id="historySummary"></div>
       <div class="history-chart" id="historyChart" tabindex="0" role="group" aria-label="Weather history chart. Use left and right arrow keys to inspect readings."><svg aria-hidden="true"></svg><div class="history-chart-message" id="historyMessage" role="status">Loading history…</div></div>
@@ -163,6 +164,7 @@
       button.setAttribute('aria-pressed', String(button.dataset.resolution === selection.resolution));
       button.title = button.disabled ? 'The station does not record this measurement at this interval' : '';
     }
+    try { $('historyTrend').checked = localStorage.getItem('mooreWeatherTrend:'+metric.id) === 'true'; } catch { $('historyTrend').checked = false; }
     dialog.style.setProperty('--history-color', color(metric.id));
   }
   async function openHistory(metric) {
@@ -205,6 +207,11 @@
   $('historyLatest').addEventListener('click', () => { selection.endDate = null; configure(); loadHistory(); });
   for (const button of dialog.querySelectorAll('[data-resolution]')) button.addEventListener('click', () => { selection.resolution = button.dataset.resolution; selection.hours = selection.resolution === 'daily' ? 720 : selection.resolution === 'hourly' ? 168 : 24; configure(); loadHistory(); });
 
+  $('historyTrend').addEventListener('change', () => {
+    try { localStorage.setItem('mooreWeatherTrend:'+selection.metric, String($('historyTrend').checked)); } catch {}
+    if(activeSeries) renderHistory();
+  });
+
   function renderHistory() {
     const s = activeSeries, m = s.metric, valid = s.points.filter(p => p.value !== null);
     $('historyPeriod').textContent = `${fullDateFormat.format(s.start)} – ${fullDateFormat.format(s.end)} · AEST`;
@@ -233,6 +240,13 @@
     if (m.id === 'solar') notes.push('Small negative sensor readings are shown as zero.');
     if (m.id === 'battery') notes.push('These are interval minimums; the live card shows the current voltage.');
     if (s.latest && s.end - s.latest.t > s.intervalSeconds * 2000) notes.push('Latest available reading: ' + stamp(s.latest.t, s.resolution === 'daily') + '.');
+    const fitted = WeatherChart.fittedTrend(s);
+    $('historyTrendStatus').textContent = $('historyTrend').checked && !fitted.some(p=>p.value!==null) ? (m.kind==='direction' && valid.filter(p=>!p.estimated).length>=3 ? 'No clear direction trend in this window.' : 'At least three usable readings are needed.') : '';
+    if ($('historyTrend').checked && fitted.some(p=>p.value!==null)) {
+      const key=document.createElement('span'); key.className='history-key history-key-trend'; key.textContent='Fitted trend'; legend.append(key);
+      notes.push(m.kind==='direction' ? 'The trend fits wind direction as compass vectors; opposing directions can leave gaps.' : 'The dashed trend is a straight-line fit across this time window, not a forecast.');
+      if(valid.some(p=>p.estimated)) notes.push('Interpolated readings are excluded from the fit.');
+    }
     $('historyNote').textContent = notes.join(' ');
     $('historyMessage').hidden = Boolean(valid.length);
     if (!valid.length) $('historyMessage').textContent = 'No recorded readings in this window. Try an earlier end date or a wider time span.';
@@ -261,6 +275,15 @@
       svg.append(svgNode('text', { x: x(t), y: height - 10, 'text-anchor': i === 0 ? 'start' : i === ticks - 1 ? 'end' : 'middle', fill: 'var(--muted)', 'font-size': 11 }, (s.end - s.start <= 86400000 ? timeFormat : s.end - s.start > 200 * 86400000 ? monthFormat : dateFormat).format(t)));
     }
     paths(svg, s, x, y, bottom);
+    if ($('historyTrend').checked) {
+      const clip=svgNode('clipPath',{id:'historyPlotClip'});
+      clip.append(svgNode('rect',{x:left,y:top,width:right-left,height:bottom-top})); svg.append(clip);
+      const group=svgNode('g',{'clip-path':'url(#historyPlotClip)',class:'history-fitted-trend'});
+      for(const segment of WeatherChart.segments(WeatherChart.fittedTrend(s),s.metric.kind==='direction')) if(segment.length>1) {
+        group.append(svgNode('path',{d:segment.map((p,i)=>(i?'L':'M')+x(p.t)+','+y(p.value)).join(' '),fill:'none',stroke:'var(--text)','stroke-width':2,'stroke-dasharray':'8 5','vector-effect':'non-scaling-stroke'}));
+      }
+      svg.append(group);
+    }
     const cursor = svgNode('g', { id: 'historyCursor', visibility: 'hidden' });
     cursor.append(svgNode('line', { y1: top, y2: bottom, stroke: 'var(--muted)', 'stroke-dasharray': '3 3' }), svgNode('circle', { r: 4, fill: 'var(--surface)', stroke: color(s.metric.id), 'stroke-width': 2 })); svg.append(cursor);
     if (activeIndex >= 0) inspect(activeIndex);

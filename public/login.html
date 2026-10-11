@@ -4,26 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="theme-color" content="#123742">
+  <meta name="theme-color" content="#eef2f6">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Moore Weather">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="apple-touch-icon" sizes="180x180" href="/moore-weather-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/moore-weather-touch-v2.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/moore-weather-favicon-v2.png">
   <title>Moore Weather · Access</title>
-  <script>
-    (function () {
-      try {
-        const saved = localStorage.getItem("mooreWeatherTheme") || "auto";
-        const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const resolved = saved === "auto" ? (prefersDark ? "dark" : "light") : saved;
-        document.documentElement.dataset.theme = resolved;
-      } catch (error) {
-        document.documentElement.dataset.theme = "light";
-      }
-    })();
-  </script>
+  <script src="/theme.js?v=3"></script>
   <style>
     :root {
       color-scheme: light;
@@ -291,11 +280,12 @@
       .login-body { padding: 24px 20px 22px; }
     }
   </style>
+<link rel="stylesheet" href="/station-shell.css?v=4">
 </head>
 <body>
   <main class="login-shell" aria-labelledby="loginTitle">
     <header class="brand-header">
-      <img class="brand-icon" src="/Weather_Station_App.png" alt="">
+      <img class="brand-icon" src="/moore-weather-logo-v2.png" alt="">
       <div>
         <div class="brand-title">Moore Weather</div>
         <div class="brand-subtitle">West Warwick · Community Weather</div>

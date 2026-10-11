@@ -5,31 +5,15 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <meta content="noindex, nofollow, noarchive" name="robots"/>
-<meta content="#123742" name="theme-color"/>
+<meta content="#eef2f6" name="theme-color"/>
 <meta content="yes" name="apple-mobile-web-app-capable"/>
-<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="default" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="Moore Weather" name="apple-mobile-web-app-title"/>
 <link href="/site.webmanifest" rel="manifest"/>
-<link href="/moore-weather-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
-<link href="/favicon.png" rel="icon" sizes="64x64" type="image/png"/>
+<link href="/moore-weather-touch-v2.png" rel="apple-touch-icon" sizes="180x180"/>
+<link href="/moore-weather-favicon-v2.png" rel="icon" sizes="64x64" type="image/png"/>
 <title>Moore Weather · West Warwick</title>
-<script>(function () {
-  try {
-    const saved = localStorage.getItem("mooreWeatherTheme");
-    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const mode = saved === "light" || saved === "dark"
-      ? saved
-      : (prefersDark ? "dark" : "light");
-
-    // Migrate the old Auto setting to one explicit, persistent choice.
-    if (saved !== mode) localStorage.setItem("mooreWeatherTheme", mode);
-    document.documentElement.dataset.theme = mode;
-    document.documentElement.dataset.themeMode = mode;
-  } catch (error) {
-    document.documentElement.dataset.theme = "light";
-    document.documentElement.dataset.themeMode = "light";
-  }
-})();</script>
+<script src="/theme.js?v=3"></script>
 <style>
 :root {
   color-scheme: light;
@@ -1505,9 +1489,12 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
   .app-footer { padding-bottom: max(18px, env(safe-area-inset-bottom,0px)); }
 }
 </style>
-<link href="/history.css?v=2" rel="stylesheet"/>
-<script defer src="/history-chart.js?v=1"></script>
-<script defer src="/history.js?v=2"></script>
+<link href="/history.css?v=3" rel="stylesheet"/>
+<script defer src="/history-chart.js?v=3"></script>
+<script defer src="/history.js?v=3"></script>
+<link rel="stylesheet" href="/station-shell.css?v=4">
+<script defer src="/station-shell.js?v=3"></script>
+<script defer src="/station-alerts.js?v=3"></script>
 </head>
 <body>
 <div class="main-container">
@@ -1516,11 +1503,11 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <div class="app-header">
 <div class="brand-lockup">
 <div aria-hidden="true" class="brand-mark">
-<img alt="" src="/Weather_Station_App.png"/>
+<img alt="" src="/moore-weather-logo-v2.png"/>
 </div>
 <div class="brand-copy">
 <h1 class="brand-title">Moore Weather</h1>
-<div class="brand-subtitle">West Warwick · Live Station</div>
+<div class="brand-subtitle">Your weather, closer to home</div>
 </div>
 </div>
 <div class="header-actions">
@@ -1537,30 +1524,18 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 </header>
 </div>
 <main id="weatherData">
+<section class="station-overview" aria-label="West Warwick station">
+  <div class="station-overview-main"><h2>West Warwick, QLD</h2><div class="station-observation"><span id="dateVal">Waiting for station</span><span id="timeVal">— AEST</span></div></div>
+  <div class="station-overview-status"><div class="live-cluster" aria-live="polite"><span class="status-badge fetching" id="statusBadge">● CONNECTING</span><span id="freshnessText">Waiting for station</span></div><button type="button" class="station-alert-button" id="stationAlertsBtn">Station alerts</button></div>
+</section>
 <div class="top-toolbar">
 <div aria-label="Weather views" class="view-tabs" role="navigation">
 <button aria-current="page" title="Refresh current readings" class="tab-button active" id="fetchBtn" onclick="manualFetch()" type="button">Current</button>
 <a class="tab-button" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
 </div>
-<div aria-live="polite" class="live-cluster">
-<span class="status-badge fetching" id="statusBadge">● CONNECTING</span>
-<span id="freshnessText">Waiting for station</span>
+
 </div>
-</div>
-<div class="content-layout"><div class="layout-stack landscape-left"><div class="station-strip layout-station">
-<div class="title-date-container">
-<div class="address-title">WEST WARWICK, QLD</div>
-<div class="date-time">
-<p><b>Date</b> · <span id="dateVal">--</span></p>
-<p><b>Station time</b> · <span id="timeVal">--</span></p>
-</div>
-</div>
-<div class="logo-container">
-<a aria-label="View daily summary" href="daily.html">
-<img alt="Environdata Weather Maestro" src="/Station_Label.png"/>
-</a>
-</div>
-</div><section aria-label="Primary weather readings" class="panel-card primary-card layout-primary">
+<div class="content-layout"><div class="layout-stack landscape-left"><section aria-label="Primary weather readings" class="panel-card primary-card layout-primary">
 <div class="temperature-heroes">
 <div class="temp-hero">
 <div class="eyebrow">Air temperature</div>
@@ -1820,7 +1795,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
       const windSpeedMs = Math.max(0, windSpeedKmh) / 3.6;
       return temperatureC + (0.33 * vapourPressure) - (0.70 * windSpeedMs) - 4.00;
     }
- 
+
     /*****************************
     * GLOBAL STATE & RETRIES *
     *****************************/
@@ -1842,7 +1817,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     const error = new Error(`Incomplete weather data: received ${lines.length} fields, expected at least 31`);
     console.error(error.message, lines);
     throw error;
-  } 
+  }
       try {
         // Extract data from CSV indices
         const dateStr = lines[0];
@@ -1884,8 +1859,6 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
         }
 
         // DATE & TIME
-        document.getElementById("dateVal").textContent = formatDateString(dateStr);
-        document.getElementById("timeVal").textContent = timeStr + " AEST";
         document.getElementById("weatherData").dataset.observedAt = dateStr.replaceAll("/", "-") + "T" + timeStr + "+10:00";
 
         // WIND
@@ -1973,7 +1946,7 @@ document.getElementById("humidityVal").innerHTML = humidityFormatted;
 const globeElem = document.getElementById("blackGlobeTempVal");
 globeElem.innerHTML = `<span style="color:${globeTempData.color}; font-weight:bold;">${blackGlobeTemp.toFixed(1)}°C</span>`;
 globeElem.closest(".temp-hero")?.style.setProperty("--hero-accent", globeTempData.color);
- 
+
 // Radiant Heat Diff Calculation
 const radiantDiff = blackGlobeTemp - temperatureRaw;
 const radiantDiffElem = document.getElementById("radiantDiffVal");
@@ -2745,125 +2718,9 @@ window.addEventListener("load", () => {
     })();
   </script>
 <script>
-(function () {
-  const THEME_KEY = "mooreWeatherTheme";
-  const button = document.getElementById("themeToggleBtn");
-  const label = document.getElementById("themeToggleLabel");
-  const icon = document.getElementById("themeToggleIcon");
-  const themeColor = document.querySelector('meta[name="theme-color"]');
 
-  const THEME_ICONS = {
-    light: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>',
-    dark: '<svg viewBox="0 0 24 24"><path d="M20 14.3A8 8 0 0 1 9.7 4a8 8 0 1 0 10.3 10.3Z"/></svg>'
-  };
 
-  function getSavedTheme() {
-    try {
-      const saved = localStorage.getItem(THEME_KEY);
-      if (saved === "light" || saved === "dark") return saved;
-    } catch (error) {}
 
-    return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-  }
-
-  function renderTheme(theme, persist) {
-    const current = theme === "dark" ? "dark" : "light";
-    const target = current === "dark" ? "light" : "dark";
-
-    document.documentElement.dataset.theme = current;
-    document.documentElement.dataset.themeMode = current;
-
-    if (persist) {
-      try { localStorage.setItem(THEME_KEY, current); } catch (error) {}
-    }
-
-    const currentLabel = current === "dark" ? "Dark" : "Light";
-    const targetLabel = target === "dark" ? "Dark" : "Light";
-
-    if (button) {
-      button.setAttribute("aria-label", `${currentLabel} theme active; switch to ${targetLabel} theme`);
-      button.title = `${currentLabel} theme active · switch to ${targetLabel}`;
-    }
-    if (label) label.textContent = currentLabel;
-    if (icon) icon.innerHTML = THEME_ICONS[current];
-    if (themeColor) themeColor.content = current === "dark" ? "#102f39" : "#123742";
-  }
-
-  if (button) {
-    button.addEventListener("click", () => {
-      const current = getSavedTheme();
-      renderTheme(current === "dark" ? "light" : "dark", true);
-    });
-  }
-
-  renderTheme(getSavedTheme(), false);
-})();
-
-(function () {
-  const badge = document.getElementById("statusBadge");
-  const detail = document.getElementById("freshnessText");
-  let lastPollMs = null;
-  let pingFailed = false;
-
-  function humanAge(ms) {
-    const seconds = Math.max(0, Math.round(ms / 1000));
-    if (seconds < 5) return "just now";
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ${seconds % 60}s ago`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ${minutes % 60}m ago`;
-  }
-
-  function paintFreshness() {
-    if (!badge || !detail) return;
-
-    const observedMs = Date.parse(document.getElementById("weatherData")?.dataset.observedAt || "");
-    if (pingFailed || !lastPollMs || !Number.isFinite(observedMs)) {
-      badge.textContent = pingFailed ? "● OFFLINE" : "● CONNECTING";
-      badge.className = `status-badge ${pingFailed ? "error" : "fetching"}`;
-      detail.textContent = pingFailed ? "Status unavailable" : "Waiting for station";
-      return;
-    }
-
-    if (observedMs > Date.now() + 90000) {
-      badge.textContent = "● CHECK"; badge.className = "status-badge fetching"; detail.textContent = "Check station clock"; return;
-    }
-    const age = Math.max(Date.now() - lastPollMs, Date.now() - observedMs);
-    if (age <= 90000) {
-      badge.textContent = "● LIVE";
-      badge.className = "status-badge connected";
-    } else if (age <= 180000) {
-      badge.textContent = "● DELAYED";
-      badge.className = "status-badge fetching";
-    } else {
-      badge.textContent = "● STALE";
-      badge.className = "status-badge error";
-    }
-    detail.textContent = `Observed ${humanAge(age)}`;
-  }
-
-  async function refreshStatus() {
-    try {
-      const response = await fetch(`/ping?t=${Date.now()}`, { cache: "no-store" });
-      if (response.status === 401) {
-        window.location.assign("/login");
-        return;
-      }
-      if (!response.ok) throw new Error(`Ping returned ${response.status}`);
-      const payload = await response.json();
-      lastPollMs = payload.lastWeatherPoll ? Date.parse(payload.lastWeatherPoll) : null;
-      pingFailed = false;
-    } catch (error) {
-      pingFailed = true;
-    }
-    paintFreshness();
-  }
-
-  refreshStatus();
-  setInterval(refreshStatus, 30000);
-  setInterval(paintFreshness, 1000);
-})();
 
 (function () {
   const stage = document.getElementById("skycamImageStage");

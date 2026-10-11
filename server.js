@@ -380,11 +380,19 @@ const PUBLIC_APP_ASSETS = new Map([
   ["/favicon.png", "favicon.png"],
   ["/favicon.ico", "favicon.png"],
   ["/site.webmanifest", "site.webmanifest"],
+  ["/moore-weather-logo-v2.png", "moore-weather-logo-v2.png"],
+  ["/moore-weather-icon-192-v2.png", "moore-weather-icon-192-v2.png"],
+  ["/moore-weather-icon-512-v2.png", "moore-weather-icon-512-v2.png"],
+  ["/moore-weather-touch-v2.png", "moore-weather-touch-v2.png"],
+  ["/moore-weather-favicon-v2.png", "moore-weather-favicon-v2.png"],
+  ["/theme.js", "theme.js"],
+  ["/station-shell.css", "station-shell.css"],
+  ["/sw.js", "sw.js"],
 ]);
 
 for (const [route, filename] of PUBLIC_APP_ASSETS) {
   app.get(route, (req, res) => {
-    res.set("Cache-Control", "public, max-age=86400");
+    res.set("Cache-Control", filename === "sw.js" || filename === "site.webmanifest" ? "no-cache" : "public, max-age=86400");
     res.sendFile(path.join(__dirname, "public", filename));
   });
 }
@@ -494,6 +502,9 @@ if (restoredDaily) {
   cachedDailyData = restoredDaily.raw_line.trim();
   lastDailyPollTime = new Date(restoredDaily.observed_at);
 }
+
+const { observationTime, mountAlerts } = require('./lib/station-alerts');
+const stationAlerts = mountAlerts(app, {env:process.env,logger,getObservation:()=>observationTime(cachedWeatherData)});
 
 // All commands share one physical UART/RS232 path through the EW10.
 // Serialize CURRENT and DAILY transactions so replies can never cross between
@@ -1445,6 +1456,8 @@ app.get("/ping", (req, res) => {
 
   res.json({
     status: "online",
+    stationObservedAt: observationTime(cachedWeatherData) === null ? null : new Date(observationTime(cachedWeatherData)).toISOString(),
+    stationAlerts: stationAlerts.status(),
     database: persistence.status(),
     history: historyCollector.status(),
     databaseBackups: databaseBackups.status(),
