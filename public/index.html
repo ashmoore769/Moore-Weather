@@ -2867,6 +2867,7 @@ window.addEventListener("load", () => {
   });
 
   window.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || document.querySelector('dialog[open]')) return;
     const tag = document.activeElement && document.activeElement.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     if (event.key === "ArrowLeft") stepSkyCam(-1);
