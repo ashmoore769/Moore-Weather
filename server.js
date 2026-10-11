@@ -477,6 +477,13 @@ let dailyStationRequestInFlight = null;
 // Optional SQL persistence shares the existing polling owner and adds no logger
 // connections. Blank WEATHER_DB_PATH leaves production behaviour unchanged.
 const persistence = require('./lib/weather-persistence').createPersistence(process.env, logger);
+const historyApi = require('./lib/weather-history-api').createHistoryApi({
+  filename: process.env.WEATHER_DB_PATH,
+  isReady: () => persistence.status().ready,
+  logger
+});
+app.get('/api/trends', historyApi.handler(true));
+app.get('/api/history', historyApi.handler());
 const restoredCurrent = persistence.latest('r3');
 const restoredDaily = persistence.latest('mem1');
 if (restoredCurrent) {

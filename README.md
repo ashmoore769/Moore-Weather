@@ -36,7 +36,13 @@ After configuration is ready, `npm start` (or `node server.js`) serves the app a
 
 **Starting the server begins polling the physical station immediately.** The Render instance already polls it. Use a mock station for development, or coordinate access before running another live poller: the server's transaction queue only coordinates requests within its own process.
 
-## Deployment and next phase
+## Graphs and history
+
+The Current page has five-hour trends on weather, soil and power readings. Select a card to open the history viewer, change measurement, choose 10-minute/hourly/daily records, and browse earlier end dates. Daily Summary cards show 30-day trends. The viewer supports pointer/touch inspection, arrow-key navigation and an accessible readings table in both themes.
+
+Charts read the SQL archive only and never issue station commands. See [history chart notes](docs/HISTORY.md) for native intervals, measurement conventions, query limits and verification.
+
+## Deployment
 
 - GitHub: <https://github.com/ashmoore769/Moore-Weather>
 - Live app: <https://moore-weather.onrender.com>

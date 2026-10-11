@@ -25,7 +25,7 @@ function checkAsset(url, source) {
 }
 
 let scripts = 0;
-const javascriptFiles = ['server.js', ...['tools', 'lib', 'test'].flatMap(dir =>
+const javascriptFiles = ['server.js', ...['tools', 'lib', 'test', 'public'].flatMap(dir =>
   fs.existsSync(path.join(root, dir)) ? fs.readdirSync(path.join(root, dir))
     .filter(name => name.endsWith('.js')).map(name => `${dir}/${name}`) : [])];
 for (const file of javascriptFiles) {
