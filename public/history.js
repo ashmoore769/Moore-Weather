@@ -29,14 +29,8 @@
   ];
   let catalog = [], trendData, loadingTrends = false, modalRequest, selection, activeSeries, activeIndex = -1, chartGeometry;
   const cards = [];
-  const guide = document.createElement('div');
-  guide.className = 'history-guide';
-  const guideText = document.createElement('span');
-  guideText.innerHTML = '<strong>Explore the weather</strong> · select a reading for its history';
-  const browse = document.createElement('button');
-  browse.type = 'button'; browse.textContent = 'History ↗'; browse.addEventListener('click', () => openHistory('air'));
-  guide.append(guideText, browse);
-  document.querySelector(dailyPage ? '.daily-readings-panel' : '.primary-card')?.prepend(guide);
+  const guideText = $('historyHint'), browse = $('browseHistory');
+  browse.addEventListener('click', () => openHistory('air'));
   for (const [elementId, metric] of bindings) {
     const value = $(elementId);
     const card = value?.closest('.temp-hero, .quick-stat, .soil-reading-value, .soil-surface-temperature, .metric-row, .daily-reading-card, .rain-hero, .soil-depth-reading');
@@ -106,9 +100,10 @@
       trendData = await getJson('/api/trends?view=' + (dailyPage ? 'daily' : 'current'), AbortSignal.timeout(20000));
       setCatalog(trendData);
       for (const entry of cards) drawSpark(entry, trendData.series.find(s => s.metric.id === entry.metric));
-      guideText.innerHTML = '<strong>' + (dailyPage ? '30-day trends' : 'The last 5 hours') + '</strong> · select a reading to explore';
+      guideText.textContent = dailyPage ? '30-day trends' : '5-hour trends';
+      guideText.removeAttribute('title');
     } catch (error) {
-      guideText.textContent = error.message;
+      guideText.textContent = 'History unavailable'; guideText.title = error.message;
       for (const { spark } of cards) { spark.querySelector('svg').replaceChildren(); spark.querySelector('.history-spark-caption span').textContent = 'History unavailable'; }
     } finally { loadingTrends = false; }
   }

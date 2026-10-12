@@ -15,7 +15,8 @@
       const seconds = Math.max(0,Math.floor(age/1000));
       text = 'Observed ' + (seconds<5 ? 'just now' : seconds<60 ? seconds+'s ago' : seconds<3600 ? Math.floor(seconds/60)+'m ago' : Math.floor(seconds/3600)+'h '+Math.floor(seconds%3600/60)+'m ago');
     }
-    badge.textContent = '● '+label; badge.className = 'status-badge '+cls; detail.textContent = text;
+    if (badge.textContent !== '● '+label) badge.textContent = '● '+label;
+    badge.className = 'status-badge '+cls; detail.textContent = text;
     if (Number.isFinite(observed)) { document.getElementById('dateVal').textContent=date.format(observed); document.getElementById('timeVal').textContent=time.format(observed)+' AEST'; }
   }
   async function refresh() {
