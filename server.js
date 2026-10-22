@@ -403,6 +403,7 @@ for (const [route, filename] of PUBLIC_APP_ASSETS) {
 
 const accessRequests = require('./lib/access-requests').createAccessRequests({ env: process.env, logger });
 accessRequests.mount(app);
+accessRequests.start();
 
 app.get("/login", (req, res) => {
   const nextPath = safeReturnPath(req.query.next);
