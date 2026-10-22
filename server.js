@@ -492,6 +492,13 @@ const historyApi = require('./lib/weather-history-api').createHistoryApi({
 });
 app.get('/api/trends', historyApi.handler(true));
 app.get('/api/history', historyApi.handler());
+const waterService = require('./lib/water-service').createWaterService({ env: process.env,
+  isReady: () => persistence.status().ready, logger });
+app.get('/api/water', async (_req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  try { res.json({ ...await historyApi.query({ waterStatus: true, minute: Math.floor(Date.now() / 60000) }), collector: waterService.status() }); }
+  catch (error) { logger.warn('[WATER] ' + error.message); res.status(503).json({ error: 'Water readings are temporarily unavailable.' }); }
+});
 const restoredCurrent = persistence.latest('r3');
 const restoredDaily = persistence.latest('mem1');
 if (restoredCurrent) {
@@ -1192,6 +1199,7 @@ function scheduleNextDailyFetch() {
 }
 
 function schedulePolling() {
+  waterService.start();
   setTimeout(() => databaseBackups.run(), 90000);
   setInterval(() => databaseBackups.run(), 3600000);
   // Current readings every minute.
@@ -1460,6 +1468,7 @@ app.get("/ping", (req, res) => {
     stationAlerts: stationAlerts.status(),
     database: persistence.status(),
     history: historyCollector.status(),
+    water: waterService.status(),
     databaseBackups: databaseBackups.status(),
     weatherStationHost: WEATHER_STATION_HOST,
     weatherStationPort: WEATHER_STATION_PORT,

@@ -228,8 +228,9 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
   </style>
 <link href="/daily.css?v=1" rel="stylesheet"/>
 <link href="/history.css?v=5" rel="stylesheet"/>
-<script defer src="/history-chart.js?v=5"></script>
-<script defer src="/history.js?v=6"></script>
+<script defer src="/history-chart.js?v=6"></script>
+<script defer src="/history.js?v=7"></script>
+<link rel="stylesheet" href="/water.css?v=1">
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=3"></script>
@@ -411,6 +412,29 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
           <div class="station-update"><strong>A complete weather day</strong><p>Summaries become available after the 9 AM observation. Open any reading to explore earlier days.</p><button id="stationRefreshBtn" class="station-refresh-control" type="button">Request station update <span aria-hidden="true">↻</span></button><span id="refreshFeedback" role="status"></span></div></div>
         </section>
       </main>    </div>
+<section class="local-water" id="localWater" aria-labelledby="localWaterTitle">
+  <div class="water-section-heading"><div><span class="water-eyebrow">Our catchment</span><h2 id="localWaterTitle">Local water</h2></div><span class="water-current-label">Latest available readings · AEST</span></div>
+  <div class="water-grid">
+    <article class="water-panel water-dam">
+      <header><div><span class="water-eyebrow">Upper Condamine</span><h3>Leslie Dam</h3></div><span class="water-site">422315B</span></header>
+      <div class="water-reading water-hero" aria-label="View Leslie Dam storage history">
+        <span class="water-label">Storage level</span><strong><span id="leslieStorage">—</span><small>% full</small></strong>
+        <span class="water-time" id="leslieStorageTime">Awaiting source readings</span>
+      </div>
+      <div class="water-reading water-volume"><span class="water-label">Stored water</span><strong><span id="leslieVolume">—</span><small>ML</small></strong><span class="water-time" id="leslieVolumeTime">Awaiting source readings</span></div>
+      <p class="water-capacity" id="leslieCapacity"></p>
+      <footer><a href="https://www.sunwater.com.au/dams/leslie-dam/" target="_blank" rel="noopener noreferrer">Source: Sunwater ↗</a><span>Automated · unverified</span></footer>
+    </article>
+    <article class="water-panel water-river">
+      <header><div><span class="water-eyebrow">Warwick gauge</span><h3>Condamine River</h3></div><span class="water-site">422310C</span></header>
+      <div class="water-reading water-hero"><span class="water-label">River level</span><strong><span id="condamineLevel">—</span><small>m</small></strong><span class="water-time" id="condamineLevelTime">Awaiting source readings</span></div>
+      <div class="water-reading water-volume"><span class="water-label">River flow</span><strong><span id="condamineFlow">—</span><small>m³/s</small></strong><span class="water-time" id="condamineFlowTime">Awaiting source readings</span></div>
+      <p class="water-capacity">Height above gauge datum · recent data is unvalidated</p>
+      <footer><a href="https://water-monitoring.information.qld.gov.au/" target="_blank" rel="noopener noreferrer">Source: Queensland WMIP ↗</a><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></footer>
+    </article>
+  </div>
+  <p class="water-import-status" id="waterImportStatus" role="status">Connecting to saved water readings…</p>
+</section>
     <footer class="app-footer">
 <form action="/logout" method="post">
 <button class="footer-signout" type="submit">Sign out</button>
