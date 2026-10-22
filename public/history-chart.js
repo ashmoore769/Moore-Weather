@@ -89,11 +89,20 @@
     if (m.kind === 'direction') return [['Latest wind direction', series.latest?.value], ['Available readings', valid.length, ''], ['Missing readings', series.missing, '']];
     const extreme = (stat, label) => {
       const recorded = valid.some(p => Number.isFinite(p[stat]));
-      const values = valid.map(p => recorded ? p[stat] : p.value).filter(Number.isFinite);
+      const key = recorded ? stat : 'value';
+      // Keep the timestamp attached to the same native statistic as the value.
+      // For ties, show the earliest recording period, not an invented occurrence time.
+      const point = valid.filter(p => Number.isFinite(p[key])).reduce((best, p) =>
+        !best || (stat === 'min' ? p[key] < best[key] : p[key] > best[key]) ||
+          (p[key] === best[key] && p.t < best.t) ? p : best, null);
       const detail = m.aggregation === 'TOTAL' ? `${period} ${noun}` : recorded ? noun :
         m.aggregation === 'AVERAGE' ? `${period} average` : m.aggregation === 'MINIMUM' ? `${period} minimum voltage` :
           m.aggregation === 'MAXIMUM' ? `${period} peak gust` : noun;
-      return [`${label} ${detail}`, values.length ? Math[stat](...values) : null];
+      const item = [`${label} ${detail}`, point ? point[key] : null];
+      if (point && Number.isFinite(point.t) && (['air', 'globe', 'ground', 'dew'].includes(m.id) || m.id.startsWith('soil-temp-'))) {
+        item.push(undefined, { t: point.t, estimated: Boolean(point.estimated) });
+      }
+      return item;
     };
     const items = [[`Latest ${noun}`, series.latest?.value], extreme('min', 'Lowest'), extreme('max', 'Highest')];
     if (m.id === 'rain') {

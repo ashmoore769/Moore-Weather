@@ -40,6 +40,7 @@
 .soil-depth-reading .history-spark { flex-basis: 100%; }
 .soil-depth-reading .history-spark svg { height: 25px; }
 .history-dialog {
+  box-sizing: border-box;
   --history-gap: 20px;
   position: fixed;
   inset: calc(var(--history-safe-top) + var(--history-gap)) calc(var(--history-safe-right) + var(--history-gap)) calc(var(--history-safe-bottom) + var(--history-gap)) calc(var(--history-safe-left) + var(--history-gap));
@@ -70,7 +71,7 @@ body:has(.history-dialog[open]) { overflow: hidden; }
 .history-brand strong { font-size: 16px; font-weight: 750; line-height: 1.2; }
 .history-brand span { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #ffffffbd; }
 /* Keep the close control outside the scroller: it cannot slide beneath iOS chrome. */
-.history-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.history-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .history-heading { padding: 22px 28px 18px; background: linear-gradient(130deg, color-mix(in srgb, var(--accent) 7%, var(--surface)), var(--surface)); }
 .history-heading h2 { margin: 0; font-size: clamp(21px, 3vw, 28px); font-weight: 700; line-height: 1.2; letter-spacing: -.6px; }
 .history-heading p:last-child { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
@@ -97,6 +98,11 @@ body:has(.history-dialog[open]) { overflow: hidden; }
 .history-summary strong { font-size: 21px; font-weight: 650; letter-spacing: -.7px; font-variant-numeric: tabular-nums; }
 .history-summary > div:first-child strong { font-size: 30px; color: var(--history-color, var(--accent)); }
 .history-summary small { margin-left: 4px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; }
+.history-summary-time { display: block; margin-top: 6px; color: var(--muted); font-size: 10px; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.history-summary-time span, .history-summary-time time { display: block; }
+/* Visibility preserves exact section heights, including wrapped text and tables. */
+.history-body:not([data-state="ready"]) :is(.history-summary, .history-inspect, .history-legend, .history-note, .history-table) { visibility: hidden; }
+.history-body[data-state="loading"] .history-chart-message { background: color-mix(in srgb, var(--surface) 85%, transparent); }
 .history-chart { position: relative; height: 290px; border-radius: 8px; touch-action: none; cursor: grab; user-select: none; }
 .history-chart.is-dragging { cursor: grabbing; }
 .history-chart[aria-busy="true"] { cursor: progress; }

@@ -10,6 +10,10 @@ Panning keeps the chosen resolution. Zooming selects the finest supported native
 
 Left/right arrows inspect readings, Home/End select the first/last reading, Shift+left/right pan, +/− zoom and 0 resets. Statistics, table and the existing fitted trend use the loaded visible window. During navigation, summary values are withheld until the new window is loaded.
 
+After the first loaded view, the dialog retains its height until it closes or the viewport is resized. Loading and drag previews keep summary/footer/table sections in layout while hiding stale values, so the panel does not shrink or lose its scroll position. Open tables stay open and refresh with the new data. Error/retry states retain the same space.
+
+Temperature extrema include compact AEST date/time details for their native recording period, labelled **10 min ending**, **Hour ending** or **Day ending**. The archive does not retain the exact occurrence time within that period: a daily 9 AM timestamp is the end of the weather day, not the instant the extreme occurred. Dates follow the same min/max statistic as the displayed value, ties use the earliest period, and estimates are labelled. Missing extrema have no timestamp.
+
 Rainfall has an additional **Total rainfall** summary, calculated from the recorded native totals in the displayed range. Missing, screened and interpolated values are excluded; an incomplete record is labelled explicitly and never presented as zero rain. The note gives the exact recording-period boundaries covered by the bars, which can differ from an arbitrary preset end time. All-empty ranges show an unavailable total. Rainfall extremes identify daily/hourly/ten-minute totals; other measurements distinguish recorded extrema from extrema of native averages. Evaporation rates, bearings and temperatures are never summed.
 
 The Current page's dark soil profile dims only decorative soil and grass layers. Reading text, coloured indicators and trend graphs retain their contrast; light mode is unchanged.

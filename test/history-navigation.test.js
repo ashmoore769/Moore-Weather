@@ -23,13 +23,53 @@ test('temperature and wind labels distinguish recorded extremes from native aver
   const s = series([12, 22], { id: 'air', aggregation: 'AVERAGE' });
   assert.equal(chart.summary(s)[1][0], 'Lowest hourly average');
   s.points[0].min = 8; s.points[0].max = 15; s.points[1].max = 26;
-  assert.deepEqual(chart.summary(s)[1], ['Lowest temperature', 8]);
-  assert.deepEqual(chart.summary(s)[2], ['Highest temperature', 26]);
+  assert.deepEqual(chart.summary(s)[1].slice(0, 2), ['Lowest temperature', 8]);
+  assert.deepEqual(chart.summary(s)[2].slice(0, 2), ['Highest temperature', 26]);
   s.metric.id = 'wind'; s.points[0].min = null;
   assert.equal(chart.summary(s)[1][0], 'Lowest hourly average');
   assert.deepEqual(chart.summary(s)[2], ['Highest wind speed', 26]);
   s.metric = { id: 'direction', kind: 'direction' };
   assert.equal(chart.summary(s)[1][0], 'Available readings');
+});
+test('temperature dates belong to the winning native statistic, not the lowest or highest average', () => {
+  const s = series([10, 20, 30], { id: 'air', aggregation: 'AVERAGE' });
+  assert.equal(chart.summary(s)[1][3].t, s.points[0].t);
+  assert.equal(chart.summary(s)[2][3].t, s.points[2].t);
+  s.points[0].max = 40;
+  s.points[1].min = -2;
+  s.points[2].min = 1;
+  s.points[2].max = 35;
+  assert.equal(chart.summary(s)[1][3].t, s.points[1].t);
+  assert.equal(chart.summary(s)[2][3].t, s.points[0].t);
+});
+test('tied temperature extrema use the earliest period, with no date for missing readings', () => {
+  const s = series([5, null, 5], { id: 'air', aggregation: 'AVERAGE' });
+  const earliest = s.points[0].t;
+  s.points.reverse();
+  assert.equal(chart.summary(s)[1][3].t, earliest);
+  assert.equal(chart.summary(s)[2][3].t, earliest);
+  const empty = series([null, null], s.metric);
+  assert.equal(chart.summary(empty)[1][3], undefined);
+  assert.equal(chart.summary(empty)[2][3], undefined);
+});
+test('daily temperature dates retain the 9 AM recording boundary, including estimated flags', () => {
+  const s = series([12, 22], { id: 'globe', aggregation: 'AVERAGE' });
+  s.resolution = 'daily'; s.intervalSeconds = 86400;
+  s.points[0].t = Date.parse('2026-10-20T23:00:00Z');
+  s.points[1].t = Date.parse('2026-10-21T23:00:00Z');
+  s.points[0].estimated = true;
+  assert.deepEqual(chart.summary(s)[1][3], { t: s.points[0].t, estimated: true });
+  assert.deepEqual(chart.summary(s)[2][3], { t: s.points[1].t, estimated: false });
+  for (const id of ['ground', 'dew', 'soil-temp-10', 'soil-temp-40']) {
+    s.metric.id = id;
+    assert.equal(chart.summary(s)[1][3].t, s.points[0].t);
+  }
+});
+test('temperature extrema dates follow the selected visible window', () => {
+  const s = series([1, 2, 3, 40], { id: 'air', aggregation: 'AVERAGE' });
+  const visible = chart.visibleSeries(s, s.points[0].t, s.points[2].t);
+  assert.equal(chart.summary(visible)[1][3].t, s.points[1].t);
+  assert.equal(chart.summary(visible)[2][3].t, s.points[2].t);
 });
 test('visible totals and fitted trends only use readings in the displayed window', () => {
   const s = series([1, 2, 3, 40]);

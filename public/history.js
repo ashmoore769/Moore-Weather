@@ -73,7 +73,7 @@
       <button type="button" id="historyReset">Reset view</button>
       <span id="historyNavigationHint">Drag to pan · scroll or pinch to zoom</span>
     </div>
-    <div class="history-body">
+    <div class="history-body" data-state="loading" aria-busy="true">
       <div class="history-summary" id="historySummary"></div>
       <div class="history-chart" id="historyChart" tabindex="0" role="group" aria-label="Weather history chart. Arrow keys inspect readings. Shift plus arrow keys pan. Plus and minus zoom. Zero resets the view." aria-describedby="historyNavigationHint"><svg aria-hidden="true"></svg><div class="history-chart-message" id="historyMessage" role="status">Loading history…</div></div>
       <div class="history-inspect" id="historyInspect" aria-live="polite">Point to the chart or use the arrow keys to inspect a reading.</div>
@@ -81,10 +81,26 @@
       <details class="history-table" id="historyTable"><summary>View readings as a table</summary><div class="history-table-scroll"></div></details>
     </div></div>`;
   document.body.append(dialog);
+  const historyBody = dialog.querySelector('.history-body');
+  function holdDialogSize() {
+    if (!dialog.open || dialog.style.height) return;
+    const height = dialog.getBoundingClientRect().height;
+    if (height) dialog.style.height = Math.ceil(height) + 'px';
+  }
+  function setHistoryState(state) {
+    historyBody.dataset.state = state;
+    historyBody.setAttribute('aria-busy', String(state === 'loading'));
+    $('historyChart').setAttribute('aria-busy', String(state === 'loading'));
+  }
   const close = () => dialog.close();
   dialog.querySelector('.history-close').addEventListener('click', close);
   dialog.addEventListener('click', event => { if (event.target === dialog) { const box = dialog.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) close(); } });
-  dialog.addEventListener('close', () => { cancelNavigation(); modalRequest?.abort(); activeSeries = loadedSeries = null; chartGeometry = null; });
+  dialog.addEventListener('close', () => { cancelNavigation(); modalRequest?.abort(); activeSeries = loadedSeries = null; chartGeometry = null; dialog.style.removeProperty('height'); });
+  window.addEventListener('resize', () => {
+    if (dialog.open && historyBody.dataset.state === 'ready') {
+      dialog.style.removeProperty('height'); holdDialogSize();
+    }
+  });
 
   async function getJson(url, signal) {
     const response = await fetch(url, { signal, headers: { Accept: 'application/json' } });
@@ -176,6 +192,7 @@
   }
   async function openHistory(metric) {
     cancelNavigation(); resetView = null;
+    setHistoryState('loading');
     selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 24, endDate: null };
     if (!dialog.open) dialog.showModal();
     dialog.querySelector('.history-scroll').scrollTop = 0;
@@ -188,6 +205,7 @@
     configure(); loadHistory();
   }
   function showError(error) {
+    setHistoryState('error');
     const message = $('historyMessage'); message.replaceChildren(document.createTextNode(error.message)); message.hidden = false;
     const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Try again'; retry.addEventListener('click', () => catalog.length ? loadHistory() : openHistory(selection.metric)); message.append(retry);
   }
@@ -196,12 +214,11 @@
     modalRequest?.abort(); modalRequest = new AbortController();
     const signal = modalRequest.signal;
     activeSeries = loadedSeries = null; activeIndex = -1; chartGeometry = null;
-    $('historyChart').setAttribute('aria-busy', 'true');
+    setHistoryState('loading');
     for (const id of ['historyEarlier', 'historyLater', 'historyZoomIn', 'historyZoomOut']) $(id).disabled = true;
-    $('historySummary').replaceChildren(); $('historyChart').querySelector('svg').replaceChildren();
-    $('historyInspect').textContent = 'Point to the chart or use the arrow keys to inspect a reading.';
-    $('historyLegend').replaceChildren(); $('historyNote').textContent = ''; $('historyPeriod').textContent = '';
-    $('historyTable').open = false; $('historyTable').querySelector('.history-table-scroll').replaceChildren();
+    // Keep every section in layout while fetching. CSS hides stale readings;
+    // the previous plot remains behind the loading overlay, without collapsing
+    // the summary, footer, open table or the user's scroll position.
     $('historyMessage').hidden = false; $('historyMessage').textContent = 'Loading history…';
     const params = new URLSearchParams({ metric: selection.metric, resolution: selection.resolution, hours: String(selection.hours) });
     if (selection.end !== undefined) params.set('end', new Date(selection.end).toISOString());
@@ -211,10 +228,10 @@
       if (signal.aborted || !dialog.open) return;
       activeSeries = loadedSeries = data.series[0];
       if (!selection.custom) resetView = { ...selection, end: activeSeries.end };
-      $('historyChart').setAttribute('aria-busy', 'false');
+      setHistoryState('ready');
       for (const id of ['historyEarlier', 'historyLater', 'historyZoomIn', 'historyZoomOut']) $(id).disabled = false;
       renderHistory();
-    } catch (error) { if (!signal.aborted) { $('historyChart').setAttribute('aria-busy', 'false'); showError(error); } }
+    } catch (error) { if (!signal.aborted && dialog.open) showError(error); }
   }
   function presetChange() { selection.custom = false; delete selection.end; configure(); loadHistory(); }
   $('historyMetric').addEventListener('change', () => {
@@ -233,20 +250,35 @@
     if(activeSeries) renderHistory();
   });
 
+  function renderPeriod(s) {
+    $('historyPeriod').textContent = `${selection.custom ? 'Custom view · ' : ''}${longFormat.format(s.start)} — ${longFormat.format(s.end)} AEST`;
+  }
   function renderHistory() {
     const s = activeSeries, m = s.metric, valid = s.points.filter(p => p.value !== null);
-    $('historyPeriod').textContent = `${selection.custom ? 'Custom view · ' : ''}${longFormat.format(s.start)} — ${longFormat.format(s.end)} AEST`;
+    renderPeriod(s);
     const period = { '10m': '10-minute', hourly: 'Hourly', daily: 'Daily' }[s.resolution];
     const aggregation = { AVERAGE: 'averages', AVGDIR: 'average directions', TOTAL: 'totals', MINIMUM: 'minimums', MAXIMUM: 'maximums', CURRENT: 'end-of-hour readings' }[m.aggregation];
     $('historySubtitle').textContent = `${period} ${aggregation} · ${s.resolution === 'daily' ? '24 hours ending at 9 AM AEST' : 'times shown are the end of each recording period'}`;
     const summary = $('historySummary');
     const items = WeatherChart.summary(s);
     summary.classList.toggle('history-summary-rain', m.id === 'rain');
-    summary.replaceChildren(...items.map(([label, value, unit]) => {
+    summary.replaceChildren(...items.map(([label, value, unit, recording]) => {
       const box = document.createElement('div'), title = document.createElement('span'), number = document.createElement('strong'), suffix = document.createElement('small');
       title.className = 'history-summary-label'; title.textContent = label;
       number.textContent = unit === '' ? value : fmt(value, m); suffix.textContent = unit ?? m.unit;
-      number.append(suffix); box.append(title, number); return box;
+      number.append(suffix); box.append(title, number);
+      if (recording) {
+        const detail = document.createElement('span'), caption = document.createElement('span'), when = document.createElement('time');
+        detail.className = 'history-summary-time';
+        caption.textContent = (recording.estimated ? 'Estimated · ' : '') + ({ '10m': '10 min ending', hourly: 'Hour ending', daily: 'Day ending' }[s.resolution]);
+        when.dateTime = new Date(recording.t).toISOString();
+        const date = document.createElement('span'), time = document.createElement('span');
+        date.textContent = fullDateFormat.format(recording.t); time.textContent = timeFormat.format(recording.t) + ' AEST';
+        when.append(date, time); detail.append(caption, when);
+        detail.title = 'Recording period: ' + stamp(recording.t - s.intervalSeconds * 1000) + ' to ' + stamp(recording.t) + '. Exact occurrence time is not stored. If tied, the earliest period is shown.';
+        box.append(detail);
+      }
+      return box;
     }));
     const legend = $('historyLegend'); legend.replaceChildren();
     for (const [label, cls] of [[aggregation, 'history-key'], ...(valid.some(p => p.min !== null && p.max !== null) ? [['Recorded low–high range', 'history-key history-key-band']] : []), ...(valid.some(p => p.min === null && p.max !== null) ? [['Recorded maximum · dashed', 'history-key history-key-max']] : [])]) {
@@ -254,6 +286,7 @@
     }
     const availability = document.createElement('span'); availability.textContent = `${valid.length} readings · ${s.missing} missing readings`; legend.append(availability);
     const notes = ['Missing or screened readings remain gaps.'];
+    if (items.some(item => item[3])) notes.push('Dates beneath temperature extremes identify the recording period; exact occurrence times are not stored.');
     if (valid.some(p => p.estimated)) notes.push('Hollow markers identify interpolated records.');
     if (m.id === 'pressure') notes.push('Recorded station pressure is shown. The live card currently applies a separate −1.9 hPa display correction.');
     if (m.id === 'rain') {
@@ -275,7 +308,10 @@
     $('historyNote').textContent = notes.join(' ');
     $('historyMessage').hidden = Boolean(valid.length);
     if (!valid.length) $('historyMessage').textContent = 'No recorded readings in this window. Try an earlier end date or a wider time span.';
+    if (activeIndex < 0) $('historyInspect').textContent = 'Point to the chart or use the arrow keys to inspect a reading.';
     drawChart();
+    renderTable();
+    holdDialogSize();
   }
   function drawChart() {
     if (!activeSeries || !dialog.open) return;
@@ -353,13 +389,12 @@
     $('historyNavigationHint').textContent = 'Release to load this view';
     cancelAnimationFrame(previewFrame);
     previewFrame = requestAnimationFrame(() => {
-      renderHistory();
+      renderPeriod(activeSeries);
+      drawChart();
       // The new window may extend beyond loaded data. Never present its partial
       // preview as a complete total while the gesture is still in progress.
-      for (const value of $('historySummary').querySelectorAll('strong')) value.textContent = '…';
-      $('historyInspect').textContent = 'Release to load readings and statistics for this view.';
+      setHistoryState('preview');
       $('historyMessage').hidden = true;
-      $('historyTable').open = false;
     });
   }
   function commitNavigation() {
@@ -463,7 +498,7 @@
     const last = activeSeries.points.length - 1;
     inspect(event.key === 'Home' ? 0 : event.key === 'End' ? last : (activeIndex < 0 ? last : activeIndex) + (event.key === 'ArrowLeft' ? -1 : 1));
   });
-  $('historyTable').addEventListener('toggle', () => {
+  function renderTable() {
     if (!$('historyTable').open || !activeSeries) return;
     const table = document.createElement('table'), head = table.createTHead().insertRow();
     const hasMin = activeSeries.points.some(p => p.value !== null && p.min !== null), hasMax = activeSeries.points.some(p => p.value !== null && p.max !== null);
@@ -474,7 +509,8 @@
       for (const text of [stamp(p.t, activeSeries.resolution === 'daily'), fmt(p.value, activeSeries.metric), ...(hasMin ? [fmt(p.value === null ? null : p.min, activeSeries.metric)] : []), ...(hasMax ? [fmt(p.value === null ? null : p.max, activeSeries.metric)] : []), p.value === null ? 'Missing / screened' : p.estimated ? 'Interpolated' : p.adjusted ? 'Zero floor applied' : 'Recorded']) row.insertCell().textContent = text;
     }
     $('historyTable').querySelector('.history-table-scroll').replaceChildren(table);
-  });
+  }
+  $('historyTable').addEventListener('toggle', renderTable);
   new ResizeObserver(() => drawChart()).observe($('historyChart'));
   refreshTrends();
   setInterval(() => { if (!document.hidden) refreshTrends(); }, 60000);
