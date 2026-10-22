@@ -2,6 +2,18 @@
 
 The two dashboards share `public/history.js`, `history-chart.js` and `history.css`. SVG charts are rendered locally without a CDN or chart dependency. A native dialog provides measurement, resolution, span and end-date controls. Cards refresh their trends once a minute while the page is visible. An open detail view stays still for inspection; “Latest readings” refreshes it.
 
+## Exploring a graph
+
+Drag the plot horizontally to pan, scroll over it or pinch to zoom, or use the Earlier/Later and +/− buttons. The existing time-span presets remain available. Navigation shows **Custom view**, the actual AEST date/time bounds and the selected resolution. **Reset view** returns to the last preset and its original end time; selecting a time-span preset returns to that span ending now. An explicit end date still selects an earlier day.
+
+Panning keeps the chosen resolution. Zooming selects the finest supported native feed within the existing query bounds (up to 7 days at ten-minute resolution, 31 days hourly and 730 days daily). Windows snap to whole hours, or whole weather days ending at 9 AM for daily data; the minimum span is one hour, or one day for daily-only measurements. No readings are fabricated. Older periods without the finer feed remain gaps and can still be viewed by selecting a coarser resolution. Scroll requests are debounced, pointer gestures fetch on release, and closing the viewer cancels pending work. The plot handles touch gestures; scroll the dialog outside the plot to move down the page.
+
+Left/right arrows inspect readings, Home/End select the first/last reading, Shift+left/right pan, +/− zoom and 0 resets. Statistics, table and the existing fitted trend use the loaded visible window. During navigation, summary values are withheld until the new window is loaded.
+
+Rainfall has an additional **Total rainfall** summary, calculated from the recorded native totals in the displayed range. Missing, screened and interpolated values are excluded; an incomplete record is labelled explicitly and never presented as zero rain. The note gives the exact recording-period boundaries covered by the bars, which can differ from an arbitrary preset end time. All-empty ranges show an unavailable total. Rainfall extremes identify daily/hourly/ten-minute totals; other measurements distinguish recorded extrema from extrema of native averages. Evaporation rates, bearings and temperatures are never summed.
+
+The Current page's dark soil profile dims only decorative soil and grass layers. Reading text, coloured indicators and trend graphs retain their contrast; light mode is unchanged.
+
 The graph dialog reserves all four `safe-area-inset` margins and uses the dynamic viewport height. Its Moore Weather header and labelled 44px Close control sit outside the scrolling content. Narrow screens give the measurement selector a full row and constrain native date-input sizing. This follows [WebKit's safe-area guidance](https://webkit.org/blog/7929/designing-websites-for-iphone-x/); simulated insets validate layout, while final installed-iPhone behavior still needs a device check.
 
 ## Daily report and freshness

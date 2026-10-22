@@ -28,6 +28,8 @@
     ...[10, 20, 30, 40].flatMap(depth => [[`soilTemp${depth}Val`, `soil-temp-${depth}`], [`moisture${depth}Val`, `soil-moisture-${depth}`]])
   ];
   let catalog = [], trendData, loadingTrends = false, modalRequest, selection, activeSeries, activeIndex = -1, chartGeometry;
+  let resetView, loadedSeries, navigationTimer, previewFrame, gesture, pendingWindow, wheelWindow;
+  const pointers = new Map();
   const cards = [];
   const guideText = $('historyHint'), browse = $('browseHistory');
   browse.addEventListener('click', () => openHistory('air'));
@@ -63,9 +65,17 @@
       <button type="button" data-resolution="10m" aria-pressed="true">10 minute</button><button type="button" data-resolution="hourly" aria-pressed="false">Hourly</button><button type="button" data-resolution="daily" aria-pressed="false">Daily</button>
     </div><span class="history-period" id="historyPeriod"></span></div>
     <div class="history-trend-control"><label><input type="checkbox" id="historyTrend"> Fitted trend line</label><span id="historyTrendStatus" role="status"></span></div>
+    <div class="history-navigation" role="group" aria-label="Explore graph">
+      <button type="button" id="historyEarlier" aria-label="Pan to earlier readings">Earlier</button>
+      <button type="button" id="historyZoomIn" aria-label="Zoom in">+</button>
+      <button type="button" id="historyZoomOut" aria-label="Zoom out">−</button>
+      <button type="button" id="historyLater" aria-label="Pan to later readings">Later</button>
+      <button type="button" id="historyReset">Reset view</button>
+      <span id="historyNavigationHint">Drag to pan · scroll or pinch to zoom</span>
+    </div>
     <div class="history-body">
       <div class="history-summary" id="historySummary"></div>
-      <div class="history-chart" id="historyChart" tabindex="0" role="group" aria-label="Weather history chart. Use left and right arrow keys to inspect readings."><svg aria-hidden="true"></svg><div class="history-chart-message" id="historyMessage" role="status">Loading history…</div></div>
+      <div class="history-chart" id="historyChart" tabindex="0" role="group" aria-label="Weather history chart. Arrow keys inspect readings. Shift plus arrow keys pan. Plus and minus zoom. Zero resets the view." aria-describedby="historyNavigationHint"><svg aria-hidden="true"></svg><div class="history-chart-message" id="historyMessage" role="status">Loading history…</div></div>
       <div class="history-inspect" id="historyInspect" aria-live="polite">Point to the chart or use the arrow keys to inspect a reading.</div>
       <div class="history-legend" id="historyLegend"></div><p class="history-note" id="historyNote"></p>
       <details class="history-table" id="historyTable"><summary>View readings as a table</summary><div class="history-table-scroll"></div></details>
@@ -74,7 +84,7 @@
   const close = () => dialog.close();
   dialog.querySelector('.history-close').addEventListener('click', close);
   dialog.addEventListener('click', event => { if (event.target === dialog) { const box = dialog.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) close(); } });
-  dialog.addEventListener('close', () => { modalRequest?.abort(); activeSeries = null; });
+  dialog.addEventListener('close', () => { cancelNavigation(); modalRequest?.abort(); activeSeries = loadedSeries = null; chartGeometry = null; });
 
   async function getJson(url, signal) {
     const response = await fetch(url, { signal, headers: { Accept: 'application/json' } });
@@ -147,22 +157,25 @@
     if (!metric) return;
     if (!metric.resolutions.includes(selection.resolution)) selection.resolution = metric.resolutions[0];
     const options = ranges[selection.resolution];
-    if (!options.some(([hours]) => hours === selection.hours)) selection.hours = selection.resolution === 'daily' ? 720 : 24;
+    if (!selection.custom && !options.some(([hours]) => hours === selection.hours)) selection.hours = selection.resolution === 'daily' ? 720 : 24;
     $('historyMetric').value = metric.id;
     $('historyTitle').textContent = metric.label;
     $('historyRange').replaceChildren(...options.map(([hours, text]) => new Option(text, String(hours))));
-    $('historyRange').value = String(selection.hours);
+    if (selection.custom) { const custom = new Option('Custom view', 'custom'); custom.disabled = true; $('historyRange').append(custom); }
+    $('historyRange').value = selection.custom ? 'custom' : String(selection.hours);
     $('historyEnd').max = localDate(Date.now());
-    $('historyEnd').value = selection.endDate || localDate(Date.now());
+    $('historyEnd').value = selection.custom ? localDate(selection.end) : selection.endDate || localDate(Date.now());
+    $('historyReset').disabled = !selection.custom;
     for (const button of dialog.querySelectorAll('[data-resolution]')) {
       button.disabled = !metric.resolutions.includes(button.dataset.resolution);
       button.setAttribute('aria-pressed', String(button.dataset.resolution === selection.resolution));
-      button.title = button.disabled ? 'The station does not record this measurement at this interval' : '';
+      button.title = button.disabled ? 'The station does not record this measurement at this resolution' : '';
     }
     try { $('historyTrend').checked = localStorage.getItem('mooreWeatherTrend:'+metric.id) === 'true'; } catch { $('historyTrend').checked = false; }
     dialog.style.setProperty('--history-color', color(metric.id));
   }
   async function openHistory(metric) {
+    cancelNavigation(); resetView = null;
     selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 24, endDate: null };
     if (!dialog.open) dialog.showModal();
     dialog.querySelector('.history-scroll').scrollTop = 0;
@@ -179,28 +192,41 @@
     const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Try again'; retry.addEventListener('click', () => catalog.length ? loadHistory() : openHistory(selection.metric)); message.append(retry);
   }
   async function loadHistory() {
+    cancelNavigation();
     modalRequest?.abort(); modalRequest = new AbortController();
     const signal = modalRequest.signal;
-    activeSeries = null; activeIndex = -1;
+    activeSeries = loadedSeries = null; activeIndex = -1; chartGeometry = null;
+    $('historyChart').setAttribute('aria-busy', 'true');
+    for (const id of ['historyEarlier', 'historyLater', 'historyZoomIn', 'historyZoomOut']) $(id).disabled = true;
     $('historySummary').replaceChildren(); $('historyChart').querySelector('svg').replaceChildren();
     $('historyInspect').textContent = 'Point to the chart or use the arrow keys to inspect a reading.';
     $('historyLegend').replaceChildren(); $('historyNote').textContent = ''; $('historyPeriod').textContent = '';
     $('historyTable').open = false; $('historyTable').querySelector('.history-table-scroll').replaceChildren();
     $('historyMessage').hidden = false; $('historyMessage').textContent = 'Loading history…';
     const params = new URLSearchParams({ metric: selection.metric, resolution: selection.resolution, hours: String(selection.hours) });
-    if (selection.endDate) params.set('end', new Date(selection.endDate + 'T23:59:59.999+10:00').toISOString());
+    if (selection.end !== undefined) params.set('end', new Date(selection.end).toISOString());
+    else if (selection.endDate) params.set('end', new Date(selection.endDate + 'T23:59:59.999+10:00').toISOString());
     try {
       const data = await getJson('/api/history?' + params, AbortSignal.any([signal, AbortSignal.timeout(20000)]));
       if (signal.aborted || !dialog.open) return;
-      activeSeries = data.series[0];
+      activeSeries = loadedSeries = data.series[0];
+      if (!selection.custom) resetView = { ...selection, end: activeSeries.end };
+      $('historyChart').setAttribute('aria-busy', 'false');
+      for (const id of ['historyEarlier', 'historyLater', 'historyZoomIn', 'historyZoomOut']) $(id).disabled = false;
       renderHistory();
-    } catch (error) { if (!signal.aborted) showError(error); }
+    } catch (error) { if (!signal.aborted) { $('historyChart').setAttribute('aria-busy', 'false'); showError(error); } }
   }
-  $('historyMetric').addEventListener('change', () => { selection.metric = $('historyMetric').value; configure(); loadHistory(); });
-  $('historyRange').addEventListener('change', () => { selection.hours = Number($('historyRange').value); loadHistory(); });
-  $('historyEnd').addEventListener('change', () => { if ($('historyEnd').value && $('historyEnd').checkValidity()) { selection.endDate = $('historyEnd').value; loadHistory(); } });
-  $('historyLatest').addEventListener('click', () => { selection.endDate = null; configure(); loadHistory(); });
-  for (const button of dialog.querySelectorAll('[data-resolution]')) button.addEventListener('click', () => { selection.resolution = button.dataset.resolution; selection.hours = selection.resolution === 'daily' ? 720 : selection.resolution === 'hourly' ? 168 : 24; configure(); loadHistory(); });
+  function presetChange() { selection.custom = false; delete selection.end; configure(); loadHistory(); }
+  $('historyMetric').addEventListener('change', () => {
+    selection.metric = $('historyMetric').value;
+    const supported = catalog.find(m => m.id === selection.metric).resolutions;
+    if (selection.custom) Object.assign(selection, WeatherChart.navigationWindow(selection.end - selection.hours * 3600000, selection.end, supported));
+    configure(); loadHistory();
+  });
+  $('historyRange').addEventListener('change', () => { selection.hours = Number($('historyRange').value); selection.endDate = null; presetChange(); });
+  $('historyEnd').addEventListener('change', () => { if ($('historyEnd').value && $('historyEnd').checkValidity()) { selection.endDate = $('historyEnd').value; presetChange(); } });
+  $('historyLatest').addEventListener('click', () => { selection.endDate = null; presetChange(); });
+  for (const button of dialog.querySelectorAll('[data-resolution]')) button.addEventListener('click', () => { selection.resolution = button.dataset.resolution; selection.hours = selection.resolution === 'daily' ? 720 : selection.resolution === 'hourly' ? 168 : 24; presetChange(); });
 
   $('historyTrend').addEventListener('change', () => {
     try { localStorage.setItem('mooreWeatherTrend:'+selection.metric, String($('historyTrend').checked)); } catch {}
@@ -209,13 +235,13 @@
 
   function renderHistory() {
     const s = activeSeries, m = s.metric, valid = s.points.filter(p => p.value !== null);
-    $('historyPeriod').textContent = `${fullDateFormat.format(s.start)} – ${fullDateFormat.format(s.end)} · AEST`;
+    $('historyPeriod').textContent = `${selection.custom ? 'Custom view · ' : ''}${longFormat.format(s.start)} — ${longFormat.format(s.end)} AEST`;
+    const period = { '10m': '10-minute', hourly: 'Hourly', daily: 'Daily' }[s.resolution];
     const aggregation = { AVERAGE: 'averages', AVGDIR: 'average directions', TOTAL: 'totals', MINIMUM: 'minimums', MAXIMUM: 'maximums', CURRENT: 'end-of-hour readings' }[m.aggregation];
-    $('historySubtitle').textContent = `${s.resolution === '10m' ? '10-minute' : s.resolution === 'hourly' ? 'Hourly' : 'Daily'} ${aggregation} · ${s.resolution === 'daily' ? '24 hours ending at 9 AM AEST' : 'timestamps mark the end of each interval'}`;
+    $('historySubtitle').textContent = `${period} ${aggregation} · ${s.resolution === 'daily' ? '24 hours ending at 9 AM AEST' : 'times shown are the end of each recording period'}`;
     const summary = $('historySummary');
-    const min = valid.length ? Math.min(...valid.map(p => p.min ?? p.value)) : null;
-    const max = valid.length ? Math.max(...valid.map(p => p.max ?? p.value)) : null;
-    const items = m.kind === 'direction' ? [['Latest interval', s.latest?.value], ['Available readings', valid.length, ''], ['Missing intervals', s.missing, '']] : [['Latest interval', s.latest?.value], [valid.some(p => p.min !== null) ? 'Lowest recorded' : 'Lowest interval', min], [valid.some(p => p.max !== null) ? 'Highest recorded' : 'Highest interval', max]];
+    const items = WeatherChart.summary(s);
+    summary.classList.toggle('history-summary-rain', m.id === 'rain');
     summary.replaceChildren(...items.map(([label, value, unit]) => {
       const box = document.createElement('div'), title = document.createElement('span'), number = document.createElement('strong'), suffix = document.createElement('small');
       title.className = 'history-summary-label'; title.textContent = label;
@@ -223,17 +249,21 @@
       number.append(suffix); box.append(title, number); return box;
     }));
     const legend = $('historyLegend'); legend.replaceChildren();
-    for (const [label, cls] of [[aggregation, 'history-key'], ...(valid.some(p => p.min !== null && p.max !== null) ? [['Recorded low–high range', 'history-key history-key-band']] : []), ...(valid.some(p => p.min === null && p.max !== null) ? [['Interval maximum · dashed', 'history-key history-key-max']] : [])]) {
+    for (const [label, cls] of [[aggregation, 'history-key'], ...(valid.some(p => p.min !== null && p.max !== null) ? [['Recorded low–high range', 'history-key history-key-band']] : []), ...(valid.some(p => p.min === null && p.max !== null) ? [['Recorded maximum · dashed', 'history-key history-key-max']] : [])]) {
       const key = document.createElement('span'); key.className = cls; key.textContent = label; legend.append(key);
     }
-    const availability = document.createElement('span'); availability.textContent = `${valid.length} readings · ${s.missing} missing intervals`; legend.append(availability);
+    const availability = document.createElement('span'); availability.textContent = `${valid.length} readings · ${s.missing} missing readings`; legend.append(availability);
     const notes = ['Missing or screened readings remain gaps.'];
     if (valid.some(p => p.estimated)) notes.push('Hollow markers identify interpolated records.');
     if (m.id === 'pressure') notes.push('Recorded station pressure is shown. The live card currently applies a separate −1.9 hPa display correction.');
-    if (m.id === 'rain') notes.push('Each bar is the rain in that interval, not the running “since 9 AM” total.');
+    if (m.id === 'rain') {
+      notes.push(`Each bar is a ${s.resolution === '10m' ? '10-minute' : s.resolution === 'hourly' ? 'one-hour' : '24-hour'} rainfall total. The summary adds recorded bars in the displayed range.`);
+      if (s.points.length) notes.push(`Rainfall recording periods: ${stamp(s.points[0].t - s.intervalSeconds * 1000)} to ${stamp(s.points.at(-1).t)}.`);
+      if (s.missing || valid.some(p => p.estimated)) notes.push('Incomplete rainfall record: missing, screened and interpolated readings are excluded from the total, not treated as zero.');
+    }
     if (m.id === 'panel') notes.push('Recorded panel voltage is shown, including readings below battery voltage.');
     if (m.id === 'solar') notes.push('Small negative sensor readings are shown as zero.');
-    if (m.id === 'battery') notes.push('These are interval minimums; the live card shows the current voltage.');
+    if (m.id === 'battery') notes.push('These are recorded minimum voltages; the live card shows the current voltage.');
     if (s.latest && s.end - s.latest.t > s.intervalSeconds * 2000) notes.push('Latest available reading: ' + stamp(s.latest.t, s.resolution === 'daily') + '.');
     const fitted = WeatherChart.fittedTrend(s);
     $('historyTrendStatus').textContent = $('historyTrend').checked && !fitted.some(p=>p.value!==null) ? (m.kind==='direction' && valid.filter(p=>!p.estimated).length>=3 ? 'No clear direction trend in this window.' : 'At least three usable readings are needed.') : '';
@@ -251,7 +281,7 @@
     if (!activeSeries || !dialog.open) return;
     const s = activeSeries, container = $('historyChart'), svg = container.querySelector('svg');
     const width = container.clientWidth, height = container.clientHeight;
-    if (!width || !s.latest) return;
+    if (!width) return;
     const left = 51, right = width - 12, top = 14, bottom = height - 35;
     const [min, max] = WeatherChart.domain(s);
     const x = t => left + (t - s.start) / (s.end - s.start) * (right - left);
@@ -269,7 +299,10 @@
       const t = s.start + (s.end - s.start) * i / (ticks - 1);
       svg.append(svgNode('text', { x: x(t), y: height - 10, 'text-anchor': i === 0 ? 'start' : i === ticks - 1 ? 'end' : 'middle', fill: 'var(--muted)', 'font-size': 11 }, (s.end - s.start <= 86400000 ? timeFormat : s.end - s.start > 200 * 86400000 ? monthFormat : dateFormat).format(t)));
     }
-    paths(svg, s, x, y, bottom);
+    const plotClip = svgNode('clipPath', { id: 'historyDataClip' });
+    plotClip.append(svgNode('rect', { x: left, y: top, width: right - left, height: bottom - top })); svg.append(plotClip);
+    const plot = svgNode('g', { 'clip-path': 'url(#historyDataClip)' });
+    paths(plot, s, x, y, bottom); svg.append(plot);
     if ($('historyTrend').checked) {
       const clip=svgNode('clipPath',{id:'historyPlotClip'});
       clip.append(svgNode('rect',{x:left,y:top,width:right-left,height:bottom-top})); svg.append(clip);
@@ -297,13 +330,134 @@
     const detail = document.createElement('span'); detail.textContent = [p.min !== null && p.max !== null ? `${fmt(p.min, m)}–${fmt(p.max, m)} ${m.unit} range` : p.max !== null ? `Maximum ${fmt(p.max, m)} ${m.unit}` : '', p.estimated && p.value !== null ? 'Interpolated' : '', p.adjusted ? 'Zero floor applied' : ''].filter(Boolean).join(' · ');
     output.append(when, value, detail);
   }
-  $('historyChart').addEventListener('pointermove', event => {
-    if (!activeSeries || !chartGeometry) return;
-    const s = activeSeries, rect = $('historyChart').getBoundingClientRect();
-    const t = s.start + (event.clientX - rect.left - chartGeometry.left) / (chartGeometry.right - chartGeometry.left) * (s.end - s.start);
-    inspect(Math.round((t - (s.points[0]?.t || s.start)) / (s.intervalSeconds * 1000)));
+  const chart = $('historyChart');
+  function cancelNavigation() {
+    clearTimeout(navigationTimer); cancelAnimationFrame(previewFrame);
+    gesture = pendingWindow = wheelWindow = null; pointers.clear();
+    $('historyChart').classList.remove('is-dragging');
+    $('historyNavigationHint').textContent = 'Drag to pan · scroll or pinch to zoom';
+  }
+  function plotFraction(clientX) {
+    const rect = chart.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - rect.left - chartGeometry.left) / (chartGeometry.right - chartGeometry.left)));
+  }
+  function previewWindow(start, end, preferred) {
+    if (!loadedSeries) return;
+    const metric = catalog.find(m => m.id === selection.metric);
+    const target = WeatherChart.navigationWindow(start, end, metric.resolutions, Date.now(), preferred);
+    if (target.start === activeSeries.start && target.end === activeSeries.end && target.resolution === selection.resolution) return;
+    pendingWindow = target;
+    Object.assign(selection, target, { custom: true });
+    activeSeries = WeatherChart.visibleSeries(loadedSeries, target.start, target.end); activeIndex = -1;
+    configure();
+    $('historyNavigationHint').textContent = 'Release to load this view';
+    cancelAnimationFrame(previewFrame);
+    previewFrame = requestAnimationFrame(() => {
+      renderHistory();
+      // The new window may extend beyond loaded data. Never present its partial
+      // preview as a complete total while the gesture is still in progress.
+      for (const value of $('historySummary').querySelectorAll('strong')) value.textContent = '…';
+      $('historyInspect').textContent = 'Release to load readings and statistics for this view.';
+      $('historyMessage').hidden = true;
+      $('historyTable').open = false;
+    });
+  }
+  function commitNavigation() {
+    wheelWindow = null;
+    if (!pendingWindow) return;
+    loadHistory();
+  }
+  function zoom(factor, fraction = .5) {
+    if (!activeSeries) return;
+    const s = pendingWindow || activeSeries, span = s.end - s.start;
+    const anchor = s.start + span * fraction, nextSpan = span * factor;
+    previewWindow(anchor - nextSpan * fraction, anchor + nextSpan * (1 - fraction));
+  }
+  function pan(fraction) {
+    if (!activeSeries) return;
+    const s = pendingWindow || activeSeries, shift = (s.end - s.start) * fraction;
+    previewWindow(s.start + shift, s.end + shift, selection.resolution); commitNavigation();
+  }
+  function resetNavigation() {
+    if (!resetView) return;
+    selection = { ...resetView, metric: selection.metric, custom: false };
+    configure(); loadHistory();
+  }
+  $('historyEarlier').addEventListener('click', () => pan(-.5));
+  $('historyLater').addEventListener('click', () => pan(.5));
+  $('historyZoomIn').addEventListener('click', () => { zoom(.5); commitNavigation(); });
+  $('historyZoomOut').addEventListener('click', () => { zoom(2); commitNavigation(); });
+  $('historyReset').addEventListener('click', resetNavigation);
+  function startGesture() {
+    const contacts = [...pointers.values()], s = pendingWindow || activeSeries;
+    gesture = { start: s.start, end: s.end, resolution: selection.resolution,
+      x: contacts[0].x, distance: contacts.length > 1 ? Math.max(1, Math.hypot(contacts[1].x - contacts[0].x, contacts[1].y - contacts[0].y)) : null,
+      fraction: plotFraction(contacts.length > 1 ? (contacts[0].x + contacts[1].x) / 2 : contacts[0].x), moved: false };
+  }
+  chart.addEventListener('pointerdown', event => {
+    if (!activeSeries || !chartGeometry || event.button !== 0 || event.target.closest('button')) return;
+    clearTimeout(navigationTimer); wheelWindow = null;
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY }); chart.setPointerCapture(event.pointerId);
+    chart.focus({ preventScroll: true }); startGesture();
   });
+  chart.addEventListener('pointermove', event => {
+    if (!activeSeries || !chartGeometry) return;
+    if (pointers.has(event.pointerId) && gesture) {
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      const contacts = [...pointers.values()], span = gesture.end - gesture.start;
+      if (contacts.length > 1 && gesture.distance) {
+        const distance = Math.max(1, Math.hypot(contacts[1].x - contacts[0].x, contacts[1].y - contacts[0].y));
+        const nextSpan = span * gesture.distance / distance;
+        const fraction = plotFraction((contacts[0].x + contacts[1].x) / 2);
+        const anchor = gesture.start + span * gesture.fraction;
+        gesture.moved = true;
+        previewWindow(anchor - nextSpan * fraction, anchor + nextSpan * (1 - fraction));
+      } else {
+        const dx = event.clientX - gesture.x;
+        if (!gesture.moved && Math.abs(dx) < 5) return;
+        gesture.moved = true;
+        const shift = -dx / (chartGeometry.right - chartGeometry.left) * span;
+        previewWindow(gesture.start + shift, gesture.end + shift, gesture.resolution);
+      }
+      chart.classList.add('is-dragging'); return;
+    }
+    if (!pointers.size) {
+      const s = activeSeries, t = s.start + plotFraction(event.clientX) * (s.end - s.start);
+      inspect(Math.round((t - (s.points[0]?.t || s.start)) / (s.intervalSeconds * 1000)));
+    }
+  });
+  function finishPointer(event) {
+    if (!pointers.has(event.pointerId)) return;
+    const moved = gesture?.moved;
+    pointers.delete(event.pointerId);
+    if (pointers.size) { startGesture(); return; }
+    gesture = null; chart.classList.remove('is-dragging');
+    if (pendingWindow) commitNavigation();
+    else if (!moved && activeSeries && chartGeometry) {
+      const s = activeSeries, t = s.start + plotFraction(event.clientX) * (s.end - s.start);
+      inspect(Math.round((t - (s.points[0]?.t || s.start)) / (s.intervalSeconds * 1000)));
+    }
+  }
+  chart.addEventListener('pointerup', finishPointer);
+  chart.addEventListener('pointercancel', finishPointer);
+  chart.addEventListener('lostpointercapture', finishPointer);
+  chart.addEventListener('wheel', event => {
+    if (!activeSeries || !chartGeometry || pointers.size) return;
+    event.preventDefault();
+    const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? chart.clientHeight : 1);
+    if (!delta) return;
+    // Accumulate small trackpad movements before rounding to supported hours.
+    const s = wheelWindow || pendingWindow || activeSeries, fraction = plotFraction(event.clientX);
+    const anchor = s.start + (s.end - s.start) * fraction;
+    const span = Math.max(3600000, Math.min(17520 * 3600000, (s.end - s.start) * Math.exp(Math.max(-.7, Math.min(.7, delta * .004)))));
+    wheelWindow = { start: anchor - span * fraction, end: anchor + span * (1 - fraction) };
+    previewWindow(wheelWindow.start, wheelWindow.end);
+    clearTimeout(navigationTimer); navigationTimer = setTimeout(commitNavigation, 180);
+  }, { passive: false });
   $('historyChart').addEventListener('keydown', event => {
+    if (event.key === '0') { event.preventDefault(); resetNavigation(); return; }
+    if (['+', '=', '-'].includes(event.key)) { event.preventDefault(); zoom(event.key === '-' ? 2 : .5); commitNavigation(); return; }
+    if (event.shiftKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); pan(event.key === 'ArrowLeft' ? -.5 : .5); return; }
     if (!activeSeries || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
     const last = activeSeries.points.length - 1;
@@ -313,7 +467,7 @@
     if (!$('historyTable').open || !activeSeries) return;
     const table = document.createElement('table'), head = table.createTHead().insertRow();
     const hasMin = activeSeries.points.some(p => p.value !== null && p.min !== null), hasMax = activeSeries.points.some(p => p.value !== null && p.max !== null);
-    for (const text of ['Interval ending (AEST)', activeSeries.metric.unit, ...(hasMin ? ['Minimum'] : []), ...(hasMax ? ['Maximum'] : []), 'Quality']) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = text; head.append(th); }
+    for (const text of ['Recording period ending (AEST)', activeSeries.metric.unit, ...(hasMin ? ['Minimum'] : []), ...(hasMax ? ['Maximum'] : []), 'Quality']) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = text; head.append(th); }
     const body = table.createTBody();
     for (const p of activeSeries.points) {
       const row = body.insertRow();

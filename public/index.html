@@ -744,6 +744,9 @@ body.weather-loaded .unit-suffix { display: inline; }
   background: #795537;
   box-shadow: inset 0 1px 8px rgba(40, 25, 12, .18);
 }
+/* Dim decorative soil/grass only; readings and sparklines keep their contrast. */
+html[data-theme="dark"] .soil-layers { filter: brightness(.82) saturate(.80); }
+html[data-theme="dark"] .soil-surface { filter: brightness(.80) saturate(.75); }
 .soil-surface {
   position: absolute;
   z-index: 5;
@@ -1489,9 +1492,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
   .app-footer { padding-bottom: max(18px, env(safe-area-inset-bottom,0px)); }
 }
 </style>
-<link href="/history.css?v=3" rel="stylesheet"/>
-<script defer src="/history-chart.js?v=3"></script>
-<script defer src="/history.js?v=4"></script>
+<link href="/history.css?v=4" rel="stylesheet"/>
+<script defer src="/history-chart.js?v=4"></script>
+<script defer src="/history.js?v=5"></script>
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=3"></script>

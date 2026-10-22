@@ -51,7 +51,59 @@
       return {t:start+span*x,value:Math.hypot(e,n)<.1 ? null : (Math.atan2(e,n)*180/Math.PI+360)%360};
     });
   }
-  const api = { segments, domain, fittedTrend };
+  const HOUR = 3600000;
+  const resolutions = {
+    '10m': { step: HOUR / 6, maxHours: 168 },
+    hourly: { step: HOUR, maxHours: 744 },
+    daily: { step: 24 * HOUR, maxHours: 17520 }
+  };
+  // Keep navigation within the existing API limits. Whole native periods are
+  // essential for totals: daily rain cannot be split into invented hourly rain.
+  function navigationWindow(start, end, supported, now = Date.now(), preferred) {
+    const available = Object.keys(resolutions).filter(r => supported.includes(r));
+    const requestedHours = Math.max(1, (end - start) / HOUR);
+    const resolution = available.includes(preferred) && requestedHours <= resolutions[preferred].maxHours ? preferred :
+      available.find(r => requestedHours <= resolutions[r].maxHours) || available.at(-1);
+    const spec = resolutions[resolution];
+    const quantum = resolution === 'daily' ? 24 : 1;
+    const hours = Math.min(spec.maxHours, Math.max(quantum, Math.round(requestedHours / quantum) * quantum));
+    const offset = resolution === 'daily' ? 23 * HOUR : 0;
+    const latest = Math.floor((now - offset) / spec.step) * spec.step + offset;
+    const earliest = Date.UTC(2000, 0, 1) + hours * HOUR;
+    const finish = Math.max(earliest, Math.min(latest, Math.round((end - offset) / spec.step) * spec.step + offset));
+    return { resolution, hours, start: finish - hours * HOUR, end: finish };
+  }
+  function visibleSeries(series, start, end) {
+    const points = series.points.filter(p => p.t > start && p.t <= end);
+    const valid = points.filter(p => Number.isFinite(p.value));
+    return { ...series, start, end, points, latest: valid.at(-1) || null,
+      missing: Math.max(0, Math.round((end - start) / (series.intervalSeconds * 1000)) - valid.length) };
+  }
+  function summary(series) {
+    const m = series.metric, valid = series.points.filter(p => Number.isFinite(p.value));
+    const period = { '10m': '10-minute', hourly: 'hourly', daily: 'daily' }[series.resolution];
+    const noun = ({ air: 'temperature', globe: 'temperature', ground: 'temperature', dew: 'dew point',
+      humidity: 'humidity', pressure: 'pressure', wind: 'wind speed', gust: 'wind gust', solar: 'solar radiation',
+      rain: 'rainfall', battery: 'voltage', panel: 'voltage', load: 'load', charge: 'current', evaporation: 'evaporation rate',
+      'evaporation-total': 'evaporation' })[m.id] || (m.id.startsWith('soil-temp') ? 'temperature' : 'soil moisture');
+    if (m.kind === 'direction') return [['Latest wind direction', series.latest?.value], ['Available readings', valid.length, ''], ['Missing readings', series.missing, '']];
+    const extreme = (stat, label) => {
+      const recorded = valid.some(p => Number.isFinite(p[stat]));
+      const values = valid.map(p => recorded ? p[stat] : p.value).filter(Number.isFinite);
+      const detail = m.aggregation === 'TOTAL' ? `${period} ${noun}` : recorded ? noun :
+        m.aggregation === 'AVERAGE' ? `${period} average` : m.aggregation === 'MINIMUM' ? `${period} minimum voltage` :
+          m.aggregation === 'MAXIMUM' ? `${period} peak gust` : noun;
+      return [`${label} ${detail}`, values.length ? Math[stat](...values) : null];
+    };
+    const items = [[`Latest ${noun}`, series.latest?.value], extreme('min', 'Lowest'), extreme('max', 'Highest')];
+    if (m.id === 'rain') {
+      const measured = valid.filter(p => !p.estimated);
+      const incomplete = series.missing > 0 || measured.length !== valid.length;
+      items.unshift([incomplete ? 'Recorded rainfall (incomplete)' : 'Total rainfall', measured.length ? measured.reduce((sum, p) => sum + p.value, 0) : null]);
+    }
+    return items;
+  }
+  const api = { segments, domain, fittedTrend, navigationWindow, visibleSeries, summary };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.WeatherChart = api;
 })(typeof window !== 'undefined' ? window : globalThis);

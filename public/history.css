@@ -97,7 +97,14 @@ body:has(.history-dialog[open]) { overflow: hidden; }
 .history-summary strong { font-size: 21px; font-weight: 650; letter-spacing: -.7px; font-variant-numeric: tabular-nums; }
 .history-summary > div:first-child strong { font-size: 30px; color: var(--history-color, var(--accent)); }
 .history-summary small { margin-left: 4px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; }
-.history-chart { position: relative; height: 290px; border-radius: 8px; touch-action: pan-y; }
+.history-chart { position: relative; height: 290px; border-radius: 8px; touch-action: none; cursor: grab; user-select: none; }
+.history-chart.is-dragging { cursor: grabbing; }
+.history-chart[aria-busy="true"] { cursor: progress; }
+.history-summary-rain { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+.history-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 28px 14px; }
+.history-navigation button { min-height: 44px; min-width: 44px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-soft); color: var(--text); font-size: 12px; }
+.history-navigation button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.history-navigation span { flex: 1 1 220px; color: var(--muted); font-size: 11px; }
 .history-chart > svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .history-chart-message { position: absolute; inset: 0; display: grid; place-content: center; padding: 30px; text-align: center; color: var(--muted); background: var(--surface); font-size: 13px; line-height: 1.7; }
 .history-chart-message[hidden] { display: none; }
@@ -130,6 +137,9 @@ body:has(.history-dialog[open]) { overflow: hidden; }
   .history-summary > div { padding-left: 10px; }
   .history-summary strong { font-size: 17px; }
   .history-summary > div:first-child strong { font-size: 24px; }
+  .history-summary-rain { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .history-summary-rain > div:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .history-navigation { padding-left: 17px; padding-right: 17px; }
   .history-summary small { display: block; margin: 3px 0 0; }
   .history-chart { height: 235px; }
 }
