@@ -15,7 +15,7 @@
   function paint() {
     const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000));
     button.disabled = !enabled || busy || sent || seconds > 0;
-    button.textContent = sent ? 'Request sent' : busy ? 'Sending request…' : seconds ? `Try again in ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` : 'Request access';
+    button.textContent = sent ? 'Request received' : busy ? 'Sending request…' : seconds ? `Try again in ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` : 'Request access';
   }
   async function checkAvailability() {
     $('requestRetry').hidden = true;

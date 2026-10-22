@@ -11,7 +11,7 @@
 <meta content="Moore Weather" name="apple-mobile-web-app-title"/>
 <link href="/site.webmanifest" rel="manifest"/>
 <link href="/moore-weather-touch-v2.png" rel="apple-touch-icon" sizes="180x180"/>
-<link href="/moore-weather-favicon-v2.png" rel="icon" sizes="64x64" type="image/png"/>
+<link href="/moore-weather-favicon-v3.svg" rel="icon" sizes="any" type="image/svg+xml"/>
 <title>Moore Weather · West Warwick</title>
 <script src="/theme.js?v=3"></script>
 <style>
@@ -1499,7 +1499,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=3"></script>
-<link rel="stylesheet" href="/dashboard.css?v=1">
+<link rel="stylesheet" href="/dashboard.css?v=2">
 </head>
 <body>
 <div class="main-container">
@@ -1519,13 +1519,13 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
         <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M11 5v14"/></svg></button>
       </div>
     </div>
-  </div>
   <div class="dashboard-navigation">
     <nav class="dashboard-tabs" aria-label="Weather views">
       <button type="button" class="dashboard-tab" id="fetchBtn" aria-current="page" title="Refresh current readings" onclick="manualFetch()">Current</button>
       <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
     </nav>
-    <div class="dashboard-history"><span id="historyHint" class="dashboard-history-hint">5-hour trends</span><button id="browseHistory" type="button" class="dashboard-history-button" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>History</span></button></div>
+    <div class="dashboard-history"><span id="historyHint" class="dashboard-history-hint">5-hour trends</span><button id="browseHistory" type="button" class="dashboard-history-button" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends / history</span></button></div>
+  </div>
   </div>
 </header>
 <main id="weatherData">
@@ -1551,9 +1551,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.7 12 3.5 12 3.5Z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.6"/></svg></span>
 <span class="quick-stat-copy"><span class="label">Humidity</span><span class="value" id="humidityVal">--</span></span>
 </div>
-<div class="quick-stat" style="--stat-accent:var(--rain)">
+<div class="quick-stat rain-stat" style="--stat-accent:var(--rain)">
 <span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 15.5h10a3.5 3.5 0 0 0 .5-7A5.5 5.5 0 0 0 7.2 7.3 4.1 4.1 0 0 0 7 15.5Z"/><path d="m8 18-1 2M12 18l-1 2M16 18l-1 2"/></svg></span>
-<span class="quick-stat-copy"><span class="label">Rain since 9AM</span><span class="value" id="rainSince9Val">--</span><span class="quick-stat-subline">Now <strong id="rainInLastMinVal">--</strong></span></span>
+<span class="quick-stat-copy"><span class="label">Rain since 9 am</span><span class="value"><span id="rainSince9Val">--</span><span class="unit-suffix"> mm</span></span><span class="quick-stat-subline">Last min <strong id="rainInLastMinVal">--</strong></span></span>
 </div>
 <div class="quick-stat" style="--stat-accent:var(--accent)">
 <span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8h10.5a2.5 2.5 0 1 0-2.3-3.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.3 3.5"/><path d="M3 16h6"/></svg></span>
@@ -1923,11 +1923,7 @@ document.getElementById("humidityVal").innerHTML = humidityFormatted;
         bigTempElement.style.color = "#FFF";
 
         // RAIN SINCE 9AM
-        let rainSince9Display = rainSince9.toFixed(1) + " mm";
-        if (rainSince9 >= 0.2) {
-          rainSince9Display = `<span style="color:var(--rain); font-weight:bold;">${rainSince9Display}</span>`;
-        }
-        document.getElementById("rainSince9Val").innerHTML = rainSince9Display;
+        document.getElementById("rainSince9Val").textContent = Number.isFinite(rainSince9) ? rainSince9.toFixed(1) : "--";
 
         // RAIN IN LAST MINUTE
         if (isNaN(rainInLastMinRaw)) {

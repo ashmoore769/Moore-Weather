@@ -11,11 +11,11 @@ const person = { name: 'Test Visitor', email: 'visitor+weather@example.com', web
 function fixture(t, fetchImpl) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'moore-access-'));
   let now = 1000000;
-  const env = { RESEND_API_KEY: 'test-key-not-a-secret', ACCESS_REQUEST_FROM: 'Moore Weather <access@example.com>', WEATHER_DB_PATH: path.join(dir, 'weather.sqlite') };
+  const env = { WEATHER_DB_PATH: path.join(dir, 'weather.sqlite') };
   const services = [], calls = [], logs = [];
   const make = (override = {}) => {
     const service = createAccessRequests({ env: { ...env, ...override }, clock: () => now, logger: { warn: m => logs.push(m) },
-      fetchImpl: async (...args) => { calls.push(args); return fetchImpl ? fetchImpl(...args) : { ok: true, json: async () => ({ id: 'test-message' }) }; } });
+      fetchImpl: async (...args) => { calls.push(args); return fetchImpl ? fetchImpl(...args) : { ok: true, json: async () => ({ success: 'true' }) }; } });
     services.push(service); return service;
   };
   t.after(() => { for (const service of services) service.close(); fs.rmSync(dir, { recursive: true, force: true }); });
@@ -37,16 +37,26 @@ test('global quota is atomic across concurrent visitors and survives reopening t
 });
 
 test('mail uses a fixed recipient and a reply-to address, with no passwords or automatic access grant', async t => {
-  const f = fixture(t), result = await f.make().submit(person);
+  const f = fixture(t), service = f.make();
+  assert.equal(service.status().enabled, true);
+  assert.equal(f.calls.length, 0, 'loading the form must not send an activation email');
+  const result = await service.submit({ ...person, _cc: 'attacker@example.com', _url: 'https://foreign.example',
+    _replyto: 'attacker@example.com', _autoresponse: 'password', _webhook: 'https://foreign.example', _subject: 'Override' });
   assert.equal(result.status, 200);
   const [url, options] = f.calls[0], body = JSON.parse(options.body);
-  assert.equal(url, 'https://api.resend.com/emails');
-  assert.deepEqual(body.to, ['ashmoore01@hotmail.com']);
-  assert.equal(body.reply_to, person.email);
-  assert.equal(body.from, 'Moore Weather <access@example.com>');
-  assert.match(body.text, /Access has not been granted automatically/);
-  assert.ok(!('html' in body)); assert.ok(options.signal);
-  assert.match(options.headers['Idempotency-Key'], /^moore-access-/);
+  assert.equal(url, 'https://formsubmit.co/ajax/ashmoore01@hotmail.com');
+  assert.equal(body.name, person.name); assert.equal(body.email, person.email);
+  assert.equal(body._replyto, person.email);
+  assert.equal(body._subject, 'Moore Weather access request');
+  assert.equal(body._url, 'https://moore-weather.onrender.com/login');
+  assert.equal(body._captcha, 'false');
+  assert.match(body.message, /Access has not been granted automatically/);
+  for (const field of ['html', '_cc', '_autoresponse', '_webhook', 'website']) assert.ok(!(field in body));
+  assert.ok(options.signal); assert.equal(options.redirect, 'error');
+  assert.equal(options.headers.Accept, 'application/json');
+  assert.ok(!('Authorization' in options.headers));
+  assert.match(result.body.message, /Request received/);
+  assert.doesNotMatch(result.body.message, /delivered|password sent/i);
   assert.equal(f.logs.length, 0);
 });
 
@@ -62,21 +72,24 @@ test('validation and honeypot reject malformed submissions without sending or co
 });
 
 test('failed, timed-out or unconfirmed delivery reserves the quota and never claims success', async t => {
-  for (const fetchImpl of [async () => { throw new Error('timeout'); }, async () => ({ ok: false }), async () => ({ ok: true, json: async () => ({}) })]) {
+  const invalidResults = [{}, null, { success: false }, { success: 'false' }, { success: 1 }, { success: 'yes' }];
+  for (const fetchImpl of [async () => { throw new Error('timeout'); }, async () => ({ ok: false }),
+    async () => ({ ok: true, json: async () => { throw new SyntaxError('Not JSON'); } }),
+    ...invalidResults.map(result => async () => ({ ok: true, json: async () => result }))]) {
     const f = fixture(t, fetchImpl), service = f.make();
     const result = await service.submit(person);
     assert.equal(result.status, 503); assert.equal(result.body.retryAfter, 300); assert.equal(result.body.ok, undefined);
     assert.equal((await service.submit(person)).status, 429); assert.equal(f.calls.length, 1);
-    assert.ok(f.logs.every(line => !line.includes(person.email) && !line.includes('test-key')));
+    assert.ok(f.logs.every(line => !line.includes(person.email) && !line.includes(person.name)));
   }
 });
 
 test('cooldown starts at provider acceptance and unavailable configuration or storage fails closed', async t => {
-  let f = fixture(t, async () => { f.advance(9000); return { ok: true, json: async () => ({ id: 'slow' }) }; });
+  let f = fixture(t, async () => { f.advance(9000); return { ok: true, json: async () => ({ success: true }) }; });
   const service = f.make(); await service.submit(person);
   f.advance(COOLDOWN_MS - 1); assert.equal((await service.submit(person)).status, 429);
   f.advance(1); assert.equal((await service.submit(person)).status, 200);
-  for (const env of [{ RESEND_API_KEY: '' }, { ACCESS_REQUEST_FROM: '' }, { ACCESS_REQUESTS_ENABLED: 'false' },
+  for (const env of [{ WEATHER_DB_PATH: '' }, { ACCESS_REQUESTS_ENABLED: 'false' },
     { ACCESS_REQUEST_DB_PATH: path.join(f.dir, 'nonexistent', 'db.sqlite') }]) {
     const disabled = f.make(env);
     assert.equal(disabled.status().enabled, false);

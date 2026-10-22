@@ -25,7 +25,7 @@ test('new public login assets and request form keep weather, archive and SkyCam 
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = 'http://127.0.0.1:' + server.address().port;
   const get = (url, headers = {}) => fetch(base + url, { headers, redirect: 'manual' });
-  for (const url of ['/login', '/login.css', '/login.js', '/theme.js', '/dashboard.css', '/api/access-request']) assert.equal((await get(url)).status, 200, url);
+  for (const url of ['/login', '/login.css', '/login.js', '/theme.js', '/dashboard.css', '/moore-weather-favicon-v3.svg', '/api/access-request']) assert.equal((await get(url)).status, 200, url);
   assert.equal((await (await get('/api/access-request')).json()).enabled, false);
   const login = await (await get('/login')).text(); assert.match(login, /accessRequestForm/); assert.doesNotMatch(login, /mailto:/);
   for (const url of ['/', '/index.html', '/daily.html', '/api/history', '/api/water', '/weather', '/skycam/latest.jpg']) assert.equal((await get(url)).status, 401, url);

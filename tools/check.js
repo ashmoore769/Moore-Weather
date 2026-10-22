@@ -15,7 +15,7 @@ function checkAsset(url, source) {
   if (/^(?:[a-z]+:|\/\/|#)/i.test(url)) return;
   const pathname = decodeURIComponent(url.split(/[?#]/, 1)[0]);
   if (pathname === "/skycam/latest.jpg") return; // Dynamic server route.
-  if (!/\.(?:png|jpg|jpeg|ico|html|css|js|webmanifest)$/i.test(pathname)) return;
+  if (!/\.(?:png|jpg|jpeg|ico|svg|html|css|js|webmanifest)$/i.test(pathname)) return;
   // server.js intentionally serves this alias from favicon.png.
   const asset = pathname === "/favicon.ico" ? "favicon.png" : pathname.replace(/^\//, "");
   const resolved = path.resolve(publicDir, asset);

@@ -22,28 +22,28 @@ The trendline, gestures, fixed-height history loading state, water collection/ba
 
 The interface and graphs can deploy before email configuration. If email is not configured, the access-request button explains that requests are temporarily unavailable, while password sign-in continues to work.
 
-## Enable access-request email on Render
+## Enable access-request email on Render (FormSubmit follow-up)
 
-The Render web service sends over HTTPS using Resend. It needs a Resend API key and a sender on a domain verified in Resend. The receiving address is fixed to **ashmoore01@hotmail.com**; the visitor's address becomes Reply-To so a normal reply reaches them. The visitor is not sent an automatic password or confirmation email.
+The Render web service now sends over HTTPS using FormSubmit. No registration, API key, paid plan or owned domain is needed. The receiving address is fixed to **ashmoore01@hotmail.com**; the visitor's address becomes Reply-To so a normal reply reaches them. The visitor is not sent an automatic password or confirmation email. Visitors remain on the sign-in page and their email application does not open.
 
-Add these settings to the existing Moore Weather service's **Environment** page:
+Existing archive settings are sufficient. These optional settings on the Moore Weather service's **Environment** page control the feature:
 
 | Setting | Value |
 | --- | --- |
-| `RESEND_API_KEY` | A sending-enabled Resend API key |
-| `ACCESS_REQUEST_FROM` | A verified sender, for example `Moore Weather <access@your-verified-domain>` |
 | `ACCESS_REQUESTS_ENABLED` | `true` (default; use `false` to turn requests off) |
 | `ACCESS_REQUEST_DB_PATH` | Optional. Defaults to `access-requests.sqlite` alongside the existing `WEATHER_DB_PATH` |
 
-Keep the existing authentication, station, SkyCam and database environment variables. Save and deploy the new email settings so they take effect. Do not use the Hotmail receiving address as the sender unless the email provider has explicitly verified it for sending.
+Keep the existing authentication, station, SkyCam and database environment variables. `RESEND_API_KEY` and `ACCESS_REQUEST_FROM` are no longer read; if previously added, they can be removed. Nothing needs to be entered on the FormSubmit website.
+
+After deployment, open the sign-in page in a private window and submit your own name and email once. FormSubmit sends an activation email to **ashmoore01@hotmail.com**. Click its confirmation link; check Junk if needed. The form must be activated before delivery is operational. FormSubmit retains pending submissions for up to 30 days and forwards them once activated. Wait at least five minutes before making a second test request, then confirm that it reaches your inbox and that Reply addresses the visitor. A successful API response confirms acceptance, not inbox delivery.
 
 The request database must be on the persistent disk. With `WEATHER_DB_PATH=/var/data/weather.sqlite`, the default is `/var/data/access-requests.sqlite`; no extra path setting is needed. The file is created automatically. This design shares the limit between connections/processes using the same disk, matching the existing single-instance disk-backed service. Separate instances with separate disks would require a shared quota database.
 
-Reference documentation: [Render environment variables](https://render.com/docs/configure-environment-variables), [Resend send-email API](https://resend.com/docs/api-reference/emails/send-email).
+Reference documentation: [FormSubmit setup](https://formsubmit.co/), [AJAX](https://formsubmit.co/ajax-documentation), [activation and form URL](https://formsubmit.co/help), [optional fields](https://formsubmit.co/documentation).
 
 ## Five-minute global limit
 
-One atomic SQLite reservation admits one email across all visitors every five minutes. A restart or redeploy retains the reservation. The period runs from confirmed provider acceptance; failures or uncertain delivery retain the reservation so retries cannot flood the inbox. Invalid names/emails, filled honeypots and foreign-origin browser requests do not send mail. The form shows the remaining cooldown, and the server enforces it independently of the form.
+One atomic SQLite reservation admits one provider submission across all visitors every five minutes. A restart or redeploy retains the reservation. The period runs from confirmed provider acceptance; failures or uncertain delivery retain the reservation so retries cannot flood the inbox. Invalid names/emails, filled honeypots and foreign-origin browser requests do not send mail. The form shows the remaining cooldown, and the server enforces it independently of the form. FormSubmit's interactive CAPTCHA is disabled for this server request; the application's persistent quota and honeypot remain in place. Provider spam filtering can still reject submissions, and the page reports unconfirmed requests without claiming delivery.
 
 Only the next permitted send time is saved in the quota database. The API does not save the visitor's name or email there, and logs omit visitor details and provider secrets. Requests never grant access automatically.
 
