@@ -11,354 +11,42 @@
   <link rel="manifest" href="/site.webmanifest">
   <link rel="apple-touch-icon" sizes="180x180" href="/moore-weather-touch-v2.png">
   <link rel="icon" type="image/png" sizes="64x64" href="/moore-weather-favicon-v2.png">
-  <title>Moore Weather · Access</title>
+  <title>Moore Weather · Sign in</title>
   <script src="/theme.js?v=3"></script>
-  <style>
-    :root {
-      color-scheme: light;
-      --page: #eef2f6;
-      --surface: #ffffff;
-      --surface-soft: #f6f8fb;
-      --text: #172033;
-      --muted: #667085;
-      --border: #dce3ec;
-      --border-strong: #c8d1dd;
-      --brand: #1e3a8a;
-      --brand-2: #27499e;
-      --accent: #1677ff;
-      --red: #b42318;
-      --red-soft: #fdecea;
-      --green: #147a42;
-      --green-soft: #eaf7ef;
-      --shadow: 0 18px 48px rgba(17, 24, 39, 0.12);
-    }
-
-    html[data-theme="dark"] {
-      color-scheme: dark;
-      --page: #0b1119;
-      --surface: #121b27;
-      --surface-soft: #182433;
-      --text: #f1f5f9;
-      --muted: #aeb9c8;
-      --border: #314154;
-      --border-strong: #42536a;
-      --brand: #294b9f;
-      --brand-2: #78a9ff;
-      --accent: #7db7ff;
-      --red: #ff867c;
-      --red-soft: rgba(255, 134, 124, 0.12);
-      --green: #70dda0;
-      --green-soft: rgba(64, 190, 118, 0.14);
-      --shadow: 0 20px 54px rgba(0, 0, 0, 0.36);
-    }
-
-    * { box-sizing: border-box; }
-    html, body { min-height: 100%; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      min-height: 100dvh;
-      display: grid;
-      place-items: center;
-      padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
-      background: var(--page);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-    }
-
-    .login-shell {
-      width: min(100%, 430px);
-      overflow: hidden;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      background: var(--surface);
-      box-shadow: var(--shadow);
-    }
-
-    .brand-header {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-height: 92px;
-      padding: 18px 20px;
-      color: white;
-      background: var(--brand);
-    }
-
-    .brand-icon {
-      width: 58px;
-      height: 58px;
-      flex: 0 0 58px;
-      object-fit: contain;
-      padding: 5px;
-      border: 1px solid rgba(255,255,255,.45);
-      border-radius: 14px;
-      background: white;
-    }
-
-    .brand-title {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 750;
-      line-height: 1.08;
-      letter-spacing: -.25px;
-    }
-
-    .brand-subtitle {
-      margin-top: 5px;
-      color: rgba(255,255,255,.72);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 1.35px;
-      text-transform: uppercase;
-    }
-
-    .login-body { padding: 28px 24px 24px; }
-
-    .eyebrow {
-      margin: 0 0 8px;
-      color: var(--brand-2);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 25px;
-      line-height: 1.15;
-      letter-spacing: -.35px;
-    }
-
-    .intro {
-      margin: 10px 0 16px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .access-note {
-      display: grid;
-      gap: 3px;
-      margin: 0 0 22px;
-      padding: 11px 13px;
-      border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
-      border-radius: 11px;
-      background: color-mix(in srgb, var(--accent) 7%, var(--surface-soft));
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.4;
-    }
-
-    .access-note strong {
-      color: var(--brand-2);
-      font-size: 13px;
-    }
-
-
-    .contact-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 36px;
-      width: fit-content;
-      margin-top: 7px;
-      padding: 7px 11px;
-      border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
-      border-radius: 9px;
-      background: var(--surface-raised);
-      color: var(--brand-2);
-      font-size: 12.5px;
-      font-weight: 750;
-      line-height: 1.2;
-      text-decoration: none;
-    }
-
-    .contact-button:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .contact-button:active { transform: translateY(1px); }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: .9px;
-      text-transform: uppercase;
-    }
-
-    input[type="password"] {
-      width: 100%;
-      min-height: 50px;
-      padding: 11px 14px;
-      border: 1px solid var(--border-strong);
-      border-radius: 12px;
-      outline: none;
-      background: var(--surface-soft);
-      color: var(--text);
-      font: inherit;
-      font-size: 17px;
-      transition: border-color .15s ease, box-shadow .15s ease;
-    }
-
-    input[type="password"]:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
-    }
-
-    .error-box,
-    .success-box {
-      display: none;
-      margin: 0 0 16px;
-      padding: 11px 13px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 650;
-      line-height: 1.4;
-    }
-
-    .error-box {
-      color: var(--red);
-      background: var(--red-soft);
-      border: 1px solid color-mix(in srgb, var(--red) 32%, transparent);
-    }
-
-    .success-box {
-      color: var(--green);
-      background: var(--green-soft);
-      border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
-    }
-
-    .unlock-button {
-      width: 100%;
-      min-height: 50px;
-      margin-top: 14px;
-      border: 0;
-      border-radius: 12px;
-      background: var(--brand);
-      color: white;
-      font: inherit;
-      font-size: 15px;
-      font-weight: 750;
-      cursor: pointer;
-      box-shadow: 0 5px 14px rgba(30, 58, 138, .18);
-    }
-
-    .unlock-button:active { transform: translateY(1px); }
-
-    .remember-note {
-      display: flex;
-      gap: 8px;
-      align-items: flex-start;
-      margin: 16px 2px 0;
-      color: var(--muted);
-      font-size: 12.5px;
-      line-height: 1.45;
-    }
-
-    .remember-dot {
-      width: 8px;
-      height: 8px;
-      flex: 0 0 8px;
-      margin-top: 5px;
-      border-radius: 50%;
-      background: var(--green);
-    }
-
-    @media (max-width: 460px) {
-      body { padding-left: 12px; padding-right: 12px; }
-      .brand-header { min-height: 82px; padding: 15px 17px; }
-      .brand-icon { width: 52px; height: 52px; flex-basis: 52px; }
-      .brand-title { font-size: 22px; }
-      .login-body { padding: 24px 20px 22px; }
-    }
-  </style>
-<link rel="stylesheet" href="/station-shell.css?v=5">
+  <link rel="stylesheet" href="/login.css?v=1">
+  <script defer src="/login.js?v=1"></script>
 </head>
 <body>
   <main class="login-shell" aria-labelledby="loginTitle">
-    <header class="brand-header">
-      <img class="brand-icon" src="/moore-weather-logo-v2.png" alt="">
-      <div>
-        <div class="brand-title">Moore Weather</div>
-        <div class="brand-subtitle">West Warwick · Community Weather</div>
-      </div>
+    <header class="login-brand">
+      <img src="/moore-weather-logo-v2.png" alt="" width="46" height="46">
+      <div><strong>Moore Weather</strong><p>West Warwick, Queensland</p></div>
     </header>
-
-    <section class="login-body">
-      <p class="eyebrow">Free community weather service</p>
-      <h1 id="loginTitle">Welcome to Moore Weather</h1>
-      <p class="intro">Moore Weather is a free community weather service for West Warwick. Enter the shared access password to view live station data, Daily Summary and SkyCam.</p>
-
-      <div class="access-note">
-        <strong>Need the password?</strong>
-        <span>Access is free — please contact Ash Moore for the password.</span>
-        <a
-          class="contact-button"
-          href="mailto:ashmoore01@hotmail.com?subject=Moore%20Weather%20access&amp;body=Hi%20Ash%2C%0D%0A%0D%0AMy%20name%20is%20________.%0D%0ACould%20I%20please%20have%20the%20Moore%20Weather%20password%3F%0D%0A%0D%0AThanks%21"
-        >✉ Email Ash for access</a>
-      </div>
-
-      <div class="error-box" id="errorBox" role="alert"></div>
-      <div class="success-box" id="successBox" role="status">This device has been signed out.</div>
-
-      <form method="post" action="/login" autocomplete="on">
-        <input id="nextPath" name="next" type="hidden" value="/">
-        <label for="password">Access password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autocomplete="current-password"
-          autocapitalize="none"
-          spellcheck="false"
-          maxlength="256"
-          required
-          autofocus
-        >
-        <button class="unlock-button" type="submit">Continue</button>
+    <h1 id="loginTitle">Sign in</h1>
+    <p class="login-intro">Local weather, from the ground up. Enter your password to explore live readings and weather history.</p>
+    <div class="form-message" id="loginMessage" role="status" hidden></div>
+    <form method="post" action="/login" autocomplete="on">
+      <input id="nextPath" name="next" type="hidden" value="/">
+      <label for="password">Access password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" maxlength="256" required>
+      <button class="login-submit" type="submit">Sign in</button>
+      <p class="login-note">Your device will remember your sign-in.</p>
+    </form>
+    <section class="request-access" aria-labelledby="requestTitle">
+      <h2 id="requestTitle">Need access?</h2>
+      <p>Access is free. Leave your name and email to request a password.</p>
+      <form id="accessRequestForm" action="/api/access-request" method="post" autocomplete="on">
+        <div class="request-fields">
+          <div><label for="requestName">Your name</label><input id="requestName" name="name" autocomplete="name" maxlength="80" required></div>
+          <div><label for="requestEmail">Email address</label><input id="requestEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" maxlength="254" required></div>
+        </div>
+        <div class="request-trap" aria-hidden="true"><label for="requestWebsite">Leave this field blank</label><input id="requestWebsite" name="website" tabindex="-1" autocomplete="off"></div>
+        <button class="request-submit" id="requestAccessButton" type="submit" disabled>Request access</button>
       </form>
-
-      <div class="remember-note">
-        <span class="remember-dot" aria-hidden="true"></span>
-        <span>Authorised devices are remembered automatically, so normal use remains friction-free.</span>
-      </div>
+      <p class="form-message" id="requestMessage" role="status" hidden></p>
+      <button class="request-retry" id="requestRetry" type="button" hidden>Check again</button>
+      <noscript><p class="login-note">Enable JavaScript to request access. You can still sign in above.</p></noscript>
     </section>
   </main>
-
-  <script>
-    (function () {
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get("next");
-      const error = params.get("error");
-      const loggedOut = params.get("loggedOut");
-      const nextInput = document.getElementById("nextPath");
-      const errorBox = document.getElementById("errorBox");
-      const successBox = document.getElementById("successBox");
-
-      if (next && next.startsWith("/") && !next.startsWith("//")) {
-        nextInput.value = next;
-      }
-
-      if (error === "invalid") {
-        errorBox.textContent = "That password was not accepted. Please try again.";
-        errorBox.style.display = "block";
-      } else if (error === "locked") {
-        errorBox.textContent = "Too many unsuccessful attempts. Please wait about 30 minutes before trying again.";
-        errorBox.style.display = "block";
-      }
-
-      if (loggedOut === "1") {
-        successBox.style.display = "block";
-      }
-    })();
-  </script>
 </body>
 </html>

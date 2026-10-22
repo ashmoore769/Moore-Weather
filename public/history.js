@@ -60,7 +60,7 @@
     <div class="history-controls">
       <label>Measurement<select id="historyMetric" aria-label="Measurement"></select></label>
       <label>Time span<select id="historyRange" aria-label="Time span"></select></label>
-      <label>End date · AEST<input id="historyEnd" aria-label="End date in AEST" type="date" min="2025-06-12"></label>
+      <label>End date · AEST<input id="historyEnd" aria-label="End date in AEST" type="date"></label>
       <button class="history-latest" type="button" id="historyLatest">Latest readings</button>
     </div>
     <div class="history-resolution-row"><div class="history-resolutions" role="group" aria-label="Graph resolution">
@@ -174,20 +174,26 @@
     const metric = catalog.find(m => m.id === selection.metric);
     if (!metric) return;
     if (!metric.resolutions.includes(selection.resolution)) selection.resolution = metric.resolutions[0];
+    if (metric.coverage && !metric.coverage[selection.resolution]) selection.resolution = metric.resolutions.find(r => metric.coverage[r]) || selection.resolution;
     const options = [...ranges[selection.resolution]];
-    if (metric.water && selection.resolution === 'daily') options.push([87600, '10 years'], [175200, '20 years'], [Math.ceil((Date.now() - Date.parse(metric.earliest + 'T00:00:00+10:00')) / 86400000) * 24, 'All available history']);
-    if (!selection.custom && !options.some(([hours]) => hours === selection.hours)) selection.hours = selection.resolution === 'daily' ? 720 : 24;
+    const coverage = metric.coverage?.[selection.resolution];
+    if (metric.water && selection.resolution === 'daily') options.push([87600, '10 years'], [175200, '20 years']);
+    const maxHours = selection.resolution === 'daily' ? metric.maxHours || 17520 : { '10m': 168, hourly: 744 }[selection.resolution];
+    if (coverage && (coverage.last - coverage.start) / 3600000 <= maxHours) options.push(['all', 'All available history']);
+    if (!selection.custom && !selection.allHistory && !options.some(([hours]) => hours === selection.hours)) selection.hours = selection.resolution === 'daily' ? 720 : 24;
     $('historyMetric').value = metric.id;
     $('historyTitle').textContent = metric.label;
     $('historyRange').replaceChildren(...options.map(([hours, text]) => new Option(text, String(hours))));
     if (selection.custom) { const custom = new Option('Custom view', 'custom'); custom.disabled = true; $('historyRange').append(custom); }
-    $('historyRange').value = selection.custom ? 'custom' : String(selection.hours);
-    $('historyEnd').max = localDate(Date.now());
-    $('historyEnd').min = metric.earliest || '2025-06-12';
-    $('historyEnd').value = selection.custom ? localDate(selection.end) : selection.endDate || localDate(Date.now());
+    $('historyRange').value = selection.custom ? 'custom' : selection.allHistory ? 'all' : String(selection.hours);
+    const dateShift = metric.water && selection.resolution === 'daily' ? 1 : 0;
+    $('historyEnd').max = localDate(Date.now() - dateShift);
+    $('historyEnd').min = coverage ? localDate(coverage.first - dateShift) : $('historyEnd').max;
+    $('historyEnd').value = localDate((activeSeries?.metric.id === metric.id ? activeSeries.end : selection.end || coverage?.last || Date.now()) - dateShift);
+    $('historyEnd').disabled = Boolean(metric.coverage && !coverage);
     $('historyReset').disabled = !selection.custom;
     for (const button of dialog.querySelectorAll('[data-resolution]')) {
-      button.disabled = !metric.resolutions.includes(button.dataset.resolution);
+      button.disabled = !metric.resolutions.includes(button.dataset.resolution) || Boolean(metric.coverage && !metric.coverage[button.dataset.resolution]);
       button.setAttribute('aria-pressed', String(button.dataset.resolution === selection.resolution));
       button.title = button.disabled ? 'This measurement is not available at this resolution' : '';
     }
@@ -225,30 +231,44 @@
     // the previous plot remains behind the loading overlay, without collapsing
     // the summary, footer, open table or the user's scroll position.
     $('historyMessage').hidden = false; $('historyMessage').textContent = 'Loading history…';
-    const params = new URLSearchParams({ metric: selection.metric, resolution: selection.resolution, hours: String(selection.hours) });
-    if (selection.end !== undefined) params.set('end', new Date(selection.end).toISOString());
-    else if (selection.endDate) params.set('end', new Date(selection.endDate + 'T23:59:59.999+10:00').toISOString());
+    const metric = catalog.find(m => m.id === selection.metric), coverage = metric.coverage?.[selection.resolution];
+    let end = selection.end ?? (selection.endDate ? Date.parse(selection.endDate + 'T23:59:59.999+10:00') : Date.now());
+    if (selection.allHistory && coverage) { end = coverage.last; selection.hours = (coverage.last - coverage.start) / 3600000; }
+    const target = WeatherChart.navigationWindow(end - selection.hours * 3600000, end, [selection.resolution], Date.now(), selection.resolution, metric);
+    // Sub-hour archives still use the API's integer-hour request, with exact
+    // native-period bounds applied by the server before reading any samples.
+    const params = new URLSearchParams({ metric: selection.metric, resolution: selection.resolution, hours: String(Math.max(1, Math.ceil(target.hours))), end: new Date(target.end).toISOString() });
     try {
       const data = await getJson('/api/history?' + params, AbortSignal.any([signal, AbortSignal.timeout(20000)]));
       if (signal.aborted || !dialog.open) return;
+      setCatalog(data);
       activeSeries = loadedSeries = data.series[0];
       if (!selection.custom) resetView = { ...selection, end: activeSeries.end };
       setHistoryState('ready');
-      for (const id of ['historyEarlier', 'historyLater', 'historyZoomIn', 'historyZoomOut']) $(id).disabled = false;
+      configure();
+      const bounds = activeSeries.metric.coverage?.[selection.resolution];
+      const m = activeSeries.metric, span = activeSeries.end - activeSeries.start;
+      const nowView = WeatherChart.navigationWindow(Date.now() - span, Date.now(), [selection.resolution], Date.now(), selection.resolution, m);
+      const wider = WeatherChart.navigationWindow(activeSeries.start - span / 2, activeSeries.end + span / 2, m.resolutions, Date.now(), undefined, m);
+      $('historyEarlier').disabled = !bounds || activeSeries.start <= bounds.start;
+      $('historyLater').disabled = !bounds || activeSeries.end >= nowView.end;
+      $('historyZoomIn').disabled = !bounds || span <= (selection.resolution === 'daily' ? 86400000 : 3600000);
+      $('historyZoomOut').disabled = !bounds || (wider.start === activeSeries.start && wider.end === activeSeries.end && wider.resolution === selection.resolution);
       renderHistory();
     } catch (error) { if (!signal.aborted && dialog.open) showError(error); }
   }
   function presetChange() { selection.custom = false; delete selection.end; configure(); loadHistory(); }
   $('historyMetric').addEventListener('change', () => {
     selection.metric = $('historyMetric').value;
+    selection.allHistory = false;
     const supported = catalog.find(m => m.id === selection.metric).resolutions;
     if (selection.custom) Object.assign(selection, WeatherChart.navigationWindow(selection.end - selection.hours * 3600000, selection.end, supported, Date.now(), undefined, catalog.find(m => m.id === selection.metric)));
     configure(); loadHistory();
   });
-  $('historyRange').addEventListener('change', () => { selection.hours = Number($('historyRange').value); selection.endDate = null; presetChange(); });
-  $('historyEnd').addEventListener('change', () => { if ($('historyEnd').value && $('historyEnd').checkValidity()) { selection.endDate = $('historyEnd').value; presetChange(); } });
+  $('historyRange').addEventListener('change', () => { selection.allHistory = $('historyRange').value === 'all'; if (!selection.allHistory) selection.hours = Number($('historyRange').value); selection.endDate = null; presetChange(); });
+  $('historyEnd').addEventListener('change', () => { if ($('historyEnd').value && $('historyEnd').checkValidity()) { selection.allHistory = false; selection.endDate = $('historyEnd').value; presetChange(); } });
   $('historyLatest').addEventListener('click', () => { selection.endDate = null; presetChange(); });
-  for (const button of dialog.querySelectorAll('[data-resolution]')) button.addEventListener('click', () => { selection.resolution = button.dataset.resolution; selection.hours = selection.resolution === 'daily' ? 720 : selection.resolution === 'hourly' ? 168 : 24; presetChange(); });
+  for (const button of dialog.querySelectorAll('[data-resolution]')) button.addEventListener('click', () => { selection.allHistory = false; selection.resolution = button.dataset.resolution; selection.hours = selection.resolution === 'daily' ? 720 : selection.resolution === 'hourly' ? 168 : 24; presetChange(); });
 
   $('historyTrend').addEventListener('change', () => {
     try { localStorage.setItem('mooreWeatherTrend:'+selection.metric, String($('historyTrend').checked)); } catch {}
@@ -282,6 +302,11 @@
         date.textContent = fullDateFormat.format(recording.t); time.textContent = timeFormat.format(recording.t) + ' AEST';
         when.append(date, time); detail.append(caption, when);
         detail.title = 'Recording period: ' + stamp(recording.t - s.intervalSeconds * 1000) + ' to ' + stamp(recording.t) + '. Exact occurrence time is not stored. If tied, the earliest period is shown.';
+        if (recording.observed) {
+          caption.textContent = recording.dateOnly ? 'Recorded date' : 'Recorded at';
+          if (recording.dateOnly) { time.remove(); when.dateTime = localDate(recording.t); }
+          detail.title = recording.dateOnly ? 'Source daily record (AEST). Exact occurrence time is not published. If tied, the earliest date is shown.' : 'Timestamp of the recorded observation (AEST). If tied, the earliest observation is shown.';
+        }
         box.append(detail);
       }
       return box;
@@ -293,7 +318,8 @@
     const availability = document.createElement('span'); availability.textContent = `${valid.length} readings · ${s.missing} missing readings`; legend.append(availability);
     const notes = ['Missing or screened readings remain gaps.'];
     if (m.water) notes.push(s.note);
-    if (items.some(item => item[3])) notes.push('Dates beneath temperature extremes identify the recording period; exact occurrence times are not stored.');
+    if (items.some(item => item[3]) && !m.water) notes.push('Dates beneath temperature extremes identify the recording period; exact occurrence times are not stored.');
+    if (m.water && items.some(item => item[3]?.dateOnly)) notes.push('Daily extreme dates are supplied by Sunwater; exact occurrence times are not published.');
     if (valid.some(p => p.estimated)) notes.push('Hollow markers identify interpolated records.');
     if (m.id === 'pressure') notes.push('Recorded station pressure is shown. The live card currently applies a separate −1.9 hPa display correction.');
     if (m.id === 'rain') {
@@ -389,9 +415,13 @@
     if (!loadedSeries) return;
     const metric = catalog.find(m => m.id === selection.metric);
     const target = WeatherChart.navigationWindow(start, end, metric.resolutions, Date.now(), preferred, metric);
+    // Discard wheel overshoot at archive edges so reversing the wheel responds
+    // immediately, while still accumulating small movements within the bounds.
+    const oldest = metric.coverage?.[target.resolution]?.start;
+    if (wheelWindow && ((oldest !== undefined && start < oldest) || end > Date.now())) wheelWindow = { start: target.start, end: target.end };
     if (target.start === activeSeries.start && target.end === activeSeries.end && target.resolution === selection.resolution) return;
     pendingWindow = target;
-    Object.assign(selection, target, { custom: true });
+    Object.assign(selection, target, { custom: true, allHistory: false });
     activeSeries = WeatherChart.visibleSeries(loadedSeries, target.start, target.end); activeIndex = -1;
     configure();
     $('historyNavigationHint').textContent = 'Release to load this view';

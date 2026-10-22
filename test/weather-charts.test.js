@@ -23,7 +23,8 @@ function insert(store, stream, time, overrides = {}, date = '2026/08/21') {
   return store.db.prepare('SELECT id FROM records ORDER BY rowid DESC LIMIT 1').get().id;
 }
 function series(store, metric, resolution = '10m', hours = 1, finish = end) {
-  return new HistoryReader(store.db).query({ metric, resolution, hours, end: finish }).series[0];
+  // Test native quality/gap semantics independently of the API's archive bounds.
+  return new HistoryReader(store.db).series([metric], resolution, hours, finish)[0];
 }
 
 test('native means, interval rain totals and real gaps are kept distinct', t => {

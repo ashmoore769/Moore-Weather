@@ -48,6 +48,9 @@ test('native river observations, gaps and source revisions survive idempotent im
   let result = new WaterReader(store.db).series(request);
   assert.deepEqual(result.points.map(p => p.value), [.2, null, null]);
   assert.equal(result.points[0].min, -.05); assert.equal(result.points[0].max, .3);
+  assert.deepEqual(result.extrema.min, { value: -.05, t: hydstraTime('19601001121000'), dateOnly: false });
+  assert.deepEqual(result.extrema.max, { value: .3, t: hydstraTime('19601001122000'), dateOnly: false });
+  assert.equal(chart.summary(result)[2][3].t, hydstraTime('19601001122000'));
   assert.equal(store.db.prepare('SELECT COUNT(*) AS n FROM water_samples').get().n, 4);
   assert.match(result.points[0].quality, /130/);
   assert.equal(JSON.parse(store.db.prepare('SELECT raw_json FROM water_samples WHERE quality=255').get().raw_json).v, '0');
@@ -66,6 +69,14 @@ test('wide water graphs bound point counts while retaining extrema; weather boun
   const result = new WaterReader(store.db).series(request);
   assert.ok(result.points.length <= 1500); assert.equal(Math.min(...result.points.filter(p => p.value !== null).map(p => p.min)), 1);
   assert.equal(Math.max(...result.points.filter(p => p.value !== null).map(p => p.max)), 95);
+  assert.ok(result.groupSize > 1);
+  assert.deepEqual(result.extrema.min, { value: 1, t: Date.parse('1986-01-06T00:00:00+10:00'), dateOnly: true });
+  assert.deepEqual(result.extrema.max, { value: 95, t: Date.parse('1986-01-07T00:00:00+10:00'), dateOnly: true });
+  const full = new WaterReader(store.db).catalog(end).find(m => m.id === 'leslie-storage');
+  assert.equal(full.coverage.daily.first, Date.parse('1986-01-02T00:00:00+10:00'));
+  assert.equal(full.coverage.daily.start, Date.parse('1986-01-01T00:00:00+10:00'));
+  const earliest = chart.navigationWindow(Date.parse('1876-01-01'), Date.parse('1877-01-01'), full.resolutions, end, 'daily', full);
+  assert.equal(earliest.start, full.coverage.daily.start);
   assert.throws(() => normalizeRequest({ metric: 'air', resolution: 'daily', hours: '400000' }), /large/);
   assert.throws(() => normalizeRequest({ metric: 'leslie-storage', resolution: '10m' }), /Unsupported/);
   const nav = chart.navigationWindow(first, end, ['hourly', 'daily'], end, undefined, METRICS['leslie-storage']);

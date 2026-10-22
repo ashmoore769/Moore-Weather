@@ -387,6 +387,9 @@ const PUBLIC_APP_ASSETS = new Map([
   ["/moore-weather-favicon-v2.png", "moore-weather-favicon-v2.png"],
   ["/theme.js", "theme.js"],
   ["/station-shell.css", "station-shell.css"],
+  ["/dashboard.css", "dashboard.css"],
+  ["/login.css", "login.css"],
+  ["/login.js", "login.js"],
   ["/sw.js", "sw.js"],
 ]);
 
@@ -396,6 +399,9 @@ for (const [route, filename] of PUBLIC_APP_ASSETS) {
     res.sendFile(path.join(__dirname, "public", filename));
   });
 }
+
+const accessRequests = require('./lib/access-requests').createAccessRequests({ env: process.env, logger });
+accessRequests.mount(app);
 
 app.get("/login", (req, res) => {
   const nextPath = safeReturnPath(req.query.next);

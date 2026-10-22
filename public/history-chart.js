@@ -64,20 +64,34 @@
     const available = Object.keys(resolutions).filter(r => supported.includes(r));
     const requestedHours = Math.max(1, (end - start) / HOUR);
     const resolution = available.includes(preferred) && requestedHours <= limits[preferred].maxHours ? preferred :
-      available.find(r => requestedHours <= limits[r].maxHours) || available.at(-1);
+      available.find(r => requestedHours <= limits[r].maxHours && (!metric.coverage ||
+        (metric.coverage[r] && start >= metric.coverage[r].start && end <= metric.coverage[r].last + limits[r].step))) || available.at(-1);
     const spec = limits[resolution];
     const quantum = resolution === 'daily' ? 24 : 1;
-    const hours = Math.min(spec.maxHours, Math.max(quantum, Math.round(requestedHours / quantum) * quantum));
+    let hours = Math.min(spec.maxHours, Math.max(quantum, Math.round(requestedHours / quantum) * quantum));
     const offset = resolution === 'daily' ? metric.dailyOffset ?? 23 * HOUR : 0;
-    const latest = Math.floor((now - offset) / spec.step) * spec.step + offset;
-    const earliest = Math.min(metric.water ? Date.UTC(1900, 0, 1) : Date.UTC(2000, 0, 1), latest - hours * HOUR) + hours * HOUR;
+    const completed = Math.floor((now - offset) / spec.step) * spec.step + offset;
+    const coverage = metric.coverage?.[resolution];
+    // Keep recent missing periods visible when a feed stops updating. Only the
+    // oldest edge is constrained by the archive; "all history" ends at last.
+    const latest = completed;
+    // The first interval starts one native period before its ending timestamp.
+    // Including it preserves the first recorded rainfall total and daily dam date.
+    const beginning = coverage ? coverage.start : metric.coverage ? latest - spec.step : Date.UTC(metric.water ? 1900 : 2000, 0, 1);
+    hours = Math.min(hours, (latest - beginning) / HOUR);
+    if (coverage && start <= coverage.start && end === coverage.last) {
+      // An all-history request can contain a fractional number of hours. Keep
+      // its native first/last periods instead of adding padding to round up.
+      hours = Math.min(spec.maxHours, (coverage.last - coverage.start) / HOUR);
+    }
+    const earliest = beginning + hours * HOUR;
     const finish = Math.max(earliest, Math.min(latest, Math.round((end - offset) / spec.step) * spec.step + offset));
     return { resolution, hours, start: finish - hours * HOUR, end: finish };
   }
   function visibleSeries(series, start, end) {
     const points = series.points.filter(p => p.t > start && p.t <= end);
     const valid = points.filter(p => Number.isFinite(p.value));
-    return { ...series, start, end, points, latest: valid.at(-1) || null,
+    return { ...series, start, end, points, extrema: undefined, latest: valid.at(-1) || null,
       missing: Math.max(0, Math.round((end - start) / (series.intervalSeconds * 1000)) - valid.length) };
   }
   function summary(series) {
@@ -100,6 +114,10 @@
         m.aggregation === 'AVERAGE' ? `${period} average` : m.aggregation === 'MINIMUM' ? `${period} minimum voltage` :
           m.aggregation === 'MAXIMUM' ? `${period} peak gust` : noun;
       const item = [`${label} ${detail}`, point ? point[key] : null];
+      if (m.water && series.extrema?.[stat]) {
+        const reading = series.extrema[stat];
+        return [item[0], reading.value, undefined, { t: reading.t, dateOnly: reading.dateOnly, observed: true }];
+      }
       if (point && Number.isFinite(point.t) && (['air', 'globe', 'ground', 'dew'].includes(m.id) || m.id.startsWith('soil-temp-'))) {
         item.push(undefined, { t: point.t, estimated: Boolean(point.estimated) });
       }
