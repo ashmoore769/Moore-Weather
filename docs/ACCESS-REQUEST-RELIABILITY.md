@@ -1,33 +1,58 @@
-# Access request reliability update
+# Access-request delivery incident — 23 October 2026
 
-Applies on top of `GUI Tidy` / the Layout and FormSubmit update. This replaces its five-minute submission and email cooldown, following the revised preference. No weather, water, graph or camera behaviour changes.
+## What is and is not fixed
 
-## Visitor experience
+Production Render logs show `provider_http_403` from FormSubmit for two different request references. This confirms rejection of server submissions; it does not identify why FormSubmit rejects them. The successful FormSubmit live-demo email was a different submission path.
 
-The application commits a request to its persistent SQLite disk before returning HTTP 202 and displaying **Request received**. This means saved by Moore Weather, not confirmed inbox delivery. It sends the email in the background. A provider outage no longer makes the visitor wait five minutes or resubmit their details.
+This patch contains the failure. It does **not** repair FormSubmit delivery or claim that a saved request reached the owner. No production email was sent by its tests.
 
-There is no global, hourly or per-IP time limit on new requests, and no enforced spacing between successful email sends. Pending requests for the same email address are combined. After provider acceptance, a short 30-second duplicate window prevents accidental repeats; there is no visible countdown. A lost browser response is safe to retry. Genuine storage failures preserve the entered fields and do not report success.
+- Existing queued failures immediately make the public request form unavailable after upgrade. The backend rechecks before writing, including for a visitor who loaded the page before the outage.
+- The page shows a copyable contact address. It does not launch an email application.
+- A newly saved request displays a neutral, explicit delivery-pending message, never a green delivery confirmation.
+- Pending requests remain in the existing database. Background retries keep their existing provider backoff. The five-minute visitor cooldown remains removed.
+- A subsequent provider acceptance clears the outage flag. Provider acceptance is still not proof of arrival in the recipient's inbox.
+- `tools/access-requests.js` provides private, read-only recovery from Render Shell. It sends nothing, deletes nothing and does not connect to the weather station.
 
-The hidden bot field, input validation, same-origin check and password wall remain. At most 100 unsent requests are retained so an extended outage cannot create an unbounded database. If that storage capacity is full, new requests get an honest unavailable response, without claiming they were saved.
+## Immediate production pause (no upload needed)
 
-## Storage and delivery
+In Moore-Weather's Render **Environment** settings, add or set `ACCESS_REQUESTS_ENABLED=false`, then choose **Save and deploy**. Preserve all other settings. A restart alone does not apply newly saved environment variables. The persistent-disk service will briefly restart; normal password sign-in remains available after it restarts.
 
-- Uses the existing `access-requests.sqlite` beside `WEATHER_DB_PATH`, or `ACCESS_REQUEST_DB_PATH` if explicitly configured. That path must be on the persistent Render disk. Existing weather and water tables are untouched.
-- Adds queue/settings/provider-pause tables automatically. The old five-minute gate is unused, so an existing lockout does not survive the upgrade.
-- Name and email remain in the queue while delivery is pending, for up to 30 days. They are cleared from the queue record on confirmed provider acceptance. A salted email digest is retained only for the short duplicate window after acceptance. No visitor IP addresses are stored.
-- The existing web process runs the queue worker; no paid worker or other Render service is required. It starts on application startup, wakes every 30 seconds for retries, and is prompted immediately after a new request. Ready requests are sent consecutively.
-- Failed requests retry with increasing delays, starting at 30 seconds. Activation, CAPTCHA, origin and provider rate-limit failures pause delivery for an hour. Explicit provider `Retry-After` values are respected. These pauses affect background email only; visitors can still save requests.
-- Persisted leases recover an interrupted send after a restart. Multiple processes cannot claim the same live attempt. If the provider accepted an email but its response was lost, a retry can still produce a duplicate email: FormSubmit does not supply an idempotency guarantee here. Each notification includes the same request reference so those duplicates can be recognised.
-- FormSubmit receives the fixed recipient, validated name/email, the actual Moore Weather form URL and corresponding Origin/Referer headers. Arbitrary CC, webhook, subject and recipient overrides are never forwarded.
-- Provider failures are logged as safe categories (HTTP status, activation required, invalid JSON, timeout, etc.). Visitor details and raw provider responses are not logged. A `provider_accepted` log means accepted by the provider, not proven delivery to the inbox.
+This pauses both new requests and background email attempts. Do not delete or replace `access-requests.sqlite`, `weather.sqlite` or the persistent disk.
 
-## Upload and verify
+## Deploy this containment patch
 
-1. Extract the ZIP and upload its contents to the repository root, preserving the `public`, `lib`, `test` and `docs` folders. Upload `server.js` at the root. Commit all files together and let Render deploy.
-2. Reopen the sign-in page to load `/login.js?v=3`. Submit one fresh request. It should acknowledge promptly, without a countdown.
-3. Check for **Moore Weather access request** in the recipient inbox. If FormSubmit sends an activation email naming the Moore Weather URL, activate that form. Successful delivery from the FormSubmit live demo alone does not establish this integration works.
-4. If the email does not arrive, inspect Render logs filtered to `[ACCESS]`. The request remains stored for background retry. For example, `provider_http_403` identifies a rejected provider call and `activation_required` identifies form activation. Do not treat the saved confirmation as proof email delivery is fixed.
+Extract the ZIP and upload its contents to the root of `ashmoore769/Moore-Weather`, preserving the `public`, `lib`, `tools`, `test` and `docs` folders. Commit the files together. Render auto-deploys the main branch. `.env.example` documents settings; uploading it does not change production environment variables.
 
-The queued flow and provider failures were checked offline using temporary databases and a fake mail transport. No real email was sent by those tests, and no connection was made to the physical weather station. Production inbox delivery remains unverified until step 3 succeeds.
+After the deployment is live, open `/login` and check that access requests are unavailable and the copyable contact address is visible. `/api/access-request` should return `enabled:false` while manually paused or while the recorded delivery failure remains. Existing password sign-in must still work. The browser loads `/login.js?v=4`.
 
-To pause receipt and background delivery, set `ACCESS_REQUESTS_ENABLED=false`. Reverting the code leaves new queue tables on disk; the old version will not drain them. Restore this version to resume pending delivery. Do not delete the access-request database as part of a rollback.
+## Recover pending visitors privately
+
+Once this patch is deployed, open the Moore-Weather service's **Shell** in Render and run:
+
+```sh
+node tools/access-requests.js list
+```
+
+It displays each pending request's name, email, reference, time, attempts and failure category. Review these privately and contact visitors through your usual email workflow. Do not paste their personal details into GitHub issues or public logs. The command does not send, acknowledge or delete requests.
+
+For a count without personal details:
+
+```sh
+node tools/access-requests.js summary
+```
+
+The utility reads `ACCESS_REQUEST_DB_PATH`, or `access-requests.sqlite` beside `WEATHER_DB_PATH`, matching the live application's configuration. Missing files are not created. The connected Render tools available in this session cannot execute Shell commands or read this SQLite disk, so the records themselves have not been independently inspected.
+
+The existing worker expires unsent records after 30 days. Recover requests promptly. Requests from the older pre-queue implementation may not have been retained; no recovery is promised for those. Provider-accepted requests have already had their personal details removed by the existing implementation.
+
+## Restore email delivery
+
+Keep the form paused while investigating FormSubmit's HTTP 403, or configuring a replacement service. Retrying the public live-demo does not test Moore Weather's backend. A provider change needs a verified recipient and its actual form endpoint or credentials; do not put secret keys into the repository.
+
+After a provider connection is repaired, re-enable the worker with `ACCESS_REQUESTS_ENABLED=true` and deploy. Existing queued requests retry after their stored provider backoff. Do not delete queue rows or bypass a provider's `Retry-After` to force a retry.
+
+Before declaring email working, verify an actual **Moore Weather access request** reaches `ashmoore01@hotmail.com`, and match its reference with the Render log. An HTTP 202 from Moore Weather only confirms local storage; a `provider_accepted` log only confirms provider acceptance. Neither alone proves inbox delivery.
+
+## Offline verification
+
+Automated tests use temporary SQLite files and fake email transport. They cover legacy HTTP 403 recovery, persistent outage status, concurrent submissions, preservation of pending requests, read-only recovery, retries, and the visitor UI. They do not send emails or connect to the physical weather station.

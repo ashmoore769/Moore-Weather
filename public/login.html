@@ -14,7 +14,7 @@
   <title>Moore Weather · Sign in</title>
   <script src="/theme.js?v=3"></script>
   <link rel="stylesheet" href="/login.css?v=1">
-  <script defer src="/login.js?v=3"></script>
+  <script defer src="/login.js?v=4"></script>
 </head>
 <body>
   <main class="login-shell" aria-labelledby="loginTitle">
@@ -44,9 +44,13 @@
         <button class="request-submit" id="requestAccessButton" type="submit" disabled>Request access</button>
       </form>
       <p class="form-message" id="requestMessage" role="status" hidden></p>
-      <p class="login-note">Request details are saved while the email notification is sent, and retained for up to 30 days.</p>
+      <p class="login-note">Requests are saved for up to 30 days while email delivery is attempted. A saved request does not confirm email delivery.</p>
+      <div id="requestContact" hidden>
+        <p class="login-note">For help with access, contact <strong id="requestContactAddress" style="overflow-wrap:anywhere">ashmoore01@hotmail.com</strong>.</p>
+        <button class="request-retry" id="copyContact" type="button">Copy email address</button>
+      </div>
       <button class="request-retry" id="requestRetry" type="button" hidden>Check again</button>
-      <noscript><p class="login-note">Enable JavaScript to request access. You can still sign in above.</p></noscript>
+      <noscript><p class="login-note">Enable JavaScript to request access, or contact ashmoore01@hotmail.com. You can still sign in above.</p></noscript>
     </section>
   </main>
 </body>

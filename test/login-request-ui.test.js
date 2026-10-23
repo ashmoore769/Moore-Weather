@@ -7,9 +7,9 @@ const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '../public/login.js'), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
-async function screen(provider) {
+async function screen(provider, enabled = true, copy = async () => {}) {
   const nodes = {}, posts = [];
-  for (const id of ['nextPath', 'loginMessage', 'accessRequestForm', 'requestAccessButton', 'requestMessage', 'requestRetry']) {
+  for (const id of ['nextPath', 'loginMessage', 'accessRequestForm', 'requestAccessButton', 'requestMessage', 'requestRetry', 'requestContact', 'copyContact', 'requestContactAddress']) {
     nodes[id] = { value: '', hidden: false, disabled: false, textContent: '', dataset: {}, events: {},
       addEventListener(type, fn) { this.events[type] = fn; }, setAttribute() {}, removeAttribute() {} };
   }
@@ -20,10 +20,10 @@ async function screen(provider) {
   class Data { constructor(form) { this.data = Object.entries(form.fields); } *[Symbol.iterator]() { yield* this.data; } }
   vm.runInNewContext(source, {
     document: { getElementById: id => nodes[id] }, location: { search: '?next=%2Fdaily.html' },
-    URLSearchParams, FormData: Data, AbortSignal,
+    URLSearchParams, FormData: Data, AbortSignal, navigator: { clipboard: { writeText: copy } },
     fetch: async (url, options) => {
       assert.equal(url, '/api/access-request');
-      if (options.method !== 'POST') return { ok: true, json: async () => ({ enabled: true, retryAfter: 0 }) };
+      if (options.method !== 'POST') return { ok: true, json: async () => ({ enabled, retryAfter: 0 }) };
       posts.push(options); return provider(posts.length);
     }
   });
@@ -42,8 +42,8 @@ test('one click saves, double-click is suppressed, and success says received wit
   assert.equal(ui.form.fields.email, 'visitor@example.com');
   release({ ok: true, status: 202, json: async () => ({ ok: true, message: 'Request received. Your details have been saved.' }) });
   await saving;
-  assert.equal(ui.button.textContent, 'Request received'); assert.equal(ui.button.disabled, true);
-  assert.equal(ui.feedback.dataset.kind, 'success'); assert.match(ui.feedback.textContent, /saved/);
+  assert.equal(ui.button.textContent, 'Request saved'); assert.equal(ui.button.disabled, true);
+  assert.equal(ui.feedback.dataset.kind, ''); assert.match(ui.feedback.textContent, /saved/);
   assert.equal(ui.form.fields.email, ''); assert.equal(ui.nodes.nextPath.value, '/daily.html');
 });
 
@@ -67,5 +67,32 @@ test('a lost response preserves the form and permits a safe immediate retry of t
   await ui.submit();
   assert.equal(ui.posts.length, 2);
   assert.equal(ui.posts[0].body.toString(), ui.posts[1].body.toString());
-  assert.equal(ui.button.textContent, 'Request received');
+  assert.equal(ui.button.textContent, 'Request saved');
+});
+
+
+test('known outage disables requests and exposes contact without opening a mail app', async () => {
+  const ui = await screen(async () => { throw Error('Must not submit'); }, false);
+  assert.equal(ui.button.disabled, true); assert.equal(ui.nodes.requestContact.hidden, false);
+  assert.equal(ui.nodes.requestRetry.hidden, false);
+  await ui.submit(); assert.equal(ui.posts.length, 0);
+});
+
+test('an outage discovered during submission keeps fields and stops further submissions', async () => {
+  const ui = await screen(async () => ({ ok: false, status: 503, json: async () => ({ unavailable: true, error: 'Email unavailable.' }) }));
+  await ui.submit();
+  assert.equal(ui.form.fields.email, 'visitor@example.com'); assert.equal(ui.button.disabled, true);
+  assert.equal(ui.nodes.requestContact.hidden, false); assert.equal(ui.nodes.requestRetry.hidden, false);
+  await ui.submit(); assert.equal(ui.posts.length, 1);
+});
+
+test('contact copy handles both clipboard success and unavailable clipboard', async () => {
+  let copied;
+  const ui = await screen(async () => {}, false, async value => { copied = value; });
+  ui.nodes.requestContactAddress.textContent = 'ashmoore01@hotmail.com';
+  await ui.nodes.copyContact.events.click();
+  assert.equal(copied, 'ashmoore01@hotmail.com'); assert.equal(ui.nodes.copyContact.textContent, 'Address copied');
+  const blocked = await screen(async () => {}, false, async () => { throw Error('Denied'); });
+  await blocked.nodes.copyContact.events.click();
+  assert.match(blocked.nodes.copyContact.textContent, /Select and copy/);
 });

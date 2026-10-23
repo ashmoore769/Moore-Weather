@@ -29,7 +29,7 @@ function fixture(t, fetchImpl = async () => accepted()) {
   return { make, calls, logs, dir, filename, rows, now: () => now, advance: ms => { now += ms; } };
 }
 
-test('request is persisted before acknowledgement, independently of provider failure or background retry', async t => {
+test('request is persisted before acknowledgement; a known delivery outage blocks further intake', async t => {
   const f = fixture(t, async () => { throw Error('network error'); }), service = f.make();
   assert.deepEqual(service.status(), { enabled: true, retryAfter: 0 });
   const first = await service.submit(person, 'first-client');
@@ -39,9 +39,9 @@ test('request is persisted before acknowledgement, independently of provider fai
   assert.equal(f.calls.length, 0); assert.equal(f.rows()[0].email, person.email);
   await service.runDue();
   assert.equal(f.rows()[0].state, 'queued');
-  assert.equal((await service.submit({ ...person, email: 'second@example.com' }, 'second-client')).status, 202);
-  assert.deepEqual(service.status(), { enabled: true, retryAfter: 0 });
-  assert.equal(f.rows().length, 2);
+  assert.equal((await service.submit({ ...person, email: 'second@example.com' }, 'second-client')).status, 503);
+  assert.deepEqual(service.status(), { enabled: false, retryAfter: 0 });
+  assert.equal(f.rows().length, 1);
 });
 
 test('duplicate requests across processes and lost responses produce one stored request and notification', async t => {
@@ -127,11 +127,14 @@ test('retry eventually sends once, clears personal details and respects Retry-Af
   let count = 0;
   const f = fixture(t, async () => ++count === 1 ? { ok: false, status: 429, headers: new Headers({ 'Retry-After': '7200' }) } : accepted());
   const a = f.make();
-  await a.submit(person, 'one'); await a.runDue();
+  await a.submit(person, 'one');
   await a.submit({ ...person, email: 'second@example.com' }, 'two');
+  await a.runDue();
+  assert.equal(a.status().enabled, false);
   await a.close(); const b = f.make();
   f.advance(7200000 - 1); await b.runDue(); assert.equal(f.calls.length, 1);
   f.advance(1); await b.runDue(); assert.equal(f.calls.length, 3);
+  assert.equal(b.status().enabled, true);
   assert.ok(f.rows().every(r => r.state === 'sent' && r.name === null && r.email === null));
   f.advance(DEDUP_MS); await b.runDue(); assert.equal(f.calls.length, 3);
 });
@@ -190,4 +193,50 @@ test('HTTP acknowledgement returns while provider is still pending; origins, dup
   assert.equal(second.status, 202); assert.equal(second.headers.get('retry-after'), null);
   release(accepted()); await service.runDue();
   assert.equal(f.calls.length, 2);
+});
+
+
+test('existing HTTP 403 failures disable intake immediately after upgrade and survive restart', async t => {
+  const f = fixture(t, async () => ({ ok: false, status: 403 }));
+  const a = f.make();
+  await a.submit(person); await a.runDue(); await a.close();
+  const legacy = new DatabaseSync(f.filename);
+  legacy.exec('DROP TABLE access_request_delivery_health'); legacy.close();
+  const b = f.make();
+  assert.equal(b.status().enabled, false);
+  const rejected = await b.submit({ ...person, email: 'new@example.com' });
+  assert.equal(rejected.status, 503); assert.equal(rejected.body.unavailable, true);
+  assert.equal(rejected.body.ok, undefined);
+  assert.equal(f.rows().length, 1); assert.equal(f.rows()[0].email, person.email);
+  await b.close();
+  assert.equal(f.make().status().enabled, false);
+});
+
+test('a request rejected after a stale availability check is never stored or reported as saved', async t => {
+  const f = fixture(t, async () => ({ ok: false, status: 403 })), a = f.make(), b = f.make();
+  assert.equal(b.status().enabled, true);
+  await a.submit(person); await a.runDue();
+  const rejected = await b.submit({ ...person, email: 'new@example.com' });
+  assert.equal(rejected.status, 503); assert.equal(rejected.body.unavailable, true);
+  assert.equal(f.rows().length, 1);
+});
+
+test('owner recovery is read-only, includes blocked requests, and does not prune expired rows', async t => {
+  const { readRequests } = require('../tools/access-requests');
+  const f = fixture(t, async () => ({ ok: false, status: 403 })), service = f.make();
+  await service.submit(person); await service.runDue();
+  f.advance(RETENTION_MS + 1);
+  await service.close();
+  const before = fs.readFileSync(f.filename);
+  const env = { ACCESS_REQUEST_DB_PATH: f.filename };
+  const rows = readRequests(env);
+  assert.equal(rows.length, 1); assert.equal(rows[0].name, person.name); assert.equal(rows[0].email, person.email);
+  assert.equal(rows[0].last_failure, 'provider_http_403');
+  assert.match(rows[0].created_at, /Z$/);
+  const summary = JSON.stringify(readRequests(env, true));
+  assert.doesNotMatch(summary, /visitor|Test Visitor/);
+  assert.deepEqual(fs.readFileSync(f.filename), before);
+  const missing = path.join(f.dir, 'missing.sqlite');
+  assert.throws(() => readRequests({ ACCESS_REQUEST_DB_PATH: missing }));
+  assert.equal(fs.existsSync(missing), false);
 });

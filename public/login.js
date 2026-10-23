@@ -14,7 +14,7 @@
   let enabled = false, busy = false, sent = false;
   function paint() {
     button.disabled = !enabled || busy || sent;
-    button.textContent = sent ? 'Request received' : busy ? 'Saving request…' : 'Request access';
+    button.textContent = sent ? 'Request saved' : busy ? 'Saving request…' : 'Request access';
   }
   async function checkAvailability() {
     $('requestRetry').hidden = true;
@@ -23,10 +23,12 @@
       if (!response.ok) throw Error('Unavailable');
       const data = await response.json();
       enabled = data.enabled === true;
-      message(feedback, !enabled ? 'Access requests are temporarily unavailable. Please try again later.' : '');
+      message(feedback, !enabled ? 'Online access requests are unavailable. You can contact the address below to request access.' : '');
+      $('requestContact').hidden = enabled;
       $('requestRetry').hidden = enabled;
     } catch {
       enabled = false;
+      $('requestContact').hidden = false;
       message(feedback, 'Unable to check access requests. Please check your connection and try again.', 'error');
       $('requestRetry').hidden = false;
     }
@@ -41,12 +43,24 @@
         body:new URLSearchParams(new FormData(form)), signal:AbortSignal.timeout(15000) });
       const data = await response.json();
       if (response.ok && data.ok === true) {
-        sent = true; form.reset(); message(feedback,data.message,'success');
-      } else message(feedback,data.error || 'Your request could not be sent. Please try again.',response.status === 429 ? '' : 'error');
+        sent = true; form.reset(); message(feedback,data.message);
+        $('requestContact').hidden = false;
+      } else {
+        if (data.unavailable === true) { enabled = false; $('requestRetry').hidden = false; }
+        $('requestContact').hidden = false;
+        message(feedback,data.error || 'Your request could not be sent. Please try again.',response.status === 429 ? '' : 'error');
+      }
     } catch {
       message(feedback,'We could not confirm that your request was saved. Your details are still here. Please try again; the same request will not be added twice.','error');
+      $('requestContact').hidden = false;
     } finally { busy = false; form.removeAttribute('aria-busy'); paint(); }
   });
   $('requestRetry').addEventListener('click',checkAvailability);
+  $('copyContact').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($('requestContactAddress').textContent);
+      $('copyContact').textContent = 'Address copied';
+    } catch { $('copyContact').textContent = 'Select and copy the address above'; }
+  });
   checkAvailability();
 })();
