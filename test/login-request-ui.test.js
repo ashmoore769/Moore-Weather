@@ -101,7 +101,7 @@ test('contact copy handles both clipboard success and unavailable clipboard', as
 test('only explicit provider acceptance shows confirmation and hides contact fallback', async () => {
   const ui = await screen(async () => ({ ok: true, status: 200, json: async () => ({ ok: true, delivery: 'accepted', message: 'Request submitted. We will reply by email.' }) }));
   await ui.submit();
-  assert.equal(ui.button.textContent, 'Request submitted'); assert.equal(ui.button.disabled, true);
+  assert.equal(ui.button.textContent, 'Request sent'); assert.equal(ui.button.disabled, true);
   assert.equal(ui.feedback.dataset.kind, 'success'); assert.equal(ui.nodes.requestContact.hidden, true);
   assert.equal(ui.form.fields.email, '');
 });

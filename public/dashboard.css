@@ -28,7 +28,7 @@ body.layout-landscape .dashboard-status { flex-direction:row; align-items:center
 .dashboard-status .status-badge { min-width:0; min-height:22px; padding:3px 7px; font-size:9px; }
 .dashboard-status #freshnessText { font-size:10px; }
 .dashboard-tools { gap:4px; }
-.dashboard-tool,.dashboard-tools .desktop-layout-switcher button { border-color:transparent; background:transparent; }
+.dashboard-tool,.dashboard-tools .desktop-layout-switcher button { border-color:transparent; background:transparent; text-decoration:none; }
 .dashboard-navigation,
 body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0; margin:0; border-bottom:0; gap:10px; }
 .dashboard-tab,body.layout-landscape .dashboard-tab { min-height:44px; font-size:12px; }
@@ -90,6 +90,11 @@ html[data-theme="dark"] .soil-layers { filter:none; }
 .soil-profile-plot:has(.history-card) .soil-probe-image { height:386px; }
 .soil-layers { grid-template-rows:2fr 1fr 1fr 1fr; }
 .soil-profile-caption { margin:5px 0 12px; line-height:1.5; font-weight:400; }
+.layout-soil .soil-profile-header { display:flex; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:8px 12px; text-align:left; }
+.layout-soil .section-title { flex:0 0 auto; text-align:left; }
+.layout-soil .soil-profile-caption { text-align:left; align-self:stretch; }
+.soil-readings .soil-reading-value { align-items:flex-start; text-align:left; }
+.soil-readings .soil-reading-value-number { max-width:100%; }
 .daily-section { margin-bottom:24px; }
 .summary-hero { padding-bottom:18px; }
 .summary-date { margin-top:6px; font-size:30px; }
@@ -143,6 +148,10 @@ html[data-theme="dark"] .soil-layers { filter:none; }
   .reading-card-value { font-size:26px; }
   .section-card { padding:13px; }
   .soil-profile-caption { font-size:10px; }
+}
+@media(max-width:420px) {
+  .dashboard-identity > div { min-width:0; }
+  .dashboard-identity h1,body.layout-landscape .dashboard-identity h1 { white-space:normal; }
 }
 @media(max-width:359px) {
   .dashboard-identity { gap:7px; }

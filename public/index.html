@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <meta content="noindex, nofollow, noarchive" name="robots"/>
-<meta content="#eef2f6" name="theme-color"/>
+<meta content="#0b1119" name="theme-color"/>
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="default" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="Moore Weather" name="apple-mobile-web-app-title"/>
@@ -13,7 +13,7 @@
 <link href="/moore-weather-touch-v2.png" rel="apple-touch-icon" sizes="180x180"/>
 <link href="/moore-weather-favicon-v3.svg" rel="icon" sizes="any" type="image/svg+xml"/>
 <title>Moore Weather · West Warwick</title>
-<script src="/theme.js?v=3"></script>
+<script src="/theme.js?v=4"></script>
 <style>
 :root {
   color-scheme: light;
@@ -1499,7 +1499,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=3"></script>
-<link rel="stylesheet" href="/dashboard.css?v=2">
+<link rel="stylesheet" href="/dashboard.css?v=3">
 </head>
 <body>
 <div class="main-container">
@@ -1512,6 +1512,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     </div>
     <div class="dashboard-status"><span class="status-badge fetching" id="statusBadge" role="status">● CONNECTING</span><span id="freshnessText">Waiting for station</span></div>
     <div class="dashboard-tools" aria-label="Dashboard controls">
+      <a class="dashboard-tool" href="/help.html" aria-label="Help: add Moore Weather to your home screen" title="Help and installation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg><span class="dashboard-tool-label">Help</span></a>
       <button type="button" class="dashboard-tool" id="stationAlertsBtn" aria-label="Station alerts" title="Station alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="dashboard-tool-label">Alerts</span></button>
       <button type="button" class="dashboard-tool" id="themeToggleBtn" aria-label="Change theme" title="Theme"><span class="theme-icon" id="themeToggleIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span></button>
       <div class="desktop-layout-switcher" aria-label="Desktop layout">
@@ -1686,6 +1687,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
   <p class="water-import-status" id="waterImportStatus" role="status">Connecting to saved water readings…</p>
 </section>
 <footer class="app-footer">
+<a class="footer-signout" href="/help.html">Add to Home Screen</a>
 <form action="/logout" method="post">
 <button class="footer-signout" type="submit">Sign out</button>
 </form>

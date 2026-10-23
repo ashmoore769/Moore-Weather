@@ -40,3 +40,7 @@ button:disabled { cursor:default; opacity:.6; }
 .request-trap { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); }
 .request-retry { background:none; color:var(--accent); border:0; min-height:44px; padding:8px 0; font-size:12px; }
 @media(max-width:380px) { .login-shell { padding:22px 18px; } .login-brand { margin-bottom:23px; } }
+
+.login-help { border-top:1px solid var(--border); margin-top:22px; padding-top:16px; }
+.login-help a { display:inline-flex; align-items:center; min-height:44px; color:var(--accent); font-size:12px; text-underline-offset:3px; }
+.login-help a:focus-visible { outline:3px solid var(--accent); outline-offset:3px; border-radius:4px; }

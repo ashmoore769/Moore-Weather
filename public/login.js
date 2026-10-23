@@ -14,7 +14,7 @@
   let enabled = false, busy = false, sent = false, delivery = 'pending';
   function paint() {
     button.disabled = !enabled || busy || sent;
-    button.textContent = sent ? (delivery === 'accepted' ? 'Request submitted' : 'Request saved') : busy ? 'Sending request…' : 'Request access';
+    button.textContent = sent ? (delivery === 'accepted' ? 'Request sent' : 'Request saved') : busy ? 'Sending request…' : 'Request access';
   }
   async function checkAvailability() {
     $('requestRetry').hidden = true;

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="theme-color" content="#eef2f6">
+  <meta name="theme-color" content="#0b1119">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Moore Weather">
@@ -12,9 +12,9 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/moore-weather-touch-v2.png">
   <link rel="icon" type="image/svg+xml" sizes="any" href="/moore-weather-favicon-v3.svg">
   <title>Moore Weather · Sign in</title>
-  <script src="/theme.js?v=3"></script>
-  <link rel="stylesheet" href="/login.css?v=1">
-  <script defer src="/login.js?v=5"></script>
+  <script src="/theme.js?v=4"></script>
+  <link rel="stylesheet" href="/login.css?v=2">
+  <script defer src="/login.js?v=6"></script>
 </head>
 <body>
   <main class="login-shell" aria-labelledby="loginTitle">
@@ -44,7 +44,7 @@
         <button class="request-submit" id="requestAccessButton" type="submit" disabled>Request access</button>
       </form>
       <p class="form-message" id="requestMessage" role="status" hidden></p>
-      <p class="login-note">Your details are used only to arrange access. Pending requests are kept for up to 30 days.</p>
+      <p class="login-note">We only use your details to help you get access. Unsent requests are kept for up to 30 days.</p>
       <div id="requestContact" hidden>
         <p class="login-note">For help with access, contact <strong id="requestContactAddress" style="overflow-wrap:anywhere">ashmoore01@hotmail.com</strong>.</p>
         <button class="request-retry" id="copyContact" type="button">Copy email address</button>
@@ -52,6 +52,7 @@
       <button class="request-retry" id="requestRetry" type="button" hidden>Check again</button>
       <noscript><p class="login-note">Enable JavaScript to request access, or contact ashmoore01@hotmail.com. You can still sign in above.</p></noscript>
     </section>
+    <footer class="login-help"><a href="/help.html">Add Moore Weather to your home screen</a></footer>
   </main>
 </body>
 </html>
