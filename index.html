@@ -1,0 +1,2784 @@
+<!DOCTYPE html>
+
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="noindex, nofollow, noarchive" name="robots"/>
+<meta content="#0b1119" name="theme-color"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="default" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Moore Weather" name="apple-mobile-web-app-title"/>
+<link href="/site.webmanifest" rel="manifest"/>
+<link href="/moore-weather-touch-v2.png" rel="apple-touch-icon" sizes="180x180"/>
+<link href="/moore-weather-favicon-v3.svg" rel="icon" sizes="any" type="image/svg+xml"/>
+<title>Moore Weather · West Warwick</title>
+<script src="/theme.js?v=4"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #eef2f6;
+  --surface: #ffffff;
+  --surface-soft: #f6f8fb;
+  --surface-raised: #ffffff;
+  --text: #172033;
+  --muted: #667085;
+  --border: #dce3ec;
+  --border-strong: #c8d1dd;
+  --brand: #123742;
+  --brand-2: #176b69;
+  --accent: #178a84;
+  --green: #147a42;
+  --green-soft: #eaf7ef;
+  --amber: #a86505;
+  --amber-soft: #fff4dd;
+  --red: #b42318;
+  --red-soft: #fdecea;
+  --rain: #1677ff;
+  --moisture-low: #d97706;
+  --pressure-high: #2678b2;
+  --battery-good: #087a32;
+  --battery-bad: #c9362b;
+  --gust-warn: #d97706;
+  --temp-deep-freeze: #172554;
+  --temp-severe-cold: #243b76;
+  --temp-extreme-cold: #244f91;
+  --temp-very-cold: #2d6ca2;
+  --temp-cold: #3e7da8;
+  --temp-cool: #308b57;
+  --temp-mild: #237447;
+  --temp-warm: #9a7608;
+  --temp-warmer: #c76808;
+  --temp-hot: #d94b1c;
+  --temp-very-hot: #b82e25;
+  --temp-extreme-hot: #8f211b;
+  --humidity-very-dry: #b42318;
+  --humidity-dry: #d9481d;
+  --humidity-low: #b65d22;
+  --humidity-comfort-low: #2c7a45;
+  --humidity-comfort: #18733d;
+  --humidity-moist: #137c82;
+  --humidity-humid: #2d62aa;
+  --humidity-very-humid: #6843a8;
+  --humidity-saturated: #8b3f98;
+  --solar-night: #334e7d;
+  --solar-low: #285fae;
+  --solar-mid: #386fb8;
+  --solar-moderate: #9b7510;
+  --solar-high: #c46c12;
+  --solar-strong: #b94724;
+  --solar-extreme: #9f2b24;
+  --shadow: 0 14px 34px rgba(17, 24, 39, 0.08);
+  --shadow-soft: 0 4px 14px rgba(17, 24, 39, 0.06);
+  --radius-xl: 18px;
+  --radius-lg: 14px;
+  --radius-md: 10px;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0b1119;
+  --surface: #121b27;
+  --surface-soft: #182433;
+  --surface-raised: #1d2a3a;
+  --text: #f1f5f9;
+  --muted: #aeb9c8;
+  --border: #314154;
+  --border-strong: #42536a;
+  --brand: #102f39;
+  --brand-2: #62c9c0;
+  --accent: #69d2c8;
+  --green: #70dda0;
+  --green-soft: rgba(64, 190, 118, 0.14);
+  --amber: #ffd166;
+  --amber-soft: rgba(255, 209, 102, 0.12);
+  --red: #ff867c;
+  --red-soft: rgba(255, 134, 124, 0.12);
+  --rain: #6ab8ff;
+  --moisture-low: #ffb454;
+  --pressure-high: #86c9ff;
+  --battery-good: #72dc97;
+  --battery-bad: #ff8278;
+  --gust-warn: #ffb454;
+  --temp-deep-freeze: #d5e5ff;
+  --temp-severe-cold: #bad5ff;
+  --temp-extreme-cold: #a6ceff;
+  --temp-very-cold: #8bc3ff;
+  --temp-cold: #76b7e8;
+  --temp-cool: #82dda6;
+  --temp-mild: #69d094;
+  --temp-warm: #ffd56f;
+  --temp-warmer: #ffb85c;
+  --temp-hot: #ff936d;
+  --temp-very-hot: #ff7f75;
+  --temp-extreme-hot: #ff9a92;
+  --humidity-very-dry: #ff8b80;
+  --humidity-dry: #ff9a73;
+  --humidity-low: #f4aa69;
+  --humidity-comfort-low: #83d99f;
+  --humidity-comfort: #70d596;
+  --humidity-moist: #73d7dc;
+  --humidity-humid: #84b7ff;
+  --humidity-very-humid: #b7a0ff;
+  --humidity-saturated: #e19be9;
+  --solar-night: #9ab8e7;
+  --solar-low: #82b0ff;
+  --solar-mid: #9ac4ff;
+  --solar-moderate: #ffda72;
+  --solar-high: #ffba63;
+  --solar-strong: #ff9578;
+  --solar-extreme: #ff8178;
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 5px 16px rgba(0, 0, 0, 0.24);
+}
+
+* { box-sizing: border-box; }
+
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color .18s ease, color .18s ease;
+}
+
+button, input { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+
+.main-container {
+  width: min(100% - 24px, 500px);
+  margin: 12px auto 24px;
+}
+
+.freeze-pane {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.header-box {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(72,160,155,.16), transparent 42%),
+    linear-gradient(115deg, #123742 0%, #102f39 58%, #172d3a 100%);
+  color: white;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-soft);
+}
+
+.app-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+}
+
+.brand-lockup {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.14);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,.2);
+  overflow: hidden;
+}
+.brand-mark img { width: 100%; height: 100%; object-fit: cover; }
+
+.brand-copy { min-width: 0; }
+.brand-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: .1px;
+  line-height: 1.05;
+}
+.brand-subtitle {
+  margin-top: 4px;
+  color: rgba(255,255,255,.72);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .25px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.header-icon-button,
+.desktop-layout-switcher button {
+  height: 34px;
+  min-width: 34px;
+  padding: 0 9px;
+  border: 1px solid rgba(255,255,255,.3);
+  border-radius: 10px;
+  background: rgba(255,255,255,.1);
+  color: white;
+  box-shadow: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color .15s ease, border-color .15s ease, transform .1s ease;
+}
+.header-icon-button:hover,
+.desktop-layout-switcher button:hover {
+  background: rgba(255,255,255,.2);
+  border-color: rgba(255,255,255,.48);
+}
+.header-icon-button:active,
+.desktop-layout-switcher button:active { transform: translateY(1px); }
+
+.theme-label { font-size: 11px; font-weight: 700; }
+.theme-icon {
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+.theme-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.desktop-layout-switcher {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+.desktop-layout-switcher button { padding: 0; font-size: 17px; }
+.desktop-layout-switcher button.active {
+  background: rgba(255,255,255,.94);
+  color: #123742;
+  border-color: rgba(255,255,255,.94);
+}
+
+#weatherData {
+  background: var(--surface);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  border: 1px solid var(--border);
+  border-top: 0;
+  box-shadow: var(--shadow);
+  padding: 10px;
+  margin-bottom: 16px;
+}
+
+.top-toolbar {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 1px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.view-tabs {
+  display: inline-flex;
+  flex: 0 1 auto;
+  width: max-content;
+  max-width: 100%;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+.tab-button {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background-color .15s ease, color .15s ease;
+}
+.tab-button:hover { color: var(--text); background: var(--surface); }
+.tab-button.active {
+  background: var(--surface-raised);
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(17,24,39,.08);
+}
+.tab-button:disabled { opacity: .58; cursor: wait; }
+
+.live-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 196px;
+  width: 196px;
+  min-width: 196px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 82px;
+  width: 82px;
+  min-height: 26px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .45px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.status-badge.connected { color: var(--green); background: var(--green-soft); border-color: color-mix(in srgb, var(--green) 22%, transparent); }
+.status-badge.fetching { color: var(--amber); background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 22%, transparent); }
+.status-badge.error { color: var(--red); background: var(--red-soft); border-color: color-mix(in srgb, var(--red) 22%, transparent); }
+#freshnessText {
+  display: inline-block;
+  flex: 0 0 106px;
+  width: 106px;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.content-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "station"
+    "primary"
+    "skycam"
+    "soil"
+    "power";
+  gap: 9px;
+  padding-top: 10px;
+}
+.layout-station { grid-area: station; margin-bottom: 0; }
+.layout-primary { grid-area: primary; margin-bottom: 0; }
+.layout-skycam { grid-area: skycam; min-width: 0; }
+.layout-soil { grid-area: soil; margin-bottom: 0; }
+.layout-power { grid-area: power; margin-top: 0; margin-bottom: 0; }
+.layout-stack { display: contents; }
+
+.station-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 11px;
+  margin-bottom: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+}
+.title-date-container { min-width: 0; }
+.address-title {
+  margin: 0 0 5px;
+  color: var(--brand-2);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.date-time { color: var(--muted); font-size: 13px; }
+.date-time p { margin: 1px 0; white-space: nowrap; }
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.logo-container img {
+  display: block;
+  height: 64px;
+  width: auto;
+  max-width: 144px;
+  object-fit: contain;
+  border-radius: 7px;
+}
+
+.panel-card {
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.primary-card {
+  padding: 12px;
+  margin-bottom: 9px;
+}
+.temperature-heroes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.temp-hero {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  padding: 11px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.temp-hero:first-child {
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface-soft));
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
+}
+.temp-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 12px 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: color-mix(in srgb, var(--hero-accent, var(--accent)) 52%, transparent);
+}
+.eyebrow {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .85px;
+  text-transform: uppercase;
+}
+.primary-temp {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 34px;
+  font-weight: 780;
+  line-height: .98;
+  letter-spacing: -1.1px;
+}
+.primary-desc {
+  min-height: 17px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+.primary-linked-reading {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+.primary-linked-reading strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.primary-meta {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.quick-stat {
+  min-width: 0;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--stat-accent) 7%, transparent), transparent 58%),
+    var(--surface-soft);
+  transition: background-color .18s ease, border-color .18s ease;
+}
+.quick-stat:hover {
+  border-color: color-mix(in srgb, var(--stat-accent) 30%, var(--border));
+}
+.quick-stat-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--stat-accent) 22%, var(--border));
+  border-radius: 9px;
+  color: var(--stat-accent);
+  background: color-mix(in srgb, var(--stat-accent) 9%, var(--surface-raised));
+}
+.quick-stat-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.quick-stat-copy { min-width: 0; }
+.quick-stat .label {
+  display: block;
+  color: var(--muted);
+  font-size: 9.25px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: .52px;
+  line-height: 1.1;
+}
+.quick-stat .value {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 790;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.quick-stat-subline {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quick-stat-subline strong {
+  color: var(--text);
+  font-weight: 780;
+  font-variant-numeric: tabular-nums;
+}
+
+.compat-data { display: none !important; }
+.unit-suffix { display: none; }
+body.weather-loaded .unit-suffix { display: inline; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025); } }
+
+.section-card { padding: 11px 12px; margin-bottom: 9px; }
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.section-title {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.metric-list { display: grid; gap: 0; }
+.metric-row {
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border-top: 1px solid var(--border);
+}
+.metric-row:first-child { border-top: 0; }
+.metric-label {
+  color: var(--muted);
+  font-size: 13.25px;
+  font-weight: 660;
+}
+.metric-value {
+  color: var(--text);
+  font-size: 14.25px;
+  font-weight: 760;
+  text-align: right;
+  white-space: nowrap;
+}
+.metric-value .subtle { color: var(--muted); font-weight: 650; }
+
+.two-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 9px;
+}
+.two-card-grid .section-card { margin-bottom: 0; }
+
+.conditions-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 7px;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--brand-2) 22%, var(--border));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--brand-2) 7%, var(--surface-soft));
+}
+.conditions-feature-label,
+.condition-context {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 820;
+  letter-spacing: .55px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.conditions-feature-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10.25px;
+  font-weight: 620;
+}
+.conditions-feature-value {
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 820;
+  line-height: 1;
+  letter-spacing: -.45px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.conditions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.condition-tile {
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+.condition-label {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10.25px;
+  font-weight: 660;
+  line-height: 1.1;
+}
+.condition-value {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 780;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.condition-detail {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 620;
+  line-height: 1.1;
+}
+.condition-detail strong { color: var(--text); font-weight: 780; }
+
+.soil-profile-header { align-items: center; margin-bottom: 0; }
+.soil-profile-badge {
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border: 1px solid color-mix(in srgb, #078363 32%, var(--border));
+  border-radius: 999px;
+  color: color-mix(in srgb, #078363 82%, var(--text));
+  background: color-mix(in srgb, #078363 8%, var(--surface-soft));
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.soil-profile-caption {
+  margin: 3px 0 9px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.soil-profile-plot {
+  position: relative;
+  height: 340px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: #795537;
+  box-shadow: inset 0 1px 8px rgba(40, 25, 12, .18);
+}
+/* Dim decorative soil/grass only; readings and sparklines keep their contrast. */
+html[data-theme="dark"] .soil-layers { filter: brightness(.82) saturate(.80); }
+html[data-theme="dark"] .soil-surface { filter: brightness(.80) saturate(.75); }
+.soil-surface {
+  position: absolute;
+  z-index: 5;
+  inset: 0 0 auto;
+  height: 47px;
+  border-bottom: 2px solid rgba(54, 78, 35, .72);
+  background:
+    radial-gradient(ellipse at 7% 111%, #496b34 0 11px, transparent 12px),
+    radial-gradient(ellipse at 21% 106%, #5c8241 0 14px, transparent 15px),
+    radial-gradient(ellipse at 39% 110%, #42642f 0 12px, transparent 13px),
+    radial-gradient(ellipse at 58% 106%, #638a46 0 15px, transparent 16px),
+    radial-gradient(ellipse at 78% 111%, #486c34 0 13px, transparent 14px),
+    radial-gradient(ellipse at 94% 107%, #5b8140 0 12px, transparent 13px),
+    linear-gradient(180deg, #9acd6d 0 42%, #75a950 43% 58%, #4f7138 59% 100%);
+}
+.soil-surface::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 1px 0 auto;
+  height: 31px;
+  opacity: .68;
+  background-image:
+    repeating-linear-gradient(102deg, transparent 0 7px, rgba(37,83,32,.86) 7.5px 8.5px, transparent 9px 15px),
+    repeating-linear-gradient(78deg, transparent 0 10px, rgba(95,139,67,.92) 10.5px 11.5px, transparent 12px 19px);
+  background-position: 0 1px, 5px 5px;
+  background-size: 23px 22px, 29px 19px;
+}
+.soil-surface::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: auto 0 0;
+  height: 12px;
+  opacity: .58;
+  background:
+    radial-gradient(ellipse at 14% 100%, rgba(44,67,31,.75) 0 8px, transparent 9px),
+    radial-gradient(ellipse at 45% 105%, rgba(54,78,38,.66) 0 10px, transparent 11px),
+    radial-gradient(ellipse at 73% 102%, rgba(42,65,30,.72) 0 9px, transparent 10px),
+    radial-gradient(ellipse at 92% 108%, rgba(57,80,40,.64) 0 10px, transparent 11px);
+}
+.soil-surface-reading {
+  position: absolute;
+  z-index: 8;
+  top: 4px;
+  right: 7px;
+  left: 64px;
+  display: grid;
+  grid-template-columns: 44px repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  padding: 0 5px;
+  pointer-events: none;
+}
+.soil-surface-depth {
+  grid-column: 1;
+  min-width: 0;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 8px;
+  color: rgba(255,255,255,.9);
+  background: rgba(22,27,31,.68);
+  font-size: 9.5px;
+  font-weight: 850;
+  line-height: 1.05;
+  text-align: center;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.soil-surface-depth span {
+  display: block;
+  font-size: 8px;
+  opacity: .72;
+}
+.soil-surface-temperature {
+  grid-column: 2;
+  min-width: 0;
+  height: 39px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 7px;
+  border: 1px solid rgba(255,255,255,.23);
+  border-left: 3px solid var(--ground-temp-color, #f4b85b);
+  border-radius: 8px;
+  color: rgba(255,255,255,.9);
+  background: rgba(22,27,31,.72);
+  box-shadow: 0 2px 7px rgba(19,13,8,.16);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.soil-surface-temperature-label {
+  color: rgba(255,255,255,.68);
+  font-size: 7.25px;
+  font-weight: 850;
+  letter-spacing: .4px;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.soil-surface-temperature strong {
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.soil-layers {
+  position: absolute;
+  z-index: 1;
+  inset: 47px 0 0;
+  display: grid;
+  grid-template-rows: 3fr 2fr 2fr 2fr;
+}
+.soil-layer {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(255,255,255,.10);
+  background-color: var(--soil-color, #755338);
+  transition: background-color .45s ease;
+}
+.soil-layer:first-child { border-top: 0; }
+.soil-layer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+.soil-layer:nth-child(1)::before {
+  opacity: .22;
+  background-image:
+    linear-gradient(112deg, transparent 0 48%, rgba(230,219,184,.50) 49% 50%, transparent 51%),
+    linear-gradient(68deg, transparent 0 58%, rgba(230,219,184,.35) 59% 60%, transparent 61%),
+    radial-gradient(ellipse, rgba(36,24,15,.55) 0 1.5px, transparent 2.5px);
+  background-size: 92px 76px, 118px 94px, 27px 23px;
+  background-position: 13px 6px, 46px 11px, 0 0;
+}
+.soil-layer:nth-child(2)::before {
+  opacity: .24;
+  background-image:
+    radial-gradient(ellipse, rgba(241,224,184,.48) 0 1.5px, transparent 2.5px),
+    radial-gradient(ellipse, rgba(34,22,14,.52) 0 2px, transparent 3px);
+  background-size: 31px 27px, 47px 39px;
+  background-position: 4px 7px, 19px 3px;
+}
+.soil-layer:nth-child(3)::before {
+  opacity: .27;
+  background-image:
+    radial-gradient(ellipse, rgba(244,225,184,.50) 0 2px, transparent 3px),
+    radial-gradient(ellipse, rgba(39,25,15,.56) 0 2.5px, transparent 3.5px);
+  background-size: 37px 31px, 54px 43px;
+  background-position: 9px 5px, 26px 14px;
+}
+.soil-layer:nth-child(4)::before {
+  opacity: .30;
+  background-image:
+    radial-gradient(ellipse, rgba(246,229,191,.55) 0 2.5px, transparent 3.5px),
+    radial-gradient(ellipse, rgba(45,29,17,.58) 0 3px, transparent 4px),
+    radial-gradient(circle, rgba(255,246,218,.36) 0 1px, transparent 2px);
+  background-size: 45px 37px, 68px 52px, 23px 19px;
+  background-position: 7px 3px, 31px 17px, 13px 8px;
+}
+.soil-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: .26;
+  background-image:
+    radial-gradient(circle at 12% 26%, rgba(255,255,255,.24) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 72% 66%, rgba(24,16,10,.44) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 42% 82%, rgba(255,255,255,.18) 0 1px, transparent 1.5px);
+  background-size: 31px 27px, 37px 33px, 43px 39px;
+}
+.soil-layer:nth-child(1)::after { opacity: .20; }
+.soil-layer:nth-child(2)::after { opacity: .23; }
+.soil-layer:nth-child(3)::after { opacity: .26; }
+.soil-layer:nth-child(4)::after { opacity: .30; }
+.soil-probe-window {
+  position: absolute;
+  z-index: 4;
+  top: 18px;
+  bottom: 7px;
+  left: 16px;
+  width: 48px;
+  overflow: hidden;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 3px rgba(0,0,0,.34));
+}
+.soil-probe-image {
+  position: absolute;
+  top: 0;
+  left: -27px;
+  width: auto;
+  height: 316px;
+  max-width: none;
+  user-select: none;
+}
+.soil-readings {
+  position: absolute;
+  z-index: 6;
+  inset: 47px 7px 0 64px;
+}
+.soil-reading {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--reading-y);
+  min-height: 47px;
+  display: grid;
+  grid-template-columns: 44px repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 5px;
+  padding: 5px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(255,255,255,.23);
+  border-radius: 10px;
+  background: rgba(22, 27, 31, .67);
+  box-shadow: 0 3px 10px rgba(19,13,8,.18);
+  color: white;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.soil-reading::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 24px;
+  border-top: 1px solid rgba(255,255,255,.62);
+}
+.soil-reading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 24px);
+  width: 7px;
+  height: 7px;
+  border: 2px solid rgba(255,255,255,.85);
+  border-radius: 50%;
+  background: #0b7d62;
+  transform: translate(50%, -50%);
+  box-shadow: 0 0 0 3px rgba(11,125,98,.25);
+}
+.soil-reading-depth {
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: rgba(255,255,255,.10);
+  font-size: 10.5px;
+  font-weight: 850;
+  line-height: 1.05;
+  text-align: center;
+}
+.soil-reading-depth span { display: block; font-size: 8px; opacity: .72; text-transform: uppercase; }
+.soil-reading-value {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1px 4px 1px 7px;
+  border-left: 3px solid var(--reading-accent);
+}
+.soil-reading-value.temp { --reading-accent: var(--soil-temp-color, #f4b85b); }
+.soil-reading-value.moisture { --reading-accent: var(--soil-moisture-color, #61b9ee); }
+.soil-reading-value-label {
+  color: rgba(255,255,255,.66);
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: .45px;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.soil-reading-value-number {
+  margin-top: 3px;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 820;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.skycam-container {
+  position: relative;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #080b10;
+  box-shadow: var(--shadow-soft);
+  line-height: 0;
+  isolation: isolate;
+}
+.skycam-image-stage {
+  position: relative;
+  width: 100%;
+  min-height: 220px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #05070a;
+  cursor: zoom-in;
+}
+.skycam-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .34s cubic-bezier(.22, .61, .36, 1);
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  will-change: opacity;
+}
+.skycam-frame.is-active { z-index: 1; opacity: 1; }
+.skycam-frame.is-entering { z-index: 2; }
+
+.skycam-container:fullscreen,
+.skycam-container.skycam-focus-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+  box-shadow: none;
+  display: grid;
+  place-items: center;
+}
+.skycam-container:fullscreen .skycam-image-stage,
+.skycam-container.skycam-focus-mode .skycam-image-stage {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  aspect-ratio: auto;
+  cursor: default;
+}
+.skycam-container:fullscreen .skycam-frame,
+.skycam-container.skycam-focus-mode .skycam-frame { object-fit: contain; }
+body.skycam-focus-open { overflow: hidden; overscroll-behavior: none; }
+
+.skycam-container:fullscreen .skycam-badge,
+.skycam-container.skycam-focus-mode .skycam-badge {
+  left: max(12px, env(safe-area-inset-left));
+  top: max(12px, env(safe-area-inset-top));
+}
+.skycam-container:fullscreen .skycam-interval-badge,
+.skycam-container.skycam-focus-mode .skycam-interval-badge {
+  right: max(12px, env(safe-area-inset-right));
+  top: max(12px, env(safe-area-inset-top));
+}
+.skycam-container:fullscreen .skycam-nav-prev,
+.skycam-container.skycam-focus-mode .skycam-nav-prev { left: max(12px, env(safe-area-inset-left)); }
+.skycam-container:fullscreen .skycam-nav-next,
+.skycam-container.skycam-focus-mode .skycam-nav-next { right: max(12px, env(safe-area-inset-right)); }
+.skycam-container:fullscreen .skycam-caption,
+.skycam-container.skycam-focus-mode .skycam-caption {
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+}
+.skycam-rotate-hint {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: max(52px, calc(env(safe-area-inset-top) + 44px));
+  z-index: 6;
+  transform: translateX(-50%);
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: rgba(255,255,255,.92);
+  background: rgba(8,12,18,.62);
+  border: 1px solid rgba(255,255,255,.18);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .2px;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+@media only screen and (max-width: 900px) and (orientation: portrait) {
+  .skycam-container.skycam-focus-mode .skycam-rotate-hint { display: inline-flex; }
+}
+.maintenance-card { margin-bottom: 0; }
+.layout-station,
+.layout-primary,
+.layout-conditions,
+.layout-soil,
+.layout-power { margin-bottom: 0; }
+
+.skycam-caption {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+  color: white;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.1;
+}
+.skycam-caption > span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(8, 12, 18, .64);
+  border: 1px solid rgba(255,255,255,.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.skycam-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  pointer-events: auto;
+  line-height: 1;
+}
+.skycam-action {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(8,12,18,.64);
+  color: white;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: .35px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.skycam-action:hover:not(:disabled) { background: rgba(8,12,18,.82); }
+.skycam-action:disabled { opacity: .44; cursor: default; }
+.skycam-action:focus-visible { outline: 2px solid #8ec7ff; outline-offset: 2px; }
+@media only screen and (max-width: 600px) {
+  .skycam-caption { gap: 5px; font-size: 9.5px; }
+  .skycam-caption > span { min-height: 27px; padding: 6px 7px; }
+  .skycam-action { min-width: 28px; min-height: 27px; padding: 6px 7px; }
+  #skycamTimelapse .skycam-action-text,
+  #skycamDownload .skycam-action-text,
+  #skycamFocus .skycam-action-text { display: none; }
+}
+
+.skycam-badge {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 4;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: white;
+  background: rgba(8,12,18,.64);
+  border: 1px solid rgba(255,255,255,.18);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .55px;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.skycam-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #46d47e; box-shadow: 0 0 0 3px rgba(70,212,126,.14); }
+
+.skycam-interval-badge {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 4;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: rgba(255,255,255,.9);
+  background: rgba(8,12,18,.54);
+  border: 1px solid rgba(255,255,255,.16);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.skycam-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  width: 42px;
+  height: 58px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 12px;
+  background: rgba(8, 12, 18, .54);
+  color: white;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
+  transform: translateY(-50%);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  transition: background-color .15s ease, opacity .15s ease, transform .1s ease;
+}
+.skycam-nav:hover { background: rgba(8,12,18,.76); transform: translateY(-50%) scale(1.03); }
+.skycam-nav:disabled { opacity: .22; cursor: default; transform: translateY(-50%); }
+.skycam-nav-prev { left: 10px; }
+.skycam-nav-next { right: 10px; }
+
+.app-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2px 0 18px;
+}
+.app-footer form { margin: 0; }
+.footer-signout {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.footer-signout:hover { color: var(--text); text-decoration: underline; }
+.footer-signout:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 7px; }
+html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.90); }
+
+.spinner-container {
+  display: none;
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 150;
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+.spinner { width: 100%; height: 100%; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0,0,0,0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+
+
+@media only screen and (min-width: 900px) {
+  .desktop-layout-switcher { display: inline-flex; }
+
+  body.layout-landscape .main-container {
+    width: min(100% - 32px, 1280px);
+    margin-top: 14px;
+  }
+  body.layout-landscape .app-header { padding-left: 14px; padding-right: 10px; }
+  body.layout-landscape #weatherData { padding: 11px; }
+  body.layout-landscape .content-layout {
+    display: grid;
+    grid-template-columns: minmax(420px, 0.82fr) minmax(0, 1.38fr);
+    grid-template-areas: "left right";
+    gap: 11px;
+    align-items: start;
+  }
+  body.layout-landscape .landscape-left,
+  body.layout-landscape .landscape-right {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    min-width: 0;
+    align-self: start;
+  }
+  body.layout-landscape .landscape-left { grid-area: left; }
+  body.layout-landscape .landscape-right { grid-area: right; }
+  body.layout-landscape .landscape-left .layout-station { order: 1; }
+  body.layout-landscape .landscape-left .layout-primary { order: 2; }
+  body.layout-landscape .landscape-left .layout-soil { order: 3; }
+  body.layout-landscape .layout-skycam { position: relative; top: auto; order: 1; }
+  body.layout-landscape .layout-power { order: 2; }
+  body.layout-landscape .skycam-image-stage { min-height: 480px; }
+
+  body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
+}
+
+@media only screen and (max-width: 899px) {
+  .theme-label { display: none; }
+}
+
+@media only screen and (max-width: 600px) {
+  body { font-size: 13.5px; }
+  .main-container { width: min(100% - 10px, 430px); margin: 5px auto 16px; }
+  .header-box { border-radius: 14px 14px 0 0; }
+  .app-header { min-height: 56px; padding: 8px 9px; gap: 8px; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 9px; }
+  .brand-title { font-size: 15px; }
+  .brand-subtitle { font-size: 10.5px; margin-top: 2px; }
+  .header-icon-button { height: 32px; min-width: 32px; padding: 0 7px; }
+  #weatherData { padding: 8px; border-radius: 0 0 14px 14px; }
+  .top-toolbar { flex-wrap: nowrap; align-items: center; gap: 4px; padding-bottom: 8px; }
+  .view-tabs { flex: 0 1 auto; width: max-content; min-width: 0; }
+  .tab-button { min-height: 30px; padding: 5px 6px; font-size: 11.25px; white-space: nowrap; }
+  .live-cluster { flex: 0 0 176px; width: 176px; min-width: 176px; justify-content: flex-end; gap: 4px; font-size: 10px; white-space: nowrap; }
+  .status-badge { flex: 0 0 68px; width: 68px; min-height: 24px; padding: 3px 4px; font-size: 9.25px; letter-spacing: .25px; }
+  #freshnessText { flex: 0 0 104px; width: 104px; font-size: 10px; white-space: nowrap; text-align: right; }
+  .station-strip { padding: 8px 9px; }
+  .address-title { font-size: 16px; }
+  .date-time { font-size: 12.5px; }
+  .logo-container img { height: 62px; max-width: 140px; }
+  .primary-card { padding: 10px; }
+  .temperature-heroes { gap: 6px; }
+  .temp-hero { padding: 9px 9px 10px; }
+  .primary-temp { font-size: 30px; }
+  .primary-desc { font-size: 12px; }
+  .primary-meta { gap: 5px; }
+  .quick-stat {
+    min-height: 62px;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 7px;
+    padding: 8px;
+  }
+  .quick-stat-icon { width: 28px; height: 28px; border-radius: 8px; }
+  .quick-stat-icon svg { width: 16px; height: 16px; }
+  .quick-stat .label { font-size: 8.75px; }
+  .quick-stat .value { font-size: 15px; }
+  .quick-stat.evap-stat .value { font-size: 13.75px; }
+  .section-card { padding: 9px 10px; }
+  .soil-profile-plot { height: 330px; }
+  .soil-probe-image { height: 306px; }
+  .two-card-grid { grid-template-columns: 1fr; gap: 8px; }
+  .metric-row { min-height: 32px; }
+  .skycam-image-stage { min-height: 0; }
+  .skycam-nav { width: 38px; height: 54px; }
+  .skycam-caption { left: 7px; right: 7px; bottom: 7px; }
+  .skycam-badge { left: 7px; top: 7px; }
+  .skycam-interval-badge { right: 7px; top: 7px; min-height: 26px; padding: 5px 7px; font-size: 8.25px; }
+}
+
+@media only screen and (max-width: 380px) {
+  .tab-button { padding-left: 5px; padding-right: 5px; font-size: 10.5px; }
+  .live-cluster { flex-basis: 166px; width: 166px; min-width: 166px; gap: 3px; font-size: 9.25px; }
+  .status-badge { flex-basis: 64px; width: 64px; padding-left: 3px; padding-right: 3px; font-size: 8.6px; }
+  #freshnessText { flex-basis: 99px; width: 99px; font-size: 9.25px; }
+  .primary-temp { font-size: 28px; }
+  .soil-profile-plot { height: 320px; }
+  .soil-probe-window { left: 14px; width: 44px; }
+  .soil-probe-image { left: -26px; height: 296px; }
+  .soil-readings { left: 57px; right: 5px; }
+  .soil-surface-reading {
+    left: 57px;
+    right: 5px;
+    grid-template-columns: 39px repeat(2, minmax(0, 1fr));
+    gap: 3px;
+    padding: 0 4px;
+  }
+  .soil-reading::before { width: 21px; }
+  .soil-reading::after { right: calc(100% + 21px); }
+  .soil-surface-depth { height: 39px; font-size: 8.5px; }
+  .soil-surface-temperature { padding-left: 5px; padding-right: 5px; }
+  .soil-surface-temperature-label { font-size: 6.75px; }
+  .soil-surface-temperature strong { font-size: 10.75px; }
+  .soil-reading {
+    grid-template-columns: 39px repeat(2, minmax(0, 1fr));
+    gap: 3px;
+    padding: 4px;
+  }
+  .soil-reading-value { padding-left: 5px; }
+  .soil-reading-value-number { font-size: 12.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Comfortable shared navigation and controls on touch screens. */
+.freeze-pane { background: var(--page); }
+.header-icon-button { min-width: 44px; min-height: 44px; }
+.tab-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; text-decoration: none; }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .top-toolbar { flex-wrap: wrap; gap: 10px; padding-bottom: 12px; }
+  .view-tabs { width: 100%; flex: 1 1 100%; }
+  .tab-button { flex: 1; font-size: 13px; padding: 8px 12px; }
+  .live-cluster { width: auto; min-width: 0; flex: 1 1 auto; justify-content: flex-start; gap: 8px; }
+  .live-cluster .status-badge { width: auto; min-width: 74px; flex: 0 0 auto; padding: 4px 8px; }
+  #freshnessText { width: auto; flex: 0 1 auto; text-align: left; font-size: 11px; }
+  .history-guide { font-size: 10px; }
+  .app-footer { padding-bottom: max(18px, env(safe-area-inset-bottom,0px)); }
+}
+</style>
+<link href="/history.css?v=5" rel="stylesheet"/>
+<script defer src="/history-chart.js?v=8"></script>
+<script defer src="/history.js?v=9"></script>
+<link rel="stylesheet" href="/water.css?v=1">
+<link rel="stylesheet" href="/station-shell.css?v=5">
+<script defer src="/station-shell.js?v=5"></script>
+<script defer src="/station-alerts.js?v=3"></script>
+<link rel="stylesheet" href="/dashboard.css?v=3">
+</head>
+<body>
+<div class="main-container">
+<header class="dashboard-header" aria-label="Moore Weather dashboard">
+  <div class="dashboard-masthead">
+    <div class="dashboard-identity"><img src="/moore-weather-logo-v2.png" alt="" width="42" height="42"><div><h1>Moore Weather</h1><p class="dashboard-location">WEST WARWICK, QLD</p></div></div>
+    <div class="dashboard-observation" aria-label="Latest station observation">
+      <div><span class="dashboard-field-label">Date</span><span id="dateVal">Waiting for station</span></div>
+      <div><span class="dashboard-field-label">Station time</span><span id="timeVal">— AEST</span></div>
+    </div>
+    <div class="dashboard-status"><span class="status-badge fetching" id="statusBadge" role="status">● CONNECTING</span><span id="freshnessText">Waiting for station</span></div>
+    <div class="dashboard-tools" aria-label="Dashboard controls">
+      <a class="dashboard-tool" href="/help.html" aria-label="Help: add Moore Weather to your home screen" title="Help and installation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg><span class="dashboard-tool-label">Help</span></a>
+      <button type="button" class="dashboard-tool" id="stationAlertsBtn" aria-label="Station alerts" title="Station alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="dashboard-tool-label">Alerts</span></button>
+      <button type="button" class="dashboard-tool" id="themeToggleBtn" aria-label="Change theme" title="Theme"><span class="theme-icon" id="themeToggleIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span></button>
+      <div class="desktop-layout-switcher" aria-label="Desktop layout">
+        <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2"/></svg></button>
+        <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M11 5v14"/></svg></button>
+      </div>
+    </div>
+  <div class="dashboard-navigation">
+    <nav class="dashboard-tabs" aria-label="Weather views">
+      <button type="button" class="dashboard-tab" id="fetchBtn" aria-current="page" title="Refresh current readings" onclick="manualFetch()">Current</button>
+      <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
+    </nav>
+    <div class="dashboard-history"><span id="historyHint" class="dashboard-history-hint">5-hour trends</span><button id="browseHistory" type="button" class="dashboard-history-button" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends / history</span></button></div>
+  </div>
+  </div>
+</header>
+<main id="weatherData">
+<div class="content-layout"><div class="layout-stack landscape-left"><section aria-label="Primary weather readings" class="panel-card primary-card layout-primary">
+<div class="temperature-heroes">
+<div class="temp-hero">
+<div class="eyebrow">Air temperature</div>
+<div class="primary-temp" id="tempVal">--</div>
+<div class="primary-desc primary-linked-reading" id="feelsLikeBox" title="Estimated from air temperature, humidity and wind speed">
+<span>Feels like</span><strong id="feelsLikeVal">--</strong><span class="sr-only" id="feelsLikeNote">Wind and humidity estimate</span>
+</div>
+</div>
+<div class="temp-hero">
+<div class="eyebrow">Black globe</div>
+<div class="primary-temp" id="blackGlobeTempVal">--</div>
+<div class="primary-desc primary-linked-reading" id="radiantDiffBox" title="Black globe temperature minus air temperature">
+<span>Globe − air</span><strong id="radiantDiffVal">--</strong>
+</div>
+</div>
+</div>
+<div class="primary-meta">
+<div class="quick-stat" style="--stat-accent:var(--humidity-humid)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5S6.5 9.7 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.7 12 3.5 12 3.5Z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.6"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Humidity</span><span class="value" id="humidityVal">--</span></span>
+</div>
+<div class="quick-stat rain-stat" style="--stat-accent:var(--rain)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 15.5h10a3.5 3.5 0 0 0 .5-7A5.5 5.5 0 0 0 7.2 7.3 4.1 4.1 0 0 0 7 15.5Z"/><path d="m8 18-1 2M12 18l-1 2M16 18l-1 2"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Rain since 9 am</span><span class="value"><span id="rainSince9Val">--</span><span class="unit-suffix"> mm</span></span><span class="quick-stat-subline">Last min <strong id="rainInLastMinVal">--</strong></span></span>
+</div>
+<div class="quick-stat" style="--stat-accent:var(--accent)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8h10.5a2.5 2.5 0 1 0-2.3-3.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.3 3.5"/><path d="M3 16h6"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Wind speed</span><span class="value"><span id="windSpeedVal">--</span><span class="unit-suffix"> km/h</span></span><span class="quick-stat-subline">Peak <strong id="peakWindGustVal">--</strong></span></span>
+</div>
+<div class="quick-stat" style="--stat-accent:var(--accent)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9 4.9-2.1Z"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Wind direction</span><span class="value"><span id="windDirDegVal">--</span><span class="unit-suffix">° <span class="subtle">(<span id="windDirTextVal">--</span>)</span></span></span></span>
+</div>
+<div class="quick-stat" style="--stat-accent:var(--solar-moderate)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Solar radiation</span><span class="value" id="solarRadVal">--</span></span>
+</div>
+<div class="quick-stat" style="--stat-accent:var(--pressure-high)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 17a7 7 0 1 1 14 0"/><path d="m12 14 3.2-3.2"/><path d="M7 17h10"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Pressure</span><span class="value" id="pressureVal">--</span></span>
+</div>
+<div class="quick-stat" style="--stat-accent:var(--rain)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4.5S8 9.2 8 12.5a4 4 0 0 0 8 0C16 9.2 12 4.5 12 4.5Z"/><path d="M5 19h14"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Dew point</span><span class="value"><span id="dewPointVal">--</span><span class="unit-suffix">°C</span></span><span class="quick-stat-subline" id="dewDiffBox">Air is <strong id="dewDiffVal">--</strong> <span id="dewRelationText">above</span></span></span>
+</div>
+<div class="quick-stat evap-stat" style="--stat-accent:var(--rain)">
+<span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 15a3 3 0 0 0 6 0c0-2.5-3-6-3-6s-3 3.5-3 6Z"/><path d="M18 8V4m0 0-2 2m2-2 2 2"/></svg></span>
+<span class="quick-stat-copy"><span class="label">Evaporation</span><span class="value"><span id="evapRateVal">--</span><span class="unit-suffix"> mm/h</span></span><span class="quick-stat-subline">Hourly estimate</span></span>
+</div>
+</div>
+
+</section><section aria-label="Station power and maintenance" class="panel-card section-card maintenance-card layout-power">
+<div class="section-header"><h2 class="section-title">Station power</h2><span class="power-trend-label" id="powerTrendLabel">5-hour trends</span></div>
+<div class="metric-list">
+<div class="metric-row"><span class="metric-label">Battery</span><span class="metric-value" id="batteryVal">--</span></div>
+<div class="metric-row"><span class="metric-label">Solar panel</span><span class="metric-value" id="solarPanelVal">--</span></div>
+<div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span><span class="unit-suffix"> mA</span></span></div>
+<div class="metric-row"><span class="metric-label">Charge</span><span class="metric-value" id="chargeVal">--</span></div>
+</div>
+</section></div><div class="layout-stack landscape-right"><div aria-label="SkyCam" class="layout-skycam">
+<div class="skycam-container" title="SkyCam">
+<div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
+<div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
+<div class="skycam-rotate-hint" id="skycamRotateHint" aria-hidden="true">↻ Landscape gives the best view</div>
+<button aria-label="Show older SkyCam image" class="skycam-nav skycam-nav-prev" id="skycamPrev" onclick="stepSkyCam(-1)" type="button">‹</button>
+<div class="skycam-image-stage" id="skycamImageStage" aria-label="SkyCam image viewer">
+<img alt="SkyCam live weather view" class="skycam-frame is-active" id="skycamImage" src="/skycam/latest.jpg"/>
+<img alt="" aria-hidden="true" class="skycam-frame" id="skycamImageNext"/>
+</div>
+<button aria-label="Show newer SkyCam image" class="skycam-nav skycam-nav-next" disabled="" id="skycamNext" onclick="stepSkyCam(1)" type="button">›</button>
+<div class="skycam-caption">
+<span id="skycamTime">LIVE / latest</span>
+<div class="skycam-actions" aria-label="SkyCam playback controls">
+<button class="skycam-action" id="skycamTimelapse" type="button" onclick="toggleSkyCamTimelapse()" aria-label="Play the last 24 hours" aria-pressed="false" title="Play the last 24 hours"><span id="skycamTimelapseIcon" aria-hidden="true">▶</span><span class="skycam-action-text" id="skycamTimelapseLabel">Timelapse</span></button>
+<button class="skycam-action" id="skycamDownload" type="button" onclick="downloadSkyCamFrame()" aria-label="Download this SkyCam image" title="Download this image"><span aria-hidden="true">↓</span><span class="skycam-action-text">Download</span></button>
+<button class="skycam-action" id="skycamFocus" type="button" onclick="toggleSkyCamFocus()" aria-label="Maximise SkyCam" aria-pressed="false" title="Maximise SkyCam"><span id="skycamFocusIcon" aria-hidden="true">⛶</span><span class="skycam-action-text" id="skycamFocusLabel">Maximise</span></button>
+<button class="skycam-action" id="skycamLive" type="button" onclick="goSkyCamLive()" aria-label="Jump to live SkyCam image" title="Jump to live"><span aria-hidden="true">●</span><span class="skycam-action-text">Live</span></button>
+</div>
+<span id="skycamPosition">Loading history...</span>
+</div>
+</div>
+</div><section aria-label="Soil profile" class="panel-card section-card layout-soil">
+<div class="section-header soil-profile-header">
+<h2 class="section-title">Soil profile</h2>
+<span class="soil-profile-badge">EnviroPro · 4 CH</span>
+</div>
+<p class="soil-profile-caption">Temperature and moisture readings from the surface down to 40 cm</p>
+<div class="soil-profile-plot" role="group" aria-label="Live soil moisture and temperature from the EnviroPro probe at 10, 20, 30 and 40 centimetres">
+<div class="soil-surface" aria-hidden="true"></div>
+<div class="soil-layers" aria-hidden="true">
+<div class="soil-layer" id="soilLayer10"></div>
+<div class="soil-layer" id="soilLayer20"></div>
+<div class="soil-layer" id="soilLayer30"></div>
+<div class="soil-layer" id="soilLayer40"></div>
+</div>
+<div class="soil-probe-window" aria-hidden="true">
+<img class="soil-probe-image" src="/enviropro-4ch-probe-clean.png" alt=""/>
+</div>
+<div class="soil-readings">
+<div class="soil-reading soil-ground-reading" id="groundTempReading" title="Temperature measured in the shallow soil below the surface">
+<div class="soil-reading-depth">0<span>cm</span></div>
+<div class="soil-reading-value temp"><span class="soil-reading-value-label">Ground temp</span><span class="soil-reading-value-number"><span id="gardenBedTempVal">--</span><span class="unit-suffix">°C</span></span></div>
+</div>
+<div class="soil-reading" id="soilDepth10" style="--reading-y:22.222%">
+<div class="soil-reading-depth">10<span>cm</span></div>
+<div class="soil-reading-value temp"><span class="soil-reading-value-label">Temperature</span><span class="soil-reading-value-number"><span id="soilTemp10Val">--</span><span class="unit-suffix">°C</span></span></div>
+<div class="soil-reading-value moisture"><span class="soil-reading-value-label">Moisture</span><span class="soil-reading-value-number"><span id="moisture10Val">--</span><span class="unit-suffix">%</span></span></div>
+</div>
+<div class="soil-reading" id="soilDepth20" style="--reading-y:44.444%">
+<div class="soil-reading-depth">20<span>cm</span></div>
+<div class="soil-reading-value temp"><span class="soil-reading-value-label">Temperature</span><span class="soil-reading-value-number"><span id="soilTemp20Val">--</span><span class="unit-suffix">°C</span></span></div>
+<div class="soil-reading-value moisture"><span class="soil-reading-value-label">Moisture</span><span class="soil-reading-value-number"><span id="moisture20Val">--</span><span class="unit-suffix">%</span></span></div>
+</div>
+<div class="soil-reading" id="soilDepth30" style="--reading-y:66.667%">
+<div class="soil-reading-depth">30<span>cm</span></div>
+<div class="soil-reading-value temp"><span class="soil-reading-value-label">Temperature</span><span class="soil-reading-value-number"><span id="soilTemp30Val">--</span><span class="unit-suffix">°C</span></span></div>
+<div class="soil-reading-value moisture"><span class="soil-reading-value-label">Moisture</span><span class="soil-reading-value-number"><span id="moisture30Val">--</span><span class="unit-suffix">%</span></span></div>
+</div>
+<div class="soil-reading" id="soilDepth40" style="--reading-y:88.889%">
+<div class="soil-reading-depth">40<span>cm</span></div>
+<div class="soil-reading-value temp"><span class="soil-reading-value-label">Temperature</span><span class="soil-reading-value-number"><span id="soilTemp40Val">--</span><span class="unit-suffix">°C</span></span></div>
+<div class="soil-reading-value moisture"><span class="soil-reading-value-label">Moisture</span><span class="soil-reading-value-number"><span id="moisture40Val">--</span><span class="unit-suffix">%</span></span></div>
+</div>
+</div>
+</div>
+</section></div><span aria-hidden="true" class="compat-data" id="airTempBox"><span id="bigTempVal">--</span></span><div class="compat-data" aria-hidden="true">
+<span id="vectorWindSpeedVal">--</span>
+<span id="vectorWindDirDegVal">--</span>
+<span id="vectorWindDirTextVal">--</span>
+<span id="dailyEvapVal">--</span>
+</div></div>
+</main>
+<section class="local-water" id="localWater" aria-labelledby="localWaterTitle">
+  <div class="water-section-heading"><div><span class="water-eyebrow">Our catchment</span><h2 id="localWaterTitle">Local water</h2></div><span class="water-current-label">Latest available readings · AEST</span></div>
+  <div class="water-grid">
+    <article class="water-panel water-dam">
+      <header><div><span class="water-eyebrow">Upper Condamine</span><h3>Leslie Dam</h3></div><span class="water-site">422315B</span></header>
+      <div class="water-reading water-hero" aria-label="View Leslie Dam storage history">
+        <span class="water-label">Storage level</span><strong><span id="leslieStorage">—</span><small>% full</small></strong>
+        <span class="water-time" id="leslieStorageTime">Awaiting source readings</span>
+      </div>
+      <div class="water-reading water-volume"><span class="water-label">Stored water</span><strong><span id="leslieVolume">—</span><small>ML</small></strong><span class="water-time" id="leslieVolumeTime">Awaiting source readings</span></div>
+      <p class="water-capacity" id="leslieCapacity"></p>
+      <footer><a href="https://www.sunwater.com.au/dams/leslie-dam/" target="_blank" rel="noopener noreferrer">Source: Sunwater ↗</a><span>Automated · unverified</span></footer>
+    </article>
+    <article class="water-panel water-river">
+      <header><div><span class="water-eyebrow">Warwick gauge</span><h3>Condamine River</h3></div><span class="water-site">422310C</span></header>
+      <div class="water-reading water-hero"><span class="water-label">River level</span><strong><span id="condamineLevel">—</span><small>m</small></strong><span class="water-time" id="condamineLevelTime">Awaiting source readings</span></div>
+      <div class="water-reading water-volume"><span class="water-label">River flow</span><strong><span id="condamineFlow">—</span><small>m³/s</small></strong><span class="water-time" id="condamineFlowTime">Awaiting source readings</span></div>
+      <p class="water-capacity">Height above gauge datum · recent data is unvalidated</p>
+      <footer><a href="https://water-monitoring.information.qld.gov.au/" target="_blank" rel="noopener noreferrer">Source: Queensland WMIP ↗</a><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></footer>
+    </article>
+  </div>
+  <p class="water-import-status" id="waterImportStatus" role="status">Connecting to saved water readings…</p>
+</section>
+<footer class="app-footer">
+<a class="footer-signout" href="/help.html">Add to Home Screen</a>
+<form action="/logout" method="post">
+<button class="footer-signout" type="submit">Sign out</button>
+</form>
+</footer>
+<div aria-hidden="true" class="spinner-container" id="spinnerContainer"><div class="spinner"></div></div>
+</div>
+<script>
+    /********************
+    * HELPER FUNCTIONS *
+    ********************/
+    function getWindDirection(degrees) {
+      const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+      return directions[Math.round(degrees / 22.5) % 16];
+    }
+
+    function setStatusBadge(statusText, statusClass) {
+  const icons = {
+    connected: "✅",
+    fetching: "🔄",
+    error: "⚠️"
+  };
+  const icon = icons[statusClass] || "";
+  const badge = document.getElementById("statusBadge");
+  badge.textContent = `${icon} Status: ${statusText}`;
+  badge.className = `status-badge ${statusClass}`;
+}
+
+
+    function formatDateString(dateStr) {
+      const parts = dateStr.split("/");
+      if (parts.length === 3) {
+        const [year, month, day] = parts;
+        const formattedDate = `${day}/${month}/${year}`;
+        const dateObj = new Date(year, month - 1, day);
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        return `${formattedDate} (${dayNames[dateObj.getDay()]})`;
+      }
+      return dateStr;
+    }
+
+    function getTemperatureColorAndDesc(temp) {
+      let color, desc;
+      if (temp < -20) { color = "var(--temp-deep-freeze)"; desc = ""; }
+      else if (temp < -10) { color = "var(--temp-severe-cold)"; desc = "Severely cold"; }
+      else if (temp < 0) { color = "var(--temp-extreme-cold)"; desc = "Extremely cold"; }
+      else if (temp < 6) { color = "var(--temp-very-cold)"; desc = "Very cold"; }
+      else if (temp < 11) { color = "var(--temp-cold)"; desc = "Cold"; }
+      else if (temp < 16) { color = "var(--temp-cool)"; desc = "Cool"; }
+      else if (temp < 21) { color = "var(--temp-mild)"; desc = "Mild"; }
+      else if (temp < 28) { color = "var(--temp-warm)"; desc = "Warm"; }
+      else if (temp < 32) { color = "var(--temp-warmer)"; desc = "Warmer"; }
+      else if (temp < 36) { color = "var(--temp-hot)"; desc = "Hot"; }
+      else if (temp < 41) { color = "var(--temp-very-hot)"; desc = "Very hot"; }
+      else if (temp <= 60) { color = "var(--temp-extreme-hot)"; desc = "Extremely hot"; }
+      else { color = "var(--text)"; desc = ""; }
+      return { color, desc };
+    }
+
+    function getSoilMoistureColor(value) {
+      const normalized = Math.max(0, Math.min(1, value / 50));
+      const dry = [135, 91, 56];
+      const wet = [37, 99, 137];
+      const channels = dry.map((channel, index) =>
+        Math.round(channel + ((wet[index] - channel) * normalized))
+      );
+      return `rgb(${channels.join(", ")})`;
+    }
+
+    function updateSoilProfile(readings) {
+      readings.forEach(({ depth, temperature, moisture }) => {
+        const layer = document.getElementById(`soilLayer${depth}`);
+        const row = document.getElementById(`soilDepth${depth}`);
+        const temperatureNode = document.getElementById(`soilTemp${depth}Val`);
+        const moistureNode = document.getElementById(`moisture${depth}Val`);
+        const hasTemperature = Number.isFinite(temperature);
+        const hasMoisture = Number.isFinite(moisture);
+
+        temperatureNode.textContent = hasTemperature ? temperature.toFixed(1) : "--";
+        moistureNode.textContent = hasMoisture ? moisture.toFixed(1) : "--";
+
+        if (layer) {
+          layer.style.setProperty(
+            "--soil-color",
+            hasMoisture ? getSoilMoistureColor(moisture) : "#67594d"
+          );
+        }
+
+        if (row) {
+          row.style.setProperty(
+            "--soil-temp-color",
+            hasTemperature ? getTemperatureColorAndDesc(temperature).color : "var(--muted)"
+          );
+          row.style.setProperty(
+            "--soil-moisture-color",
+            hasMoisture && moisture < 20 ? "var(--moisture-low)" : "#61b9ee"
+          );
+          row.setAttribute(
+            "aria-label",
+            `${depth} centimetres: ${hasTemperature ? `${temperature.toFixed(1)} degrees Celsius` : "temperature unavailable"}; ${hasMoisture ? `${moisture.toFixed(1)} percent moisture` : "moisture unavailable"}`
+          );
+        }
+      });
+    }
+
+    function getHumidityColor(humidity) {
+  if (humidity <= 10) return "var(--humidity-very-dry)";
+  if (humidity <= 20) return "var(--humidity-dry)";
+  if (humidity <= 30) return "var(--humidity-low)";
+  if (humidity <= 40) return "var(--humidity-comfort-low)";
+  if (humidity <= 60) return "var(--humidity-comfort)";
+  if (humidity <= 70) return "var(--humidity-moist)";
+  if (humidity <= 80) return "var(--humidity-humid)";
+  if (humidity <= 90) return "var(--humidity-very-humid)";
+  return "var(--humidity-saturated)";
+}
+
+    function getApparentTemperature(temperatureC, humidityPercent, windSpeedKmh) {
+      const vapourPressure = (humidityPercent / 100) * 6.105 *
+        Math.exp((17.27 * temperatureC) / (237.7 + temperatureC));
+      const windSpeedMs = Math.max(0, windSpeedKmh) / 3.6;
+      return temperatureC + (0.33 * vapourPressure) - (0.70 * windSpeedMs) - 4.00;
+    }
+
+    /*****************************
+    * GLOBAL STATE & RETRIES *
+    *****************************/
+    let initialLoadComplete = false;
+    let refreshTimeout;
+    let retryAttempts = 0;
+    const MAX_RETRY_ATTEMPTS = 3;
+    const WEATHER_ENDPOINT = "/weather";
+
+    /*****************************
+    * MAIN UPDATE FUNCTION *
+    *****************************/
+    function updateWeatherData(data) {
+  console.log("Raw CSV data:", data);
+  const lines = data.replace(/^r3\s*/, "").trim().replace(/,?END$/, "").split(",");
+  console.log("Parsed lines array:", lines);
+
+  if (lines.length < 31) {
+    const error = new Error(`Incomplete weather data: received ${lines.length} fields, expected at least 31`);
+    console.error(error.message, lines);
+    throw error;
+  }
+      try {
+        // Extract data from CSV indices
+        const dateStr = lines[0];
+        const timeStr = lines[1];
+        const windSpeed = parseFloat(lines[2]);
+        const windDirDeg = parseFloat(lines[3]);
+        const humidityRaw = parseFloat(lines[4]);
+        const temperatureRaw = parseFloat(lines[5]);
+        let rainInLastMinRaw = parseFloat(lines[6]);
+        const solarRadRaw = parseFloat(lines[7]);
+        const pressureRaw = parseFloat(lines[8]);
+        const gardenBedTemp = parseFloat(lines[9]);
+        const batteryVoltageVal = parseFloat(lines[10]);
+        const loadCurrent = parseFloat(lines[11]);
+        const rawSolarVoltage = parseFloat(lines[12]);
+        const chargeCurrent = parseFloat(lines[13]);
+        const peakWindGustVal = parseFloat(lines[14]);
+        const vectorWindSpeedVal = parseFloat(lines[15]);
+        const vectorWindDirVal = parseFloat(lines[16]);
+        const rainSince9 = parseFloat(lines[17]);
+        const evapRate = parseFloat(lines[18]);
+        const dailyEvap = parseFloat(lines[20]);
+        const dewPoint = parseFloat(lines[21]);
+        const soilTemp10 = parseFloat(lines[22]);
+        const soilTemp20 = parseFloat(lines[23]);
+        const soilTemp30 = parseFloat(lines[24]);
+        const soilTemp40 = parseFloat(lines[25]);
+        const moisture10Val = parseFloat(lines[26]);
+        const moisture20Val = parseFloat(lines[27]);
+        const moisture30Val = parseFloat(lines[28]);
+        const moisture40Val = parseFloat(lines[29]);
+        const blackGlobeTemp = parseFloat(lines[30]);
+
+        // Validate the data
+        if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw) || isNaN(blackGlobeTemp) || isNaN(dewPoint)) {
+          const error = new Error("Invalid numeric values in weather data");
+          console.error(error.message, lines);
+          throw error;
+        }
+
+        // DATE & TIME
+        document.getElementById("weatherData").dataset.observedAt = dateStr.replaceAll("/", "-") + "T" + timeStr + "+10:00";
+
+        // WIND
+        document.getElementById("windSpeedVal").textContent = windSpeed.toFixed(1);
+        document.getElementById("windDirDegVal").textContent = windDirDeg.toFixed(1);
+        document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
+
+        // HUMIDITY
+        const humidityColor = getHumidityColor(humidityRaw);
+        const humidityFormatted = `<span style="color:${humidityColor}; font-weight:bold;">${humidityRaw.toFixed(1)}%</span>`;
+document.getElementById("humidityVal").innerHTML = humidityFormatted;
+
+        // TEMPERATURE
+        const tempData = getTemperatureColorAndDesc(temperatureRaw);
+        const tempSpan = document.getElementById("tempVal");
+        tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
+        tempSpan.style.color = tempData.color;
+        tempSpan.closest(".temp-hero")?.style.setProperty("--hero-accent", tempData.color);
+
+        // BOM-style non-radiation apparent temperature: air temperature,
+        // humidity and wind speed. This is a local station estimate.
+        const apparentTemperature = getApparentTemperature(temperatureRaw, humidityRaw, windSpeed);
+        const apparentTempData = getTemperatureColorAndDesc(apparentTemperature);
+        const feelsLikeElement = document.getElementById("feelsLikeVal");
+        const feelsLikeNote = document.getElementById("feelsLikeNote");
+        const feelsLikeBox = document.getElementById("feelsLikeBox");
+        const apparentDifference = apparentTemperature - temperatureRaw;
+
+        feelsLikeElement.textContent = apparentTemperature.toFixed(1) + "°C";
+        feelsLikeElement.style.color = apparentTempData.color;
+
+        if (Math.abs(apparentDifference) < 0.5) {
+          feelsLikeNote.textContent = "Similar to the air temperature";
+        } else {
+          feelsLikeNote.textContent = `${Math.abs(apparentDifference).toFixed(1)}°C ${apparentDifference > 0 ? "warmer" : "cooler"} than the air`;
+        }
+
+        feelsLikeBox.setAttribute(
+          "aria-label",
+          `Feels like ${apparentTemperature.toFixed(1)} degrees Celsius; ${feelsLikeNote.textContent}`
+        );
+
+        // Big Temperature Box: update text and container background color dynamically
+        const bigTempElement = document.getElementById("bigTempVal");
+        bigTempElement.textContent = temperatureRaw.toFixed(1) + "°C";
+        const bigTempContainer = document.getElementById("airTempBox");
+        bigTempContainer.style.backgroundColor = tempData.color;
+        bigTempElement.style.color = "#FFF";
+
+        // RAIN SINCE 9AM
+        document.getElementById("rainSince9Val").textContent = Number.isFinite(rainSince9) ? rainSince9.toFixed(1) : "--";
+
+        // RAIN IN LAST MINUTE
+        if (isNaN(rainInLastMinRaw)) {
+          console.warn("Rain/Last Min is NaN. Defaulting to 0.0 mm");
+          rainInLastMinRaw = 0.0;
+        }
+        let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
+        if (rainInLastMinRaw >= 0.2) {
+          rainInLastMinDisplay = `<span style="color:var(--rain); font-weight:bold;">${rainInLastMinDisplay}</span>`;
+        }
+        document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
+
+        // SOLAR RADIATION
+        const solarRad = Math.max(0, solarRadRaw);
+        let solarRadColor = solarRad === 0 ? "var(--solar-night)" :
+          solarRad <= 100 ? "var(--solar-low)" :
+          solarRad <= 299 ? "var(--solar-mid)" :
+          solarRad <= 600 ? "var(--solar-moderate)" :
+          solarRad <= 800 ? "var(--solar-high)" :
+          solarRad <= 1100 ? "var(--solar-strong)" : "var(--solar-extreme)";
+        let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
+        if (solarRad > 0) {
+          solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor};">${solarRadDisplay}</span>`;
+        } else {
+          solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
+        }
+        document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
+
+        const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
+const globeElem = document.getElementById("blackGlobeTempVal");
+globeElem.innerHTML = `<span style="color:${globeTempData.color}; font-weight:bold;">${blackGlobeTemp.toFixed(1)}°C</span>`;
+globeElem.closest(".temp-hero")?.style.setProperty("--hero-accent", globeTempData.color);
+
+// Radiant Heat Diff Calculation
+const radiantDiff = blackGlobeTemp - temperatureRaw;
+const radiantDiffElem = document.getElementById("radiantDiffVal");
+const radiantDiffBox = document.getElementById("radiantDiffBox");
+
+// Format value with +/- and 1 decimal
+const diffFormatted = (radiantDiff >= 0 ? "+" : "") + radiantDiff.toFixed(1) + "°C";
+radiantDiffElem.textContent = diffFormatted;
+
+// Radiant difference uses the same neutral Conditions styling as other metrics.
+radiantDiffBox.style.backgroundColor = "";
+radiantDiffBox.style.borderColor = "";
+radiantDiffElem.style.color = "";
+
+// Temp Above Dew Point
+const dewDiff = temperatureRaw - dewPoint;
+const dewDiffElem = document.getElementById("dewDiffVal");
+const dewDiffBox = document.getElementById("dewDiffBox");
+const dewRelationText = document.getElementById("dewRelationText");
+
+// Express the absolute margin in plain language underneath dew point.
+const dewFormatted = Math.abs(dewDiff).toFixed(1) + "°C";
+dewDiffElem.textContent = dewFormatted;
+dewRelationText.textContent = dewDiff >= 0 ? "above" : "below";
+
+// Dew margin uses the same neutral Conditions styling as other metrics.
+dewDiffBox.style.backgroundColor = "";
+dewDiffBox.style.borderColor = "";
+dewDiffElem.style.color = "";
+
+
+        // SHALLOW GROUND TEMPERATURE
+        const groundTempElement = document.getElementById("gardenBedTempVal");
+        const groundTempReading = document.getElementById("groundTempReading");
+        const hasGroundTemperature = Number.isFinite(gardenBedTemp);
+        groundTempElement.textContent = hasGroundTemperature ? gardenBedTemp.toFixed(1) : "--";
+
+        if (groundTempReading) {
+          groundTempReading.style.setProperty(
+            "--ground-temp-color",
+            hasGroundTemperature ? getTemperatureColorAndDesc(gardenBedTemp).color : "var(--muted)"
+          );
+          groundTempReading.setAttribute(
+            "aria-label",
+            hasGroundTemperature
+              ? `Ground temperature ${gardenBedTemp.toFixed(1)} degrees Celsius`
+              : "Ground temperature unavailable"
+          );
+        }
+
+        // PRESSURE (with 1.9 hPa offset)
+        let adjustedPressure = pressureRaw - 1.9;
+        let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
+        if (adjustedPressure >= 1020) {
+          pressureDisplay = `<span style="color:var(--pressure-high); font-weight:bold;">${pressureDisplay}</span>`;
+        }
+        document.getElementById("pressureVal").innerHTML = pressureDisplay;
+
+        // BATTERY
+        const batteryVoltage = batteryVoltageVal.toFixed(1);
+        let batteryColor = batteryVoltageVal < 12.5 ? "var(--battery-bad)" : "var(--battery-good)";
+        let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
+        if (batteryVoltageVal >= 13.8) {
+          batteryVoltageDisplay = `<span style="color:var(--battery-good); font-weight:bold;">${batteryVoltage} V</span>`;
+        }
+        document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
+
+        // LOAD
+        document.getElementById("loadVal").textContent = loadCurrent.toFixed(1);
+
+        // SOLAR PANEL
+        let solarPanelDisplay = "☀️ " + rawSolarVoltage.toFixed(1) + " V";
+        if (rawSolarVoltage < batteryVoltageVal) {
+          solarPanelDisplay = "🌙 0.0 V";
+        }
+        document.getElementById("solarPanelVal").textContent = solarPanelDisplay;
+
+        // CHARGE
+        let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
+        if (batteryVoltageVal < 13.80) {
+          chargeDisplay = chargeCurrent > loadCurrent
+            ? `<span style="color:var(--battery-good);">${chargeDisplay}</span>`
+            : `<span style="color:var(--battery-bad);">${chargeDisplay}</span>`;
+        }
+        document.getElementById("chargeVal").innerHTML = chargeDisplay;
+
+        // PEAK WIND GUST
+        let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
+        if (peakWindGustVal > 25) {
+          peakWindGustDisplay = `<span style="color:var(--red); font-weight:bold;">${peakWindGustDisplay}</span>`;
+        } else if (peakWindGustVal > 10) {
+          peakWindGustDisplay = `<span style="color:var(--gust-warn); font-weight:bold;">${peakWindGustDisplay}</span>`;
+        }
+        document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
+
+        // VECTOR WIND
+        document.getElementById("vectorWindSpeedVal").textContent = vectorWindSpeedVal.toFixed(1);
+        document.getElementById("vectorWindDirDegVal").textContent = vectorWindDirVal.toFixed(1);
+        document.getElementById("vectorWindDirTextVal").textContent = getWindDirection(vectorWindDirVal);
+
+        // EVAP & DEW POINT
+        document.getElementById("evapRateVal").textContent = evapRate.toFixed(3);
+        document.getElementById("dailyEvapVal").textContent = dailyEvap.toFixed(3);
+        document.getElementById("dewPointVal").textContent = dewPoint.toFixed(1);
+
+        // ENVIROPRO FOUR-CHANNEL SOIL PROFILE
+        updateSoilProfile([
+          { depth: 10, temperature: soilTemp10, moisture: moisture10Val },
+          { depth: 20, temperature: soilTemp20, moisture: moisture20Val },
+          { depth: 30, temperature: soilTemp30, moisture: moisture30Val },
+          { depth: 40, temperature: soilTemp40, moisture: moisture40Val },
+        ]);
+
+        document.body.classList.add("weather-loaded");
+
+      } catch (error) {
+        // Preserve the last good readings and let fetchWeather() handle retry/backoff.
+        console.error("Error parsing or updating data:", error);
+        throw error;
+      }
+    }
+
+ /*****************************
+ * FETCH & AUTO-REFRESH LOGIC *
+ *****************************/
+function fetchWeather() {
+    // const statusText = document.getElementById("status");
+    const spinnerContainer = document.getElementById("spinnerContainer");
+    const fetchBtn = document.getElementById("fetchBtn");
+
+    // setStatusBadge("Fetching", "fetching");
+    // if (statusText) statusText.className = "connected";
+    spinnerContainer.style.display = "block";
+    fetchBtn.disabled = true;
+
+    fetch(WEATHER_ENDPOINT)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Server responded with " + response.status);
+            }
+            return response.text();
+        })
+        .then(data => {
+            updateWeatherData(data);
+            // setStatusBadge("Connected", "connected");
+            // if (statusText) statusText.className = "connected";
+            retryAttempts = 0;
+            if (!initialLoadComplete) {
+                initialLoadComplete = true;
+            }
+            // Schedule next fetch at 20 seconds past the minute
+            scheduleNextFetch();
+        })
+        .catch(error => {
+            console.error("Fetch error:", error);
+            retryAttempts++;
+
+            const retryDelay = Math.min(30000, 1000 * Math.pow(2, retryAttempts - 1));
+            console.log(`Fetch failed — retrying in ${retryDelay / 1000}s (attempt ${retryAttempts})`);
+            refreshTimeout = setTimeout(fetchWeather, retryDelay);
+        })
+        .finally(() => {
+            spinnerContainer.style.display = "none";
+            fetchBtn.disabled = false;
+        });
+}
+
+function scheduleNextFetch() {
+    if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+    }
+    const now = new Date();
+    let delay;
+    if (now.getSeconds() < 20) {
+        delay = (20 - now.getSeconds()) * 1000;
+    } else {
+        delay = ((60 - now.getSeconds()) + 20) * 1000;
+    }
+    refreshTimeout = setTimeout(fetchWeather, delay);
+}
+
+function manualFetch() {
+    if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+    }
+    retryAttempts = 0; // Reset retry counter on manual fetch
+    fetchWeather();
+}
+
+const SKYCAM_ENDPOINT = "/skycam/latest.jpg";
+const SKYCAM_HISTORY_ENDPOINT = "/skycam/history";
+const SKYCAM_TIMELAPSE_WINDOW_MS = 24 * 60 * 60 * 1000;
+const SKYCAM_TIMELAPSE_MAX_FRAMES = 72;
+const SKYCAM_TIMELAPSE_FRAME_MS = 500;
+const SKYCAM_FADE_MS = 340;
+const SKYCAM_TIMELAPSE_FADE_MS = 180;
+let skycamHistory = [];
+let skycamHistoryIndex = -1;
+let skycamPlaying = false;
+let skycamPlaybackToken = 0;
+let skycamImageLayer = 0;
+let skycamImageTransitionToken = 0;
+let skycamFocusMode = false;
+
+function formatSkyCamTime(isoString) {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "Historic image";
+
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Brisbane",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date) + " AEST";
+}
+
+function isSkyCamLive() {
+  return skycamHistory.length > 0 && skycamHistoryIndex === skycamHistory.length - 1;
+}
+
+function stopSkyCamPlayback(update = true) {
+  if (skycamPlaying) {
+    skycamPlaying = false;
+    skycamPlaybackToken += 1;
+  }
+  if (update) updateSkyCamControls();
+}
+
+function updateSkyCamControls() {
+  const prevBtn = document.getElementById("skycamPrev");
+  const nextBtn = document.getElementById("skycamNext");
+  const liveBtn = document.getElementById("skycamLive");
+  const downloadBtn = document.getElementById("skycamDownload");
+  const timelapseBtn = document.getElementById("skycamTimelapse");
+  const timelapseIcon = document.getElementById("skycamTimelapseIcon");
+  const timelapseLabel = document.getElementById("skycamTimelapseLabel");
+  const focusBtn = document.getElementById("skycamFocus");
+  const focusIcon = document.getElementById("skycamFocusIcon");
+  const focusLabel = document.getElementById("skycamFocusLabel");
+  const badge = document.getElementById("skycamBadge");
+  const timeLabel = document.getElementById("skycamTime");
+  const positionLabel = document.getElementById("skycamPosition");
+
+  if (!prevBtn || !nextBtn || !timeLabel || !positionLabel) return;
+
+  const hasHistory = skycamHistory.length > 0;
+  const live = isSkyCamLive();
+
+  prevBtn.disabled = !hasHistory || skycamHistoryIndex <= 0;
+  nextBtn.disabled = !hasHistory || live;
+  if (liveBtn) liveBtn.disabled = !hasHistory || live;
+  if (downloadBtn) {
+    const entry = hasHistory && skycamHistoryIndex >= 0 ? skycamHistory[skycamHistoryIndex] : null;
+    downloadBtn.disabled = !entry || !entry.id;
+    downloadBtn.title = entry ? `Download ${entry.id}.jpg` : "Download this image";
+  }
+
+  if (timelapseBtn) {
+    timelapseBtn.disabled = skycamHistory.length < 2;
+    timelapseBtn.setAttribute("aria-pressed", skycamPlaying ? "true" : "false");
+    timelapseBtn.title = skycamPlaying ? "Pause timelapse" : "Play the last 24 hours";
+  }
+  if (timelapseIcon) timelapseIcon.textContent = skycamPlaying ? "❚❚" : "▶";
+  if (timelapseLabel) timelapseLabel.textContent = skycamPlaying ? "Pause" : "Timelapse";
+
+  if (focusBtn) {
+    focusBtn.setAttribute("aria-pressed", skycamFocusMode ? "true" : "false");
+    focusBtn.setAttribute("aria-label", skycamFocusMode ? "Exit maximised SkyCam" : "Maximise SkyCam");
+    focusBtn.title = skycamFocusMode ? "Exit maximised SkyCam" : "Maximise SkyCam";
+  }
+  if (focusIcon) focusIcon.textContent = skycamFocusMode ? "✕" : "⛶";
+  if (focusLabel) focusLabel.textContent = skycamFocusMode ? "Exit" : "Maximise";
+
+  if (badge) {
+    badge.textContent = skycamPlaying
+      ? "SKYCAM · TIMELAPSE"
+      : live
+        ? "SKYCAM · LIVE"
+        : "SKYCAM · HISTORY";
+  }
+
+  if (!hasHistory || skycamHistoryIndex < 0) {
+    timeLabel.textContent = "LIVE / latest";
+    positionLabel.textContent = "History building...";
+    return;
+  }
+
+  const entry = skycamHistory[skycamHistoryIndex];
+  if (!entry) return;
+
+  timeLabel.textContent = formatSkyCamTime(entry.capturedAt);
+  positionLabel.textContent = `${skycamHistoryIndex + 1} of ${skycamHistory.length}${live ? " · LIVE" : ""}`;
+}
+
+function getSkyCamImageLayers() {
+  return [
+    document.getElementById("skycamImage"),
+    document.getElementById("skycamImageNext"),
+  ];
+}
+
+function normalizeSkyCamImageUrl(url) {
+  try {
+    return new URL(url, document.baseURI).href;
+  } catch (error) {
+    return url;
+  }
+}
+
+async function transitionSkyCamImage(url, durationMs = SKYCAM_FADE_MS) {
+  if (!url) return false;
+
+  const layers = getSkyCamImageLayers();
+  const active = layers[skycamImageLayer];
+  const nextLayerIndex = skycamImageLayer === 0 ? 1 : 0;
+  const next = layers[nextLayerIndex];
+  if (!active || !next) return false;
+
+  const targetUrl = normalizeSkyCamImageUrl(url);
+  if (normalizeSkyCamImageUrl(active.getAttribute("src") || "") === targetUrl) return true;
+
+  const transitionToken = ++skycamImageTransitionToken;
+  const loaded = await preloadSkyCamFrame(url);
+  if (!loaded || transitionToken !== skycamImageTransitionToken) return false;
+
+  const safeDuration = Math.max(0, Number(durationMs) || 0);
+  next.src = url;
+  next.classList.remove("is-active");
+  next.classList.add("is-entering");
+  next.style.transitionDuration = "0ms";
+
+  // Keep the previous frame completely opaque underneath the incoming frame.
+  // Only the new frame fades, which prevents the two opacities dipping together
+  // and briefly exposing the black SkyCam stage on Safari/iOS.
+  void next.offsetWidth;
+  next.style.transitionDuration = `${safeDuration}ms`;
+
+  await new Promise((resolve) => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      next.removeEventListener("transitionend", onTransitionEnd);
+      resolve();
+    };
+    const onTransitionEnd = (event) => {
+      if (event.target === next && event.propertyName === "opacity") finish();
+    };
+
+    next.addEventListener("transitionend", onTransitionEnd);
+    window.setTimeout(finish, safeDuration + 90);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (transitionToken !== skycamImageTransitionToken) return finish();
+        next.classList.add("is-active");
+        if (safeDuration === 0) finish();
+      });
+    });
+  });
+
+  if (transitionToken !== skycamImageTransitionToken) {
+    return false;
+  }
+
+  active.classList.remove("is-active");
+  next.classList.remove("is-entering");
+  skycamImageLayer = nextLayerIndex;
+  return true;
+}
+
+function showSkyCamHistory(index, options = {}) {
+  if (!skycamHistory.length) return;
+  if (options.manual !== false) stopSkyCamPlayback(false);
+
+  const safeIndex = Math.max(0, Math.min(index, skycamHistory.length - 1));
+  const entry = skycamHistory[safeIndex];
+  if (!entry) return;
+
+  skycamHistoryIndex = safeIndex;
+  const transitionMs = Number.isFinite(options.transitionMs)
+    ? options.transitionMs
+    : (skycamPlaying ? SKYCAM_TIMELAPSE_FADE_MS : SKYCAM_FADE_MS);
+
+  transitionSkyCamImage(entry.url, transitionMs).catch((error) => {
+    console.error("SkyCam image transition error:", error);
+  });
+  updateSkyCamControls();
+}
+
+function downloadSkyCamFrame() {
+  if (!skycamHistory.length || skycamHistoryIndex < 0) return;
+  const entry = skycamHistory[skycamHistoryIndex];
+  if (!entry || !entry.id) return;
+
+  // The authenticated Render endpoint supplies Content-Disposition so Safari,
+  // mobile browsers and desktop browsers all receive the original JPEG as a
+  // download without exposing the private Vultr origin.
+  const link = document.createElement("a");
+  link.href = `/skycam/download/${encodeURIComponent(entry.id)}`;
+  link.download = `${entry.id}.jpg`;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function goSkyCamLive(options = {}) {
+  if (options.manual !== false) stopSkyCamPlayback(false);
+
+  if (skycamHistory.length) {
+    showSkyCamHistory(skycamHistory.length - 1, { manual: false });
+    return;
+  }
+
+  transitionSkyCamImage(`${SKYCAM_ENDPOINT}?t=${Date.now()}`, SKYCAM_FADE_MS).catch((error) => {
+    console.error("SkyCam live transition error:", error);
+  });
+  skycamHistoryIndex = -1;
+  updateSkyCamControls();
+}
+
+function stepSkyCam(direction) {
+  stopSkyCamPlayback(false);
+  if (!skycamHistory.length) {
+    updateSkyCamControls();
+    return;
+  }
+
+  if (skycamHistoryIndex < 0) skycamHistoryIndex = skycamHistory.length - 1;
+  const target = Math.max(0, Math.min(skycamHistoryIndex + direction, skycamHistory.length - 1));
+  showSkyCamHistory(target, { manual: false });
+}
+
+function sampleSkyCamTimelapseIndices() {
+  if (!skycamHistory.length) return [];
+
+  const latestMs = Date.parse(skycamHistory[skycamHistory.length - 1].capturedAt);
+  if (!Number.isFinite(latestMs)) return skycamHistory.map((_, index) => index);
+
+  const cutoffMs = latestMs - SKYCAM_TIMELAPSE_WINDOW_MS;
+  const candidates = [];
+  skycamHistory.forEach((entry, index) => {
+    const capturedMs = Date.parse(entry.capturedAt);
+    if (Number.isFinite(capturedMs) && capturedMs >= cutoffMs && capturedMs <= latestMs) {
+      candidates.push(index);
+    }
+  });
+
+  if (candidates.length <= SKYCAM_TIMELAPSE_MAX_FRAMES) return candidates;
+
+  const sampled = [];
+  for (let i = 0; i < SKYCAM_TIMELAPSE_MAX_FRAMES; i += 1) {
+    const position = Math.round(i * (candidates.length - 1) / (SKYCAM_TIMELAPSE_MAX_FRAMES - 1));
+    const index = candidates[position];
+    if (sampled[sampled.length - 1] !== index) sampled.push(index);
+  }
+  return sampled;
+}
+
+function preloadSkyCamFrame(url) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = async () => {
+      try {
+        if (typeof image.decode === "function") await image.decode();
+      } catch (error) {
+        // The image is already loaded; decoding hints are best-effort only.
+      }
+      resolve(true);
+    };
+    image.onerror = () => resolve(false);
+    image.src = url;
+  });
+}
+
+function prefetchSkyCamFrames(indices, startAt) {
+  for (let offset = 1; offset <= 2; offset += 1) {
+    const nextIndex = indices[startAt + offset];
+    const entry = Number.isInteger(nextIndex) ? skycamHistory[nextIndex] : null;
+    if (entry) {
+      const image = new Image();
+      image.src = entry.url;
+    }
+  }
+}
+
+function waitForSkyCamPlayback(ms, token) {
+  return new Promise((resolve) => {
+    window.setTimeout(() => resolve(token === skycamPlaybackToken && skycamPlaying), ms);
+  });
+}
+
+async function startSkyCamTimelapse() {
+  const indices = sampleSkyCamTimelapseIndices();
+  if (indices.length < 2) {
+    goSkyCamLive({ manual: false });
+    return;
+  }
+
+  stopSkyCamPlayback(false);
+  skycamPlaying = true;
+  skycamPlaybackToken += 1;
+  const token = skycamPlaybackToken;
+  updateSkyCamControls();
+
+  for (let position = 0; position < indices.length; position += 1) {
+    if (!skycamPlaying || token !== skycamPlaybackToken) return;
+
+    const historyIndex = indices[position];
+    const entry = skycamHistory[historyIndex];
+    if (!entry) continue;
+
+    await preloadSkyCamFrame(entry.url);
+    if (!skycamPlaying || token !== skycamPlaybackToken) return;
+
+    showSkyCamHistory(historyIndex, { manual: false });
+    prefetchSkyCamFrames(indices, position);
+
+    if (position < indices.length - 1) {
+      const keepPlaying = await waitForSkyCamPlayback(SKYCAM_TIMELAPSE_FRAME_MS, token);
+      if (!keepPlaying) return;
+    }
+  }
+
+  if (token !== skycamPlaybackToken) return;
+  skycamPlaying = false;
+  goSkyCamLive({ manual: false });
+}
+
+function toggleSkyCamTimelapse() {
+  if (skycamPlaying) {
+    stopSkyCamPlayback(true);
+    return;
+  }
+  startSkyCamTimelapse().catch((error) => {
+    console.error("SkyCam timelapse error:", error);
+    stopSkyCamPlayback(true);
+  });
+}
+
+async function loadSkyCamHistory() {
+  const wasLive = skycamHistoryIndex < 0 || isSkyCamLive();
+  const selectedId = !wasLive && skycamHistory[skycamHistoryIndex]
+    ? skycamHistory[skycamHistoryIndex].id
+    : null;
+  const previousLiveId = isSkyCamLive() && skycamHistory[skycamHistoryIndex]
+    ? skycamHistory[skycamHistoryIndex].id
+    : null;
+
+  const response = await fetch(`${SKYCAM_HISTORY_ENDPOINT}?t=${Date.now()}`, {
+    cache: "no-store",
+  });
+
+  if (response.status === 401) {
+    window.location.assign("/login");
+    return;
+  }
+  if (!response.ok) throw new Error(`SkyCam history returned ${response.status}`);
+
+  const payload = await response.json();
+  const images = Array.isArray(payload.images) ? payload.images : [];
+  skycamHistory = images.filter((entry) => entry && entry.id && entry.url && entry.capturedAt);
+
+  if (!skycamHistory.length) {
+    skycamHistoryIndex = -1;
+    updateSkyCamControls();
+    return;
+  }
+
+  if (wasLive) {
+    const newestIndex = skycamHistory.length - 1;
+    const newestId = skycamHistory[newestIndex].id;
+    skycamHistoryIndex = newestIndex;
+    if (newestId !== previousLiveId) showSkyCamHistory(newestIndex, { manual: false });
+    else updateSkyCamControls();
+    return;
+  }
+
+  const newIndex = skycamHistory.findIndex((entry) => entry.id === selectedId);
+  if (newIndex >= 0) {
+    skycamHistoryIndex = newIndex;
+    updateSkyCamControls();
+    return;
+  }
+
+  // If a very old selected frame has rolled out of the retained history,
+  // remain at the oldest frame still available instead of unexpectedly jumping live.
+  showSkyCamHistory(0, { manual: false });
+}
+
+function applySkyCamFocusState(enabled) {
+  const container = document.querySelector(".skycam-container");
+  if (!container) return;
+
+  skycamFocusMode = Boolean(enabled);
+  container.classList.toggle("skycam-focus-mode", skycamFocusMode);
+  document.body.classList.toggle("skycam-focus-open", skycamFocusMode);
+  updateSkyCamControls();
+}
+
+async function enterSkyCamFocus() {
+  const container = document.querySelector(".skycam-container");
+  if (!container || skycamFocusMode) return;
+
+  applySkyCamFocusState(true);
+
+  // Use native fullscreen where the browser supports it. iPhone Safari may not
+  // expose Element.requestFullscreen for ordinary HTML, so the CSS focus mode
+  // above is the dependable fallback and still keeps every SkyCam control usable.
+  try {
+    if (!document.fullscreenElement && typeof container.requestFullscreen === "function") {
+      await container.requestFullscreen();
+    }
+  } catch (error) {
+    // CSS focus mode remains active when native fullscreen is unavailable/denied.
+  }
+
+  // Orientation locking is best-effort and standards-compliant browsers may
+  // require native fullscreen first. The viewer still works when this is denied.
+  try {
+    if (
+      document.fullscreenElement === container &&
+      screen.orientation &&
+      typeof screen.orientation.lock === "function"
+    ) {
+      await screen.orientation.lock("landscape");
+    }
+  } catch (error) {
+    // Portrait users get a subtle landscape hint instead; never block the viewer.
+  }
+}
+
+async function exitSkyCamFocus() {
+  const container = document.querySelector(".skycam-container");
+  if (!container) return;
+
+  applySkyCamFocusState(false);
+
+  try {
+    if (screen.orientation && typeof screen.orientation.unlock === "function") {
+      screen.orientation.unlock();
+    }
+  } catch (error) {
+    // Orientation unlock is advisory only.
+  }
+
+  try {
+    if (document.fullscreenElement === container && typeof document.exitFullscreen === "function") {
+      await document.exitFullscreen();
+    }
+  } catch (error) {
+    // CSS focus state is already cleared.
+  }
+}
+
+function toggleSkyCamFocus() {
+  if (skycamFocusMode) {
+    exitSkyCamFocus();
+  } else {
+    enterSkyCamFocus();
+  }
+}
+
+function refreshSkyCam() {
+  if (skycamPlaying) return;
+  loadSkyCamHistory().catch((error) => {
+    console.error("SkyCam history error:", error);
+    updateSkyCamControls();
+  });
+}
+
+window.addEventListener("load", () => {
+  fetchWeather();
+  loadSkyCamHistory().catch((error) => {
+    console.error("SkyCam history error:", error);
+    updateSkyCamControls();
+  });
+  setInterval(refreshSkyCam, 60000);
+});
+  </script>
+<script>
+    /* Desktop layout enhancement isolated from weather-data logic. */
+    (function () {
+      const LAYOUT_KEY = "mooreWeatherDesktopLayout";
+      const LANDSCAPE_MIN_WIDTH = 900;
+
+      function isMobile() {
+        return window.matchMedia && window.matchMedia("(max-width: 600px)").matches;
+      }
+
+      function automaticLayout() {
+        return window.innerWidth >= LANDSCAPE_MIN_WIDTH && window.innerWidth > window.innerHeight
+          ? "landscape"
+          : "portrait";
+      }
+
+      function updateButtons(layout) {
+        const portraitBtn = document.getElementById("portraitLayoutBtn");
+        const landscapeBtn = document.getElementById("landscapeLayoutBtn");
+        if (!portraitBtn || !landscapeBtn) return;
+
+        portraitBtn.classList.toggle("active", layout === "portrait");
+        landscapeBtn.classList.toggle("active", layout === "landscape");
+        portraitBtn.setAttribute("aria-pressed", layout === "portrait" ? "true" : "false");
+        landscapeBtn.setAttribute("aria-pressed", layout === "landscape" ? "true" : "false");
+      }
+
+      function applyLayout(requestedLayout, persist) {
+        let layout = requestedLayout === "landscape" ? "landscape" : "portrait";
+
+        if (isMobile()) {
+          layout = "portrait";
+        } else if (layout === "landscape" && window.innerWidth < LANDSCAPE_MIN_WIDTH) {
+          layout = "portrait";
+        }
+
+        document.body.classList.toggle("layout-landscape", layout === "landscape");
+        document.body.classList.toggle("layout-portrait", layout === "portrait");
+        updateButtons(layout);
+
+        if (persist) {
+          try {
+            localStorage.setItem(LAYOUT_KEY, requestedLayout);
+          } catch (error) {
+            console.warn("Could not save desktop layout preference:", error);
+          }
+        }
+      }
+
+      function savedOrAutomaticLayout() {
+        let saved = null;
+        try {
+          saved = localStorage.getItem(LAYOUT_KEY);
+        } catch (error) {
+          saved = null;
+        }
+        return saved === "portrait" || saved === "landscape" ? saved : automaticLayout();
+      }
+
+      window.setDesktopLayout = function (layout) {
+        try {
+          applyLayout(layout, true);
+        } catch (error) {
+          console.error("Desktop layout switch error:", error);
+        }
+      };
+
+      function initialiseLayoutSafely() {
+        try {
+          applyLayout(savedOrAutomaticLayout(), false);
+        } catch (error) {
+          // Layout must never interfere with weather-data fetching.
+          console.error("Desktop layout initialisation error:", error);
+        }
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initialiseLayoutSafely, { once: true });
+      } else {
+        initialiseLayoutSafely();
+      }
+
+      window.addEventListener("resize", initialiseLayoutSafely);
+    })();
+  </script>
+<script>
+
+
+
+
+(function () {
+  const stage = document.getElementById("skycamImageStage");
+  const container = document.querySelector(".skycam-container");
+  if (!stage || !container) return;
+
+  // Preserve the convenient click-to-expand behavior on mouse/trackpad devices.
+  // Touch devices use the explicit maximise button so swiping frames never exits
+  // the viewer by accident.
+  const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+  stage.addEventListener("click", () => {
+    if (finePointer.matches && !skycamFocusMode) enterSkyCamFocus();
+  });
+
+  document.addEventListener("fullscreenchange", () => {
+    if (skycamFocusMode && !document.fullscreenElement) {
+      applySkyCamFocusState(false);
+    } else if (document.fullscreenElement === container && !skycamFocusMode) {
+      applySkyCamFocusState(true);
+    }
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || document.querySelector('dialog[open]')) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (event.key === "ArrowLeft") stepSkyCam(-1);
+    if (event.key === "ArrowRight") stepSkyCam(1);
+    if (event.key === "Escape" && skycamFocusMode) {
+      event.preventDefault();
+      exitSkyCamFocus();
+    }
+  });
+
+  let touchStartX = null;
+  stage.addEventListener("touchstart", (event) => {
+    if (event.touches.length === 1) touchStartX = event.touches[0].clientX;
+  }, { passive: true });
+  stage.addEventListener("touchend", (event) => {
+    if (touchStartX === null || !event.changedTouches.length) return;
+    const delta = event.changedTouches[0].clientX - touchStartX;
+    touchStartX = null;
+    if (Math.abs(delta) < 45) return;
+    stepSkyCam(delta > 0 ? -1 : 1);
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>

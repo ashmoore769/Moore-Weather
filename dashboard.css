@@ -1,0 +1,170 @@
+/* Shared finish: quiet surfaces, measured accents, compact station identity. */
+:root { --card-line:#438fbd; --card-radius:16px; }
+html[data-theme="dark"] {
+  --surface:#121b27; --surface-soft:#141f2c; --surface-raised:#172331;
+  --border:#293746; --border-strong:#3c4d60;
+}
+.dashboard-header { background:var(--surface); }
+.dashboard-masthead,
+body.layout-landscape .dashboard-masthead {
+  grid-template-areas:"identity tools" "observation status" "navigation navigation";
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px 16px; padding:18px 20px 12px; background:var(--surface);
+}
+.dashboard-identity,
+body.layout-landscape .dashboard-identity { gap:11px; }
+.dashboard-identity img,
+body.layout-landscape .dashboard-identity img { width:42px; height:42px; border-radius:11px; }
+.dashboard-identity h1,
+body.layout-landscape .dashboard-identity h1 { font-size:21px; letter-spacing:-.55px; }
+.dashboard-location,
+body.layout-landscape .dashboard-location { margin:5px 0 0; color:var(--muted); font-size:10px; font-weight:600; letter-spacing:1.15px; }
+.dashboard-observation,
+body.layout-landscape .dashboard-observation { display:flex; flex-wrap:wrap; gap:3px 12px; font-size:11px; }
+.dashboard-observation > div { gap:0; }
+.dashboard-field-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.dashboard-status,
+body.layout-landscape .dashboard-status { flex-direction:row; align-items:center; gap:7px; }
+.dashboard-status .status-badge { min-width:0; min-height:22px; padding:3px 7px; font-size:9px; }
+.dashboard-status #freshnessText { font-size:10px; }
+.dashboard-tools { gap:4px; }
+.dashboard-tool,.dashboard-tools .desktop-layout-switcher button { border-color:transparent; background:transparent; text-decoration:none; }
+.dashboard-navigation,
+body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0; margin:0; border-bottom:0; gap:10px; }
+.dashboard-tab,body.layout-landscape .dashboard-tab { min-height:44px; font-size:12px; }
+.dashboard-history-button { min-height:44px; }
+.dashboard-history-hint { font-size:10px; }
+.panel-card { background:var(--surface); box-shadow:none; border-radius:var(--card-radius); }
+.temp-hero,.temp-hero:first-child,.quick-stat,.daily-reading-card,.temperature-compact,.rain-hero,.soil-depth-card {
+  background:var(--surface); border-color:var(--border); box-shadow:none;
+  border-top:2px solid color-mix(in srgb,var(--history-color,var(--stat-accent,var(--reading-accent,var(--temperature-accent,var(--card-line))))) 65%,var(--surface));
+}
+.temp-hero::after,.quick-stat::after { content:none; }
+.primary-card { background:transparent; padding:0; border:0; border-radius:0; }
+.layout-soil { border-top:3px solid #658d75; display:flex; flex-direction:column; }
+.layout-power { border-top:3px solid #a58d55; }
+.skycam-container { border:0; box-shadow:none; border-radius:var(--card-radius); }
+.water-panel { border-radius:var(--card-radius); }
+.primary-meta { gap:10px; margin-top:10px; }
+.temperature-heroes { gap:10px; }
+.primary-temp { font-size:38px; line-height:1.12; }
+.quick-stat .label { font-size:10px; line-height:1.3; }
+.quick-stat .value { font-size:23px; line-height:1.2; letter-spacing:-.5px; }
+.quick-stat .value .unit-suffix { font-size:12px; letter-spacing:0; }
+.quick-stat-subline { font-size:11px; line-height:1.35; }
+.quick-stat.rain-stat { border-top-color:var(--rain); }
+.rain-stat .value { font-size:30px; font-weight:800; color:var(--rain); }
+.rain-stat .value .unit-suffix { font-size:14px; font-weight:600; }
+.reading-card-value { font-size:30px; }
+.rain-hero .value { font-weight:800; }
+.content-layout { padding-top:4px; gap:14px; }
+.section-card { padding:16px; }
+.section-title { letter-spacing:1px; }
+.layout-power .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; }
+.power-trend-label { font-size:10px; color:var(--muted); font-weight:500; }
+.layout-power .metric-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 20px; }
+.layout-power .metric-row { display:grid; grid-template-columns:minmax(0,1fr); align-content:start; gap:4px; min-width:0; padding:0; border:0; }
+.layout-power .metric-label { font-size:11px; color:var(--muted); }
+.layout-power .metric-value { text-align:left; font-size:22px; line-height:1.3; font-weight:650; letter-spacing:-.4px; font-variant-numeric:tabular-nums; }
+.layout-power .metric-value .unit-suffix { font-size:11px; }
+.layout-power .history-spark { grid-column:1; margin-top:2px; }
+.layout-power .history-spark svg { height:24px; }
+.layout-power .history-spark-caption { display:none; }
+.soil-profile-plot,.soil-profile-plot:has(.history-card) { height:410px; flex-shrink:0; margin-top:auto; background:var(--surface); border-color:var(--border); box-shadow:none; }
+.soil-profile-plot .soil-layer { background:var(--surface); border-bottom:1px solid var(--border); }
+.soil-profile-plot .soil-layer::before,.soil-profile-plot .soil-layer::after { content:none; }
+html[data-theme="dark"] .soil-layers { filter:none; }
+.soil-readings { inset:55px 7px 9px 64px; display:grid; grid-template-rows:repeat(5,minmax(0,1fr)); gap:6px; }
+.soil-readings .soil-reading { position:relative; top:auto; left:auto; right:auto; transform:none; min-height:0; padding:5px; background:var(--surface-soft); color:var(--text); border-color:var(--border); box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+.soil-reading-depth { background:var(--surface-raised); }
+.soil-reading::before { border-top-color:var(--border-strong); }
+.soil-reading::after { border-color:var(--border-strong); box-shadow:none; }
+.soil-reading-value-label { color:var(--muted); }
+.soil-reading-value .history-spark { color:var(--history-color,var(--accent)); }
+.soil-readings .soil-ground-reading::before,.soil-readings .soil-ground-reading::after { content:none; }
+.soil-readings .soil-ground-reading .soil-reading-value { grid-column:2; }
+.soil-readings .soil-ground-reading .soil-reading-value.temp { --reading-accent:var(--ground-temp-color,#f4b85b); }
+.soil-readings .soil-reading-value-label { font-size:8px; }
+.soil-readings .soil-reading-value-number { font-size:17px; line-height:1.15; }
+.soil-readings .soil-reading-value { justify-content:center; }
+.soil-profile-plot:has(.history-card) .soil-probe-image { height:386px; }
+.soil-layers { grid-template-rows:2fr 1fr 1fr 1fr; }
+.soil-profile-caption { margin:5px 0 12px; line-height:1.5; font-weight:400; }
+.layout-soil .soil-profile-header { display:flex; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:8px 12px; text-align:left; }
+.layout-soil .section-title { flex:0 0 auto; text-align:left; }
+.layout-soil .soil-profile-caption { text-align:left; align-self:stretch; }
+.soil-readings .soil-reading-value { align-items:flex-start; text-align:left; }
+.soil-readings .soil-reading-value-number { max-width:100%; }
+.daily-section { margin-bottom:24px; }
+.summary-hero { padding-bottom:18px; }
+.summary-date { margin-top:6px; font-size:30px; }
+.history-header { background:var(--surface); color:var(--text); border-top:3px solid var(--history-color,var(--card-line)); }
+.history-brand span { color:var(--muted); }
+.history-close { color:var(--text); border-color:var(--border); background:var(--surface-soft); }
+.history-close:hover { background:var(--surface-raised); }
+.history-heading { background:var(--surface); }
+@media(min-width:900px) {
+  body.layout-landscape .main-container { width:min(100% - 48px,1360px); }
+  body.layout-landscape .dashboard-masthead { padding:16px 24px 12px; }
+  body.layout-landscape #weatherData { padding:14px 24px 24px; }
+  body.layout-landscape .content-layout { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:stretch; }
+  body.layout-landscape .landscape-left,body.layout-landscape .landscape-right { gap:18px; align-self:stretch; }
+  body.layout-landscape .skycam-image-stage { min-height:0; }
+  body.layout-landscape .layout-primary { padding:0; }
+  body.layout-landscape .layout-power { align-self:stretch; margin-top:auto; }
+  body.layout-landscape .landscape-left .layout-power { order:3; }
+  body.layout-landscape .landscape-right .layout-soil { order:2; flex:1; }
+}
+/* The header uses the spare middle column only when it has room to breathe. */
+@media(min-width:1100px) {
+  body.layout-landscape .dashboard-masthead {
+    grid-template-areas:"identity navigation tools" "observation observation status";
+    grid-template-columns:minmax(225px,1fr) auto minmax(210px,1fr);
+    column-gap:24px; row-gap:8px;
+  }
+  body.layout-landscape .dashboard-navigation { border:0; gap:22px; align-self:center; }
+  body.layout-landscape .dashboard-tabs { gap:22px; }
+  body.layout-landscape .dashboard-history-hint { display:none; }
+  body.layout-landscape .dashboard-tab { min-height:42px; font-size:13px; }
+}
+@media(max-width:600px) {
+  .dashboard-masthead,body.layout-landscape .dashboard-masthead { padding:14px 14px 10px; gap:10px; }
+  .dashboard-identity img,body.layout-landscape .dashboard-identity img { width:36px; height:36px; border-radius:9px; }
+  .dashboard-identity h1,body.layout-landscape .dashboard-identity h1 { font-size:18px; }
+  .dashboard-location,body.layout-landscape .dashboard-location { font-size:9px; letter-spacing:.8px; }
+  .dashboard-tools .dashboard-tool { padding:0; }
+  .dashboard-observation,body.layout-landscape .dashboard-observation { flex-direction:column; gap:2px; font-size:10px; }
+  .dashboard-status,body.layout-landscape .dashboard-status { flex-direction:column; align-items:flex-end; gap:4px; }
+  .dashboard-navigation,body.layout-landscape .dashboard-navigation { margin:0; }
+  .primary-card { padding:0; }
+  .primary-temp { font-size:32px; }
+  .quick-stat { grid-template-columns:22px minmax(0,1fr); column-gap:6px; }
+  .quick-stat-icon { width:22px; height:26px; border:0; background:transparent; }
+  .quick-stat .value { font-size:20px; }
+  .quick-stat .label { font-size:9px; }
+  .rain-stat .value { font-size:26px; }
+  .quick-stat.evap-stat .value { font-size:20px; }
+  .quick-stat-subline { font-size:10px; }
+  .reading-card-value { font-size:26px; }
+  .section-card { padding:13px; }
+  .soil-profile-caption { font-size:10px; }
+}
+@media(max-width:420px) {
+  .dashboard-identity > div { min-width:0; }
+  .dashboard-identity h1,body.layout-landscape .dashboard-identity h1 { white-space:normal; }
+}
+@media(max-width:359px) {
+  .dashboard-identity { gap:7px; }
+  .dashboard-identity h1,body.layout-landscape .dashboard-identity h1 { font-size:15px; }
+  .dashboard-identity img,body.layout-landscape .dashboard-identity img { width:30px; height:30px; }
+  .soil-readings { left:55px; right:5px; gap:5px; }
+  .soil-readings .soil-reading { grid-template-columns:31px repeat(2,minmax(0,1fr)); gap:3px; padding:4px; }
+  .soil-readings .soil-reading-value { padding-left:4px; }
+  .soil-readings .soil-reading-value-label { font-size:7px; }
+  .soil-readings .soil-reading-value-number { font-size:14px; }
+  .quick-stat { grid-template-columns:minmax(0,1fr); }
+  .quick-stat-icon { display:none; }
+  .quick-stat .value { font-size:21px; }
+  .rain-stat .value { font-size:27px; }
+  .primary-temp { font-size:28px; }
+}

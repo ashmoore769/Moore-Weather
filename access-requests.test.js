@@ -34,7 +34,7 @@ test('request is persisted before acknowledgement; a known delivery outage block
   assert.deepEqual(service.status(), { enabled: true, retryAfter: 0 });
   const first = await service.submit(person, 'first-client');
   assert.equal(first.status, 202); assert.equal(first.body.ok, true);
-  assert.match(first.body.message, /details have been saved/);
+  assert.match(first.body.message, /request is saved/);
   assert.doesNotMatch(first.body.message, /email sent|delivered|password sent/i);
   assert.equal(f.calls.length, 0); assert.equal(f.rows()[0].email, person.email);
   await service.runDue();
@@ -287,7 +287,7 @@ test('a normal submission waits for Formspree acceptance and a duplicate does no
   const f = fixture(t), service = f.make();
   const result = await service.submitAndDeliver(person);
   assert.equal(result.status, 200); assert.equal(result.body.delivery, 'accepted');
-  assert.match(result.body.message, /Request submitted/); assert.doesNotMatch(result.body.message, /delivered|inbox/);
+  assert.match(result.body.message, /Thanks for requesting access/); assert.doesNotMatch(result.body.message, /delivered|inbox/);
   assert.equal(f.calls.length, 1);
   assert.equal((await service.submitAndDeliver(person)).body.delivery, 'accepted');
   assert.equal(f.calls.length, 1);
@@ -305,7 +305,7 @@ test('Formspree rejects or challenges a submission without causing a success con
     const f = fixture(t, async () => response), service = f.make();
     const result = await service.submitAndDeliver(person);
     assert.equal(result.status, 202); assert.equal(result.body.delivery, 'delayed');
-    assert.match(result.body.message, /could not be sent/);
+    assert.match(result.body.message, /notification hasn't gone through yet/);
     assert.equal(f.rows()[0].email, person.email); assert.equal(f.rows()[0].last_failure, failure);
   }
 });

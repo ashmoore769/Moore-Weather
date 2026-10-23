@@ -391,12 +391,15 @@ const PUBLIC_APP_ASSETS = new Map([
   ["/dashboard.css", "dashboard.css"],
   ["/login.css", "login.css"],
   ["/login.js", "login.js"],
+  ["/help.html", "help.html"],
+  ["/install-help.css", "install-help.css"],
+  ["/install-help.js", "install-help.js"],
   ["/sw.js", "sw.js"],
 ]);
 
 for (const [route, filename] of PUBLIC_APP_ASSETS) {
   app.get(route, (req, res) => {
-    res.set("Cache-Control", filename === "sw.js" || filename === "site.webmanifest" ? "no-cache" : "public, max-age=86400");
+    res.set("Cache-Control", ["sw.js", "site.webmanifest", "help.html"].includes(filename) ? "no-cache" : "public, max-age=86400");
     res.sendFile(path.join(__dirname, "public", filename));
   });
 }
