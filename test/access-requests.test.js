@@ -8,7 +8,7 @@ const express = require('express');
 const { DatabaseSync } = require('node:sqlite');
 const { createAccessRequests, RequestQueue, RETRY_BASE_MS, LEASE_MS, DEDUP_MS, MAX_PENDING, RETENTION_MS } = require('../lib/access-requests');
 const person = { name: 'Test Visitor', email: 'visitor+weather@example.com', website: '' };
-const accepted = () => ({ ok: true, status: 200, json: async () => ({ success: 'true' }) });
+const accepted = () => ({ ok: true, status: 200, json: async () => ({ next: '/thanks', ok: true }) });
 
 function fixture(t, fetchImpl = async () => accepted()) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'moore-access-'));
@@ -16,7 +16,7 @@ function fixture(t, fetchImpl = async () => accepted()) {
   let now = 1000000;
   const services = [], calls = [], logs = [];
   const make = (override = {}) => {
-    const service = createAccessRequests({ env: { WEATHER_DB_PATH: path.join(dir, 'weather.sqlite'), ...override }, clock: () => now,
+    const service = createAccessRequests({ env: { WEATHER_DB_PATH: path.join(dir, 'weather.sqlite'), ...override }, clock: () => now, responseWaitMs: 20,
       logger: { warn: m => logs.push(m), info: m => logs.push(m) },
       fetchImpl: async (...args) => { calls.push(args); return fetchImpl(...args); } });
     services.push(service); return service;
@@ -76,13 +76,13 @@ test('provider receives fixed whitelisted fields and actual form origin; visitor
     _replyto: 'attacker@example.com', _autoresponse: 'password', _webhook: 'https://foreign.example', _subject: 'Override' });
   await service.runDue();
   const [url, options] = f.calls[0], body = JSON.parse(options.body);
-  assert.equal(url, 'https://formsubmit.co/ajax/ashmoore01@hotmail.com');
-  assert.equal(body.name, person.name); assert.equal(body.email, person.email); assert.equal(body._replyto, person.email);
-  assert.equal(body._subject, 'Moore Weather access request'); assert.equal(body._url, 'https://moore-weather.onrender.com/login');
-  assert.equal(options.headers.Referer, body._url); assert.equal(options.headers.Origin, 'https://moore-weather.onrender.com');
+  assert.equal(url, 'https://formspree.io/f/mrppzvvk');
+  assert.equal(body.name, person.name); assert.equal(body.email, person.email);
+  assert.equal(body.subject, 'Moore Weather access request'); assert.equal(body.source, 'https://moore-weather.onrender.com/login');
+  assert.equal(options.headers.Referer, body.source); assert.equal(options.headers.Origin, 'https://moore-weather.onrender.com');
   assert.match(body.request_reference, /^[0-9a-f-]{36}$/);
   assert.match(body.message, /Access has not been granted automatically/);
-  for (const field of ['html', '_cc', '_autoresponse', '_webhook', 'website']) assert.ok(!(field in body));
+  for (const field of ['html', '_cc', '_autoresponse', '_webhook', 'website', '_replyto', '_url', '_captcha', '_template', '_subject']) assert.ok(!(field in body));
   assert.ok(options.signal); assert.equal(options.redirect, 'error');
   assert.ok(!('Authorization' in options.headers));
 });
@@ -108,7 +108,7 @@ test('failed or ambiguous provider replies retain the request and redact provide
     [async () => { throw new DOMException('visitor@example.com secret', 'TimeoutError'); }, 'provider_timeout'],
     [async () => ({ ok: false, status: 403 }), 'provider_http_403'],
     [async () => ({ ok: true, json: async () => { throw SyntaxError('secret'); } }), 'provider_invalid_json'],
-    ...[{}, null, { success: false }, { success: 'false' }, { success: 1 }, { success: 'yes' }].map(result =>
+    ...[{}, { success: false }, { success: 'false' }, { success: 1 }, { success: 'yes' }].map(result =>
       [async () => ({ ok: true, json: async () => result }), 'provider_unconfirmed']),
     [async () => ({ ok: true, json: async () => ({ success: 'false', message: 'Please activate form for visitor@example.com TOKEN_SECRET' }) }), 'activation_required']
   ];
@@ -196,7 +196,7 @@ test('HTTP acknowledgement returns while provider is still pending; origins, dup
 });
 
 
-test('existing HTTP 403 failures disable intake immediately after upgrade and survive restart', async t => {
+test('Formspree HTTP 403 failures persist across restart and health-table recovery', async t => {
   const f = fixture(t, async () => ({ ok: false, status: 403 }));
   const a = f.make();
   await a.submit(person); await a.runDue(); await a.close();
@@ -239,4 +239,83 @@ test('owner recovery is read-only, includes blocked requests, and does not prune
   const missing = path.join(f.dir, 'missing.sqlite');
   assert.throws(() => readRequests({ ACCESS_REQUEST_DB_PATH: missing }));
   assert.equal(fs.existsSync(missing), false);
+});
+
+test('FormSubmit migration preserves pending visitors and retries them through Formspree once enabled', async t => {
+  const f = fixture(t);
+  const old = new RequestQueue(f.filename);
+  const first = old.enqueue(person, f.now());
+  const second = old.enqueue({ name: 'Another Visitor', email: 'another@example.com' }, f.now());
+  old.finish(old.take(f.now()), f.now(), 'provider_http_403');
+  const saved = f.rows().map(r => ({ id: r.id, name: r.name, email: r.email, created_at: r.created_at, expires_at: r.expires_at }));
+  old.db.exec('DROP TABLE access_request_provider'); old.close();
+  const paused = f.make({ ACCESS_REQUESTS_ENABLED: 'false' });
+  assert.equal(paused.status().enabled, false); await paused.runDue(); assert.equal(f.calls.length, 0);
+  assert.equal(f.rows()[0].last_failure, 'provider_http_403');
+  const service = f.make();
+  assert.equal(service.status().enabled, true);
+  assert.deepEqual(f.rows().map(r => ({ id: r.id, name: r.name, email: r.email, created_at: r.created_at, expires_at: r.expires_at })), saved);
+  await service.runDue();
+  assert.equal(f.calls.length, 2);
+  assert.ok(f.calls.every(([url]) => url === 'https://formspree.io/f/mrppzvvk'));
+  assert.deepEqual(new Set(f.calls.map(([, opts]) => JSON.parse(opts.body).request_reference)), new Set([first.id, second.id]));
+  await service.close(); await f.make().runDue(); assert.equal(f.calls.length, 2);
+});
+
+test('provider migration does not steal an active delivery lease', async t => {
+  const f = fixture(t), old = new RequestQueue(f.filename);
+  old.enqueue(person, f.now()); const item = old.take(f.now()); old.close();
+  const service = f.make(); await service.runDue();
+  assert.equal(f.calls.length, 0); assert.equal(f.rows()[0].lease_until, item.lease_until || f.now() + LEASE_MS);
+  f.advance(LEASE_MS); await service.runDue();
+  assert.equal(f.calls.length, 1); assert.equal(f.rows()[0].state, 'sent');
+});
+
+test('the Formspree response contract rejects redirects to verification, errors, legacy flags and ambiguous replies', () => {
+  const { providerAccepted } = require('../lib/access-requests');
+  assert.equal(providerAccepted({ next: '/thanks' }), true);
+  assert.equal(providerAccepted({ next: 'https://formspree.io/thanks', ok: true }), true);
+  for (const body of [null, [], {}, { success: 'true' }, { ok: true }, { next: '' },
+    { next: '/thanks', ok: false }, { next: '/thanks', ok: 'false' },
+    { next: '/thanks', errors: [{ message: 'Inactive' }] }, { next: '/thanks', error: 'Rejected' },
+    { next: '/captcha' }, { next: '/verify/email' }, { next: '/thanks', stripe: {} }]) {
+    assert.equal(providerAccepted(body), false, JSON.stringify(body));
+  }
+});
+
+test('a normal submission waits for Formspree acceptance and a duplicate does not send twice', async t => {
+  const f = fixture(t), service = f.make();
+  const result = await service.submitAndDeliver(person);
+  assert.equal(result.status, 200); assert.equal(result.body.delivery, 'accepted');
+  assert.match(result.body.message, /Request submitted/); assert.doesNotMatch(result.body.message, /delivered|inbox/);
+  assert.equal(f.calls.length, 1);
+  assert.equal((await service.submitAndDeliver(person)).body.delivery, 'accepted');
+  assert.equal(f.calls.length, 1);
+});
+
+test('Formspree rejects or challenges a submission without causing a success confirmation or deleting the request', async t => {
+  const cases = [
+    [{ ok: false, status: 403, json: async () => ({ errors: [{ code: 'INACTIVE', message: 'Email activation needed' }] }) }, 'activation_required'],
+    [{ ok: false, status: 404, json: async () => ({ errors: [{ code: 'FORM_NOT_FOUND', message: 'Unknown form' }] }) }, 'provider_form_not_found'],
+    [{ ok: true, status: 200, json: async () => ({ next: '/captcha' }) }, 'provider_captcha'],
+    [{ ok: true, status: 200, json: async () => ({ ok: false, next: '/thanks' }) }, 'provider_unconfirmed'],
+    [{ ok: true, status: 200, json: async () => ({ next: '/thanks', errors: [{ message: 'Rejected' }] }) }, 'provider_unconfirmed']
+  ];
+  for (const [response, failure] of cases) {
+    const f = fixture(t, async () => response), service = f.make();
+    const result = await service.submitAndDeliver(person);
+    assert.equal(result.status, 202); assert.equal(result.body.delivery, 'delayed');
+    assert.match(result.body.message, /could not be sent/);
+    assert.equal(f.rows()[0].email, person.email); assert.equal(f.rows()[0].last_failure, failure);
+  }
+});
+
+test('a slow provider returns a saved/pending receipt and later finishes without a second submission', async t => {
+  let release;
+  const f = fixture(t, () => new Promise(resolve => { release = resolve; })), service = f.make();
+  const result = await service.submitAndDeliver(person);
+  assert.equal(result.status, 202); assert.equal(result.body.delivery, 'pending');
+  assert.equal(f.rows()[0].state, 'sending'); assert.equal(f.calls.length, 1);
+  release(accepted()); await service.runDue();
+  assert.equal(f.rows()[0].state, 'sent'); assert.equal(f.calls.length, 1);
 });

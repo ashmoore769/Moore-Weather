@@ -11,10 +11,10 @@
   else if (params.get('loggedOut') === '1') message($('loginMessage'), 'This device has been signed out.', 'success');
 
   const form = $('accessRequestForm'), button = $('requestAccessButton'), feedback = $('requestMessage');
-  let enabled = false, busy = false, sent = false;
+  let enabled = false, busy = false, sent = false, delivery = 'pending';
   function paint() {
     button.disabled = !enabled || busy || sent;
-    button.textContent = sent ? 'Request saved' : busy ? 'Saving request…' : 'Request access';
+    button.textContent = sent ? (delivery === 'accepted' ? 'Request submitted' : 'Request saved') : busy ? 'Sending request…' : 'Request access';
   }
   async function checkAvailability() {
     $('requestRetry').hidden = true;
@@ -43,8 +43,9 @@
         body:new URLSearchParams(new FormData(form)), signal:AbortSignal.timeout(15000) });
       const data = await response.json();
       if (response.ok && data.ok === true) {
-        sent = true; form.reset(); message(feedback,data.message);
-        $('requestContact').hidden = false;
+        delivery = data.delivery; sent = true; form.reset();
+        message(feedback, data.message, delivery === 'accepted' ? 'success' : '');
+        $('requestContact').hidden = delivery === 'accepted';
       } else {
         if (data.unavailable === true) { enabled = false; $('requestRetry').hidden = false; }
         $('requestContact').hidden = false;

@@ -37,7 +37,7 @@ test('one click saves, double-click is suppressed, and success says received wit
   const ui = await screen(() => new Promise(resolve => { release = resolve; }));
   assert.equal(ui.button.disabled, false);
   const saving = ui.submit();
-  assert.equal(ui.button.disabled, true); assert.match(ui.button.textContent, /Saving/);
+  assert.equal(ui.button.disabled, true); assert.match(ui.button.textContent, /Sending/);
   await ui.submit(); assert.equal(ui.posts.length, 1);
   assert.equal(ui.form.fields.email, 'visitor@example.com');
   release({ ok: true, status: 202, json: async () => ({ ok: true, message: 'Request received. Your details have been saved.' }) });
@@ -95,4 +95,20 @@ test('contact copy handles both clipboard success and unavailable clipboard', as
   const blocked = await screen(async () => {}, false, async () => { throw Error('Denied'); });
   await blocked.nodes.copyContact.events.click();
   assert.match(blocked.nodes.copyContact.textContent, /Select and copy/);
+});
+
+
+test('only explicit provider acceptance shows confirmation and hides contact fallback', async () => {
+  const ui = await screen(async () => ({ ok: true, status: 200, json: async () => ({ ok: true, delivery: 'accepted', message: 'Request submitted. We will reply by email.' }) }));
+  await ui.submit();
+  assert.equal(ui.button.textContent, 'Request submitted'); assert.equal(ui.button.disabled, true);
+  assert.equal(ui.feedback.dataset.kind, 'success'); assert.equal(ui.nodes.requestContact.hidden, true);
+  assert.equal(ui.form.fields.email, '');
+});
+
+test('saved request with a provider rejection is clearly delayed, without a green confirmation', async () => {
+  const ui = await screen(async () => ({ ok: true, status: 202, json: async () => ({ ok: true, delivery: 'delayed', message: 'Your request is saved, but the email notification could not be sent yet.' }) }));
+  await ui.submit();
+  assert.equal(ui.button.textContent, 'Request saved'); assert.equal(ui.feedback.dataset.kind, '');
+  assert.equal(ui.nodes.requestContact.hidden, false); assert.match(ui.feedback.textContent, /could not be sent/);
 });
