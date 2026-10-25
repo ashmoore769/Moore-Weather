@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="noindex, nofollow, noarchive" name="robots"/>
+<meta content="#0b1119" name="theme-color"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="default" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Moore Weather" name="apple-mobile-web-app-title"/>
+<link href="/site.webmanifest" rel="manifest"/>
+<link href="/moore-weather-touch-v2.png" rel="apple-touch-icon" sizes="180x180"/>
+<link href="/moore-weather-favicon-v3.svg" rel="icon" sizes="any" type="image/svg+xml"/>
+<title>Moore Weather · Forecast &amp; Radar</title>
+<script src="/theme.js?v=4"></script>
+<link rel="stylesheet" href="/forecast.css?v=1">
+<link rel="stylesheet" href="/station-shell.css?v=5">
+<link rel="stylesheet" href="/dashboard.css?v=4">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+<script defer src="/vendor/leaflet/leaflet.js"></script>
+<script defer src="/forecast.js?v=1"></script>
+<script defer src="/radar.js?v=1"></script>
+<script defer src="/station-alerts.js?v=3"></script>
+</head>
+<body class="forecast-page">
+<div class="main-container">
+<header class="dashboard-header" aria-label="Moore Weather dashboard">
+  <div class="dashboard-masthead">
+    <div class="dashboard-identity"><img src="/moore-weather-logo-v2.png" alt="" width="42" height="42"><div><h1>Moore Weather</h1><p class="dashboard-location">WEST WARWICK, QLD</p></div></div>
+    <div class="dashboard-observation"><span>Forecasts for the Warwick area · All times AEST</span></div>
+    <div class="dashboard-status"><span class="forecast-source-tag">Open-Meteo + RainViewer</span></div>
+    <div class="dashboard-tools" aria-label="Dashboard controls">
+      <a class="dashboard-tool" href="/help.html" aria-label="Help: add Moore Weather to your home screen" title="Help and installation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg><span class="dashboard-tool-label">Help</span></a>
+      <button type="button" class="dashboard-tool" id="stationAlertsBtn" aria-label="Station alerts" title="Station alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="dashboard-tool-label">Alerts</span></button>
+      <button type="button" class="dashboard-tool" id="themeToggleBtn" aria-label="Change theme" title="Theme"><span class="theme-icon" id="themeToggleIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span></button>
+      <div class="desktop-layout-switcher" aria-label="Desktop layout">
+        <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2"/></svg></button>
+        <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M11 5v14"/></svg></button>
+      </div>
+    </div>
+  <div class="dashboard-navigation">
+    <nav class="dashboard-tabs" aria-label="Weather views">
+      <a class="dashboard-tab" href="/index.html">Current</a>
+      <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
+      <a class="dashboard-tab" href="/forecast.html" aria-current="page">Forecast</a>
+    </nav>
+    <div class="dashboard-history"><a class="dashboard-history-button" href="#radar">Rain radar <span aria-hidden="true">↓</span></a></div>
+  </div>
+  </div>
+</header>
+<main class="forecast-main" id="forecastMain">
+  <div class="forecast-heading"><div><p class="forecast-eyebrow">A little look ahead</p><h2>Forecast</h2></div><button class="forecast-button" id="refreshForecast" type="button">Refresh forecast <span aria-hidden="true">↻</span></button></div>
+  <p class="feed-status" id="forecastStatus" role="status">Fetching the latest forecast…</p>
+  <section class="forecast-overview" aria-label="Selected day's forecast" aria-busy="true" id="forecastOverview">
+    <div class="forecast-day-summary"><div class="forecast-day-copy"><p class="forecast-eyebrow" id="selectedDate">Warwick area</p><h3 id="selectedCondition">Looking ahead…</h3><p id="selectedDescription">Seven days of weather, with rain front and centre.</p></div><div id="selectedIcon" class="forecast-hero-icon" aria-hidden="true"></div><div class="forecast-temperatures"><strong id="selectedHigh">—</strong><span>High</span><strong id="selectedLow">—</strong><span>Low</span></div></div>
+    <div class="forecast-rain"><p class="forecast-eyebrow">Chance of rain</p><strong id="selectedChance">—</strong><p class="forecast-rain-amount" id="selectedRain">Rainfall estimate loading</p><span>Full calendar day · midnight to midnight</span></div>
+    <div class="forecast-details"><div><span>Wind · peak hourly speed</span><strong id="selectedWind">—</strong></div><div><span>Gusts up to</span><strong id="selectedGust">—</strong></div><div><span>UV index · peak</span><strong id="selectedUV">—</strong></div><div><span>Sunrise / sunset</span><strong id="selectedSun">—</strong></div></div>
+  </section>
+  <section class="forecast-week-section" aria-labelledby="weekTitle"><div class="forecast-section-heading"><h3 id="weekTitle">The next seven days</h3><span>Choose a day to explore</span></div><div class="forecast-week" id="forecastWeek" role="group" aria-label="Choose forecast day"><p class="forecast-placeholder">Your seven-day outlook will appear here.</p></div></section>
+  <section class="forecast-hourly" aria-labelledby="hourlyTitle"><div class="forecast-section-heading"><div><h3 id="hourlyTitle">Hour by hour</h3><p id="hourlyDescription">Temperature, rain and wind throughout the day.</p></div><span class="forecast-chart-key"><i class="temp-key"></i>Temperature <i class="rain-key"></i>Rain</span></div><div class="forecast-hourly-scroll" id="hourlyScroll" tabindex="0" role="region" aria-label="Hourly forecast chart and readings, scroll horizontally"><div id="hourlyChart" class="forecast-chart"></div><div id="hourlyReadings"></div></div></section>
+  <p class="forecast-credit">Forecast by <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Model estimates for the Warwick area; your station records the weather at home. Rainfall totals use calendar days, unlike the station’s 9 am summaries.</p>
+  <section class="radar-panel" id="radar" aria-labelledby="radarTitle">
+    <div class="forecast-section-heading radar-heading"><div><p class="forecast-eyebrow">See what’s around us</p><h3 id="radarTitle">Rain radar</h3><p>South-east Queensland &amp; the Northern Rivers</p></div><button class="forecast-button" id="radarReset" type="button">Centre on Warwick</button></div>
+    <p class="feed-status" id="radarStatus" role="status">Loading the regional radar…</p>
+    <div class="radar-map-stage"><div id="radarMap" class="radar-map" aria-label="Rain radar map centred on Warwick"></div><div class="radar-frame-badge"><span>FRAME</span><strong id="radarFrameTime">— AEST</strong></div></div>
+    <div class="radar-controls"><button class="forecast-button radar-play" id="radarPlay" type="button" disabled aria-pressed="false">▶ Play</button><div class="radar-timeline"><label for="radarSlider">Past two hours <span id="radarPosition">Waiting for radar</span></label><input id="radarSlider" type="range" min="0" max="0" value="0" disabled aria-label="Radar frame"><div class="radar-timeline-ends"><span id="radarStart">—</span><span id="radarEnd">Latest</span></div></div><button class="forecast-button" id="radarLatest" type="button" disabled>Latest</button></div>
+    <div class="radar-footer"><div class="radar-legend"><span>Light rain</span><span class="radar-legend-colours" aria-hidden="true"></span><span>Heavy</span></div><button class="radar-retry" id="refreshRadar" type="button">Refresh radar ↻</button></div>
+    <p class="forecast-credit">Radar via <a href="https://www.rainviewer.com/" target="_blank" rel="noopener noreferrer">RainViewer</a>, using <a href="https://www.bom.gov.au/" target="_blank" rel="noopener noreferrer">BOM</a> data. Past radar in 10-minute steps, not a prediction. Regional detail; zooming closer enlarges the same image. Blank areas may have no rain or no radar coverage. Frame times can differ from individual radar scan times.</p>
+  </section>
+  <noscript><p class="feed-status">Please enable JavaScript to load the forecast and interactive radar.</p></noscript>
+</main>
+<footer class="forecast-page-footer">Moore Weather · West Warwick <a href="/help.html">Add to your home screen</a></footer>
+</div>
+</body>
+</html>

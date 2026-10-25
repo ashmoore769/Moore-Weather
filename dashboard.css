@@ -168,3 +168,23 @@ html[data-theme="dark"] .soil-layers { filter:none; }
   .rain-stat .value { font-size:27px; }
   .primary-temp { font-size:28px; }
 }
+
+/* Forecast joins the existing views without crowding the compact header. */
+.dashboard-navigation { flex-wrap:wrap; }
+.dashboard-tabs { gap:16px; }
+.radar-quick-link { display:flex; justify-content:space-between; align-items:center; gap:15px; min-height:56px; margin-top:9px; padding:9px 13px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--accent); text-decoration:none; }
+.radar-quick-link > span:first-child { display:grid; gap:2px; }
+.radar-quick-link strong { font-size:12px; font-weight:600; }
+.radar-quick-link span span { color:var(--muted); font-size:10px; }
+.radar-quick-link:hover { border-color:var(--accent); }
+@media(min-width:1100px) and (max-width:1299px) {
+ body.layout-landscape .dashboard-masthead { grid-template-areas:"identity tools" "observation status" "navigation navigation"; grid-template-columns:minmax(0,1fr) auto; }
+ body.layout-landscape .dashboard-navigation { border-top:1px solid var(--border); }
+}
+@media(max-width:600px) {
+ .dashboard-tabs { gap:13px; }
+ .dashboard-navigation { column-gap:10px; row-gap:0; }
+ .dashboard-history { margin-left:auto; }
+ .dashboard-history-hint { display:none; }
+}
+@media(max-width:370px) { .dashboard-tabs { gap:10px; } .dashboard-tab { font-size:11px; } }

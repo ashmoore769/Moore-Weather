@@ -42,6 +42,10 @@ The Current page has five-hour trends on weather, soil and power readings. Selec
 
 Charts read the SQL archive only and never issue station commands. See [history chart notes](docs/HISTORY.md) for native intervals, measurement conventions, query limits and verification.
 
+## Forecast and radar
+
+The Forecast tab adds a free Open-Meteo seven-day forecast and RainViewer regional radar. There are no API keys or new paid services. See [forecast and radar notes](docs/FORECAST-RADAR.md) for provider terms, caching, AEST reporting and verification.
+
 ## Deployment
 
 - GitHub: <https://github.com/ashmoore769/Moore-Weather>

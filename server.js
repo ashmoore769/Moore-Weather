@@ -486,6 +486,9 @@ app.use((req, res, next) => {
 // This protects index.html, daily.html, station branding and every other asset.
 app.use(express.static(path.join(__dirname, "public")));
 
+// Free public forecasts and radar remain inside the existing password wall.
+require('./lib/forecast-service').createForecastService({ logger }).mount(app);
+
 let cachedWeatherData = null;
 let cachedDailyData = null;
 let lastPollTime = null;

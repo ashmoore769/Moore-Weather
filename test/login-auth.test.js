@@ -28,7 +28,7 @@ test('new public login assets and request form keep weather, archive and SkyCam 
   for (const url of ['/login', '/login.css', '/login.js', '/theme.js', '/dashboard.css', '/help.html', '/install-help.css', '/install-help.js', '/moore-weather-favicon-v3.svg', '/api/access-request']) assert.equal((await get(url)).status, 200, url);
   assert.equal((await (await get('/api/access-request')).json()).enabled, false);
   const login = await (await get('/login')).text(); assert.match(login, /accessRequestForm/); assert.doesNotMatch(login, /mailto:/);
-  for (const url of ['/', '/index.html', '/daily.html', '/api/history', '/api/water', '/weather', '/skycam/latest.jpg']) assert.equal((await get(url)).status, 401, url);
+  for (const url of ['/', '/index.html', '/daily.html', '/forecast.html', '/api/forecast', '/api/radar', '/api/history', '/api/water', '/weather', '/skycam/latest.jpg']) assert.equal((await get(url)).status, 401, url);
   const navigation = await get('/daily.html', { Accept: 'text/html' });
   assert.equal(navigation.status, 302); assert.match(navigation.headers.get('location'), /^\/login\?next=/);
   const post = body => fetch(base + '/login', { method: 'POST', body: new URLSearchParams(body), redirect: 'manual' });
@@ -38,6 +38,7 @@ test('new public login assets and request form keep weather, archive and SkyCam 
   const cookie = valid.headers.get('set-cookie'); assert.match(cookie, /HttpOnly/); assert.match(cookie, /Secure/); assert.match(cookie, /SameSite=Lax/);
   const headers = { Cookie: cookie.split(';')[0] };
   assert.equal((await get('/daily.html', headers)).status, 200);
+  assert.equal((await get('/forecast.html', headers)).status, 200);
   assert.deepEqual(await (await get('/api/history', headers)).json(), { authenticated: true });
   const malicious = await post({ password, next: '//foreign.example' }); assert.equal(malicious.headers.get('location'), '/');
 });
