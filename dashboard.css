@@ -107,13 +107,8 @@ html[data-theme="dark"] .soil-layers { filter:none; }
   body.layout-landscape .main-container { width:min(100% - 48px,1360px); }
   body.layout-landscape .dashboard-masthead { padding:16px 24px 12px; }
   body.layout-landscape #weatherData { padding:14px 24px 24px; }
-  body.layout-landscape .content-layout { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:stretch; }
-  body.layout-landscape .landscape-left,body.layout-landscape .landscape-right { gap:18px; align-self:stretch; }
   body.layout-landscape .skycam-image-stage { min-height:0; }
   body.layout-landscape .layout-primary { padding:0; }
-  body.layout-landscape .layout-power { align-self:stretch; margin-top:auto; }
-  body.layout-landscape .landscape-left .layout-power { order:3; }
-  body.layout-landscape .landscape-right .layout-soil { order:2; flex:1; }
 }
 /* The header uses the spare middle column only when it has room to breathe. */
 @media(min-width:1100px) {
@@ -172,11 +167,6 @@ html[data-theme="dark"] .soil-layers { filter:none; }
 /* Forecast joins the existing views without crowding the compact header. */
 .dashboard-navigation { flex-wrap:wrap; }
 .dashboard-tabs { gap:16px; }
-.radar-quick-link { display:flex; justify-content:space-between; align-items:center; gap:15px; min-height:56px; margin-top:9px; padding:9px 13px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--accent); text-decoration:none; }
-.radar-quick-link > span:first-child { display:grid; gap:2px; }
-.radar-quick-link strong { font-size:12px; font-weight:600; }
-.radar-quick-link span span { color:var(--muted); font-size:10px; }
-.radar-quick-link:hover { border-color:var(--accent); }
 @media(min-width:1100px) and (max-width:1299px) {
  body.layout-landscape .dashboard-masthead { grid-template-areas:"identity tools" "observation status" "navigation navigation"; grid-template-columns:minmax(0,1fr) auto; }
  body.layout-landscape .dashboard-navigation { border-top:1px solid var(--border); }
@@ -188,3 +178,35 @@ html[data-theme="dark"] .soil-layers { filter:none; }
  .dashboard-history-hint { display:none; }
 }
 @media(max-width:370px) { .dashboard-tabs { gap:10px; } .dashboard-tab { font-size:11px; } }
+
+/* Current keeps its reading order on phones; the two visuals share a column on desktop. */
+.current-page .content-layout { grid-template-areas:"primary" "skycam" "radar" "soil"; gap:18px; }
+.current-page .layout-soil { min-width:0; }
+.current-page .soil-profile-plot { margin-top:0; }
+.current-page .current-power { margin:24px 0 0; }
+@media(min-width:900px) {
+  body.current-page.layout-landscape .content-layout {
+    grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);
+    grid-template-areas:"primary visuals" "soil visuals";
+    grid-template-rows:auto 1fr;
+    gap:20px; align-items:start;
+  }
+  body.current-page.layout-landscape .current-visuals { grid-area:visuals; display:flex; flex-direction:column; gap:20px; min-width:0; align-self:stretch; }
+  body.current-page.layout-landscape .layout-soil { align-self:stretch; }
+  body.current-page.layout-landscape .layout-radar { display:flex; flex-direction:column; flex:1; }
+  body.current-page.layout-landscape .radar-map-stage { flex:1; height:0; min-height:320px; }
+  body.current-page.layout-landscape .current-power { display:grid; grid-template-columns:150px minmax(0,1fr); align-items:center; gap:24px; padding:20px 24px; }
+  body.current-page.layout-landscape .current-power .section-header { display:block; margin:0; }
+  body.current-page.layout-landscape .current-power .section-title { margin-bottom:6px; }
+  body.current-page.layout-landscape .current-power .metric-list { grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px; }
+  body.current-page.layout-landscape .current-power .metric-row { border-left:1px solid var(--border); padding-left:18px; }
+}
+/* Narrow desktop columns need the same compact controls as a phone. */
+body.current-page.layout-portrait :is(#skycamTimelapse,#skycamDownload,#skycamFocus) .skycam-action-text { display:none; }
+@media(min-width:900px) and (max-width:1199px) {
+  body.current-page.layout-landscape .quick-stat { grid-template-columns:minmax(0,1fr); }
+  body.current-page.layout-landscape .quick-stat-icon { display:none; }
+  body.current-page.layout-landscape .quick-stat .value { font-size:21px; }
+  body.current-page.layout-landscape .rain-stat .value { font-size:28px; }
+  body.current-page.layout-landscape :is(#skycamTimelapse,#skycamDownload,#skycamFocus) .skycam-action-text { display:none; }
+}

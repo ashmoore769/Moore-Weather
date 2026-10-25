@@ -1,0 +1,44 @@
+/* A second window onto the weather, directly below the SkyCam. */
+.radar-panel { min-width:0; scroll-margin-top:18px; }
+.radar-map-stage { position:relative; height:360px; border-radius:var(--card-radius,16px); overflow:hidden; isolation:isolate; background:var(--page); }
+.radar-map,.radar-map.leaflet-container { width:100%; height:100%; background:var(--page); }
+.radar-title-badge,.radar-frame-badge { position:absolute; z-index:500; top:12px; border-radius:8px; padding:9px 11px; background:color-mix(in srgb,var(--surface) 94%,transparent); border:1px solid var(--border); pointer-events:none; box-shadow:0 2px 8px #0002; }
+.radar-title-badge { left:12px; }
+.radar-title-badge h2 { margin:0; color:var(--text); font-size:12px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; }
+.radar-title-badge > span { display:block; margin-top:3px; color:var(--muted); font-size:8px; letter-spacing:.8px; }
+.radar-frame-badge { right:12px; display:flex; align-items:center; gap:8px; font-variant-numeric:tabular-nums; }
+.radar-frame-badge span { font-size:8px; color:var(--muted); letter-spacing:1px; }
+.radar-frame-badge strong { color:var(--text); font-size:12px; font-weight:600; }
+.radar-controls { display:flex; gap:12px; align-items:center; margin-top:12px; }
+.radar-button { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:9px 12px; background:var(--surface-soft); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:12px; font-weight:600; cursor:pointer; }
+.radar-button:hover:enabled { border-color:var(--accent); color:var(--accent); }
+.radar-panel button:disabled { opacity:.5; cursor:default; }
+.radar-panel :is(button,a,input,summary):focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.radar-play { min-width:75px; }
+.radar-timeline { flex:1; min-width:0; }
+.radar-timeline label { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:10px; }
+.radar-timeline input { width:100%; min-height:32px; margin:0; accent-color:var(--accent); cursor:pointer; }
+.radar-timeline-ends { display:flex; justify-content:space-between; font-size:9px; color:var(--muted); }
+.radar-status { min-height:30px; margin:8px 0 0; color:var(--muted); font-size:11px; line-height:1.4; }
+.radar-status[data-kind="error"],.radar-status[data-kind="stale"] { color:var(--amber); }
+.radar-footer { display:flex; align-items:center; justify-content:space-between; gap:4px 12px; flex-wrap:wrap; }
+.radar-legend { display:flex; gap:7px; align-items:center; font-size:10px; color:var(--muted); }
+.radar-legend-colours { width:72px; height:6px; border-radius:6px; background:linear-gradient(90deg,#88ddee,#00a3e0,#005588,#ffee00,#ffaa00,#ff4400,#b80000); }
+.radar-tools { display:flex; gap:15px; }
+.radar-retry { border:0; background:transparent; color:var(--accent); padding:8px 0; min-height:44px; font-size:11px; cursor:pointer; }
+.radar-credit,.radar-about { margin:0; color:var(--muted); font-size:10px; line-height:1.6; }
+.radar-credit a { color:inherit; text-underline-offset:2px; }
+.radar-about summary { width:fit-content; padding:8px 0; cursor:pointer; color:var(--accent); }
+.radar-about p { margin:0 0 8px; }
+html[data-theme="dark"] .radar-base-tiles { filter:invert(.93) hue-rotate(180deg) saturate(.35) brightness(.8) contrast(.92); }
+.radar-map .leaflet-control-attribution { font-size:9px; padding:3px 6px; }
+.radar-map .leaflet-control-zoom a { width:38px; height:38px; line-height:38px; }
+.radar-map .leaflet-tooltip { color:var(--text); background:var(--surface); border:1px solid var(--border); box-shadow:none; font:600 11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+@media(max-width:600px) {
+  .radar-controls { gap:8px; }
+  .radar-button { padding:8px 10px; font-size:11px; }
+  .radar-play { min-width:64px; }
+  .radar-timeline label { font-size:9px; }
+  .radar-timeline label span { display:none; }
+  .radar-frame-badge span { display:none; }
+}

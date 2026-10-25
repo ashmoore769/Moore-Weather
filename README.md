@@ -44,7 +44,7 @@ Charts read the SQL archive only and never issue station commands. See [history 
 
 ## Forecast and radar
 
-The Forecast tab adds a free Open-Meteo seven-day forecast and RainViewer regional radar. There are no API keys or new paid services. See [forecast and radar notes](docs/FORECAST-RADAR.md) for provider terms, caching, AEST reporting and verification.
+The Forecast tab adds a free Open-Meteo seven-day forecast. RainViewer regional radar sits directly below the SkyCam on Current. There are no API keys or new paid services. See [forecast and radar notes](docs/FORECAST-RADAR.md) for provider terms, caching, AEST reporting and verification.
 
 ## Deployment
 

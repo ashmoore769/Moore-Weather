@@ -1,6 +1,8 @@
 /* Free model forecasts, deliberately kept separate from station observations. */
 (() => {
   'use strict';
+  // Preserve bookmarks from the radar's original home.
+  if (location.hash === '#radar') { location.replace('/index.html#radar'); return; }
   const $ = id => document.getElementById(id);
   const tz = 'Australia/Brisbane';
   const localDate = timestamp => new Intl.DateTimeFormat('en-CA', { timeZone:tz, year:'numeric',month:'2-digit',day:'2-digit' }).format(timestamp);

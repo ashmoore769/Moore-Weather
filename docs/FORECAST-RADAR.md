@@ -1,6 +1,6 @@
 # Free forecast and radar
 
-The Forecast tab at `/forecast.html` adds a seven-day Warwick outlook, prominent rain probability and daily rainfall estimates, selectable days, the next 24 hours (or the selected day's hours), and a regional radar animation. Current has a shortcut immediately below the SkyCam. Daily Summary and history remain available.
+The Forecast tab at `/forecast.html` adds a seven-day Warwick outlook, prominent rain probability and daily rainfall estimates, selectable days, the next 24 hours (or the selected day's hours), and hourly rain, temperature and wind. The regional radar animation lives on Current, directly below the SkyCam, with the same embedded presentation. On phones the order is readings, SkyCam, radar, soil, local water and station power. Desktop pairs readings and soil with the two visuals; local water and a compact power strip follow. The Forecast header links to Current’s radar, and old `/forecast.html#radar` bookmarks redirect there. Daily Summary and history remain available.
 
 ## Providers and cost
 

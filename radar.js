@@ -10,7 +10,7 @@
   function pause() { playing=false; clearTimeout(playTimer); $('radarPlay').textContent='▶ Play'; $('radarPlay').setAttribute('aria-pressed','false'); }
   function freshness() {
     if(!data) return;
-    if(baseError) { status('Some background map tiles couldn’t load. Radar imagery is still shown; try Refresh radar.','error'); return; }
+    if(baseError) { status('Some background map tiles couldn’t load. Radar imagery is still shown; try Refresh.','error'); return; }
     const age=Math.max(0,Math.round((Date.now()/1000-data.frames.at(-1).time)/60));
     status((data.stale || age>20 ? 'Radar is delayed · ' : '')+'Latest frame '+time(data.frames.at(-1).time)+' AEST · '+age+' min ago',data.stale||age>20?'stale':'');
   }
@@ -18,7 +18,7 @@
     if(map) return;
     if(!window.L) throw Error('Map library unavailable');
     const centre=[location.latitude,location.longitude];
-    map=L.map('radarMap',{center:centre,zoom:7,minZoom:7,maxZoom:10,zoomSnap:.5,scrollWheelZoom:false,attributionControl:true});
+    map=L.map('radarMap',{center:centre,zoom:7,minZoom:7,maxZoom:10,zoomSnap:.5,scrollWheelZoom:false,zoomControl:false,attributionControl:true});
     // A centred 512px image at native zoom 7 spans these exact Web Mercator pixels.
     const p=map.project(centre,7);
     bounds=L.latLngBounds(map.unproject([p.x-256,p.y+256],7),map.unproject([p.x+256,p.y-256],7));
@@ -34,6 +34,7 @@
       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
     }).on('tileerror',()=>{baseError=true;status('The background map couldn’t load. Radar may still be available; try refreshing shortly.','error');}).addTo(map);
     map.attributionControl.setPrefix(false);
+    L.control.zoom({position:'bottomright'}).addTo(map);
     L.circleMarker(centre,{radius:5,weight:2,color:'#fff',fillColor:'#178a84',fillOpacity:1}).addTo(map).bindTooltip('Warwick',{permanent:true,direction:'right',offset:[8,0]});
     L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
     map.on('movestart',pause);
@@ -82,7 +83,7 @@
       $('radarPosition').textContent=(selected+1)+' / '+data.frames.length;
       freshness(); return true;
     } catch {
-      if(token===sequence) { pause(); status(overlay?'That radar frame couldn’t load. The time shown belongs to the retained image.':'Radar imagery couldn’t load. The map alone does not show whether it is raining. Try Refresh radar shortly.','error'); $('radarPosition').textContent=overlay?'Previous image retained':'Image unavailable'; }
+      if(token===sequence) { pause(); status(overlay?'That radar frame couldn’t load. The time shown belongs to the retained image.':'Radar imagery couldn’t load. The map alone does not show whether it is raining. Try Refresh shortly.','error'); $('radarPosition').textContent=overlay?'Previous image retained':'Image unavailable'; }
       return false;
     }
   }
@@ -100,7 +101,7 @@
     if(busy) return; busy=true; lastAttempt=Date.now(); $('refreshRadar').disabled=true; pause();
     try {
       const response=await fetch('/api/radar',{cache:'no-store',signal:AbortSignal.timeout(15000)});
-      if(response.status===401) { location.assign('/login?next=%2Fforecast.html%23radar'); return; }
+      if(response.status===401) { location.assign('/login?next='+encodeURIComponent(location.pathname+'#radar')); return; }
       if(!response.ok) throw Error('Radar unavailable');
       const incoming=await response.json();
       if(incoming.host!=='https://tilecache.rainviewer.com'||!incoming.frames?.length) throw Error('Invalid radar');
@@ -115,7 +116,7 @@
       await show(data.frames.length-1);
     } catch {
       if(data && Date.now()-data.frames.at(-1).time*1000<2*60*minute) { data.stale=true; status('Couldn’t refresh radar. The last available frame is still shown with its original time.','stale'); }
-      else { expire(); status('The radar feed is taking a break. Please try Refresh radar shortly.','error'); }
+      else { expire(); status('The radar feed is taking a break. Please try Refresh shortly.','error'); }
     } finally { busy=false; $('refreshRadar').disabled=false; }
   }
   $('radarPlay').addEventListener('click',()=>{ if(playing) pause(); else { playing=true; $('radarPlay').textContent='Ⅱ Pause'; $('radarPlay').setAttribute('aria-pressed','true'); playNext(); } });

@@ -377,12 +377,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .content-layout {
   display: grid;
   grid-template-columns: 1fr;
-  grid-template-areas:
-    "station"
-    "primary"
-    "skycam"
-    "soil"
-    "power";
+  grid-template-areas: "primary" "skycam" "radar" "soil";
   gap: 9px;
   padding-top: 10px;
 }
@@ -391,7 +386,8 @@ button { -webkit-tap-highlight-color: transparent; }
 .layout-skycam { grid-area: skycam; min-width: 0; }
 .layout-soil { grid-area: soil; margin-bottom: 0; }
 .layout-power { grid-area: power; margin-top: 0; margin-bottom: 0; }
-.layout-stack { display: contents; }
+.current-visuals { display: contents; }
+.layout-radar { grid-area: radar; min-width: 0; }
 
 .station-strip {
   display: flex;
@@ -1360,30 +1356,6 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   }
   body.layout-landscape .app-header { padding-left: 14px; padding-right: 10px; }
   body.layout-landscape #weatherData { padding: 11px; }
-  body.layout-landscape .content-layout {
-    display: grid;
-    grid-template-columns: minmax(420px, 0.82fr) minmax(0, 1.38fr);
-    grid-template-areas: "left right";
-    gap: 11px;
-    align-items: start;
-  }
-  body.layout-landscape .landscape-left,
-  body.layout-landscape .landscape-right {
-    display: flex;
-    flex-direction: column;
-    gap: 11px;
-    min-width: 0;
-    align-self: start;
-  }
-  body.layout-landscape .landscape-left { grid-area: left; }
-  body.layout-landscape .landscape-right { grid-area: right; }
-  body.layout-landscape .landscape-left .layout-station { order: 1; }
-  body.layout-landscape .landscape-left .layout-primary { order: 2; }
-  body.layout-landscape .landscape-left .layout-soil { order: 3; }
-  body.layout-landscape .layout-skycam { position: relative; top: auto; order: 1; }
-  body.layout-landscape .layout-power { order: 2; }
-  body.layout-landscape .skycam-image-stage { min-height: 480px; }
-
   body.layout-portrait .main-container { width: min(100% - 28px, 500px); }
 }
 
@@ -1499,9 +1471,13 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=3"></script>
-<link rel="stylesheet" href="/dashboard.css?v=4">
+<link rel="stylesheet" href="/dashboard.css?v=5">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="/radar.css?v=1">
+<script defer src="/vendor/leaflet/leaflet.js"></script>
+<script defer src="/radar.js?v=2"></script>
 </head>
-<body>
+<body class="current-page">
 <div class="main-container">
 <header class="dashboard-header" aria-label="Moore Weather dashboard">
   <div class="dashboard-masthead">
@@ -1531,7 +1507,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
   </div>
 </header>
 <main id="weatherData">
-<div class="content-layout"><div class="layout-stack landscape-left"><section aria-label="Primary weather readings" class="panel-card primary-card layout-primary">
+<div class="content-layout">
+<section aria-label="Primary weather readings" class="panel-card primary-card layout-primary">
 <div class="temperature-heroes">
 <div class="temp-hero">
 <div class="eyebrow">Air temperature</div>
@@ -1583,15 +1560,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 </div>
 </div>
 
-</section><section aria-label="Station power and maintenance" class="panel-card section-card maintenance-card layout-power">
-<div class="section-header"><h2 class="section-title">Station power</h2><span class="power-trend-label" id="powerTrendLabel">5-hour trends</span></div>
-<div class="metric-list">
-<div class="metric-row"><span class="metric-label">Battery</span><span class="metric-value" id="batteryVal">--</span></div>
-<div class="metric-row"><span class="metric-label">Solar panel</span><span class="metric-value" id="solarPanelVal">--</span></div>
-<div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span><span class="unit-suffix"> mA</span></span></div>
-<div class="metric-row"><span class="metric-label">Charge</span><span class="metric-value" id="chargeVal">--</span></div>
-</div>
-</section></div><div class="layout-stack landscape-right"><div aria-label="SkyCam" class="layout-skycam">
+</section>
+<div class="current-visuals">
+<div aria-label="SkyCam" class="layout-skycam">
 <div class="skycam-container" title="SkyCam">
 <div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
 <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
@@ -1613,8 +1584,26 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <span id="skycamPosition">Loading history...</span>
 </div>
 </div>
-<a class="radar-quick-link" href="/forecast.html#radar"><span><strong>Rain on the way?</strong><span>Take a look at the regional radar</span></span><span aria-hidden="true">↗</span></a>
-</div><section aria-label="Soil profile" class="panel-card section-card layout-soil">
+</div>
+<section class="radar-panel layout-radar" id="radar" aria-labelledby="radarTitle">
+  <div class="radar-map-stage">
+    <div id="radarMap" class="radar-map" aria-label="Rain radar map centred on Warwick"></div>
+    <div class="radar-title-badge"><h2 id="radarTitle">Rain radar</h2><span>PAST TWO HOURS</span></div>
+    <div class="radar-frame-badge"><span>FRAME</span><strong id="radarFrameTime">— AEST</strong></div>
+  </div>
+  <div class="radar-controls">
+    <button class="radar-button radar-play" id="radarPlay" type="button" disabled aria-pressed="false">▶ Play</button>
+    <div class="radar-timeline"><label for="radarSlider">Past two hours <span id="radarPosition">Waiting for radar</span></label><input id="radarSlider" type="range" min="0" max="0" value="0" disabled aria-label="Radar frame"><div class="radar-timeline-ends"><span id="radarStart">—</span><span id="radarEnd">Latest</span></div></div>
+    <button class="radar-button" id="radarLatest" type="button" disabled>Latest</button>
+  </div>
+  <p class="radar-status" id="radarStatus" role="status">Loading the regional radar…</p>
+  <div class="radar-footer"><div class="radar-legend"><span>Light rain</span><span class="radar-legend-colours" aria-hidden="true"></span><span>Heavy</span></div><div class="radar-tools"><button class="radar-retry" id="radarReset" type="button">Centre map</button><button class="radar-retry" id="refreshRadar" type="button">Refresh ↻</button></div></div>
+  <p class="radar-credit">Radar via <a href="https://www.rainviewer.com/" target="_blank" rel="noopener noreferrer">RainViewer</a> · <a href="https://www.bom.gov.au/" target="_blank" rel="noopener noreferrer">BOM</a>. Blank areas may be dry or outside radar coverage.</p>
+  <details class="radar-about"><summary>About this radar</summary><p>South-east Queensland and the Northern Rivers, centred on Warwick. Past radar in 10-minute steps, not a prediction. Zooming closer enlarges the same regional image. Times are AEST; frame times can differ from individual radar scan times.</p></details>
+  <noscript><p class="radar-status">Please enable JavaScript to load the interactive radar.</p></noscript>
+</section>
+</div>
+<section aria-label="Soil profile" class="panel-card section-card layout-soil">
 <div class="section-header soil-profile-header">
 <h2 class="section-title">Soil profile</h2>
 <span class="soil-profile-badge">EnviroPro · 4 CH</span>
@@ -1658,7 +1647,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 </div>
 </div>
 </div>
-</section></div><span aria-hidden="true" class="compat-data" id="airTempBox"><span id="bigTempVal">--</span></span><div class="compat-data" aria-hidden="true">
+</section>
+<span aria-hidden="true" class="compat-data" id="airTempBox"><span id="bigTempVal">--</span></span><div class="compat-data" aria-hidden="true">
 <span id="vectorWindSpeedVal">--</span>
 <span id="vectorWindDirDegVal">--</span>
 <span id="vectorWindDirTextVal">--</span>
@@ -1687,6 +1677,15 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     </article>
   </div>
   <p class="water-import-status" id="waterImportStatus" role="status">Connecting to saved water readings…</p>
+</section>
+<section aria-label="Station power and maintenance" class="panel-card section-card maintenance-card layout-power current-power">
+<div class="section-header"><h2 class="section-title">Station power</h2><span class="power-trend-label" id="powerTrendLabel">5-hour trends</span></div>
+<div class="metric-list">
+<div class="metric-row"><span class="metric-label">Battery</span><span class="metric-value" id="batteryVal">--</span></div>
+<div class="metric-row"><span class="metric-label">Solar panel</span><span class="metric-value" id="solarPanelVal">--</span></div>
+<div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span><span class="unit-suffix"> mA</span></span></div>
+<div class="metric-row"><span class="metric-label">Charge</span><span class="metric-value" id="chargeVal">--</span></div>
+</div>
 </section>
 <footer class="app-footer">
 <a class="footer-signout" href="/help.html">Add to Home Screen</a>
