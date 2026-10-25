@@ -234,7 +234,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=3"></script>
-<link rel="stylesheet" href="/dashboard.css?v=5">
+<link rel="stylesheet" href="/dashboard.css?v=6">
 </head>
 <body>
   <div class="main-container">
@@ -261,7 +261,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
       <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html" aria-current="page">Daily Summary</a>
       <a class="dashboard-tab" href="/forecast.html">Forecast</a>
     </nav>
-    <div class="dashboard-history"><span id="historyHint" class="dashboard-history-hint">30-day trends</span><button id="browseHistory" type="button" class="dashboard-history-button" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends / history</span></button></div>
+    <div class="dashboard-history"><span id="historyHint" class="dashboard-history-hint">30-day trends</span><button id="browseHistory" type="button" class="dashboard-history-button" aria-haspopup="dialog" aria-label="Browse weather trends and history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends</span></button></div>
   </div>
   </div>
 </header>
@@ -414,8 +414,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
           <div class="station-update"><strong>A complete weather day</strong><p>Summaries become available after the 9 AM observation. Open any reading to explore earlier days.</p><button id="stationRefreshBtn" class="station-refresh-control" type="button">Request station update <span aria-hidden="true">↻</span></button><span id="refreshFeedback" role="status"></span></div></div>
         </section>
       </main>    </div>
-<section class="local-water" id="localWater" aria-labelledby="localWaterTitle">
-  <div class="water-section-heading"><div><span class="water-eyebrow">Our catchment</span><h2 id="localWaterTitle">Local water</h2></div><span class="water-current-label">Latest available readings · AEST</span></div>
+<section class="local-water" id="localWater" aria-label="Leslie Dam and Condamine River readings">
   <div class="water-grid">
     <article class="water-panel water-dam">
       <header><div><span class="water-eyebrow">Upper Condamine</span><h3>Leslie Dam</h3></div><span class="water-site">422315B</span></header>

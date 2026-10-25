@@ -11,6 +11,8 @@ No paid account, API key, new Render resource or configuration change is require
 - OpenStreetMap: standard browser tiles with visible contributor attribution, normal HTTP caching and an origin Referer. No background downloading, offline map storage or tile prefetching.
 - Leaflet 1.9.4: vendored locally under `public/vendor/leaflet`, including its BSD-2-Clause licence and images. No CDN script dependency or added npm production dependency.
 
+The map carries its rain-intensity legend at the top left and centre/refresh controls at the top right. A compact footer keeps frame freshness and linked RainViewer/BOM credits visible; OpenStreetMap attribution remains on the map. Coverage and timing notes are available from the information button.
+
 The radar uses a single 512px, coordinate-centred native-zoom-7 image per frame, projected onto its Web Mercator bounds. The viewport stays inside this regional footprint; enlarging it adds no radar detail. Uncached frame requests are spaced by at least one second, playback starts only on request and stops while hidden. The background map alone is never presented as proof of dry weather. The RainViewer palette's name is “Universal Blue”; its intense returns also include yellow and red. Free providers do not guarantee availability.
 
 Provider references checked 25 October 2026:

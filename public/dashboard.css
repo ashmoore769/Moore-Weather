@@ -70,31 +70,6 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 .layout-power .history-spark { grid-column:1; margin-top:2px; }
 .layout-power .history-spark svg { height:24px; }
 .layout-power .history-spark-caption { display:none; }
-.soil-profile-plot,.soil-profile-plot:has(.history-card) { height:410px; flex-shrink:0; margin-top:auto; background:var(--surface); border-color:var(--border); box-shadow:none; }
-.soil-profile-plot .soil-layer { background:var(--surface); border-bottom:1px solid var(--border); }
-.soil-profile-plot .soil-layer::before,.soil-profile-plot .soil-layer::after { content:none; }
-html[data-theme="dark"] .soil-layers { filter:none; }
-.soil-readings { inset:55px 7px 9px 64px; display:grid; grid-template-rows:repeat(5,minmax(0,1fr)); gap:6px; }
-.soil-readings .soil-reading { position:relative; top:auto; left:auto; right:auto; transform:none; min-height:0; padding:5px; background:var(--surface-soft); color:var(--text); border-color:var(--border); box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
-.soil-reading-depth { background:var(--surface-raised); }
-.soil-reading::before { border-top-color:var(--border-strong); }
-.soil-reading::after { border-color:var(--border-strong); box-shadow:none; }
-.soil-reading-value-label { color:var(--muted); }
-.soil-reading-value .history-spark { color:var(--history-color,var(--accent)); }
-.soil-readings .soil-ground-reading::before,.soil-readings .soil-ground-reading::after { content:none; }
-.soil-readings .soil-ground-reading .soil-reading-value { grid-column:2; }
-.soil-readings .soil-ground-reading .soil-reading-value.temp { --reading-accent:var(--ground-temp-color,#f4b85b); }
-.soil-readings .soil-reading-value-label { font-size:8px; }
-.soil-readings .soil-reading-value-number { font-size:17px; line-height:1.15; }
-.soil-readings .soil-reading-value { justify-content:center; }
-.soil-profile-plot:has(.history-card) .soil-probe-image { height:386px; }
-.soil-layers { grid-template-rows:2fr 1fr 1fr 1fr; }
-.soil-profile-caption { margin:5px 0 12px; line-height:1.5; font-weight:400; }
-.layout-soil .soil-profile-header { display:flex; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:8px 12px; text-align:left; }
-.layout-soil .section-title { flex:0 0 auto; text-align:left; }
-.layout-soil .soil-profile-caption { text-align:left; align-self:stretch; }
-.soil-readings .soil-reading-value { align-items:flex-start; text-align:left; }
-.soil-readings .soil-reading-value-number { max-width:100%; }
 .daily-section { margin-bottom:24px; }
 .summary-hero { padding-bottom:18px; }
 .summary-date { margin-top:6px; font-size:30px; }
@@ -142,7 +117,6 @@ html[data-theme="dark"] .soil-layers { filter:none; }
   .quick-stat-subline { font-size:10px; }
   .reading-card-value { font-size:26px; }
   .section-card { padding:13px; }
-  .soil-profile-caption { font-size:10px; }
 }
 @media(max-width:420px) {
   .dashboard-identity > div { min-width:0; }
@@ -152,11 +126,6 @@ html[data-theme="dark"] .soil-layers { filter:none; }
   .dashboard-identity { gap:7px; }
   .dashboard-identity h1,body.layout-landscape .dashboard-identity h1 { font-size:15px; }
   .dashboard-identity img,body.layout-landscape .dashboard-identity img { width:30px; height:30px; }
-  .soil-readings { left:55px; right:5px; gap:5px; }
-  .soil-readings .soil-reading { grid-template-columns:31px repeat(2,minmax(0,1fr)); gap:3px; padding:4px; }
-  .soil-readings .soil-reading-value { padding-left:4px; }
-  .soil-readings .soil-reading-value-label { font-size:7px; }
-  .soil-readings .soil-reading-value-number { font-size:14px; }
   .quick-stat { grid-template-columns:minmax(0,1fr); }
   .quick-stat-icon { display:none; }
   .quick-stat .value { font-size:21px; }
@@ -182,7 +151,6 @@ html[data-theme="dark"] .soil-layers { filter:none; }
 /* Current keeps its reading order on phones; the two visuals share a column on desktop. */
 .current-page .content-layout { grid-template-areas:"primary" "skycam" "radar" "soil"; gap:18px; }
 .current-page .layout-soil { min-width:0; }
-.current-page .soil-profile-plot { margin-top:0; }
 .current-page .current-power { margin:24px 0 0; }
 @media(min-width:900px) {
   body.current-page.layout-landscape .content-layout {
@@ -209,4 +177,17 @@ body.current-page.layout-portrait :is(#skycamTimelapse,#skycamDownload,#skycamFo
   body.current-page.layout-landscape .quick-stat .value { font-size:21px; }
   body.current-page.layout-landscape .rain-stat .value { font-size:28px; }
   body.current-page.layout-landscape :is(#skycamTimelapse,#skycamDownload,#skycamFocus) .skycam-action-text { display:none; }
+}
+
+/* The water cards carry their own titles and observation times. */
+.local-water { margin:18px 0 12px; }
+@media(max-width:390px) {
+  .dashboard-navigation { column-gap:8px; }
+  .dashboard-tabs { gap:10px; }
+  .dashboard-navigation .dashboard-tab { font-size:11px; }
+}
+@media(max-width:359px) {
+  .dashboard-navigation { column-gap:6px; }
+  .dashboard-tabs { gap:8px; }
+  .dashboard-navigation .dashboard-tab { font-size:10px; }
 }

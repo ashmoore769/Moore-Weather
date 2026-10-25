@@ -12,7 +12,7 @@
     if(!data) return;
     if(baseError) { status('Some background map tiles couldn’t load. Radar imagery is still shown; try Refresh.','error'); return; }
     const age=Math.max(0,Math.round((Date.now()/1000-data.frames.at(-1).time)/60));
-    status((data.stale || age>20 ? 'Radar is delayed · ' : '')+'Latest frame '+time(data.frames.at(-1).time)+' AEST · '+age+' min ago',data.stale||age>20?'stale':'');
+    status((data.stale || age>20 ? 'Radar is delayed · ' : '')+'Latest · '+age+' min ago',data.stale||age>20?'stale':'');
   }
   function initMap(location) {
     if(map) return;
@@ -119,6 +119,9 @@
       else { expire(); status('The radar feed is taking a break. Please try Refresh shortly.','error'); }
     } finally { busy=false; $('refreshRadar').disabled=false; }
   }
+  const about=document.querySelector('.radar-about');
+  document.addEventListener('click',event=>{if(about.open&&!about.contains(event.target))about.open=false;});
+  about.addEventListener('keydown',event=>{if(event.key==='Escape'){about.open=false;about.querySelector('summary').focus();}});
   $('radarPlay').addEventListener('click',()=>{ if(playing) pause(); else { playing=true; $('radarPlay').textContent='Ⅱ Pause'; $('radarPlay').setAttribute('aria-pressed','true'); playNext(); } });
   $('radarSlider').addEventListener('input',()=>{ pause(); ++sequence; clearTimeout(inputTimer); inputTimer=setTimeout(()=>show(Number($('radarSlider').value)),180); });
   $('radarLatest').addEventListener('click',()=>{pause();show(data.frames.length-1);});

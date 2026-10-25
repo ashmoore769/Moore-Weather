@@ -710,330 +710,6 @@ body.weather-loaded .unit-suffix { display: inline; }
 }
 .condition-detail strong { color: var(--text); font-weight: 780; }
 
-.soil-profile-header { align-items: center; margin-bottom: 0; }
-.soil-profile-badge {
-  flex: 0 0 auto;
-  padding: 4px 7px;
-  border: 1px solid color-mix(in srgb, #078363 32%, var(--border));
-  border-radius: 999px;
-  color: color-mix(in srgb, #078363 82%, var(--text));
-  background: color-mix(in srgb, #078363 8%, var(--surface-soft));
-  font-size: 9px;
-  font-weight: 850;
-  line-height: 1;
-  letter-spacing: .5px;
-  text-transform: uppercase;
-}
-.soil-profile-caption {
-  margin: 3px 0 9px;
-  color: var(--muted);
-  font-size: 10.5px;
-  font-weight: 600;
-}
-.soil-profile-plot {
-  position: relative;
-  height: 340px;
-  overflow: hidden;
-  isolation: isolate;
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  background: #795537;
-  box-shadow: inset 0 1px 8px rgba(40, 25, 12, .18);
-}
-/* Dim decorative soil/grass only; readings and sparklines keep their contrast. */
-html[data-theme="dark"] .soil-layers { filter: brightness(.82) saturate(.80); }
-html[data-theme="dark"] .soil-surface { filter: brightness(.80) saturate(.75); }
-.soil-surface {
-  position: absolute;
-  z-index: 5;
-  inset: 0 0 auto;
-  height: 47px;
-  border-bottom: 2px solid rgba(54, 78, 35, .72);
-  background:
-    radial-gradient(ellipse at 7% 111%, #496b34 0 11px, transparent 12px),
-    radial-gradient(ellipse at 21% 106%, #5c8241 0 14px, transparent 15px),
-    radial-gradient(ellipse at 39% 110%, #42642f 0 12px, transparent 13px),
-    radial-gradient(ellipse at 58% 106%, #638a46 0 15px, transparent 16px),
-    radial-gradient(ellipse at 78% 111%, #486c34 0 13px, transparent 14px),
-    radial-gradient(ellipse at 94% 107%, #5b8140 0 12px, transparent 13px),
-    linear-gradient(180deg, #9acd6d 0 42%, #75a950 43% 58%, #4f7138 59% 100%);
-}
-.soil-surface::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  inset: 1px 0 auto;
-  height: 31px;
-  opacity: .68;
-  background-image:
-    repeating-linear-gradient(102deg, transparent 0 7px, rgba(37,83,32,.86) 7.5px 8.5px, transparent 9px 15px),
-    repeating-linear-gradient(78deg, transparent 0 10px, rgba(95,139,67,.92) 10.5px 11.5px, transparent 12px 19px);
-  background-position: 0 1px, 5px 5px;
-  background-size: 23px 22px, 29px 19px;
-}
-.soil-surface::after {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  inset: auto 0 0;
-  height: 12px;
-  opacity: .58;
-  background:
-    radial-gradient(ellipse at 14% 100%, rgba(44,67,31,.75) 0 8px, transparent 9px),
-    radial-gradient(ellipse at 45% 105%, rgba(54,78,38,.66) 0 10px, transparent 11px),
-    radial-gradient(ellipse at 73% 102%, rgba(42,65,30,.72) 0 9px, transparent 10px),
-    radial-gradient(ellipse at 92% 108%, rgba(57,80,40,.64) 0 10px, transparent 11px);
-}
-.soil-surface-reading {
-  position: absolute;
-  z-index: 8;
-  top: 4px;
-  right: 7px;
-  left: 64px;
-  display: grid;
-  grid-template-columns: 44px repeat(2, minmax(0, 1fr));
-  gap: 5px;
-  padding: 0 5px;
-  pointer-events: none;
-}
-.soil-surface-depth {
-  grid-column: 1;
-  min-width: 0;
-  height: 39px;
-  display: grid;
-  place-items: center;
-  padding: 3px;
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 8px;
-  color: rgba(255,255,255,.9);
-  background: rgba(22,27,31,.68);
-  font-size: 9.5px;
-  font-weight: 850;
-  line-height: 1.05;
-  text-align: center;
-  text-transform: uppercase;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-.soil-surface-depth span {
-  display: block;
-  font-size: 8px;
-  opacity: .72;
-}
-.soil-surface-temperature {
-  grid-column: 2;
-  min-width: 0;
-  height: 39px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 3px;
-  padding: 4px 7px;
-  border: 1px solid rgba(255,255,255,.23);
-  border-left: 3px solid var(--ground-temp-color, #f4b85b);
-  border-radius: 8px;
-  color: rgba(255,255,255,.9);
-  background: rgba(22,27,31,.72);
-  box-shadow: 0 2px 7px rgba(19,13,8,.16);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-.soil-surface-temperature-label {
-  color: rgba(255,255,255,.68);
-  font-size: 7.25px;
-  font-weight: 850;
-  letter-spacing: .4px;
-  line-height: 1;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.soil-surface-temperature strong {
-  color: #fff;
-  font-size: 11.5px;
-  font-weight: 850;
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: none;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.soil-layers {
-  position: absolute;
-  z-index: 1;
-  inset: 47px 0 0;
-  display: grid;
-  grid-template-rows: 3fr 2fr 2fr 2fr;
-}
-.soil-layer {
-  position: relative;
-  overflow: hidden;
-  border-top: 1px solid rgba(255,255,255,.10);
-  background-color: var(--soil-color, #755338);
-  transition: background-color .45s ease;
-}
-.soil-layer:first-child { border-top: 0; }
-.soil-layer::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  mix-blend-mode: soft-light;
-}
-.soil-layer:nth-child(1)::before {
-  opacity: .22;
-  background-image:
-    linear-gradient(112deg, transparent 0 48%, rgba(230,219,184,.50) 49% 50%, transparent 51%),
-    linear-gradient(68deg, transparent 0 58%, rgba(230,219,184,.35) 59% 60%, transparent 61%),
-    radial-gradient(ellipse, rgba(36,24,15,.55) 0 1.5px, transparent 2.5px);
-  background-size: 92px 76px, 118px 94px, 27px 23px;
-  background-position: 13px 6px, 46px 11px, 0 0;
-}
-.soil-layer:nth-child(2)::before {
-  opacity: .24;
-  background-image:
-    radial-gradient(ellipse, rgba(241,224,184,.48) 0 1.5px, transparent 2.5px),
-    radial-gradient(ellipse, rgba(34,22,14,.52) 0 2px, transparent 3px);
-  background-size: 31px 27px, 47px 39px;
-  background-position: 4px 7px, 19px 3px;
-}
-.soil-layer:nth-child(3)::before {
-  opacity: .27;
-  background-image:
-    radial-gradient(ellipse, rgba(244,225,184,.50) 0 2px, transparent 3px),
-    radial-gradient(ellipse, rgba(39,25,15,.56) 0 2.5px, transparent 3.5px);
-  background-size: 37px 31px, 54px 43px;
-  background-position: 9px 5px, 26px 14px;
-}
-.soil-layer:nth-child(4)::before {
-  opacity: .30;
-  background-image:
-    radial-gradient(ellipse, rgba(246,229,191,.55) 0 2.5px, transparent 3.5px),
-    radial-gradient(ellipse, rgba(45,29,17,.58) 0 3px, transparent 4px),
-    radial-gradient(circle, rgba(255,246,218,.36) 0 1px, transparent 2px);
-  background-size: 45px 37px, 68px 52px, 23px 19px;
-  background-position: 7px 3px, 31px 17px, 13px 8px;
-}
-.soil-layer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: .26;
-  background-image:
-    radial-gradient(circle at 12% 26%, rgba(255,255,255,.24) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 72% 66%, rgba(24,16,10,.44) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 42% 82%, rgba(255,255,255,.18) 0 1px, transparent 1.5px);
-  background-size: 31px 27px, 37px 33px, 43px 39px;
-}
-.soil-layer:nth-child(1)::after { opacity: .20; }
-.soil-layer:nth-child(2)::after { opacity: .23; }
-.soil-layer:nth-child(3)::after { opacity: .26; }
-.soil-layer:nth-child(4)::after { opacity: .30; }
-.soil-probe-window {
-  position: absolute;
-  z-index: 4;
-  top: 18px;
-  bottom: 7px;
-  left: 16px;
-  width: 48px;
-  overflow: hidden;
-  pointer-events: none;
-  filter: drop-shadow(0 3px 3px rgba(0,0,0,.34));
-}
-.soil-probe-image {
-  position: absolute;
-  top: 0;
-  left: -27px;
-  width: auto;
-  height: 316px;
-  max-width: none;
-  user-select: none;
-}
-.soil-readings {
-  position: absolute;
-  z-index: 6;
-  inset: 47px 7px 0 64px;
-}
-.soil-reading {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: var(--reading-y);
-  min-height: 47px;
-  display: grid;
-  grid-template-columns: 44px repeat(2, minmax(0, 1fr));
-  align-items: stretch;
-  gap: 5px;
-  padding: 5px;
-  transform: translateY(-50%);
-  border: 1px solid rgba(255,255,255,.23);
-  border-radius: 10px;
-  background: rgba(22, 27, 31, .67);
-  box-shadow: 0 3px 10px rgba(19,13,8,.18);
-  color: white;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-.soil-reading::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: 100%;
-  width: 24px;
-  border-top: 1px solid rgba(255,255,255,.62);
-}
-.soil-reading::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: calc(100% + 24px);
-  width: 7px;
-  height: 7px;
-  border: 2px solid rgba(255,255,255,.85);
-  border-radius: 50%;
-  background: #0b7d62;
-  transform: translate(50%, -50%);
-  box-shadow: 0 0 0 3px rgba(11,125,98,.25);
-}
-.soil-reading-depth {
-  display: grid;
-  place-items: center;
-  border-radius: 7px;
-  background: rgba(255,255,255,.10);
-  font-size: 10.5px;
-  font-weight: 850;
-  line-height: 1.05;
-  text-align: center;
-}
-.soil-reading-depth span { display: block; font-size: 8px; opacity: .72; text-transform: uppercase; }
-.soil-reading-value {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 1px 4px 1px 7px;
-  border-left: 3px solid var(--reading-accent);
-}
-.soil-reading-value.temp { --reading-accent: var(--soil-temp-color, #f4b85b); }
-.soil-reading-value.moisture { --reading-accent: var(--soil-moisture-color, #61b9ee); }
-.soil-reading-value-label {
-  color: rgba(255,255,255,.66);
-  font-size: 7.5px;
-  font-weight: 800;
-  letter-spacing: .45px;
-  line-height: 1;
-  text-transform: uppercase;
-}
-.soil-reading-value-number {
-  margin-top: 3px;
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 820;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
 .skycam-container {
   position: relative;
   margin: 0;
@@ -1401,8 +1077,6 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   .quick-stat .value { font-size: 15px; }
   .quick-stat.evap-stat .value { font-size: 13.75px; }
   .section-card { padding: 9px 10px; }
-  .soil-profile-plot { height: 330px; }
-  .soil-probe-image { height: 306px; }
   .two-card-grid { grid-template-columns: 1fr; gap: 8px; }
   .metric-row { min-height: 32px; }
   .skycam-image-stage { min-height: 0; }
@@ -1418,30 +1092,7 @@ html[data-theme="dark"] .logo-container img { filter: brightness(.72) saturate(.
   .status-badge { flex-basis: 64px; width: 64px; padding-left: 3px; padding-right: 3px; font-size: 8.6px; }
   #freshnessText { flex-basis: 99px; width: 99px; font-size: 9.25px; }
   .primary-temp { font-size: 28px; }
-  .soil-profile-plot { height: 320px; }
-  .soil-probe-window { left: 14px; width: 44px; }
-  .soil-probe-image { left: -26px; height: 296px; }
-  .soil-readings { left: 57px; right: 5px; }
-  .soil-surface-reading {
-    left: 57px;
-    right: 5px;
-    grid-template-columns: 39px repeat(2, minmax(0, 1fr));
-    gap: 3px;
-    padding: 0 4px;
-  }
-  .soil-reading::before { width: 21px; }
-  .soil-reading::after { right: calc(100% + 21px); }
-  .soil-surface-depth { height: 39px; font-size: 8.5px; }
-  .soil-surface-temperature { padding-left: 5px; padding-right: 5px; }
-  .soil-surface-temperature-label { font-size: 6.75px; }
-  .soil-surface-temperature strong { font-size: 10.75px; }
-  .soil-reading {
-    grid-template-columns: 39px repeat(2, minmax(0, 1fr));
-    gap: 3px;
-    padding: 4px;
-  }
-  .soil-reading-value { padding-left: 5px; }
-  .soil-reading-value-number { font-size: 12.5px; }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1471,11 +1122,12 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=3"></script>
-<link rel="stylesheet" href="/dashboard.css?v=5">
+<link rel="stylesheet" href="/dashboard.css?v=6">
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
-<link rel="stylesheet" href="/radar.css?v=1">
+<link rel="stylesheet" href="/radar.css?v=2">
+<link rel="stylesheet" href="/soil.css?v=1">
 <script defer src="/vendor/leaflet/leaflet.js"></script>
-<script defer src="/radar.js?v=2"></script>
+<script defer src="/radar.js?v=3"></script>
 </head>
 <body class="current-page">
 <div class="main-container">
@@ -1502,7 +1154,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
       <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
       <a class="dashboard-tab" href="/forecast.html">Forecast</a>
     </nav>
-    <div class="dashboard-history"><span id="historyHint" class="dashboard-history-hint">5-hour trends</span><button id="browseHistory" type="button" class="dashboard-history-button" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends / history</span></button></div>
+    <div class="dashboard-history"><span id="historyHint" class="dashboard-history-hint">5-hour trends</span><button id="browseHistory" type="button" class="dashboard-history-button" aria-haspopup="dialog" aria-label="Browse weather trends and history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends</span></button></div>
   </div>
   </div>
 </header>
@@ -1588,18 +1240,24 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <section class="radar-panel layout-radar" id="radar" aria-labelledby="radarTitle">
   <div class="radar-map-stage">
     <div id="radarMap" class="radar-map" aria-label="Rain radar map centred on Warwick"></div>
-    <div class="radar-title-badge"><h2 id="radarTitle">Rain radar</h2><span>PAST TWO HOURS</span></div>
+    <div class="radar-title-badge"><h2 id="radarTitle">Rain radar</h2><div class="radar-legend"><span>Light rain</span><span class="radar-legend-colours" aria-hidden="true"></span><span>Heavy</span></div></div>
     <div class="radar-frame-badge"><span>FRAME</span><strong id="radarFrameTime">— AEST</strong></div>
+    <div class="radar-tools" aria-label="Radar map controls">
+      <button class="radar-map-button" id="radarReset" type="button" aria-label="Centre radar on Warwick" title="Centre on Warwick"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg></button>
+      <button class="radar-map-button" id="refreshRadar" type="button" aria-label="Refresh radar" title="Refresh radar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"/></svg></button>
+    </div>
   </div>
   <div class="radar-controls">
     <button class="radar-button radar-play" id="radarPlay" type="button" disabled aria-pressed="false">▶ Play</button>
     <div class="radar-timeline"><label for="radarSlider">Past two hours <span id="radarPosition">Waiting for radar</span></label><input id="radarSlider" type="range" min="0" max="0" value="0" disabled aria-label="Radar frame"><div class="radar-timeline-ends"><span id="radarStart">—</span><span id="radarEnd">Latest</span></div></div>
     <button class="radar-button" id="radarLatest" type="button" disabled>Latest</button>
   </div>
-  <p class="radar-status" id="radarStatus" role="status">Loading the regional radar…</p>
-  <div class="radar-footer"><div class="radar-legend"><span>Light rain</span><span class="radar-legend-colours" aria-hidden="true"></span><span>Heavy</span></div><div class="radar-tools"><button class="radar-retry" id="radarReset" type="button">Centre map</button><button class="radar-retry" id="refreshRadar" type="button">Refresh ↻</button></div></div>
-  <p class="radar-credit">Radar via <a href="https://www.rainviewer.com/" target="_blank" rel="noopener noreferrer">RainViewer</a> · <a href="https://www.bom.gov.au/" target="_blank" rel="noopener noreferrer">BOM</a>. Blank areas may be dry or outside radar coverage.</p>
-  <details class="radar-about"><summary>About this radar</summary><p>South-east Queensland and the Northern Rivers, centred on Warwick. Past radar in 10-minute steps, not a prediction. Zooming closer enlarges the same regional image. Times are AEST; frame times can differ from individual radar scan times.</p></details>
+  <div class="radar-meta">
+    <p class="radar-status" id="radarStatus" role="status">Loading radar…</p>
+    <div class="radar-source"><p class="radar-credit"><a href="https://www.rainviewer.com/" target="_blank" rel="noopener noreferrer">RainViewer</a> · <a href="https://www.bom.gov.au/" target="_blank" rel="noopener noreferrer">BOM</a></p>
+      <details class="radar-about"><summary aria-label="About this radar" title="About this radar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></svg></summary><p>Past radar for south-east Queensland and the Northern Rivers, in 10-minute steps. All times AEST. Blank areas may be dry or outside radar coverage. Zooming enlarges the same regional image; frame times can differ from individual radar scans.</p></details>
+    </div>
+  </div>
   <noscript><p class="radar-status">Please enable JavaScript to load the interactive radar.</p></noscript>
 </section>
 </div>
@@ -1608,15 +1266,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <h2 class="section-title">Soil profile</h2>
 <span class="soil-profile-badge">EnviroPro · 4 CH</span>
 </div>
-<p class="soil-profile-caption">Temperature and moisture readings from the surface down to 40 cm</p>
+<p class="soil-profile-caption">Temperature &amp; moisture · 0–40 cm</p>
 <div class="soil-profile-plot" role="group" aria-label="Live soil moisture and temperature from the EnviroPro probe at 10, 20, 30 and 40 centimetres">
-<div class="soil-surface" aria-hidden="true"></div>
-<div class="soil-layers" aria-hidden="true">
-<div class="soil-layer" id="soilLayer10"></div>
-<div class="soil-layer" id="soilLayer20"></div>
-<div class="soil-layer" id="soilLayer30"></div>
-<div class="soil-layer" id="soilLayer40"></div>
-</div>
 <div class="soil-probe-window" aria-hidden="true">
 <img class="soil-probe-image" src="/enviropro-4ch-probe-clean.png" alt=""/>
 </div>
@@ -1625,22 +1276,22 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <div class="soil-reading-depth">0<span>cm</span></div>
 <div class="soil-reading-value temp"><span class="soil-reading-value-label">Ground temp</span><span class="soil-reading-value-number"><span id="gardenBedTempVal">--</span><span class="unit-suffix">°C</span></span></div>
 </div>
-<div class="soil-reading" id="soilDepth10" style="--reading-y:22.222%">
+<div class="soil-reading" id="soilDepth10">
 <div class="soil-reading-depth">10<span>cm</span></div>
 <div class="soil-reading-value temp"><span class="soil-reading-value-label">Temperature</span><span class="soil-reading-value-number"><span id="soilTemp10Val">--</span><span class="unit-suffix">°C</span></span></div>
 <div class="soil-reading-value moisture"><span class="soil-reading-value-label">Moisture</span><span class="soil-reading-value-number"><span id="moisture10Val">--</span><span class="unit-suffix">%</span></span></div>
 </div>
-<div class="soil-reading" id="soilDepth20" style="--reading-y:44.444%">
+<div class="soil-reading" id="soilDepth20">
 <div class="soil-reading-depth">20<span>cm</span></div>
 <div class="soil-reading-value temp"><span class="soil-reading-value-label">Temperature</span><span class="soil-reading-value-number"><span id="soilTemp20Val">--</span><span class="unit-suffix">°C</span></span></div>
 <div class="soil-reading-value moisture"><span class="soil-reading-value-label">Moisture</span><span class="soil-reading-value-number"><span id="moisture20Val">--</span><span class="unit-suffix">%</span></span></div>
 </div>
-<div class="soil-reading" id="soilDepth30" style="--reading-y:66.667%">
+<div class="soil-reading" id="soilDepth30">
 <div class="soil-reading-depth">30<span>cm</span></div>
 <div class="soil-reading-value temp"><span class="soil-reading-value-label">Temperature</span><span class="soil-reading-value-number"><span id="soilTemp30Val">--</span><span class="unit-suffix">°C</span></span></div>
 <div class="soil-reading-value moisture"><span class="soil-reading-value-label">Moisture</span><span class="soil-reading-value-number"><span id="moisture30Val">--</span><span class="unit-suffix">%</span></span></div>
 </div>
-<div class="soil-reading" id="soilDepth40" style="--reading-y:88.889%">
+<div class="soil-reading" id="soilDepth40">
 <div class="soil-reading-depth">40<span>cm</span></div>
 <div class="soil-reading-value temp"><span class="soil-reading-value-label">Temperature</span><span class="soil-reading-value-number"><span id="soilTemp40Val">--</span><span class="unit-suffix">°C</span></span></div>
 <div class="soil-reading-value moisture"><span class="soil-reading-value-label">Moisture</span><span class="soil-reading-value-number"><span id="moisture40Val">--</span><span class="unit-suffix">%</span></span></div>
@@ -1655,8 +1306,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <span id="dailyEvapVal">--</span>
 </div></div>
 </main>
-<section class="local-water" id="localWater" aria-labelledby="localWaterTitle">
-  <div class="water-section-heading"><div><span class="water-eyebrow">Our catchment</span><h2 id="localWaterTitle">Local water</h2></div><span class="water-current-label">Latest available readings · AEST</span></div>
+<section class="local-water" id="localWater" aria-label="Leslie Dam and Condamine River readings">
   <div class="water-grid">
     <article class="water-panel water-dam">
       <header><div><span class="water-eyebrow">Upper Condamine</span><h3>Leslie Dam</h3></div><span class="water-site">422315B</span></header>

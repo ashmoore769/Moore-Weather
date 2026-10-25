@@ -1,0 +1,27 @@
+/* Keep the real EnviroPro probe close to the card edge; readings share one grid. */
+.current-page .soil-profile-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:0; }
+.current-page .soil-profile-badge { color:var(--muted); font-size:9px; font-weight:600; letter-spacing:.4px; white-space:nowrap; }
+.current-page .soil-profile-caption { margin:6px 0 14px; color:var(--muted); font-size:10px; line-height:1.5; }
+.current-page .layout-soil .soil-profile-plot { position:relative; height:380px; flex-shrink:0; margin:0; border:0; border-radius:0; background:transparent; box-shadow:none; isolation:isolate; }
+.current-page .soil-probe-window { position:absolute; top:0; bottom:0; left:2px; width:32px; overflow:hidden; pointer-events:none; }
+.current-page .soil-profile-plot .soil-probe-image { position:absolute; top:-12px; left:-48px; height:402px; width:auto; max-width:none; user-select:none; }
+.current-page .soil-readings { position:absolute; inset:0 0 0 44px; display:grid; grid-template-rows:repeat(5,minmax(0,1fr)); gap:8px; }
+.current-page .soil-reading { position:relative; display:grid; grid-template-columns:32px repeat(2,minmax(0,1fr)); gap:6px; min-width:0; min-height:0; padding:6px; color:var(--text); background:var(--surface-soft); border:1px solid var(--border); border-radius:10px; }
+.current-page .soil-reading::before { content:""; position:absolute; top:50%; right:100%; width:27px; border-top:1px solid var(--border-strong); }
+.current-page .soil-reading::after { content:""; position:absolute; top:50%; right:calc(100% + 27px); width:7px; height:7px; transform:translate(50%,-50%); border:2px solid var(--border-strong); border-radius:50%; background:var(--surface); }
+.current-page .soil-ground-reading::before,.current-page .soil-ground-reading::after { content:none; }
+.current-page .soil-reading-depth { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color:var(--muted); font-size:11px; line-height:1.1; font-weight:700; font-variant-numeric:tabular-nums; }
+.current-page .soil-reading-depth span { font-size:8px; font-weight:500; }
+.current-page .soil-reading-value { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; min-width:0; padding:1px 4px 1px 7px; border-left:3px solid var(--reading-accent); text-align:left; }
+.current-page .soil-reading-value.temp { --reading-accent:var(--soil-temp-color,#f4b85b); }
+.current-page .soil-reading-value.moisture { --reading-accent:var(--soil-moisture-color,#61b9ee); }
+.current-page .soil-ground-reading .soil-reading-value { grid-column:2; --reading-accent:var(--ground-temp-color,#f4b85b); }
+.current-page .soil-reading-value-label { color:var(--muted); font-size:8px; font-weight:750; letter-spacing:.35px; line-height:1.1; text-transform:uppercase; }
+.current-page .soil-reading-value-number { max-width:100%; margin-top:3px; font-size:17px; line-height:1.15; font-weight:750; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.current-page .soil-reading-value .history-spark { color:var(--history-color,var(--accent)); }
+@media(max-width:359px) {
+  .current-page .soil-reading { grid-template-columns:25px repeat(2,minmax(0,1fr)); gap:4px; padding:5px; }
+  .current-page .soil-reading-value { padding-left:4px; padding-right:2px; }
+  .current-page .soil-reading-value-label { font-size:7px; letter-spacing:.1px; }
+  .current-page .soil-reading-value-number { font-size:16px; }
+}
