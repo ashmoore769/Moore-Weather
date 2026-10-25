@@ -13,15 +13,18 @@
     if (segment.length) result.push(segment);
     return result;
   }
-  function domain(series) {
+  function domain(series, includeReferences = true) {
     if (series.metric.kind === 'direction') return [0, 360];
     const values = series.points.flatMap(p => p.value === null ? [] : [p.value, p.min, p.max].filter(v => v !== null));
+    const references = includeReferences ? (series.metric.referenceLines || []).filter(r => Number.isFinite(r.value)) : [];
+    if (references.length) values.push(0, ...references.map(r => r.value));
     if (!values.length) return [0, 1];
     let min = Math.min(...values), max = Math.max(...values);
     const pad = Math.max((max - min) * .16, Math.abs(max) * .0005, 10 ** -series.metric.precision);
     min -= pad; max += pad;
     if (series.metric.kind === 'bar') { min = Math.min(0, min); max = Math.max(0, max); }
     if (['rain', 'solar', 'wind', 'gust', 'humidity'].includes(series.metric.id) || series.metric.id.startsWith('soil-moisture')) min = Math.max(0, min);
+    if (references.length && values.every(v => v >= 0)) min = 0;
     return [min, max];
   }
 

@@ -28,7 +28,7 @@
     ['gardenBedTempVal', 'ground'], ['batteryVal', 'battery'], ['loadVal', 'load'], ['solarPanelVal', 'panel'], ['chargeVal', 'charge'],
     ...[10, 20, 30, 40].flatMap(depth => [[`soilTemp${depth}Val`, `soil-temp-${depth}`], [`moisture${depth}Val`, `soil-moisture-${depth}`]])
   ];
-  bindings.push(['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-level'], ['condamineFlow', 'condamine-flow']);
+  bindings.push(['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-warwick-level'], ['condamineFlow', 'condamine-flow']);
   let catalog = [], trendData, loadingTrends = false, modalRequest, selection, activeSeries, activeIndex = -1, chartGeometry;
   let resetView, loadedSeries, navigationTimer, previewFrame, gesture, pendingWindow, wheelWindow;
   const pointers = new Map();
@@ -161,13 +161,13 @@
     const svg = spark.querySelector('svg'), caption = spark.querySelector('.history-spark-caption span');
     svg.replaceChildren();
     if (!series?.latest) { caption.textContent = 'No readings in this window'; return; }
-    const [min, max] = WeatherChart.domain(series);
+    const [min, max] = WeatherChart.domain(series, false);
     const x = t => 3 + (t - series.start) / (series.end - series.start) * 254;
     const y = v => 36 - (v - min) / (max - min) * 32;
     svg.append(svgNode('line', { x1: 0, x2: 260, y1: 38, y2: 38, stroke: 'currentColor', opacity: .12 }));
     paths(svg, series, x, y, 38, true);
     const stale = series.end - series.latest.t > series.intervalSeconds * 2000;
-    caption.textContent = stale ? 'Last ' + timeFormat.format(series.latest.t) + ' · gaps' : series.resolution === 'daily' ? '30 days · daily' : series.resolution === 'hourly' ? '5 hours · hourly' : series.metric.id === 'rain' ? '5 hours · 10-min totals' : '5 hours · 10 min';
+    caption.textContent = stale ? 'Last ' + timeFormat.format(series.latest.t) + ' · gaps' : series.resolution === 'daily' ? '30 days · daily' : series.resolution === 'hourly' ? (series.metric.id === 'condamine-warwick-level' ? '7 days · hourly' : '5 hours · hourly') : series.metric.id === 'rain' ? '5 hours · 10-min totals' : '5 hours · 10 min';
   }
   const ranges = { '10m': [[5, 'Last 5 hours'], [24, '24 hours'], [48, '2 days'], [168, '7 days']], hourly: [[5, 'Last 5 hours'], [24, '24 hours'], [168, '7 days'], [720, '30 days']], daily: [[168, '7 days'], [720, '30 days'], [2160, '90 days'], [8760, '1 year'], [17520, '2 years']] };
   function configure() {
@@ -205,6 +205,7 @@
     setHistoryState('loading');
     selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 24, endDate: null };
     if (metric.startsWith('leslie-') || metric.startsWith('condamine-')) Object.assign(selection, { resolution: 'daily', hours: 720 });
+    if (metric === 'condamine-warwick-level') Object.assign(selection, { resolution: 'hourly', hours: 168 });
     if (!dialog.open) dialog.showModal();
     dialog.querySelector('.history-scroll').scrollTop = 0;
     $('historyMessage').hidden = false; $('historyMessage').textContent = 'Loading history…';
@@ -380,6 +381,18 @@
         group.append(svgNode('path',{d:segment.map((p,i)=>(i?'L':'M')+x(p.t)+','+y(p.value)).join(' '),fill:'none',stroke:'var(--text)','stroke-width':2,'stroke-dasharray':'8 5','vector-effect':'non-scaling-stroke'}));
       }
       svg.append(group);
+    }
+    // Reference levels stay at their published gauge height through pan/zoom.
+    // Major flooding and the bridge share one line, avoiding overlapping labels.
+    for (const ref of s.metric.referenceLines || []) {
+      if (!Number.isFinite(ref.value)) continue;
+      const py = y(ref.value);
+      svg.append(svgNode('line', { class: 'history-reference-line', x1: left, x2: right, y1: py, y2: py,
+        stroke: ref.color, 'stroke-width': 1.4, 'stroke-dasharray': '6 4' }));
+      const text = svgNode('text', { class: 'history-reference-label', x: left + 5, y: py - 6,
+        fill: ref.color, 'font-size': width < 360 ? 9 : 10, 'font-weight': 600,
+        stroke: 'var(--surface)', 'stroke-width': 3, 'paint-order': 'stroke', 'stroke-linejoin': 'round' }, `${ref.label} · ${ref.value.toFixed(2)} m`);
+      svg.append(text);
     }
     const cursor = svgNode('g', { id: 'historyCursor', visibility: 'hidden' });
     cursor.append(svgNode('line', { y1: top, y2: bottom, stroke: 'var(--muted)', 'stroke-dasharray': '3 3' }), svgNode('circle', { r: 4, fill: 'var(--surface)', stroke: color(s.metric.id), 'stroke-width': 2 })); svg.append(cursor);
@@ -557,7 +570,7 @@
     loadingWater = true;
     try {
       const data = await getJson('/api/water', AbortSignal.timeout(20000));
-      for (const [element, id] of [['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-level'], ['condamineFlow', 'condamine-flow']]) {
+      for (const [element, id] of [['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-warwick-level'], ['condamineFlow', 'condamine-flow']]) {
         const row = data.readings[id];
         $(element).textContent = row ? row.value.toLocaleString('en-AU', { maximumFractionDigits: data.catalog.find(m => m.id === id).precision }) : '—';
         const updated = $(element + 'Time');
@@ -568,13 +581,13 @@
       }
       const volume = data.readings['leslie-volume'];
       $('leslieCapacity').textContent = volume?.capacity ? 'Full supply capacity · ' + volume.capacity.toLocaleString('en-AU') + ' ML' : '';
-      const archives = ['leslie-daily', 'condamine-level-backfill', 'condamine-flow-backfill'];
+      const archives = ['leslie-daily', 'condamine-level-backfill', 'condamine-flow-backfill', 'condamine-warwick-live'];
       const delayed = Boolean(data.collector?.error) || Object.values(data.imports).some(s => s.error);
       const complete = archives.every(id => data.imports[id]?.complete);
       const riverCursor = data.imports['condamine-level-backfill']?.cursor;
       $('waterImportStatus').textContent = !data.collector?.enabled ? 'Collection paused · saved history remains available' :
-        delayed ? 'Some source updates are delayed · saved history remains available' : complete ? 'History imported · readings saved automatically' :
-          'Importing history' + (riverCursor ? ' · river archive reached ' + fullDateFormat.format(riverCursor) : '') + ' · graphs fill as records arrive';
+        delayed ? 'Some source updates are delayed · saved history remains available' : complete ? 'Available history imported · readings saved automatically' :
+          'Importing history' + (riverCursor ? ' · Scots College archive reached ' + fullDateFormat.format(riverCursor) : '') + ' · graphs fill as records arrive';
       $('waterImportStatus').classList.toggle('water-delayed', delayed);
     } catch {
       $('waterImportStatus').textContent = 'Water updates unavailable · any readings shown are from the last successful update';
