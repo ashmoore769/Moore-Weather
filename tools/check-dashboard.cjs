@@ -53,7 +53,7 @@ const server = http.createServer((req, res) => {
     if (url.pathname === '/api/water') return res.end(JSON.stringify(water()));
     if (url.pathname === '/api/trends') {
       const daily = url.searchParams.get('view') === 'daily';
-      return res.end(JSON.stringify({ catalog, series: catalog.filter(m => !m.water).map(m => series(m.id, daily ? 'daily' : '10m', daily ? 720 : 12)) }));
+      return res.end(JSON.stringify({ catalog, series: catalog.filter(m => !m.water).map(m => series(m.id, daily ? 'daily' : '10m', daily ? 720 : 24)) }));
     }
     if (url.pathname === '/api/history') {
       try {
@@ -73,7 +73,7 @@ const server = http.createServer((req, res) => {
       let html = fs.readFileSync(file, 'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
       // Keep real page markup and CSS. Only the changed history layer runs;
       // live polling, SkyCam, notifications and provider calls are excluded.
-      if (!file.endsWith('forecast.html')) html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script><script src="/station-alerts.js"></script></body>');
+      if (!file.endsWith('forecast.html')) html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script><script src="/station-alerts.js"></script><script src="/skycam-labels.js"></script></body>');
       res.setHeader('Content-Type', 'text/html'); return res.end(html);
     }
     res.setHeader('Content-Type', file.endsWith('.css') ? 'text/css' : file.endsWith('.js') ? 'text/javascript' : file.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream');
@@ -129,14 +129,52 @@ async function navigation(page, width) {
   }
   assert.equal(await page.locator('.footer-analytics').getAttribute('href'), 'https://cloud.umami.is/');
 }
+async function cameraLabels(page, focus = false) {
+  const geometry = await page.evaluate(() => {
+    const rect = node => { const r=node.getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom,scroll:node.scrollWidth,client:node.clientWidth}; };
+    const stage=document.querySelector('.skycam-image-stage'), frame=document.querySelector('#skycamImage');
+    return { stage:rect(stage), labels:[...document.querySelector('.skycam-labels').children].map(rect), ratio:frame.naturalWidth/frame.naturalHeight || 4/3 };
+  });
+  const {stage,labels,ratio}=geometry;
+  const height=focus ? Math.min(stage.height,stage.width/ratio) : stage.height;
+  const width=focus ? height*ratio : stage.width;
+  const imageX=stage.x+(stage.width-width)/2, imageY=stage.y+(stage.height-height)/2;
+  for(let i=0;i<labels.length;i++){
+    const b=labels[i];
+    assert.ok(b.y>=imageY+Math.max(32,height*.14)-1, 'Label covers reserved watermark area: '+JSON.stringify(geometry));
+    assert.ok(b.x>=imageX-1 && b.right<=imageX+width+1 && b.bottom<=imageY+height, 'Label lies outside camera image');
+    assert.ok(b.scroll<=b.client+1, 'Label text clips');
+    assert.ok(Math.abs(b.y-labels[0].y)<1 && Math.abs(b.width-labels[0].width)<1 && Math.abs(b.height-labels[0].height)<1, 'Labels must align and have equal space');
+    if(i)assert.ok(labels[i-1].right<b.x, 'Labels overlap');
+  }
+}
 async function visualWindows(page) {
-  const boxes = await page.evaluate(() => ['.skycam-image-stage','.radar-map-stage','.skycam-bearing'].map(selector => {
+  const boxes = await page.evaluate(() => ['.skycam-image-stage','.radar-map-stage'].map(selector => {
     const r=document.querySelector(selector).getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};
   }));
-  const [camera,radar,bearing]=boxes;
+  const [camera,radar]=boxes;
   assert.ok(Math.abs(camera.width-radar.width)<2 && Math.abs(camera.height-radar.height)<2, 'Camera/radar dimensions: '+JSON.stringify(boxes));
   assert.ok(Math.abs(camera.width/camera.height-4/3)<.01);
-  assert.ok(bearing.x>=camera.x && bearing.right<=camera.right && bearing.y>=camera.y && bearing.bottom<=camera.bottom);
+  await cameraLabels(page);
+  // Exercise the longest status and both common camera ratios in the enlarged viewer.
+  for(const ratio of [4/3,16/9]){
+    await page.evaluate(ratio=>{
+      const frame=document.querySelector('#skycamImage');
+      frame.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="'+(ratio*900)+'" height="900"></svg>');
+      document.querySelector('#skycamBadge').textContent='SKYCAM · TIMELAPSE';
+      document.querySelector('.skycam-container').classList.add('skycam-focus-mode');
+      document.body.classList.add('skycam-focus-open');
+    },ratio);
+    await page.waitForFunction(ratio=>Math.abs(document.querySelector('#skycamImage').naturalWidth/900-ratio)<.01,ratio);
+    await page.waitForTimeout(60);
+    await cameraLabels(page,true);
+  }
+  await page.evaluate(()=>{
+    document.querySelector('.skycam-container').classList.remove('skycam-focus-mode');
+    document.body.classList.remove('skycam-focus-open');
+    document.querySelector('#skycamBadge').textContent='SKYCAM · LIVE';
+  });
+  await page.waitForTimeout(60); await cameraLabels(page);
 }
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -182,8 +220,8 @@ async function visualWindows(page) {
             assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), 'false');
             if (pagePath.includes('index')) {
               await visualWindows(page);
-              assert.match(await page.locator('#powerTrendLabel').textContent(), /12-hour/);
-              assert.match(await page.locator('#tempVal').locator('xpath=ancestor::*[contains(@class,"temp-hero")]').locator('.history-spark-caption').textContent(), /12 hours/);
+              assert.match(await page.locator('#powerTrendLabel').textContent(), /24-hour/);
+              assert.match(await page.locator('#tempVal').locator('xpath=ancestor::*[contains(@class,"temp-hero")]').locator('.history-spark-caption').textContent(), /24 hours/);
               for (const [mm, inches] of [['25.4', '(1.00 in)'], ['0.0', '(0.00 in)'], ['--', ''], ['225.0', '(8.86 in)']]) {
                 await page.evaluate(mm => document.querySelector('#rainSince9Val').textContent = mm, mm);
                 await page.waitForFunction(inches => document.querySelector('#rainSince9Inches').textContent === inches, inches);
@@ -243,7 +281,7 @@ async function visualWindows(page) {
           }
           await page.goto(origin + '/forecast.html'); await navigation(page,width);
           await page.locator('.dashboard-history-button').click();
-          await historyReady(page,'10m',12);
+          await historyReady(page,'10m',24);
           await page.locator('.history-close').click();
           if (width === 393) {
             for (const [state, text] of [['watch', '1.00m (Below Bridge)'], ['near', '0.50m (Below Bridge)'], ['above', '0.21m (Above Bridge)'], ['at', '0.00m (At Bridge)'], ['stale', '0.20m (Below Bridge)'], ['missing', 'River reading unavailable']]) {
@@ -270,6 +308,6 @@ async function visualWindows(page) {
         }
       } finally { await browser.close(); }
     }
-    console.log('PASS: ' + checked + ' page/browser/width combinations; four water cards, Connolly history, single-line navigation, matched camera/radar, twelve-hour previews, persistent references, bridge states and rainfall inches/peak dates, warning colours and exact 30-day rain comparisons.');
+    console.log('PASS: ' + checked + ' page/browser/width combinations; four water cards, Connolly history, single-line navigation, matched camera/radar, twenty-four-hour previews, persistent references, bridge states and rainfall inches/peak dates, warning colours and exact 30-day rain comparisons.');
   } finally { server.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

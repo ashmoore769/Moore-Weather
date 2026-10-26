@@ -1,7 +1,7 @@
 # Dashboard refinements, October 2026
 
-Current station, soil and power previews use 12 hours. The history viewer starts
-at 12 hours for current weather and keeps selectable shorter/longer ranges.
+Current station, soil and power previews use 24 hours. The history viewer starts
+at 24 hours for current weather and keeps selectable shorter/longer ranges.
 Daily Summary keeps 30 days. River cards keep 7 days and Leslie keeps 30 days.
 
 The shared header orders Current Readings, Forecast, Daily Summary, Trends.
@@ -36,3 +36,14 @@ Validation: offline unit tests, Chromium/WebKit responsive checks, analytics
 checks with collection intercepted, and an explicit read-only council source
 probe on the update branch. Never start server.js during local validation: it
 connects to the physical station.
+
+SkyCam's three information labels share an evenly spaced row below a reserved
+watermark area (14% of the visible image height, at least 32 CSS pixels). Full
+screen uses the loaded image's dimensions to account for letterboxing. This
+changes only the overlays, not the source image or its embedded watermark.
+
+Connolly has no automatic historical backfill configured. The accessible
+council table supplies the latest report, and collection began on 26 October
+2026. New dated reports accumulate automatically. No historical storage API
+has been verified, and older values must not be reconstructed from weekly
+changes or an unrelated river gauge.

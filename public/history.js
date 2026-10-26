@@ -140,7 +140,7 @@
       trendData = await getJson('/api/trends?view=' + (dailyPage ? 'daily' : 'current'), AbortSignal.timeout(20000));
       setCatalog(trendData);
       for (const entry of cards.filter(c => !/^(leslie|condamine|connolly)-/.test(c.metric))) drawSpark(entry, trendData.series.find(s => s.metric.id === entry.metric));
-      guideText.textContent = dailyPage ? '30-day trends' : '12-hour trends';
+      guideText.textContent = dailyPage ? '30-day trends' : '24-hour trends';
       guideText.removeAttribute('title');
     } catch (error) {
       guideText.textContent = 'History unavailable'; guideText.title = error.message;
@@ -206,7 +206,7 @@
     paths(svg, series, x, y, 38, true);
     if (series.metric.reporting === 'published') { caption.textContent = '30 days · council reports'; return; }
     const stale = series.end - series.latest.t > series.intervalSeconds * 2000;
-    caption.textContent = stale ? 'Last ' + timeFormat.format(series.latest.t) + ' · gaps' : series.resolution === 'daily' ? '30 days · daily' : series.resolution === 'hourly' ? (['condamine-warwick-level', 'condamine-level'].includes(series.metric.id) ? '7 days · hourly' : '12 hours · hourly') : series.metric.id === 'rain' ? '12 hours · 10-min totals' : '12 hours · 10 min';
+    caption.textContent = stale ? 'Last ' + timeFormat.format(series.latest.t) + ' · gaps' : series.resolution === 'daily' ? '30 days · daily' : series.resolution === 'hourly' ? (['condamine-warwick-level', 'condamine-level'].includes(series.metric.id) ? '7 days · hourly' : '24 hours · hourly') : series.metric.id === 'rain' ? '24 hours · 10-min totals' : '24 hours · 10 min';
   }
   const ranges = { '10m': [[5, '5 hours'], [12, '12 hours'], [24, '24 hours'], [48, '2 days'], [168, '7 days']], hourly: [[5, '5 hours'], [12, '12 hours'], [24, '24 hours'], [168, '7 days'], [720, '30 days']], daily: [[168, '7 days'], [720, '30 days'], [2160, '90 days'], [8760, '1 year'], [17520, '2 years']] };
   function configure() {
@@ -244,7 +244,7 @@
     window.mooreAnalytics?.track('history-open', { measurement: metric });
     cancelNavigation(); resetView = null;
     setHistoryState('loading');
-    selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 12, endDate: null };
+    selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 24, endDate: null };
     if (/^(leslie|condamine|connolly)-/.test(metric)) Object.assign(selection, { resolution: 'daily', hours: 720 });
     if (metric === 'condamine-warwick-level' || metric === 'condamine-level') Object.assign(selection, { resolution: 'hourly', hours: 168 });
     if (!dialog.open) dialog.showModal();
