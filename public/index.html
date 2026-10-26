@@ -1123,13 +1123,12 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=4"></script>
-<link rel="stylesheet" href="/dashboard.css?v=9">
+<link rel="stylesheet" href="/dashboard.css?v=10">
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/radar.css?v=2">
 <link rel="stylesheet" href="/soil.css?v=1">
 <script defer src="/vendor/leaflet/leaflet.js"></script>
 <script defer src="/radar.js?v=3"></script>
-<script defer src="/skycam-labels.js?v=1"></script>
 </head>
 <body class="current-page">
 <div class="main-container">
@@ -1219,11 +1218,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <div class="current-visuals">
 <div aria-label="SkyCam" class="layout-skycam">
 <div class="skycam-container" title="SkyCam">
-<div class="skycam-labels" role="group" aria-label="SkyCam information">
-  <div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
-  <div class="skycam-bearing" title="Camera faces approximately due south" aria-label="Camera faces approximately due south"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m12 5 4 9-4-2-4 2Z"/></svg><span>Facing south</span></div>
-  <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">Every 10 min</div>
-</div>
+<div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
+<div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
 <div class="skycam-rotate-hint" id="skycamRotateHint" aria-hidden="true">↻ Landscape gives the best view</div>
 <button aria-label="Show older SkyCam image" class="skycam-nav skycam-nav-prev" id="skycamPrev" onclick="stepSkyCam(-1)" type="button">‹</button>
 <div class="skycam-image-stage" id="skycamImageStage" aria-label="SkyCam image viewer">

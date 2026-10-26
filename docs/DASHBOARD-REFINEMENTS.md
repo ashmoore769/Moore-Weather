@@ -8,8 +8,10 @@ The shared header orders Current Readings, Forecast, Daily Summary, Trends.
 Current is shortened on phones. Forecast links to the Current page's Trends
 dialog. Analytics links to the owner's login-protected Umami dashboard.
 
-Camera and radar viewing areas use 4:3. The direction badge describes the camera
-as approximately south-facing; it does not claim a surveyed compass bearing.
+Camera and radar viewing areas use 4:3. SkyCam labels use the original layout
+from commit 411aaead20fcd22454ebe4378641ad9809d01820: live status at top left
+and update frequency at top right, with their original responsive and full-screen
+styles. The south-facing badge and grouped-label positioning have been removed.
 
 Connolly Dam is sourced from Southern Downs Regional Council's published table:
 https://www.sdrc.qld.gov.au/living-here/environment-water-waste/dam-levels
@@ -36,11 +38,6 @@ Validation: offline unit tests, Chromium/WebKit responsive checks, analytics
 checks with collection intercepted, and an explicit read-only council source
 probe on the update branch. Never start server.js during local validation: it
 connects to the physical station.
-
-SkyCam's three information labels share an evenly spaced row below a reserved
-watermark area (14% of the visible image height, at least 32 CSS pixels). Full
-screen uses the loaded image's dimensions to account for letterboxing. This
-changes only the overlays, not the source image or its embedded watermark.
 
 Connolly has no automatic historical backfill configured. The accessible
 council table supplies the latest report, and collection began on 26 October

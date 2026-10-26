@@ -73,7 +73,7 @@ const server = http.createServer((req, res) => {
       let html = fs.readFileSync(file, 'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
       // Keep real page markup and CSS. Only the changed history layer runs;
       // live polling, SkyCam, notifications and provider calls are excluded.
-      if (!file.endsWith('forecast.html')) html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script><script src="/station-alerts.js"></script><script src="/skycam-labels.js"></script></body>');
+      if (!file.endsWith('forecast.html')) html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script><script src="/station-alerts.js"></script></body>');
       res.setHeader('Content-Type', 'text/html'); return res.end(html);
     }
     res.setHeader('Content-Type', file.endsWith('.css') ? 'text/css' : file.endsWith('.js') ? 'text/javascript' : file.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream');
@@ -130,22 +130,20 @@ async function navigation(page, width) {
   assert.equal(await page.locator('.footer-analytics').getAttribute('href'), 'https://cloud.umami.is/');
 }
 async function cameraLabels(page, focus = false) {
+  assert.equal(await page.locator('.skycam-bearing,.skycam-labels').count(), 0);
+  assert.equal(await page.locator('.skycam-interval-badge').textContent(), 'UPDATES · EVERY 10 MIN');
   const geometry = await page.evaluate(() => {
-    const rect = node => { const r=node.getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom,scroll:node.scrollWidth,client:node.clientWidth}; };
-    const stage=document.querySelector('.skycam-image-stage'), frame=document.querySelector('#skycamImage');
-    return { stage:rect(stage), labels:[...document.querySelector('.skycam-labels').children].map(rect), ratio:frame.naturalWidth/frame.naturalHeight || 4/3 };
+    const rect = node => { const r=node.getBoundingClientRect(); return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,scroll:node.scrollWidth,client:node.clientWidth}; };
+    return { container:rect(document.querySelector('.skycam-container')),
+      live:rect(document.querySelector('#skycamBadge')),
+      interval:rect(document.querySelector('.skycam-interval-badge')), width:innerWidth };
   });
-  const {stage,labels,ratio}=geometry;
-  const height=focus ? Math.min(stage.height,stage.width/ratio) : stage.height;
-  const width=focus ? height*ratio : stage.width;
-  const imageX=stage.x+(stage.width-width)/2, imageY=stage.y+(stage.height-height)/2;
-  for(let i=0;i<labels.length;i++){
-    const b=labels[i];
-    assert.ok(b.y>=imageY+Math.max(32,height*.14)-1, 'Label covers reserved watermark area: '+JSON.stringify(geometry));
-    assert.ok(b.x>=imageX-1 && b.right<=imageX+width+1 && b.bottom<=imageY+height, 'Label lies outside camera image');
+  const {container,live,interval,width}=geometry, inset=focus ? 12 : width<=600 ? 7 : 10;
+  assert.ok(Math.abs(live.x-container.x-inset)<1, 'Live label must retain its original left inset');
+  assert.ok(Math.abs(container.right-interval.right-inset)<1, 'Update label must retain its original right inset');
+  for(const b of [live,interval]){
+    assert.ok(Math.abs(b.y-container.y-inset)<1, 'Label must retain its original top inset');
     assert.ok(b.scroll<=b.client+1, 'Label text clips');
-    assert.ok(Math.abs(b.y-labels[0].y)<1 && Math.abs(b.width-labels[0].width)<1 && Math.abs(b.height-labels[0].height)<1, 'Labels must align and have equal space');
-    if(i)assert.ok(labels[i-1].right<b.x, 'Labels overlap');
   }
 }
 async function visualWindows(page) {
@@ -156,21 +154,11 @@ async function visualWindows(page) {
   assert.ok(Math.abs(camera.width-radar.width)<2 && Math.abs(camera.height-radar.height)<2, 'Camera/radar dimensions: '+JSON.stringify(boxes));
   assert.ok(Math.abs(camera.width/camera.height-4/3)<.01);
   await cameraLabels(page);
-  // Exercise the longest status and both common camera ratios in the enlarged viewer.
-  for(const ratio of [4/3,16/9]){
-    await page.evaluate(ratio=>{
-      const frame=document.querySelector('#skycamImage');
-      const canvas=document.createElement('canvas'); canvas.width=Math.round(ratio*90); canvas.height=90;
-      canvas.getContext('2d').fillRect(0,0,canvas.width,canvas.height);
-      frame.src=canvas.toDataURL('image/png');
-      document.querySelector('#skycamBadge').textContent='SKYCAM · TIMELAPSE';
-      document.querySelector('.skycam-container').classList.add('skycam-focus-mode');
-      document.body.classList.add('skycam-focus-open');
-    },ratio);
-    await page.waitForFunction(ratio=>Math.abs(document.querySelector('#skycamImage').naturalWidth/document.querySelector('#skycamImage').naturalHeight-ratio)<.01,ratio);
-    await page.waitForTimeout(60);
-    await cameraLabels(page,true);
-  }
+  await page.evaluate(()=>{
+    document.querySelector('.skycam-container').classList.add('skycam-focus-mode');
+    document.body.classList.add('skycam-focus-open');
+  });
+  await cameraLabels(page,true);
   await page.evaluate(()=>{
     document.querySelector('.skycam-container').classList.remove('skycam-focus-mode');
     document.body.classList.remove('skycam-focus-open');
