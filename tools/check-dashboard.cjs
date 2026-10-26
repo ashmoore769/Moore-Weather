@@ -160,12 +160,14 @@ async function visualWindows(page) {
   for(const ratio of [4/3,16/9]){
     await page.evaluate(ratio=>{
       const frame=document.querySelector('#skycamImage');
-      frame.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="'+(ratio*900)+'" height="900"></svg>');
+      const canvas=document.createElement('canvas'); canvas.width=Math.round(ratio*90); canvas.height=90;
+      canvas.getContext('2d').fillRect(0,0,canvas.width,canvas.height);
+      frame.src=canvas.toDataURL('image/png');
       document.querySelector('#skycamBadge').textContent='SKYCAM · TIMELAPSE';
       document.querySelector('.skycam-container').classList.add('skycam-focus-mode');
       document.body.classList.add('skycam-focus-open');
     },ratio);
-    await page.waitForFunction(ratio=>Math.abs(document.querySelector('#skycamImage').naturalWidth/900-ratio)<.01,ratio);
+    await page.waitForFunction(ratio=>Math.abs(document.querySelector('#skycamImage').naturalWidth/document.querySelector('#skycamImage').naturalHeight-ratio)<.01,ratio);
     await page.waitForTimeout(60);
     await cameraLabels(page,true);
   }
