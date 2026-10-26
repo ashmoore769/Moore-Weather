@@ -163,7 +163,8 @@ test('every shipped page and root mirror has exactly one early analytics loader'
   for (const name of ['index', 'daily', 'forecast', 'login', 'help']) {
     const publicHtml = fs.readFileSync(path.join(root, 'public', name + '.html'), 'utf8');
     assert.equal(publicHtml, fs.readFileSync(path.join(root, name + '.html'), 'utf8'));
-    assert.equal((publicHtml.match(/src="\/analytics.js\?v=1"/g) || []).length, 1);
-    assert.ok(publicHtml.indexOf('/analytics.js?v=1') < publicHtml.indexOf('</head>'));
+    assert.equal((publicHtml.match(/src="\/analytics.js\?v=\d+"/g) || []).length, 1);
+    const loader = publicHtml.search(/src="\/analytics.js\?v=\d+"/);
+    assert.ok(loader >= 0 && loader < publicHtml.indexOf('</head>'));
   }
 });

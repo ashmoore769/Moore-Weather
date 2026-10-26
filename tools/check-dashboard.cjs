@@ -118,7 +118,7 @@ async function bounds(page, width) {
 async function navigation(page, width) {
   const nav = page.locator('.dashboard-tabs');
   const labels = await nav.locator('.dashboard-tab').allInnerTexts();
-  assert.deepEqual(labels.map(s => s.replace(/\\s+/g, ' ').trim()), [width <= 600 ? 'Current' : 'Current Readings', 'Forecast', 'Daily Summary', 'Trends']);
+  assert.deepEqual(labels.map(s => s.replace(/\s+/g, ' ').trim()), [width <= 600 ? 'Current' : 'Current Readings', 'Forecast', 'Daily Summary', 'Trends']);
   const boxes = await nav.locator('.dashboard-tab').evaluateAll(nodes => nodes.map(n => {
     const r = n.getBoundingClientRect(); return { x:r.x, y:r.y, right:r.right, bottom:r.bottom, width:r.width, scroll:n.scrollWidth, client:n.clientWidth };
   }));
