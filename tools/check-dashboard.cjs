@@ -135,6 +135,7 @@ async function bounds(page, width) {
           for (const pagePath of ['/index.html', '/daily.html']) {
             mode = 'fresh';
             await page.goto(origin + pagePath); await ready(page);
+            await page.evaluate(() => document.body.classList.add('weather-loaded'));
             // Desktop uses the app's existing landscape layout class.
             if (width >= 900) await page.evaluate(() => document.body.classList.add('layout-landscape'));
             await page.locator('.local-water').scrollIntoViewIfNeeded();
@@ -148,6 +149,7 @@ async function bounds(page, width) {
                 await page.waitForFunction(inches => document.querySelector('#rainSince9Inches').textContent === inches, inches);
                 assert.equal(await page.locator('#rainSince9Inches').isVisible(), Boolean(inches));
               }
+              assert.equal(await page.locator('.rain-primary .unit-suffix').isVisible(), true);
               const sizes = await page.locator('#rainSince9Inches').evaluate(n => ({
                 secondary: parseFloat(getComputedStyle(n).fontSize),
                 primary: parseFloat(getComputedStyle(document.querySelector('#rainSince9Val')).fontSize)
