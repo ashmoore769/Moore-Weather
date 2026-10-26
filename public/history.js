@@ -19,6 +19,17 @@
     if (text !== undefined) node.textContent = text;
     return node;
   };
+  // Follow the displayed rain value without adding another live-data request.
+  const rainValue = $('rainSince9Val'), rainInches = $('rainSince9Inches');
+  if (rainValue && rainInches) {
+    const updateRainUnits = () => {
+      const raw = rainValue.textContent.trim();
+      const converted = WeatherChart.rainfallInches(raw ? Number(raw) : NaN);
+      rainInches.textContent = converted; rainInches.hidden = !converted;
+    };
+    new MutationObserver(updateRainUnits).observe(rainValue, { childList: true, characterData: true, subtree: true });
+    updateRainUnits();
+  }
   const bindings = dailyPage ? [
     ['tempAvg', 'air'], ['globeAvg', 'globe'], ['humidityAvg', 'humidity'], ['pressureAvg', 'pressure'], ['gustPeak', 'gust'],
     ['windDir', 'direction'], ['solarAvg', 'solar'], ['rainTotal', 'rain'], ['dewAvg', 'dew'], ['evapTotal', 'evaporation-total'], ['batteryMin', 'battery'], ['dirtAvg', 'ground'], ...[10, 20, 30, 40].flatMap(depth => [[`soilTemp${depth}`, `soil-temp-${depth}`], [`soilMoisture${depth}`, `soil-moisture-${depth}`]])
@@ -329,11 +340,22 @@
     if (m.water) $('historySubtitle').textContent = s.subtitle;
     const items = WeatherChart.summary(s);
     summary.classList.toggle('history-summary-rain', m.id === 'rain');
-    summary.replaceChildren(...items.map(([label, value, unit, recording]) => {
+    summary.replaceChildren(...items.map(([label, value, unit, recording], index) => {
       const box = document.createElement('div'), title = document.createElement('span'), number = document.createElement('strong'), suffix = document.createElement('small');
       title.className = 'history-summary-label'; title.textContent = label;
       number.textContent = unit === '' ? value : fmt(value, m); suffix.textContent = unit ?? m.unit;
       number.append(suffix); box.append(title, number);
+      if (m.id === 'rain' && index === 0) {
+        number.classList.add('history-rain-total');
+        const primary = document.createElement('span');
+        primary.className = 'history-rain-primary';
+        primary.append(...number.childNodes); number.append(primary);
+        const conversion = WeatherChart.rainfallInches(value);
+        if (conversion) {
+          const inches = document.createElement('span'); inches.className = 'rain-inches';
+          inches.textContent = conversion; number.append(inches);
+        }
+      }
       if (recording) {
         const detail = document.createElement('span'), caption = document.createElement('span'), when = document.createElement('time');
         detail.className = 'history-summary-time';
@@ -359,7 +381,7 @@
     const availability = document.createElement('span'); availability.textContent = `${valid.length} readings · ${s.missing} missing readings`; legend.append(availability);
     const notes = ['Missing or screened readings remain gaps.'];
     if (m.water) notes.push(s.note);
-    if (items.some(item => item[3]) && !m.water) notes.push('Dates beneath temperature extremes identify the recording period; exact occurrence times are not stored.');
+    if (items.some(item => item[3]) && !m.water && m.id !== 'rain') notes.push('Dates beneath temperature extremes identify the recording period; exact occurrence times are not stored.');
     if (m.water && items.some(item => item[3]?.dateOnly)) notes.push('Daily extreme dates are supplied by Sunwater; exact occurrence times are not published.');
     if (valid.some(p => p.estimated)) notes.push('Hollow markers identify interpolated records.');
     if (m.id === 'pressure') notes.push('Recorded station pressure is shown. The live card currently applies a separate −1.9 hPa display correction.');
@@ -611,6 +633,14 @@
     if (!badge) return;
     $('warwickBridgeValue').textContent = difference?.text || 'River reading unavailable';
     const stale = unavailable || difference?.stale;
+    const warning = !stale && difference ? WeatherChart.bridgeWarning(difference.difference) : null;
+    badge.dataset.warning = String(Boolean(warning));
+    if (warning) {
+      badge.style.setProperty('--bridge-warning-colour', `hsl(${warning.hue} 78% 56%)`);
+      badge.style.setProperty('--bridge-warning-tint', warning.tint + '%');
+    } else {
+      badge.style.removeProperty('--bridge-warning-colour'); badge.style.removeProperty('--bridge-warning-tint');
+    }
     badge.dataset.state = !difference ? 'unavailable' : stale ? 'stale' : difference.difference > 0 ? 'below' : difference.difference < 0 ? 'above' : 'at';
     $('warwickBridgeContext').textContent = (difference && stale ? 'Last available · ' : '') +
       (lastBridgeReference ? lastBridgeReference.name + ' · ' + lastBridgeReference.level.toFixed(2) + 'm gauge reference' : 'McCahon Bridge · awaiting reference');
@@ -631,14 +661,14 @@
         const row = data.readings[id];
         $(element).textContent = row ? row.value.toLocaleString('en-AU', { maximumFractionDigits: data.catalog.find(m => m.id === id).precision }) : '—';
         const updated = $(element + 'Time');
-        if (updated) updated.textContent = row ? (Date.now() - row.t > 3 * 3600000 ? 'Last available · ' : 'Updated · ') + stamp(row.t) : 'Awaiting source readings';
+        if (updated) updated.textContent = row ? (Date.now() - row.t > (id === 'condamine-warwick-level' ? 30 * 60000 : 3 * 3600000) ? 'Last available · ' : 'Updated · ') + stamp(row.t) : 'Awaiting source readings';
         const entry = cards.find(c => c.metric === id), series = data.series.find(s => s.metric.id === id);
         if (entry && series) drawSpark(entry, series);
         else if (entry) { entry.spark.querySelector('svg').replaceChildren(); entry.spark.querySelector('.history-spark-caption span').textContent = 'Explore recorded history'; }
       }
       lastBridgeReading = data.readings['condamine-warwick-level'];
       lastBridgeReference = data.catalog.find(m => m.id === 'condamine-warwick-level')?.bridge;
-      renderBridge();
+      renderBridge(Boolean(data.imports['condamine-warwick-live']?.error));
       const volume = data.readings['leslie-volume'];
       $('leslieCapacity').textContent = volume?.capacity ? 'Full supply capacity · ' + volume.capacity.toLocaleString('en-AU') + ' ML' : '';
       const archives = ['leslie-daily', 'condamine-level-backfill', 'condamine-flow-backfill', 'condamine-warwick-live'];

@@ -54,3 +54,9 @@
   .water-panel header { gap: 5px; }
   .water-panel h3 { font-size: 20px; }
 }
+
+/* Warning colours use current, valid readings only; stale values stay neutral. */
+.water-bridge[data-warning="true"] {
+  border-color: color-mix(in srgb, var(--bridge-warning-colour) 75%, var(--border));
+  background: linear-gradient(110deg, color-mix(in srgb, var(--bridge-warning-colour) var(--bridge-warning-tint), var(--surface)), var(--surface-soft));
+}

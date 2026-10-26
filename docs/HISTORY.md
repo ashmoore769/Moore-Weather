@@ -73,3 +73,8 @@ Browser verification uses a private copy of the local database and a mock statio
 ### Comparing monthly rainfall
 
 Rainfall offers **30 days** at both ten-minute and hourly resolution. That preset ends at the last completed hour so both views cover the same native recording periods. Switching between those resolutions keeps the selected duration (up to 30 days) and end time, aligned to a completed hour; panned partial hours are aligned once on switching. Archive bounds still apply independently to each feed, so compare the displayed AEST start/end and missing-reading counts when their coverage differs. Totals are calculated from each feed's own recorded values; no hourly record is divided into synthetic ten-minute readings.
+
+
+### Rainfall display units and peak dates
+
+Millimetres remain the primary stored and displayed unit. The history total and Current page's rain-since-9am card show a muted parenthesised inches conversion (25.4mm = 1 inch), rounded to two decimal places. Missing totals have no conversion; measured zero displays 0.00 in. The highest rainfall reading includes its native recording-period ending date/time in AEST. Ties use the earliest period; interpolated rainfall is excluded from recorded totals and rainfall extremes. The timestamp is not an assertion of the exact moment rain fell within that period.

@@ -72,11 +72,19 @@
     const finish = Math.floor(Math.min(end, now) / HOUR) * HOUR;
     return navigationWindow(finish - hours * HOUR, finish, [resolution], now, resolution, metric);
   }
+  function rainfallInches(value) {
+    return Number.isFinite(value) && value >= 0 ? '(' + (value / 25.4).toFixed(2) + ' in)' : '';
+  }
+  function bridgeWarning(difference) {
+    if (!Number.isFinite(difference) || difference > 1) return null;
+    const progress = Math.max(0, Math.min(1, 1 - difference));
+    return { hue: Math.round(42 * (1 - progress)), tint: Math.round(12 + 12 * progress) };
+  }
   function bridgeDifference(reading, bridge, now = Date.now()) {
     if (!Number.isFinite(reading?.value) || !Number.isFinite(reading?.t) ||
         !Number.isFinite(bridge?.level) || reading.t > now + 300000) return null;
     const difference = Math.round((bridge.level - reading.value) * 100) / 100;
-    return { difference, stale: now - reading.t > 3 * HOUR,
+    return { difference, stale: now - reading.t > 30 * 60000,
       text: Math.abs(difference).toFixed(2) + 'm (' + (difference > 0 ? 'Below Bridge' : difference < 0 ? 'Above Bridge' : 'At Bridge') + ')' };
   }
   // Keep navigation within the existing API limits. Whole native periods are
@@ -125,11 +133,12 @@
       'evaporation-total': 'evaporation' })[m.id] || (m.id.startsWith('soil-temp') ? 'temperature' : 'soil moisture');
     if (m.kind === 'direction') return [['Latest wind direction', series.latest?.value], ['Available readings', valid.length, ''], ['Missing readings', series.missing, '']];
     const extreme = (stat, label) => {
-      const recorded = valid.some(p => Number.isFinite(p[stat]));
+      const candidates = m.id === 'rain' ? valid.filter(p => !p.estimated) : valid;
+      const recorded = candidates.some(p => Number.isFinite(p[stat]));
       const key = recorded ? stat : 'value';
       // Keep the timestamp attached to the same native statistic as the value.
       // For ties, show the earliest recording period, not an invented occurrence time.
-      const point = valid.filter(p => Number.isFinite(p[key])).reduce((best, p) =>
+      const point = candidates.filter(p => Number.isFinite(p[key])).reduce((best, p) =>
         !best || (stat === 'min' ? p[key] < best[key] : p[key] > best[key]) ||
           (p[key] === best[key] && p.t < best.t) ? p : best, null);
       const detail = m.aggregation === 'TOTAL' ? `${period} ${noun}` : recorded ? noun :
@@ -140,7 +149,7 @@
         const reading = series.extrema[stat];
         return [item[0], reading.value, undefined, { t: reading.t, dateOnly: reading.dateOnly, observed: true }];
       }
-      if (point && Number.isFinite(point.t) && (['air', 'globe', 'ground', 'dew'].includes(m.id) || m.id.startsWith('soil-temp-'))) {
+      if (point && Number.isFinite(point.t) && (['air', 'globe', 'ground', 'dew'].includes(m.id) || m.id.startsWith('soil-temp-') || (m.id === 'rain' && stat === 'max'))) {
         item.push(undefined, { t: point.t, estimated: Boolean(point.estimated) });
       }
       return item;
@@ -153,7 +162,7 @@
     }
     return items;
   }
-  const api = { segments, domain, fittedTrend, navigationWindow, maxHoursForResolution, rainfallComparisonWindow, bridgeDifference, visibleSeries, summary };
+  const api = { segments, domain, fittedTrend, navigationWindow, maxHoursForResolution, rainfallComparisonWindow, rainfallInches, bridgeWarning, bridgeDifference, visibleSeries, summary };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.WeatherChart = api;
 })(typeof window !== 'undefined' ? window : globalThis);

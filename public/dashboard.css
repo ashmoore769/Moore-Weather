@@ -191,3 +191,7 @@ body.current-page.layout-portrait :is(#skycamTimelapse,#skycamDownload,#skycamFo
   .dashboard-tabs { gap:8px; }
   .dashboard-navigation .dashboard-tab { font-size:10px; }
 }
+
+.rain-stat .value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; }
+.rain-stat .rain-primary { white-space: nowrap; }
+.rain-stat .rain-inches { color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: 0; white-space: nowrap; }

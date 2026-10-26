@@ -1,14 +1,14 @@
 (() => {
   const button=document.getElementById('stationAlertsBtn'); if(!button)return;
   const dialog=document.createElement('dialog'); dialog.className='alert-dialog'; dialog.setAttribute('aria-labelledby','alertTitle');
-  dialog.innerHTML='<div class="alert-dialog-header"><h2 id="alertTitle">Station alerts</h2><button type="button" id="alertClose" aria-label="Close station alerts">Close</button></div><p>Get a notification after 15 minutes without a fresh reading, and another when the station comes back online.</p><p id="alertState" role="status">Checking this device…</p><div class="alert-actions"><button type="button" class="alert-primary" id="alertEnable" hidden>Enable on this device</button><button type="button" id="alertTest" hidden>Send test</button><button type="button" id="alertDisable" hidden>Turn off</button></div><p class="alert-note">On iPhone, first add Moore Weather to your Home Screen, then open it from that icon. Notifications must be allowed in your device settings.</p><p class="alert-note">Alerts check the station while our server is running. Delivery depends on your device connection and notification settings.</p>';
+  dialog.innerHTML='<div class="alert-dialog-header"><h2 id="alertTitle">Weather & river alerts</h2><button type="button" id="alertClose" aria-label="Close weather and river alerts">Close</button></div><p>Get a notification if the station goes 15 minutes without a fresh reading, and another when it comes back online.</p><p>Warwick river alerts warn at <strong>0.50m below McCahon Bridge’s 7.00m gauge reference</strong>, then again if the river reaches it. Each warning is sent once until the river falls more than 1m below.</p><p id="alertState" role="status">Checking this device…</p><div class="alert-actions"><button type="button" class="alert-primary" id="alertEnable" hidden>Enable on this device</button><button type="button" id="alertTest" hidden>Send test</button><button type="button" id="alertDisable" hidden>Turn off</button></div><p class="alert-note">On iPhone, first add Moore Weather to your Home Screen, then open it from that icon. Notifications must be allowed in your device settings.</p><p class="alert-note">River alerts use recent BOM readings and are a guide, not a road-open or road-closed notice. Delivery depends on our server, your connection and notification settings.</p>';
   document.body.append(dialog);
   const $=id=>document.getElementById(id);
   let registration,subscription,config,busy=false;
   const supported=()=>window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   const post=async(action,body)=>{
     const response=await fetch('/api/alerts/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
-    if(response.status===401)throw Error('Sign in again to manage station alerts.');
+    if(response.status===401)throw Error('Sign in again to manage weather and river alerts.');
     const data=await response.json(); if(!response.ok)throw Error(data.error || 'Alerts are temporarily unavailable.'); return data;
   };
   function controls() {
@@ -24,7 +24,7 @@
       const response=await fetch('/api/alerts/config',{cache:'no-store',signal:AbortSignal.timeout(10000)});
       if(!response.ok)throw Error('Sign in again or try again shortly.');
       config=await response.json();
-      if(!config.enabled)throw Error('Station alerts are temporarily unavailable.');
+      if(!config.enabled)throw Error('Weather & river alerts are temporarily unavailable.');
       registration=await navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'});
       subscription=await registration.pushManager.getSubscription();
       if(subscription)await post('subscribe',subscription.toJSON());

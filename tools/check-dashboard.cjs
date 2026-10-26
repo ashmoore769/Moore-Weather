@@ -32,9 +32,11 @@ function water() {
     id === 'leslie-volume' ? 83210 : id === 'condamine-flow' ? 37.2 : id === 'condamine-level' ? 1.668 : 5.34,
     t: now - 60000, capacity: id === 'leslie-volume' ? 106000 : null }]));
   const row = readings['condamine-warwick-level'];
+  if (mode === 'watch') row.value = 6;
+  if (mode === 'near') row.value = 6.5;
   if (mode === 'above') row.value = 7.21;
   if (mode === 'at') row.value = 7;
-  if (mode === 'stale') row.t = now - 4 * HOUR;
+  if (mode === 'stale') { row.t = now - HOUR; row.value = 6.8; }
   if (mode === 'missing') readings['condamine-warwick-level'] = null;
   const preview = series('condamine-warwick-level', 'hourly', 168);
   if (mode === 'missing') { preview.points.forEach(p => p.value = null); preview.latest = null; preview.missing = 168; }
@@ -47,6 +49,7 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname.startsWith('/api/')) {
     res.setHeader('Content-Type', 'application/json');
+    if (url.pathname === '/api/alerts/config') return res.end(JSON.stringify({ enabled: false }));
     if (url.pathname === '/api/water') return res.end(JSON.stringify(water()));
     if (url.pathname === '/api/trends') return res.end(JSON.stringify({ catalog, series: [] }));
     if (url.pathname === '/api/history') {
@@ -67,7 +70,7 @@ const server = http.createServer((req, res) => {
       let html = fs.readFileSync(file, 'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
       // Keep real page markup and CSS. Only the changed history layer runs;
       // live polling, SkyCam, notifications and provider calls are excluded.
-      html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script></body>');
+      html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script><script src="/station-alerts.js"></script></body>');
       res.setHeader('Content-Type', 'text/html'); return res.end(html);
     }
     res.setHeader('Content-Type', file.endsWith('.css') ? 'text/css' : file.endsWith('.js') ? 'text/javascript' : file.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream');
@@ -119,6 +122,14 @@ async function bounds(page, width) {
         for (const width of [320, 393, 768, 1024, 1440]) {
           const context = await browser.newContext({ viewport: { width, height: 960 } });
           await context.route('**/*', route => route.request().url().startsWith(origin) ? route.continue() : route.abort());
+          await context.addInitScript(() => {
+            window.__refreshCallbacks = [];
+            const original = window.setInterval;
+            window.setInterval = (callback, interval, ...args) => {
+              if (interval === 60000) window.__refreshCallbacks.push(callback);
+              return original(callback, interval, ...args);
+            };
+          });
           const page = await context.newPage(), errors = [];
           page.on('pageerror', error => errors.push(error.message));
           for (const pagePath of ['/index.html', '/daily.html']) {
@@ -130,6 +141,19 @@ async function bounds(page, width) {
             await page.waitForTimeout(80);
             await bounds(page, width);
             assert.equal(await page.locator('#warwickBridgeValue').textContent(), '1.66m (Below Bridge)');
+            assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), 'false');
+            if (pagePath.includes('index')) {
+              for (const [mm, inches] of [['25.4', '(1.00 in)'], ['0.0', '(0.00 in)'], ['--', ''], ['225.0', '(8.86 in)']]) {
+                await page.evaluate(mm => document.querySelector('#rainSince9Val').textContent = mm, mm);
+                await page.waitForFunction(inches => document.querySelector('#rainSince9Inches').textContent === inches, inches);
+                assert.equal(await page.locator('#rainSince9Inches').isVisible(), Boolean(inches));
+              }
+              const sizes = await page.locator('#rainSince9Inches').evaluate(n => ({
+                secondary: parseFloat(getComputedStyle(n).fontSize),
+                primary: parseFloat(getComputedStyle(document.querySelector('#rainSince9Val')).fontSize)
+              }));
+              assert.ok(sizes.secondary < sizes.primary);
+            }
             assert.match(await page.locator('#warwickBridgeContext').textContent(), /McCahon Bridge/);
             assert.equal(await page.locator('.water-scots .water-reference-line').count(), 0);
             await page.locator('#scotsLevel').click(); await historyReady(page, 'hourly', 168);
@@ -146,6 +170,10 @@ async function bounds(page, width) {
             assert.equal(first.hours, 720); assert.equal(first.end % HOUR, 0);
             assert.match(await page.locator('#historyLegend').textContent(), /4320 readings · 0 missing/);
             assert.match(await page.locator('#historySummary').textContent(), /864.0/);
+            assert.equal(await page.locator('.history-rain-total .rain-inches').textContent(), '(34.02 in)');
+            assert.equal(await page.locator('#historySummary > div:last-child time').getAttribute('datetime'),
+              new Date(first.end - 720 * HOUR + HOUR / 6).toISOString());
+            assert.match(await page.locator('#historySummary > div:last-child').textContent(), /10 min ending/);
             await page.locator('[data-resolution="hourly"]').click(); await historyReady(page, 'hourly', 720);
             assert.equal(requests.at(-1).end, first.end);
             assert.equal(await page.locator('#historyPeriod').textContent(), period);
@@ -160,21 +188,40 @@ async function bounds(page, width) {
               await page.evaluate(() => document.documentElement.dataset.theme = 'light');
               await bounds(page, width);
             }
+            await page.locator('#stationAlertsBtn').click();
+            assert.match(await page.locator('#alertTitle').textContent(), /river alerts/);
+            assert.match(await page.locator('.alert-dialog').textContent(), /0.50m below McCahon/);
+            const alertBox = await page.locator('.alert-dialog').boundingBox();
+            assert.ok(alertBox.x >= -1 && alertBox.x + alertBox.width <= width + 1);
+            await page.locator('#alertClose').click();
             assert.deepEqual(errors, []);
             checked++;
           }
           if (width === 393) {
-            for (const [state, text] of [['above', '0.21m (Above Bridge)'], ['at', '0.00m (At Bridge)'], ['stale', '1.66m (Below Bridge)'], ['missing', 'River reading unavailable']]) {
+            for (const [state, text] of [['watch', '1.00m (Below Bridge)'], ['near', '0.50m (Below Bridge)'], ['above', '0.21m (Above Bridge)'], ['at', '0.00m (At Bridge)'], ['stale', '0.20m (Below Bridge)'], ['missing', 'River reading unavailable']]) {
               mode = state; await page.reload(); await ready(page);
               assert.equal(await page.locator('#warwickBridgeValue').textContent(), text);
+              const warning = ['watch','near','above','at'].includes(state);
+              assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), String(warning));
+              if (warning) {
+                const style = await page.locator('#warwickBridge').getAttribute('style');
+                assert.match(style, new RegExp('hsl\\(' + (state === 'watch' ? 42 : state === 'near' ? 21 : 0)));
+              }
               if (state === 'stale') assert.match(await page.locator('#warwickBridgeContext').textContent(), /Last available/);
               await bounds(page, width);
             }
+            // A failed/stale update must remove warning styling on the existing card.
+            mode = 'near'; await page.evaluate(() => window.__refreshCallbacks.forEach(fn => fn()));
+            await page.waitForFunction(() => document.querySelector('#warwickBridge').dataset.warning === 'true');
+            mode = 'stale'; await page.evaluate(() => window.__refreshCallbacks.forEach(fn => fn()));
+            await page.waitForFunction(() => document.querySelector('#warwickBridge').dataset.state === 'stale');
+            assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), 'false');
+            assert.equal(await page.locator('#warwickBridge').evaluate(n => n.style.getPropertyValue('--bridge-warning-colour')), '');
           }
           await context.close();
         }
       } finally { await browser.close(); }
     }
-    console.log('PASS: ' + checked + ' page/browser/width combinations; independent water histories, persistent references, bridge states and exact 30-day rain comparisons.');
+    console.log('PASS: ' + checked + ' page/browser/width combinations; independent water histories, persistent references, bridge states and rainfall inches/peak dates, warning colours and exact 30-day rain comparisons.');
   } finally { server.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

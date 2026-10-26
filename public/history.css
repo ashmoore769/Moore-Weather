@@ -162,3 +162,9 @@ body:has(.history-dialog[open]) { overflow: hidden; }
 .history-trend-control input { width:18px; height:18px; accent-color:var(--accent); }
 .history-key-trend::before { background:none; border-top:2px dashed var(--text); height:0; }
 @media(max-width:600px) { .history-trend-control { padding-left:16px; padding-right:16px; } }
+
+/* Millimetres remain the primary unit; the conversion can wrap on narrow cards. */
+.history-summary .history-rain-total { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; }
+.history-rain-primary { white-space: nowrap; }
+.history-summary .history-rain-total small { display: inline; margin: 0 0 0 4px; }
+.history-summary .rain-inches { color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: 0; white-space: nowrap; }

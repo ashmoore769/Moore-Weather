@@ -1115,14 +1115,14 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
   .app-footer { padding-bottom: max(18px, env(safe-area-inset-bottom,0px)); }
 }
 </style>
-<link href="/history.css?v=5" rel="stylesheet"/>
-<script defer src="/history-chart.js?v=10"></script>
-<script defer src="/history.js?v=11"></script>
-<link rel="stylesheet" href="/water.css?v=2">
+<link href="/history.css?v=6" rel="stylesheet"/>
+<script defer src="/history-chart.js?v=11"></script>
+<script defer src="/history.js?v=12"></script>
+<link rel="stylesheet" href="/water.css?v=3">
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
-<script defer src="/station-alerts.js?v=3"></script>
-<link rel="stylesheet" href="/dashboard.css?v=6">
+<script defer src="/station-alerts.js?v=4"></script>
+<link rel="stylesheet" href="/dashboard.css?v=7">
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/radar.css?v=2">
 <link rel="stylesheet" href="/soil.css?v=1">
@@ -1141,7 +1141,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     <div class="dashboard-status"><span class="status-badge fetching" id="statusBadge" role="status">● CONNECTING</span><span id="freshnessText">Waiting for station</span></div>
     <div class="dashboard-tools" aria-label="Dashboard controls">
       <a class="dashboard-tool" href="/help.html" aria-label="Help: add Moore Weather to your home screen" title="Help and installation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg><span class="dashboard-tool-label">Help</span></a>
-      <button type="button" class="dashboard-tool" id="stationAlertsBtn" aria-label="Station alerts" title="Station alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="dashboard-tool-label">Alerts</span></button>
+      <button type="button" class="dashboard-tool" id="stationAlertsBtn" aria-label="Weather and river alerts" title="Weather and river alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="dashboard-tool-label">Alerts</span></button>
       <button type="button" class="dashboard-tool" id="themeToggleBtn" aria-label="Change theme" title="Theme"><span class="theme-icon" id="themeToggleIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span></button>
       <div class="desktop-layout-switcher" aria-label="Desktop layout">
         <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2"/></svg></button>
@@ -1184,7 +1184,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 </div>
 <div class="quick-stat rain-stat" style="--stat-accent:var(--rain)">
 <span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 15.5h10a3.5 3.5 0 0 0 .5-7A5.5 5.5 0 0 0 7.2 7.3 4.1 4.1 0 0 0 7 15.5Z"/><path d="m8 18-1 2M12 18l-1 2M16 18l-1 2"/></svg></span>
-<span class="quick-stat-copy"><span class="label">Rain since 9 am</span><span class="value"><span id="rainSince9Val">--</span><span class="unit-suffix"> mm</span></span><span class="quick-stat-subline">Last min <strong id="rainInLastMinVal">--</strong></span></span>
+<span class="quick-stat-copy"><span class="label">Rain since 9 am</span><span class="value"><span class="rain-primary"><span id="rainSince9Val">--</span><span class="unit-suffix"> mm</span></span><span class="rain-inches" id="rainSince9Inches" hidden></span></span><span class="quick-stat-subline">Last min <strong id="rainInLastMinVal">--</strong></span></span>
 </div>
 <div class="quick-stat" style="--stat-accent:var(--accent)">
 <span class="quick-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 8h10.5a2.5 2.5 0 1 0-2.3-3.5"/><path d="M3 12h15a2.5 2.5 0 1 1-2.3 3.5"/><path d="M3 16h6"/></svg></span>

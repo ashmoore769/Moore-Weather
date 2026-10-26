@@ -525,7 +525,14 @@ if (restoredDaily) {
 }
 
 const { observationTime, mountAlerts } = require('./lib/station-alerts');
-const stationAlerts = mountAlerts(app, {env:process.env,logger,getObservation:()=>observationTime(cachedWeatherData)});
+const stationAlerts = mountAlerts(app, {
+  env:process.env,logger,getObservation:()=>observationTime(cachedWeatherData),
+  getBridgeObservation:()=>{
+    const water=waterService.status();
+    return water.enabled && water.ready ?
+      historyApi.query({bridgeStatus:true,minute:Math.floor(Date.now()/60000)}) : null;
+  }
+});
 
 // All commands share one physical UART/RS232 path through the EW10.
 // Serialize CURRENT and DAILY transactions so replies can never cross between
