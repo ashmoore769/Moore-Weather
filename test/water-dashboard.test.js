@@ -23,7 +23,7 @@ test('bridge difference uses the named Warwick reference, with below, at and abo
 test('snapshot exposes independent Scots / Warwick previews and retains bridge lines even without observations', t => {
   const store = new WaterStore(':memory:'); t.after(() => store.close());
   const reader = new WaterReader(store.db), data = reader.snapshot();
-  assert.deepEqual(data.series.map(s => s.metric.id), ['leslie-storage', 'condamine-warwick-level', 'condamine-level']);
+  assert.deepEqual(data.series.map(s => s.metric.id), ['leslie-storage', 'condamine-warwick-level', 'condamine-level', 'connolly-storage']);
   const warwick = data.series[1], scots = data.series[2];
   assert.deepEqual(warwick.metric.referenceLines.map(r => r.value), [5, 6, 7]);
   assert.ok(domain(warwick)[1] > 7);

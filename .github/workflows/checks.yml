@@ -1,7 +1,7 @@
 name: Offline checks
 on:
   push:
-    branches: [main, 'update/water-cards-rainfall-*', 'update/analytics-*']
+    branches: [main, 'update/water-cards-rainfall-*', 'update/analytics-*', 'update/dashboard-*']
 permissions:
   contents: read
 concurrency:
@@ -25,6 +25,9 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - name: Verify current Connolly council source
+        if: startsWith(github.ref, 'refs/heads/update/dashboard-')
+        run: node tools/verify-connolly.cjs
       - name: Install matching browser test package
         timeout-minutes: 4
         if: ${{ hashFiles('tools/check-dashboard.cjs') != '' }}

@@ -2,11 +2,12 @@
 .local-water { container-type: inline-size; margin: 26px 0 12px; color: var(--text); }
 .water-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.3px; color: var(--muted); }
 .water-site { font-size: 10px; color: var(--muted); flex-shrink: 0; }
-.water-grid { display: grid; grid-template-columns: 1fr; grid-template-areas: "warwick" "dam" "scots"; gap: 14px; }
+.water-grid { display: grid; grid-template-columns: 1fr; grid-template-areas: "warwick" "dam" "connolly" "scots"; gap: 14px; }
 .water-panel { display: flex; flex-direction: column; min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); }
 .water-panel header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 18px; }
 .water-panel h3 { margin: 5px 0 0; font-size: 21px; letter-spacing: -.5px; }
 .water-dam { grid-area: dam; border-top: 3px solid #438fbd; }
+.water-connolly { grid-area: connolly; border-top: 3px solid #658fbb; }
 .water-river { border-top: 3px solid #389a8e; }
 .water-warwick { grid-area: warwick; }
 .water-scots { grid-area: scots; }
@@ -36,14 +37,11 @@
 .water-import-status { min-height: 30px; font-size: 10px; line-height: 1.6; color: var(--muted); margin: 12px 4px 0; }
 .water-delayed { color: var(--text); }
 @container (min-width: 680px) {
-  .water-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-areas: "warwick dam" "scots scots"; gap: 16px; }
-  .water-scots-readings { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  .water-scots .water-volume { margin: 0; padding: 4px 0 4px 24px; border-top: 0; border-left: 1px solid var(--border); }
-  .water-scots .water-volume strong { font-size: 36px; }
-  .water-dam .water-hero .history-spark svg { height: 108px; }
+  .water-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-areas: "warwick scots" "dam connolly"; gap: 16px; }
+  :is(.water-dam,.water-connolly) .water-hero .history-spark svg { height: 108px; }
 }
-@container (min-width: 1000px) {
-  .water-grid { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "scots warwick dam"; }
+@container (min-width: 1200px) {
+  .water-grid { grid-template-columns: minmax(0,.95fr) minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr); grid-template-areas: "scots warwick dam connolly"; }
   .water-scots-readings { display: block; }
   .water-scots .water-volume { margin-top: 16px; padding: 14px 0 4px; border-left: 0; border-top: 1px solid var(--border); }
   .water-scots .water-volume strong { font-size: 27px; }
@@ -59,4 +57,13 @@
 .water-bridge[data-warning="true"] {
   border-color: color-mix(in srgb, var(--bridge-warning-colour) 75%, var(--border));
   background: linear-gradient(110deg, color-mix(in srgb, var(--bridge-warning-colour) var(--bridge-warning-tint), var(--surface)), var(--surface-soft));
+}
+
+.water-import-status:empty { display:none; }
+@container (min-width:1200px) {
+  .water-panel { padding:18px; }
+  .water-panel h3 { font-size:20px; }
+  .water-hero strong { font-size:36px; }
+  .water-reading strong small { font-size:12px; margin-left:5px; }
+  .water-site { font-size:9px; }
 }

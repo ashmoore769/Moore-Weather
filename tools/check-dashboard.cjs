@@ -19,7 +19,7 @@ function series(id, resolution, hours, finish = end) {
   const step = resolution === '10m' ? HOUR / 6 : resolution === 'hourly' ? HOUR : 24 * HOUR;
   const points = Array.from({ length: Math.round(hours * HOUR / step) }, (_, i) => {
     const value = id === 'rain' ? (resolution === '10m' ? .2 : 1.2) :
-      id === 'leslie-storage' ? 78 + i / 50 : id === 'condamine-warwick-level' ? 2 + i / 50 :
+      ['leslie-storage', 'connolly-storage'].includes(id) ? 78 + i / 50 : id === 'condamine-warwick-level' ? 2 + i / 50 :
       id === 'condamine-level' ? 1 + i / 500 : 20;
     return { t: finish - hours * HOUR + (i + 1) * step, value, min: null, max: null, estimated: false };
   });
@@ -29,8 +29,8 @@ function series(id, resolution, hours, finish = end) {
 let mode = 'fresh', requests = [];
 function water() {
   const readings = Object.fromEntries(Object.keys(WATER).map(id => [id, { value: id === 'leslie-storage' ? 78.5 :
-    id === 'leslie-volume' ? 83210 : id === 'condamine-flow' ? 37.2 : id === 'condamine-level' ? 1.668 : 5.34,
-    t: now - 60000, capacity: id === 'leslie-volume' ? 106000 : null }]));
+    id === 'connolly-storage' ? 100 : id === 'connolly-volume' ? 2166 : id === 'leslie-volume' ? 83210 : id === 'condamine-flow' ? 37.2 : id === 'condamine-level' ? 1.668 : 5.34,
+    t: now - 60000, capacity: id === 'leslie-volume' ? 106000 : id === 'connolly-volume' ? 2166 : null }]));
   const row = readings['condamine-warwick-level'];
   if (mode === 'watch') row.value = 6;
   if (mode === 'near') row.value = 6.5;
@@ -42,7 +42,7 @@ function water() {
   if (mode === 'missing') { preview.points.forEach(p => p.value = null); preview.latest = null; preview.missing = 168; }
   return { catalog: catalog.filter(m => m.water), readings, collector: { enabled: true }, imports: Object.fromEntries(
     ['leslie-daily', 'condamine-level-backfill', 'condamine-flow-backfill', 'condamine-warwick-live'].map(id => [id, { complete: true }])),
-    series: [series('leslie-storage', 'daily', 720), preview, series('condamine-level', 'hourly', 168)] };
+    series: [series('leslie-storage', 'daily', 720), preview, series('condamine-level', 'hourly', 168), series('connolly-storage', 'daily', 720)] };
 }
 const publicRoot = path.resolve(__dirname, '../public');
 const server = http.createServer((req, res) => {
@@ -51,7 +51,10 @@ const server = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     if (url.pathname === '/api/alerts/config') return res.end(JSON.stringify({ enabled: false }));
     if (url.pathname === '/api/water') return res.end(JSON.stringify(water()));
-    if (url.pathname === '/api/trends') return res.end(JSON.stringify({ catalog, series: [] }));
+    if (url.pathname === '/api/trends') {
+      const daily = url.searchParams.get('view') === 'daily';
+      return res.end(JSON.stringify({ catalog, series: catalog.filter(m => !m.water).map(m => series(m.id, daily ? 'daily' : '10m', daily ? 720 : 12)) }));
+    }
     if (url.pathname === '/api/history') {
       try {
         const request = normalizeRequest(Object.fromEntries(url.searchParams));
@@ -70,7 +73,7 @@ const server = http.createServer((req, res) => {
       let html = fs.readFileSync(file, 'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
       // Keep real page markup and CSS. Only the changed history layer runs;
       // live polling, SkyCam, notifications and provider calls are excluded.
-      html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script><script src="/station-alerts.js"></script></body>');
+      if (!file.endsWith('forecast.html')) html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script><script src="/station-alerts.js"></script></body>');
       res.setHeader('Content-Type', 'text/html'); return res.end(html);
     }
     res.setHeader('Content-Type', file.endsWith('.css') ? 'text/css' : file.endsWith('.js') ? 'text/javascript' : file.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream');
@@ -88,28 +91,52 @@ async function historyReady(page, resolution, hours) {
 }
 async function bounds(page, width) {
   const boxes = await page.evaluate(() => {
-    const rect = selector => { const r = document.querySelector(selector).getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width }; };
+    const rect = selector => { const r = document.querySelector(selector).getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
     const refs = [...document.querySelectorAll('.water-reference-label')].map(n => {
       const r = n.getBoundingClientRect(); return { x: r.x, right: r.right, y: r.y, bottom: r.bottom };
     });
     return { warwick: rect('.water-warwick'), dam: rect('.water-dam'), scots: rect('.water-scots'),
-      grid: rect('.water-grid'), svg: rect('.water-warwick .history-spark svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
+      connolly: rect('.water-connolly'), grid: rect('.water-grid'), svg: rect('.water-warwick .history-spark svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
   });
-  for (const b of [boxes.warwick, boxes.dam, boxes.scots]) {
+  for (const b of [boxes.warwick, boxes.dam, boxes.scots, boxes.connolly]) {
     assert.ok(b.x >= -1 && b.right <= width + 1, JSON.stringify({ width, boxes }));
   }
   assert.equal(boxes.overflow, false, 'Page must not scroll horizontally at ' + width);
-  if (boxes.grid.width >= 1000) {
-    assert.ok(boxes.scots.x < boxes.warwick.x && boxes.warwick.x < boxes.dam.x);
-    assert.ok(Math.abs(boxes.scots.y - boxes.dam.y) < 1);
+  if (boxes.grid.width >= 1200) {
+    assert.ok(boxes.scots.x < boxes.warwick.x && boxes.warwick.x < boxes.dam.x && boxes.dam.x < boxes.connolly.x);
+    assert.ok(Math.abs(boxes.scots.y - boxes.connolly.y) < 1);
   } else if (boxes.grid.width >= 680) {
-    assert.ok(boxes.warwick.x < boxes.dam.x);
-    assert.ok(boxes.scots.y >= boxes.warwick.bottom - 1);
-  } else assert.ok(boxes.warwick.y < boxes.dam.y && boxes.dam.y < boxes.scots.y);
+    assert.ok(boxes.warwick.x < boxes.scots.x && Math.abs(boxes.warwick.y - boxes.scots.y) < 1);
+    assert.ok(boxes.dam.x < boxes.connolly.x && Math.abs(boxes.dam.y - boxes.connolly.y) < 1);
+    assert.ok(boxes.dam.y >= boxes.warwick.bottom - 1);
+  } else assert.ok(boxes.warwick.y < boxes.dam.y && boxes.dam.y < boxes.connolly.y && boxes.connolly.y < boxes.scots.y);
   for (const r of boxes.refs) assert.ok(r.x >= boxes.svg.x - 1 && r.right <= boxes.svg.right + 1 &&
     r.y >= boxes.svg.y - 1 && r.bottom <= boxes.svg.bottom + 1, 'Reference label clipped: ' + JSON.stringify({ r, svg: boxes.svg }));
   const sorted = boxes.refs.sort((a, b) => a.y - b.y);
   for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i].y >= sorted[i - 1].bottom, 'Reference labels overlap');
+}
+async function navigation(page, width) {
+  const nav = page.locator('.dashboard-tabs');
+  const labels = await nav.locator('.dashboard-tab').allInnerTexts();
+  assert.deepEqual(labels.map(s => s.replace(/\\s+/g, ' ').trim()), [width <= 600 ? 'Current' : 'Current Readings', 'Forecast', 'Daily Summary', 'Trends']);
+  const boxes = await nav.locator('.dashboard-tab').evaluateAll(nodes => nodes.map(n => {
+    const r = n.getBoundingClientRect(); return { x:r.x, y:r.y, right:r.right, bottom:r.bottom, width:r.width, scroll:n.scrollWidth, client:n.clientWidth };
+  }));
+  for (let i=0;i<boxes.length;i++) {
+    const b=boxes[i]; assert.ok(b.x >= 0 && b.right <= width && b.scroll <= b.client + 1, 'Navigation clips: '+JSON.stringify(boxes));
+    assert.ok(Math.abs(b.y-boxes[0].y)<1, 'Navigation must stay on one line');
+    if(i) assert.ok(boxes[i-1].right <= b.x, 'Navigation overlaps');
+  }
+  assert.equal(await page.locator('.footer-analytics').getAttribute('href'), 'https://cloud.umami.is/');
+}
+async function visualWindows(page) {
+  const boxes = await page.evaluate(() => ['.skycam-image-stage','.radar-map-stage','.skycam-bearing'].map(selector => {
+    const r=document.querySelector(selector).getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};
+  }));
+  const [camera,radar,bearing]=boxes;
+  assert.ok(Math.abs(camera.width-radar.width)<2 && Math.abs(camera.height-radar.height)<2, 'Camera/radar dimensions: '+JSON.stringify(boxes));
+  assert.ok(Math.abs(camera.width/camera.height-4/3)<.01);
+  assert.ok(bearing.x>=camera.x && bearing.right<=camera.right && bearing.y>=camera.y && bearing.bottom<=camera.bottom);
 }
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -143,9 +170,20 @@ async function bounds(page, width) {
             await page.locator('.local-water').scrollIntoViewIfNeeded();
             await page.waitForTimeout(80);
             await bounds(page, width);
+            await navigation(page,width);
+            assert.equal(await page.locator('#waterImportStatus').isVisible(), false);
+            assert.match(await page.locator('#connollyStorageTime').textContent(), /Council report/);
+            assert.equal(await page.locator('#connollyVolume').textContent(), '2,166');
+            await page.locator('#connollyStorage').click(); await historyReady(page, 'daily', 720);
+            assert.equal(requests.at(-1).metric, 'connolly-storage');
+            assert.equal(await page.locator('[data-resolution="hourly"]').isDisabled(), true);
+            await page.locator('.history-close').click();
             assert.equal(await page.locator('#warwickBridgeValue').textContent(), '1.66m (Below Bridge)');
             assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), 'false');
             if (pagePath.includes('index')) {
+              await visualWindows(page);
+              assert.match(await page.locator('#powerTrendLabel').textContent(), /12-hour/);
+              assert.match(await page.locator('#tempVal').locator('xpath=ancestor::*[contains(@class,"temp-hero")]').locator('.history-spark-caption').textContent(), /12 hours/);
               for (const [mm, inches] of [['25.4', '(1.00 in)'], ['0.0', '(0.00 in)'], ['--', ''], ['225.0', '(8.86 in)']]) {
                 await page.evaluate(mm => document.querySelector('#rainSince9Val').textContent = mm, mm);
                 await page.waitForFunction(inches => document.querySelector('#rainSince9Inches').textContent === inches, inches);
@@ -203,6 +241,10 @@ async function bounds(page, width) {
             assert.deepEqual(errors, []);
             checked++;
           }
+          await page.goto(origin + '/forecast.html'); await navigation(page,width);
+          await page.locator('.dashboard-history-button').click();
+          await historyReady(page,'10m',12);
+          await page.locator('.history-close').click();
           if (width === 393) {
             for (const [state, text] of [['watch', '1.00m (Below Bridge)'], ['near', '0.50m (Below Bridge)'], ['above', '0.21m (Above Bridge)'], ['at', '0.00m (At Bridge)'], ['stale', '0.20m (Below Bridge)'], ['missing', 'River reading unavailable']]) {
               mode = state; await page.reload(); await ready(page);
@@ -228,6 +270,6 @@ async function bounds(page, width) {
         }
       } finally { await browser.close(); }
     }
-    console.log('PASS: ' + checked + ' page/browser/width combinations; independent water histories, persistent references, bridge states and rainfall inches/peak dates, warning colours and exact 30-day rain comparisons.');
+    console.log('PASS: ' + checked + ' page/browser/width combinations; four water cards, Connolly history, single-line navigation, matched camera/radar, twelve-hour previews, persistent references, bridge states and rainfall inches/peak dates, warning colours and exact 30-day rain comparisons.');
   } finally { server.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

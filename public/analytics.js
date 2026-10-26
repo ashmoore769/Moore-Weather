@@ -20,7 +20,7 @@
     'forecast-refresh', 'alerts-open', 'install-prompt']);
   const measurements = new Set(['air', 'globe', 'humidity', 'pressure', 'wind', 'gust',
     'direction', 'solar', 'rain', 'dew', 'evaporation', 'evaporation-total', 'ground',
-    'battery', 'load', 'panel', 'charge', 'leslie-storage', 'leslie-volume',
+    'battery', 'load', 'panel', 'charge', 'leslie-storage', 'leslie-volume', 'connolly-storage', 'connolly-volume',
     'condamine-warwick-level', 'condamine-level', 'condamine-flow',
     ...[10, 20, 30, 40].flatMap(depth => ['soil-temp-' + depth, 'soil-moisture-' + depth])]);
   const clicks = {

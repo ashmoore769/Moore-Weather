@@ -14,7 +14,7 @@
 <link href="/moore-weather-favicon-v3.svg" rel="icon" sizes="any" type="image/svg+xml"/>
 <title>Moore Weather · West Warwick</title>
 <script src="/theme.js?v=4"></script>
-  <script defer src="/analytics.js?v=1"></script>
+  <script defer src="/analytics.js?v=2"></script>
 <style>
 :root {
   color-scheme: light;
@@ -1118,12 +1118,12 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 </style>
 <link href="/history.css?v=6" rel="stylesheet"/>
 <script defer src="/history-chart.js?v=11"></script>
-<script defer src="/history.js?v=13"></script>
-<link rel="stylesheet" href="/water.css?v=3">
+<script defer src="/history.js?v=14"></script>
+<link rel="stylesheet" href="/water.css?v=4">
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=4"></script>
-<link rel="stylesheet" href="/dashboard.css?v=7">
+<link rel="stylesheet" href="/dashboard.css?v=8">
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/radar.css?v=2">
 <link rel="stylesheet" href="/soil.css?v=1">
@@ -1151,11 +1151,12 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     </div>
   <div class="dashboard-navigation">
     <nav class="dashboard-tabs" aria-label="Weather views">
-      <button type="button" class="dashboard-tab" id="fetchBtn" aria-current="page" title="Refresh current readings" onclick="manualFetch()">Current</button>
-      <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
+      <button type="button" class="dashboard-tab" id="fetchBtn" aria-current="page" title="Refresh current readings" onclick="manualFetch()">Current<span class="nav-current-detail"> Readings</span></button>
       <a class="dashboard-tab" href="/forecast.html">Forecast</a>
+      <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
+      <button id="browseHistory" type="button" class="dashboard-tab dashboard-history-button" aria-haspopup="dialog" aria-label="Browse weather trends and history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends</span></button>
     </nav>
-    <div class="dashboard-history"><span id="historyHint" class="dashboard-history-hint">5-hour trends</span><button id="browseHistory" type="button" class="dashboard-history-button" aria-haspopup="dialog" aria-label="Browse weather trends and history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends</span></button></div>
+    <span id="historyHint" hidden>12-hour trends</span>
   </div>
   </div>
 </header>
@@ -1218,6 +1219,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <div aria-label="SkyCam" class="layout-skycam">
 <div class="skycam-container" title="SkyCam">
 <div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
+<div class="skycam-bearing" title="Camera faces approximately due south" aria-label="Camera faces approximately due south"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m12 5 4 9-4-2-4 2Z"/></svg><span>Facing south</span></div>
 <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
 <div class="skycam-rotate-hint" id="skycamRotateHint" aria-hidden="true">↻ Landscape gives the best view</div>
 <button aria-label="Show older SkyCam image" class="skycam-nav skycam-nav-prev" id="skycamPrev" onclick="stepSkyCam(-1)" type="button">‹</button>
@@ -1307,7 +1309,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <span id="dailyEvapVal">--</span>
 </div></div>
 </main>
-<section class="local-water" id="localWater" aria-label="Warwick river, Leslie Dam and Scots College readings">
+<section class="local-water" id="localWater" aria-label="Warwick river, Leslie and Connolly dams and Scots College readings">
   <div class="water-grid">
     <article class="water-panel water-river water-warwick">
       <header><div><span class="water-eyebrow">Condamine River</span><h3>Warwick</h3></div><span class="water-site">041534</span></header>
@@ -1329,6 +1331,16 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
       <p class="water-capacity" id="leslieCapacity"></p>
       <footer><a href="https://www.sunwater.com.au/dams/leslie-dam/" target="_blank" rel="noopener noreferrer">Source: Sunwater ↗</a><span>Automated · unverified</span></footer>
     </article>
+    <article class="water-panel water-connolly">
+      <header><div><span class="water-eyebrow">Rosenthal Creek</span><h3>Connolly Dam</h3></div></header>
+      <div class="water-reading water-hero" aria-label="View Connolly Dam storage history">
+        <span class="water-label">Storage level</span><strong><span id="connollyStorage">—</span><small>% full</small></strong>
+        <span class="water-time" id="connollyStorageTime">Awaiting council report</span>
+      </div>
+      <div class="water-reading water-volume"><span class="water-label">Stored water</span><strong><span id="connollyVolume">—</span><small>ML</small></strong><span class="water-time" id="connollyVolumeTime">Awaiting council report</span></div>
+      <p class="water-capacity" id="connollyCapacity"></p>
+      <footer><a href="https://www.sdrc.qld.gov.au/living-here/environment-water-waste/dam-levels" target="_blank" rel="noopener noreferrer">Source: SDRC ↗</a><span>Council reports</span></footer>
+    </article>
     <article class="water-panel water-river water-scots">
       <header><div><span class="water-eyebrow">Condamine · upstream</span><h3>Scots College</h3></div><span class="water-site">422310C</span></header>
       <div class="water-scots-readings">
@@ -1342,7 +1354,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
   <p class="water-import-status" id="waterImportStatus" role="status">Connecting to saved water readings…</p>
 </section>
 <section aria-label="Station power and maintenance" class="panel-card section-card maintenance-card layout-power current-power">
-<div class="section-header"><h2 class="section-title">Station power</h2><span class="power-trend-label" id="powerTrendLabel">5-hour trends</span></div>
+<div class="section-header"><h2 class="section-title">Station power</h2><span class="power-trend-label" id="powerTrendLabel">12-hour trends</span></div>
 <div class="metric-list">
 <div class="metric-row"><span class="metric-label">Battery</span><span class="metric-value" id="batteryVal">--</span></div>
 <div class="metric-row"><span class="metric-label">Solar panel</span><span class="metric-value" id="solarPanelVal">--</span></div>
@@ -1352,6 +1364,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 </section>
 <footer class="app-footer">
 <a class="footer-signout" href="/help.html">Add to Home Screen</a>
+<a class="footer-signout footer-analytics" href="https://cloud.umami.is/" target="_blank" rel="noopener noreferrer" aria-label="Umami analytics dashboard (opens in a new tab)">Analytics ↗</a>
 <form action="/logout" method="post">
 <button class="footer-signout" type="submit">Sign out</button>
 </form>

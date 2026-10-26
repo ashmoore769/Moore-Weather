@@ -14,10 +14,10 @@
 <link href="/moore-weather-favicon-v3.svg" rel="icon" sizes="any" type="image/svg+xml"/>
 <title>Moore Weather · Forecast</title>
 <script src="/theme.js?v=4"></script>
-  <script defer src="/analytics.js?v=1"></script>
+  <script defer src="/analytics.js?v=2"></script>
 <link rel="stylesheet" href="/forecast.css?v=2">
 <link rel="stylesheet" href="/station-shell.css?v=5">
-<link rel="stylesheet" href="/dashboard.css?v=7">
+<link rel="stylesheet" href="/dashboard.css?v=8">
 <script defer src="/forecast.js?v=2"></script>
 <script defer src="/station-alerts.js?v=4"></script>
 </head>
@@ -39,11 +39,11 @@
     </div>
   <div class="dashboard-navigation">
     <nav class="dashboard-tabs" aria-label="Weather views">
-      <a class="dashboard-tab" href="/index.html">Current</a>
-      <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
+      <a class="dashboard-tab" href="/index.html">Current<span class="nav-current-detail"> Readings</span></a>
       <a class="dashboard-tab" href="/forecast.html" aria-current="page">Forecast</a>
+      <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
+      <a class="dashboard-tab dashboard-history-button" href="/index.html#trends" aria-label="Browse weather trends and history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends</span></a>
     </nav>
-    <div class="dashboard-history"><a class="dashboard-history-button" href="/index.html#radar">Rain radar <span aria-hidden="true">↗</span></a></div>
   </div>
   </div>
 </header>
@@ -60,7 +60,7 @@
   <p class="forecast-credit">Forecast by <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>. Model estimates for the Warwick area; your station records the weather at home. Rainfall totals use calendar days, unlike the station’s 9 am summaries.</p>
   <noscript><p class="feed-status">Please enable JavaScript to load the forecast.</p></noscript>
 </main>
-<footer class="forecast-page-footer">Moore Weather · West Warwick <a href="/help.html">Add to your home screen</a></footer>
+<footer class="forecast-page-footer">Moore Weather · West Warwick <a href="/help.html">Add to your home screen</a> <a class="footer-analytics" href="https://cloud.umami.is/" target="_blank" rel="noopener noreferrer" aria-label="Umami analytics dashboard (opens in a new tab)">Analytics ↗</a></footer>
 </div>
 </body>
 </html>

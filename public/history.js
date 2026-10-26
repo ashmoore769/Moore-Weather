@@ -2,7 +2,7 @@
   'use strict';
   const dailyPage = location.pathname.endsWith('daily.html');
   const $ = id => document.getElementById(id);
-  const colors = { 'leslie-storage': '#438fbd', 'leslie-volume': '#438fbd', air: '#2c9a8c', globe: '#c18a36', humidity: '#6686c4', pressure: '#468dbb', wind: '#249d9b', gust: '#b78641', direction: '#249d9b', solar: '#c39324', rain: '#438fd0', dew: '#698dc1', evaporation: '#708fae', ground: '#a78454' };
+  const colors = { 'connolly-storage': '#658fbb', 'connolly-volume': '#658fbb', 'leslie-storage': '#438fbd', 'leslie-volume': '#438fbd', air: '#2c9a8c', globe: '#c18a36', humidity: '#6686c4', pressure: '#468dbb', wind: '#249d9b', gust: '#b78641', direction: '#249d9b', solar: '#c39324', rain: '#438fd0', dew: '#698dc1', evaporation: '#708fae', ground: '#a78454' };
   const color = id => colors[id] || (id.startsWith('soil-moisture') ? '#438fd0' : '#2c9a8c');
   const timeFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   const dateFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short' });
@@ -12,7 +12,7 @@
   const localDate = time => new Date(time + 36000000).toISOString().slice(0, 10);
   const stamp = (time, daily = false) => (daily ? fullDateFormat : longFormat).format(time) + (daily ? ' · 9 AM' : '') + ' AEST';
   const fmt = (value, metric) => value === null || value === undefined ? '—' : Number(value).toFixed(metric.precision);
-  const pointStamp = (s, p) => s.metric.water ? (s.resolution === 'daily' ? fullDateFormat.format(p.t - 1) + (s.groupSize > 1 ? ' – ' + fullDateFormat.format(Math.min(s.end, p.t + (s.groupSize - 1) * 86400000) - 1) : '') + ' · AEST' : stamp(p.observedAt ?? p.t)) : stamp(p.t, s.resolution === 'daily');
+  const pointStamp = (s, p) => s.metric.dateOnly ? fullDateFormat.format(p.observedAt ?? p.t) + ' · council report' : s.metric.water ? (s.resolution === 'daily' ? fullDateFormat.format(p.t - 1) + (s.groupSize > 1 ? ' – ' + fullDateFormat.format(Math.min(s.end, p.t + (s.groupSize - 1) * 86400000) - 1) : '') + ' · AEST' : stamp(p.observedAt ?? p.t)) : stamp(p.t, s.resolution === 'daily');
   const svgNode = (name, attrs = {}, text) => {
     const node = document.createElementNS('http://www.w3.org/2000/svg', name);
     for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
@@ -39,7 +39,8 @@
     ['gardenBedTempVal', 'ground'], ['batteryVal', 'battery'], ['loadVal', 'load'], ['solarPanelVal', 'panel'], ['chargeVal', 'charge'],
     ...[10, 20, 30, 40].flatMap(depth => [[`soilTemp${depth}Val`, `soil-temp-${depth}`], [`moisture${depth}Val`, `soil-moisture-${depth}`]])
   ];
-  bindings.push(['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-warwick-level'], ['scotsLevel', 'condamine-level'], ['condamineFlow', 'condamine-flow']);
+  const waterBindings = [['connollyStorage', 'connolly-storage'], ['connollyVolume', 'connolly-volume'], ['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-warwick-level'], ['scotsLevel', 'condamine-level'], ['condamineFlow', 'condamine-flow']];
+  bindings.push(...waterBindings);
   let catalog = [], trendData, loadingTrends = false, modalRequest, selection, activeSeries, activeIndex = -1, chartGeometry;
   let resetView, loadedSeries, navigationTimer, previewFrame, gesture, pendingWindow, wheelWindow;
   const pointers = new Map();
@@ -138,12 +139,12 @@
     try {
       trendData = await getJson('/api/trends?view=' + (dailyPage ? 'daily' : 'current'), AbortSignal.timeout(20000));
       setCatalog(trendData);
-      for (const entry of cards.filter(c => !c.metric.startsWith('leslie-') && !c.metric.startsWith('condamine-'))) drawSpark(entry, trendData.series.find(s => s.metric.id === entry.metric));
-      guideText.textContent = dailyPage ? '30-day trends' : '5-hour trends';
+      for (const entry of cards.filter(c => !/^(leslie|condamine|connolly)-/.test(c.metric))) drawSpark(entry, trendData.series.find(s => s.metric.id === entry.metric));
+      guideText.textContent = dailyPage ? '30-day trends' : '12-hour trends';
       guideText.removeAttribute('title');
     } catch (error) {
       guideText.textContent = 'History unavailable'; guideText.title = error.message;
-      for (const { spark } of cards.filter(c => !c.metric.startsWith('leslie-') && !c.metric.startsWith('condamine-'))) { spark.querySelector('svg').replaceChildren(); spark.querySelector('.history-spark-caption span').textContent = 'History unavailable'; }
+      for (const { spark } of cards.filter(c => !/^(leslie|condamine|connolly)-/.test(c.metric))) { spark.querySelector('svg').replaceChildren(); spark.querySelector('.history-spark-caption span').textContent = 'History unavailable'; }
     } finally { loadingTrends = false; }
   }
   function paths(svg, series, x, y, baseline, mini = false) {
@@ -203,10 +204,11 @@
     const y = v => 36 - (v - min) / (max - min) * 32;
     svg.append(svgNode('line', { x1: 0, x2: 260, y1: 38, y2: 38, stroke: 'currentColor', opacity: .12 }));
     paths(svg, series, x, y, 38, true);
+    if (series.metric.reporting === 'published') { caption.textContent = '30 days · council reports'; return; }
     const stale = series.end - series.latest.t > series.intervalSeconds * 2000;
-    caption.textContent = stale ? 'Last ' + timeFormat.format(series.latest.t) + ' · gaps' : series.resolution === 'daily' ? '30 days · daily' : series.resolution === 'hourly' ? (['condamine-warwick-level', 'condamine-level'].includes(series.metric.id) ? '7 days · hourly' : '5 hours · hourly') : series.metric.id === 'rain' ? '5 hours · 10-min totals' : '5 hours · 10 min';
+    caption.textContent = stale ? 'Last ' + timeFormat.format(series.latest.t) + ' · gaps' : series.resolution === 'daily' ? '30 days · daily' : series.resolution === 'hourly' ? (['condamine-warwick-level', 'condamine-level'].includes(series.metric.id) ? '7 days · hourly' : '12 hours · hourly') : series.metric.id === 'rain' ? '12 hours · 10-min totals' : '12 hours · 10 min';
   }
-  const ranges = { '10m': [[5, 'Last 5 hours'], [24, '24 hours'], [48, '2 days'], [168, '7 days']], hourly: [[5, 'Last 5 hours'], [24, '24 hours'], [168, '7 days'], [720, '30 days']], daily: [[168, '7 days'], [720, '30 days'], [2160, '90 days'], [8760, '1 year'], [17520, '2 years']] };
+  const ranges = { '10m': [[5, '5 hours'], [12, '12 hours'], [24, '24 hours'], [48, '2 days'], [168, '7 days']], hourly: [[5, '5 hours'], [12, '12 hours'], [24, '24 hours'], [168, '7 days'], [720, '30 days']], daily: [[168, '7 days'], [720, '30 days'], [2160, '90 days'], [8760, '1 year'], [17520, '2 years']] };
   function configure() {
     const metric = catalog.find(m => m.id === selection.metric);
     if (!metric) return;
@@ -224,7 +226,7 @@
     $('historyRange').replaceChildren(...options.map(([hours, text]) => new Option(text, String(hours))));
     if (selection.custom) { const custom = new Option('Custom view', 'custom'); custom.disabled = true; $('historyRange').append(custom); }
     $('historyRange').value = selection.custom ? 'custom' : selection.allHistory ? 'all' : String(selection.hours);
-    const dateShift = metric.water && selection.resolution === 'daily' ? 1 : 0;
+    const dateShift = metric.water && !metric.dateOnly && selection.resolution === 'daily' ? 1 : 0;
     $('historyEnd').max = localDate(Date.now() - dateShift);
     $('historyEnd').min = coverage ? localDate(coverage.first - dateShift) : $('historyEnd').max;
     $('historyEnd').value = localDate((activeSeries?.metric.id === metric.id ? activeSeries.end : selection.end || coverage?.last || Date.now()) - dateShift);
@@ -242,8 +244,8 @@
     window.mooreAnalytics?.track('history-open', { measurement: metric });
     cancelNavigation(); resetView = null;
     setHistoryState('loading');
-    selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 24, endDate: null };
-    if (metric.startsWith('leslie-') || metric.startsWith('condamine-')) Object.assign(selection, { resolution: 'daily', hours: 720 });
+    selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 12, endDate: null };
+    if (/^(leslie|condamine|connolly)-/.test(metric)) Object.assign(selection, { resolution: 'daily', hours: 720 });
     if (metric === 'condamine-warwick-level' || metric === 'condamine-level') Object.assign(selection, { resolution: 'hourly', hours: 168 });
     if (!dialog.open) dialog.showModal();
     dialog.querySelector('.history-scroll').scrollTop = 0;
@@ -336,7 +338,7 @@
     const s = activeSeries, m = s.metric, valid = s.points.filter(p => p.value !== null);
     renderPeriod(s);
     const period = { '10m': '10-minute', hourly: 'Hourly', daily: 'Daily' }[s.resolution];
-    const aggregation = m.water ? (m.id === 'leslie-storage' && s.resolution === 'daily' ? 'Published daily high' : 'Last recorded value') : { AVERAGE: 'averages', AVGDIR: 'average directions', TOTAL: 'totals', MINIMUM: 'minimums', MAXIMUM: 'maximums', CURRENT: 'end-of-hour readings' }[m.aggregation];
+    const aggregation = m.reporting === 'published' ? 'Published storage report' : m.water ? (m.id === 'leslie-storage' && s.resolution === 'daily' ? 'Published daily high' : 'Last recorded value') : { AVERAGE: 'averages', AVGDIR: 'average directions', TOTAL: 'totals', MINIMUM: 'minimums', MAXIMUM: 'maximums', CURRENT: 'end-of-hour readings' }[m.aggregation];
     $('historySubtitle').textContent = `${period} ${aggregation} · ${s.resolution === 'daily' ? '24 hours ending at 9 AM AEST' : 'times shown are the end of each recording period'}`;
     const summary = $('historySummary');
     if (m.water) $('historySubtitle').textContent = s.subtitle;
@@ -380,11 +382,11 @@
     for (const [label, cls] of [[aggregation, 'history-key'], ...(valid.some(p => p.min !== null && p.max !== null) ? [['Recorded low–high range', 'history-key history-key-band']] : []), ...(valid.some(p => p.min === null && p.max !== null) ? [['Recorded maximum · dashed', 'history-key history-key-max']] : [])]) {
       const key = document.createElement('span'); key.className = cls; key.textContent = label; legend.append(key);
     }
-    const availability = document.createElement('span'); availability.textContent = `${valid.length} readings · ${s.missing} missing readings`; legend.append(availability);
-    const notes = ['Missing or screened readings remain gaps.'];
+    const availability = document.createElement('span'); availability.textContent = m.reporting === 'published' ? `${valid.length} published reports` : `${valid.length} readings · ${s.missing} missing readings`; legend.append(availability);
+    const notes = m.reporting === 'published' ? [] : ['Missing or screened readings remain gaps.'];
     if (m.water) notes.push(s.note);
     if (items.some(item => item[3]) && !m.water && m.id !== 'rain') notes.push('Dates beneath temperature extremes identify the recording period; exact occurrence times are not stored.');
-    if (m.water && items.some(item => item[3]?.dateOnly)) notes.push('Daily extreme dates are supplied by Sunwater; exact occurrence times are not published.');
+    if (m.id === 'leslie-storage' && items.some(item => item[3]?.dateOnly)) notes.push('Daily extreme dates are supplied by Sunwater; exact occurrence times are not published.');
     if (valid.some(p => p.estimated)) notes.push('Hollow markers identify interpolated records.');
     if (m.id === 'pressure') notes.push('Recorded station pressure is shown. The live card currently applies a separate −1.9 hPa display correction.');
     if (m.id === 'rain') {
@@ -619,7 +621,8 @@
     const hasMin = activeSeries.points.some(p => p.value !== null && p.min !== null), hasMax = activeSeries.points.some(p => p.value !== null && p.max !== null);
     for (const text of ['Recording period ending (AEST)', activeSeries.metric.unit, ...(hasMin ? ['Minimum'] : []), ...(hasMax ? ['Maximum'] : []), 'Quality']) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = text; head.append(th); }
     const body = table.createTBody();
-    if (activeSeries.metric.water) head.cells[0].textContent = activeSeries.resolution === 'daily' ? 'Day / group starting (AEST)' : 'Last observation (AEST)';
+    if (activeSeries.metric.dateOnly) head.cells[0].textContent = 'Council report date (AEST)';
+    else if (activeSeries.metric.water) head.cells[0].textContent = activeSeries.resolution === 'daily' ? 'Day / group starting (AEST)' : 'Last observation (AEST)';
     for (const p of activeSeries.points) {
       const row = body.insertRow();
       for (const text of [pointStamp(activeSeries, p), fmt(p.value, activeSeries.metric), ...(hasMin ? [fmt(p.value === null ? null : p.min, activeSeries.metric)] : []), ...(hasMax ? [fmt(p.value === null ? null : p.max, activeSeries.metric)] : []), p.value === null ? 'Missing / screened' : activeSeries.metric.water ? (p.quality || 'Source data') + (p.partial ? '; incomplete group' : '') : p.estimated ? 'Interpolated' : p.adjusted ? 'Zero floor applied' : 'Recorded']) row.insertCell().textContent = text;
@@ -659,11 +662,13 @@
     loadingWater = true;
     try {
       const data = await getJson('/api/water', AbortSignal.timeout(20000));
-      for (const [element, id] of [['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-warwick-level'], ['scotsLevel', 'condamine-level'], ['condamineFlow', 'condamine-flow']]) {
+      for (const [element, id] of waterBindings) {
         const row = data.readings[id];
         $(element).textContent = row ? row.value.toLocaleString('en-AU', { maximumFractionDigits: data.catalog.find(m => m.id === id).precision }) : '—';
         const updated = $(element + 'Time');
-        if (updated) updated.textContent = row ? (Date.now() - row.t > (id === 'condamine-warwick-level' ? 30 * 60000 : 3 * 3600000) ? 'Last available · ' : 'Updated · ') + stamp(row.t) : 'Awaiting source readings';
+        if (updated) updated.textContent = id.startsWith('connolly-') ?
+          (row ? 'Council report · ' + fullDateFormat.format(row.t) + (Date.now() - row.t > 14 * 86400000 ? ' · awaiting newer report' : '') : 'Awaiting council report') :
+          row ? (Date.now() - row.t > (id === 'condamine-warwick-level' ? 30 * 60000 : 3 * 3600000) ? 'Last available · ' : 'Updated · ') + stamp(row.t) : 'Awaiting source readings';
         const entry = cards.find(c => c.metric === id), series = data.series.find(s => s.metric.id === id);
         if (entry && series) drawSpark(entry, series);
         else if (entry) { entry.spark.querySelector('svg').replaceChildren(); entry.spark.querySelector('.history-spark-caption span').textContent = 'Explore recorded history'; }
@@ -673,12 +678,14 @@
       renderBridge(Boolean(data.imports['condamine-warwick-live']?.error));
       const volume = data.readings['leslie-volume'];
       $('leslieCapacity').textContent = volume?.capacity ? 'Full supply capacity · ' + volume.capacity.toLocaleString('en-AU') + ' ML' : '';
+      const connollyVolume = data.readings['connolly-volume'];
+      $('connollyCapacity').textContent = connollyVolume?.capacity ? 'Full supply capacity · ' + connollyVolume.capacity.toLocaleString('en-AU') + ' ML' : '';
       const archives = ['leslie-daily', 'condamine-level-backfill', 'condamine-flow-backfill', 'condamine-warwick-live'];
       const delayed = Boolean(data.collector?.error) || Object.values(data.imports).some(s => s.error);
       const complete = archives.every(id => data.imports[id]?.complete);
       const riverCursor = data.imports['condamine-level-backfill']?.cursor;
       $('waterImportStatus').textContent = !data.collector?.enabled ? 'Collection paused · saved history remains available' :
-        delayed ? 'Some source updates are delayed · saved history remains available' : complete ? 'Readings saved automatically · Warwick history grows with each update' :
+        delayed ? 'Some source updates are delayed · saved history remains available' : complete ? '' :
           'Importing history' + (riverCursor ? ' · Scots College archive reached ' + fullDateFormat.format(riverCursor) : '') + ' · graphs fill as records arrive';
       $('waterImportStatus').classList.toggle('water-delayed', delayed);
     } catch {
@@ -687,6 +694,9 @@
       $('waterImportStatus').classList.add('water-delayed');
     } finally { loadingWater = false; }
   }
+  const openLinkedHistory = () => { if (location.hash === '#trends' && !dialog.open) openHistory('air'); };
+  window.addEventListener('hashchange', openLinkedHistory);
+  openLinkedHistory();
   refreshWater();
   setInterval(() => { if (!document.hidden) refreshWater(); }, 60000);
   refreshTrends();

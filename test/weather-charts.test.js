@@ -113,3 +113,17 @@ test('read-only worker serves the same data while recording continues; disabled 
     await assert.rejects(unavailable.query(request), /unavailable/);
   } finally { api.close(); store.close(); await new Promise(resolve => setTimeout(resolve, 100)); }
 });
+
+test('Current previews cover twelve hours across station metrics while Daily Summary keeps thirty days', t => {
+  const store = fixture(t);
+  insert(store, 'mem3', '09:10:00', { '4': 12 });
+  insert(store, 'mem2', '10:00:00');
+  const reader = new HistoryReader(store.db);
+  const current = reader.query(normalizeRequest({ view: 'current' }, true, end));
+  assert.ok(current.series.length > 10);
+  assert.ok(current.series.every(s => s.end - s.start === 12 * 3600000));
+  assert.equal(current.series.find(s => s.metric.id === 'air').points.length, 72);
+  assert.equal(current.series.find(s => s.metric.id === 'globe').points.length, 12);
+  const daily = reader.query(normalizeRequest({ view: 'daily' }, true, end));
+  assert.ok(daily.series.every(s => s.end - s.start === 720 * 3600000));
+});
