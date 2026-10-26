@@ -177,7 +177,9 @@ async function visualWindows(page) {
         for (const width of [320, 393, 768, 1024, 1440]) {
           const context = await browser.newContext({ viewport: { width, height: 960 } });
           await context.route('**/*', route => route.request().url().startsWith(origin) ? route.continue() : route.abort());
-          await context.addInitScript(() => {
+          await context.addInitScript(fixtureNow => {
+            // Keep browser requests on the same clock as the fixed API fixtures, even across an hour boundary.
+            Date.now = () => fixtureNow;
             window.__refreshCallbacks = [];
             window.__historyUsage = [];
             window.mooreAnalytics = { track: (name, data) => window.__historyUsage.push({ name, data }) };
@@ -186,7 +188,7 @@ async function visualWindows(page) {
               if (interval === 60000) window.__refreshCallbacks.push(callback);
               return original(callback, interval, ...args);
             };
-          });
+          }, now);
           const page = await context.newPage(), errors = [];
           page.on('pageerror', error => errors.push(error.message));
           for (const pagePath of ['/index.html', '/daily.html']) {
