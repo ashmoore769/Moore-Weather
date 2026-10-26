@@ -11,10 +11,11 @@
   <link rel="manifest" href="/site.webmanifest">
   <link rel="apple-touch-icon" sizes="180x180" href="/moore-weather-touch-v2.png">
   <link rel="icon" type="image/svg+xml" sizes="any" href="/moore-weather-favicon-v3.svg">
-  <title>Moore Weather · Add to Home Screen</title>
+  <title>Moore Weather · Help</title>
   <script src="/theme.js?v=4"></script>
+  <script defer src="/analytics.js?v=1"></script>
   <link rel="stylesheet" href="/login.css?v=2">
-  <link rel="stylesheet" href="/install-help.css?v=1">
+  <link rel="stylesheet" href="/install-help.css?v=2">
   <script defer src="/install-help.js?v=1"></script>
 </head>
 <body class="install-page">
@@ -27,6 +28,7 @@
       <div class="install-brand"><img src="/moore-weather-icon-192-v2.png" width="68" height="68" alt=""><div><span class="install-eyebrow">MOORE WEATHER</span><p>West Warwick, Queensland</p></div></div>
       <h1 id="installTitle">Your weather.<br>One tap away.</h1>
       <p class="install-intro">Add Moore Weather to your home screen for a quick look at the weather, wherever you are.</p>
+      <p class="usage-jump"><a href="#usage-statistics">Usage statistics &amp; privacy</a></p>
       <div class="install-action" id="installAction" hidden><button type="button" id="installAppButton">Install Moore Weather <span aria-hidden="true">↗</span></button><p>Your browser will ask you to confirm.</p></div>
       <p class="install-status" id="installStatus" role="status" hidden></p>
       <div class="install-platforms" id="installPlatforms" role="group" aria-label="Choose your device" hidden>
@@ -65,6 +67,16 @@
       <div class="install-address"><span id="installAddress">moore-weather.onrender.com</span><button id="copyInstallAddress" type="button" hidden>Copy address</button></div>
       <p class="install-copy-status" id="installCopyStatus" role="status" hidden></p>
       <footer class="install-footer"><strong>Same weather. A quicker way in.</strong><p>Adding the icon is free. You may need to sign in once when you first open it. An internet connection is needed for weather readings.</p></footer>
+      <section class="usage-settings" id="usage-statistics" aria-labelledby="usageTitle">
+        <h2 id="usageTitle">Usage statistics &amp; privacy</h2>
+        <p>Moore Weather uses Umami to understand which pages and features are useful, and roughly how long pages stay visible. Statistics include device type and approximate location from your internet connection.</p>
+        <p>Passwords, access-request names and email addresses, and weather readings are not sent to analytics. Locations are approximate, and visitor counts are estimates.</p>
+        <button id="analyticsExclude" type="button" aria-pressed="false" hidden>Exclude this browser from statistics</button>
+        <p id="analyticsStatus" role="status" aria-live="polite"></p>
+        <p class="usage-note">This choice applies to this browser. Set it separately on each device and in the home-screen app if needed. Clearing website data resets the choice.</p>
+        <p class="usage-note"><a href="https://umami.is/privacy" target="_blank" rel="noopener noreferrer">Umami privacy information ↗</a></p>
+        <noscript><p>Usage measurement is off when JavaScript is disabled.</p></noscript>
+      </section>
     </section>
   </main>
 </body>

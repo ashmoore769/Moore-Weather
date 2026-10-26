@@ -239,6 +239,7 @@
     dialog.style.setProperty('--history-color', color(metric.id));
   }
   async function openHistory(metric) {
+    window.mooreAnalytics?.track('history-open', { measurement: metric });
     cancelNavigation(); resetView = null;
     setHistoryState('loading');
     selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 24, endDate: null };
@@ -301,6 +302,7 @@
   function presetChange() { selection.custom = false; delete selection.end; configure(); loadHistory(); }
   $('historyMetric').addEventListener('change', () => {
     selection.metric = $('historyMetric').value;
+    window.mooreAnalytics?.track('history-measurement', { measurement: selection.metric });
     selection.allHistory = false;
     const supported = catalog.find(m => m.id === selection.metric).resolutions;
     if (selection.custom) Object.assign(selection, WeatherChart.navigationWindow(selection.end - selection.hours * 3600000, selection.end, supported, Date.now(), undefined, catalog.find(m => m.id === selection.metric)));

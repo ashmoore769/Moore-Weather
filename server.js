@@ -387,6 +387,7 @@ const PUBLIC_APP_ASSETS = new Map([
   ["/moore-weather-favicon-v2.png", "moore-weather-favicon-v2.png"],
   ["/moore-weather-favicon-v3.svg", "moore-weather-favicon-v3.svg"],
   ["/theme.js", "theme.js"],
+  ["/analytics.js", "analytics.js"],
   ["/station-shell.css", "station-shell.css"],
   ["/dashboard.css", "dashboard.css"],
   ["/login.css", "login.css"],

@@ -13,6 +13,7 @@
   <link rel="icon" type="image/svg+xml" sizes="any" href="/moore-weather-favicon-v3.svg">
   <title>Moore Weather · Daily Summary</title>
   <script src="/theme.js?v=4"></script>
+  <script defer src="/analytics.js?v=1"></script>
   <style>
 :root {
   color-scheme: light;
@@ -229,7 +230,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 <link href="/daily.css?v=1" rel="stylesheet"/>
 <link href="/history.css?v=6" rel="stylesheet"/>
 <script defer src="/history-chart.js?v=11"></script>
-<script defer src="/history.js?v=12"></script>
+<script defer src="/history.js?v=13"></script>
 <link rel="stylesheet" href="/water.css?v=3">
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
@@ -247,7 +248,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
     </div>
     <div class="dashboard-status"><span class="status-badge fetching" id="statusBadge" role="status">● CONNECTING</span><span id="freshnessText">Waiting for station</span></div>
     <div class="dashboard-tools" aria-label="Dashboard controls">
-      <a class="dashboard-tool" href="/help.html" aria-label="Help: add Moore Weather to your home screen" title="Help and installation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg><span class="dashboard-tool-label">Help</span></a>
+      <a class="dashboard-tool" href="/help.html" aria-label="Help, installation and usage privacy" title="Help and installation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg><span class="dashboard-tool-label">Help</span></a>
       <button type="button" class="dashboard-tool" id="stationAlertsBtn" aria-label="Weather and river alerts" title="Weather and river alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="dashboard-tool-label">Alerts</span></button>
       <button type="button" class="dashboard-tool" id="themeToggleBtn" aria-label="Change theme" title="Theme"><span class="theme-icon" id="themeToggleIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span></button>
       <div class="desktop-layout-switcher" aria-label="Desktop layout">

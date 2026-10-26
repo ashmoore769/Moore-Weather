@@ -124,6 +124,8 @@ async function bounds(page, width) {
           await context.route('**/*', route => route.request().url().startsWith(origin) ? route.continue() : route.abort());
           await context.addInitScript(() => {
             window.__refreshCallbacks = [];
+            window.__historyUsage = [];
+            window.mooreAnalytics = { track: (name, data) => window.__historyUsage.push({ name, data }) };
             const original = window.setInterval;
             window.setInterval = (callback, interval, ...args) => {
               if (interval === 60000) window.__refreshCallbacks.push(callback);
@@ -160,6 +162,7 @@ async function bounds(page, width) {
             assert.equal(await page.locator('.water-scots .water-reference-line').count(), 0);
             await page.locator('#scotsLevel').click(); await historyReady(page, 'hourly', 168);
             assert.equal(requests.at(-1).metric, 'condamine-level');
+            assert.deepEqual(await page.evaluate(() => window.__historyUsage.at(-1)), { name: 'history-open', data: { measurement: 'condamine-level' } });
             await page.locator('.history-close').click();
             await page.locator('#condamineFlow').click(); await historyReady(page, 'daily', 720);
             assert.equal(requests.at(-1).metric, 'condamine-flow');
@@ -167,6 +170,7 @@ async function bounds(page, width) {
             await page.locator(pagePath.includes('daily') ? '#rainTotal' : '#rainSince9Val').click();
             await historyReady(page, pagePath.includes('daily') ? 'daily' : '10m');
             if (pagePath.includes('daily')) { await page.locator('[data-resolution="10m"]').click(); await historyReady(page, '10m', 24); }
+            assert.deepEqual(await page.evaluate(() => window.__historyUsage.at(-1)), { name: 'history-open', data: { measurement: 'rain' } });
             await page.selectOption('#historyRange', '720'); await historyReady(page, '10m', 720);
             const first = requests.at(-1), period = await page.locator('#historyPeriod').textContent();
             assert.equal(first.hours, 720); assert.equal(first.end % HOUR, 0);

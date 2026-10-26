@@ -41,3 +41,13 @@
 .install-footer p { margin:7px 0 0; color:var(--muted); font-size:12px; line-height:1.7; }
 .install-page :is(a,button,summary):focus-visible { outline:3px solid var(--accent); outline-offset:3px; border-radius:6px; }
 @media(max-width:480px) { .install-page { padding:12px 12px max(24px,env(safe-area-inset-bottom,0px)); } .install-card { padding:24px 20px; border-radius:18px; } .install-brand { gap:12px; } .install-brand img { width:56px; height:56px; border-radius:14px; } .install-steps li { gap:11px; } .install-guide details { padding-left:41px; } }
+
+.usage-jump { margin:-12px 0 24px; font-size:12px; }
+.usage-jump a,.usage-settings a { color:var(--accent); text-underline-offset:3px; }
+.usage-settings { border-top:1px solid var(--border); margin-top:26px; padding-top:22px; scroll-margin-top:20px; }
+.usage-settings h2 { margin:0 0 12px; font-size:17px; }
+.usage-settings p { color:var(--muted); font-size:13px; line-height:1.7; overflow-wrap:anywhere; }
+.usage-settings button { min-height:44px; max-width:100%; padding:11px 15px; border:1px solid var(--border-strong); border-radius:10px; background:var(--surface-soft); color:var(--text); font:inherit; font-size:13px; line-height:1.5; cursor:pointer; }
+.usage-settings button[aria-pressed="true"] { color:var(--accent); border-color:var(--accent); }
+.usage-settings button:disabled { cursor:default; opacity:.7; }
+.usage-settings .usage-note { font-size:12px; }
