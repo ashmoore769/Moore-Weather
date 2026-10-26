@@ -6,6 +6,13 @@ const assert = require('node:assert/strict');
 const { chromium, webkit } = require('playwright');
 const root = path.resolve(__dirname, '../public'), origin = 'https://moore-weather.onrender.com';
 const sdkUrl = 'https://cloud.umami.is/script.js';
+async function until(check, label) {
+  const end = Date.now() + 5000;
+  while (!check()) {
+    if (Date.now() > end) throw Error('Timed out: ' + label);
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+}
 function downloadSdk() {
   return new Promise((resolve, reject) => {
     const request = https.get(sdkUrl, response => {
@@ -42,9 +49,11 @@ function downloadSdk() {
             if (options.blocked) return route.abort();
             return route.fulfill({ contentType: 'text/javascript', body: sdk });
           }
+          const cors = { 'access-control-allow-origin': origin, 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': '*' };
+          if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors, body: '' });
           if (req.method() === 'POST' && (url.hostname === 'cloud.umami.is' || url.hostname.endsWith('.umami.is') || url.hostname.endsWith('.umami.dev'))) {
             const body = req.postDataJSON(); requests.push(body);
-            return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+            return route.fulfill({ contentType: 'application/json', headers: cors, body: JSON.stringify({
               cache: 'offline-test-cache', sessionId: '11111111-1111-4111-8111-111111111111',
               visitId: '22222222-2222-4222-8222-222222222222'
             }) });
@@ -74,7 +83,7 @@ function downloadSdk() {
         const f = await fixture();
         await f.page.goto(origin + pathname + '?email=PRIVATE&next=SECRET#password=HIDDEN');
         await f.page.waitForFunction(() => Boolean(window.umami?.track));
-        await f.page.waitForTimeout(150);
+        await until(() => f.requests.some(r => r.type === 'event' && !r.payload.name), 'initial pageview');
         assert.equal(f.requests.filter(r => r.type === 'event' && !r.payload.name).length, 1, 'One pageview per page');
         const pv = f.requests[0].payload;
         assert.equal(pv.website, 'cc26784e-27b2-48ef-80d6-a6da05212489');
@@ -86,7 +95,7 @@ function downloadSdk() {
           await f.page.locator('#skycamDownload').click();
           await f.page.evaluate(() => { const b = document.querySelector('#radarPlay'); b.disabled = false; b.click(); });
           await f.page.evaluate(() => window.mooreAnalytics.track('history-open', { measurement: 'rain', email: 'NEVER' }));
-          await f.page.waitForTimeout(150);
+          await until(() => f.requests.some(r => r.payload?.name === 'history-open'), 'feature event');
           for (const name of ['skycam-download', 'radar-playback', 'history-open']) {
             assert.equal(f.requests.filter(r => r.payload?.name === name).length, 1, name);
           }
@@ -108,7 +117,7 @@ function downloadSdk() {
           assert.equal(f.requests.length, before);
           assert.match(await f.page.locator('#analyticsStatus').textContent(), /excluded/);
           await f.page.locator('#analyticsExclude').click();
-          await f.page.waitForTimeout(150);
+          await until(() => f.requests.length > before, 're-enabled pageview');
           assert.equal(f.requests.length, before + 1);
         }
         assert.deepEqual(f.errors, []);
