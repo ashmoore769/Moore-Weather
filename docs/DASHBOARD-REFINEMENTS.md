@@ -32,7 +32,9 @@ A report older than 14 days is labelled as awaiting a newer report.
 Wide screens show Scots, Warwick, Leslie, Connolly. Medium screens show the
 rivers above the two dams; phones keep Warwick first, followed by both dams
 and Scots. Routine successful-collection footer text is hidden; meaningful
-delays and collection failures remain visible.
+delays and collection failures remain visible. Warwick's river reading aligns with
+its neighbours; bridge clearance follows the graph, above the reference note.
+Wide-screen primary readings share the same type size.
 
 Validation: offline unit tests, Chromium/WebKit responsive checks, analytics
 checks with collection intercepted, and an explicit read-only council source

@@ -26,7 +26,7 @@
 .water-volume .history-spark svg { display: none; }
 .water-capacity { margin: 14px 0 12px; font-size: 10px; line-height: 1.55; color: var(--muted); }
 .water-reference-note { margin-top: 10px; }
-.water-bridge { margin: 0 0 14px; padding: 12px 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); }
+.water-bridge { margin: 14px 0 0; padding: 12px 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); }
 .water-bridge strong { display: block; font-size: clamp(17px, 1.8vw, 22px); font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.3; }
 .water-bridge > span { display: block; color: var(--muted); font-size: 10px; line-height: 1.5; margin-top: 4px; }
 .water-bridge[data-state="above"], .water-bridge[data-state="at"] { border-color: #df808b; }
@@ -45,7 +45,6 @@
   .water-scots-readings { display: block; }
   .water-scots .water-volume { margin-top: 16px; padding: 14px 0 4px; border-left: 0; border-top: 1px solid var(--border); }
   .water-scots .water-volume strong { font-size: 27px; }
-  .water-scots .water-hero strong { font-size: 38px; }
 }
 @media (max-width: 359px) {
   .water-panel { padding: 16px; }

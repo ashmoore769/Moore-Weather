@@ -95,13 +95,29 @@ async function bounds(page, width) {
     const refs = [...document.querySelectorAll('.water-reference-label')].map(n => {
       const r = n.getBoundingClientRect(); return { x: r.x, right: r.right, y: r.y, bottom: r.bottom };
     });
-    return { warwick: rect('.water-warwick'), dam: rect('.water-dam'), scots: rect('.water-scots'),
+    const readings = ['.water-scots','.water-warwick','.water-dam','.water-connolly'].map(selector => ({
+      panel: rect(selector), label: rect(selector + ' .water-hero .water-label'),
+      value: rect(selector + ' .water-hero strong')
+    }));
+    return { readings, bridge: rect('#warwickBridge'), warwickReading: rect('.water-warwick .water-hero'),
+      referenceNote: rect('#warwickReferenceNote'),
+      warwick: rect('.water-warwick'), dam: rect('.water-dam'), scots: rect('.water-scots'),
       connolly: rect('.water-connolly'), grid: rect('.water-grid'), svg: rect('.water-warwick .history-spark svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
   });
   for (const b of [boxes.warwick, boxes.dam, boxes.scots, boxes.connolly]) {
     assert.ok(b.x >= -1 && b.right <= width + 1, JSON.stringify({ width, boxes }));
   }
   assert.equal(boxes.overflow, false, 'Page must not scroll horizontally at ' + width);
+  assert.ok(boxes.bridge.y >= boxes.warwickReading.bottom, 'Bridge clearance must follow the river graph');
+  assert.ok(boxes.referenceNote.y >= boxes.bridge.bottom, 'Bridge reference must follow the clearance');
+  for(let i=0;i<boxes.readings.length;i++) for(let j=i+1;j<boxes.readings.length;j++) {
+    const a=boxes.readings[i], b=boxes.readings[j];
+    if(Math.abs(a.panel.y-b.panel.y)<1) {
+      assert.ok(Math.abs(a.label.y-b.label.y)<1, 'Neighbouring water labels must align: '+JSON.stringify(boxes.readings));
+      assert.ok(Math.abs(a.value.y-b.value.y)<1 && Math.abs(a.value.height-b.value.height)<1,
+        'Neighbouring water readings must align: '+JSON.stringify(boxes.readings));
+    }
+  }
   if (boxes.grid.width >= 1200) {
     assert.ok(boxes.scots.x < boxes.warwick.x && boxes.warwick.x < boxes.dam.x && boxes.dam.x < boxes.connolly.x);
     assert.ok(Math.abs(boxes.scots.y - boxes.connolly.y) < 1);
