@@ -6,7 +6,7 @@ The two dashboards share `public/history.js`, `history-chart.js` and `history.cs
 
 Drag the plot horizontally to pan, scroll over it or pinch to zoom, or use the Earlier/Later and +/− buttons. The existing time-span presets remain available. Navigation shows **Custom view**, the actual AEST date/time bounds and the selected resolution. **Reset view** returns to the last preset and its original end time; selecting a time-span preset returns to that span ending now. An explicit end date still selects an earlier day.
 
-Panning keeps the chosen resolution. Zooming selects the finest supported native feed within the existing query bounds (up to 7 days at ten-minute resolution, 31 days hourly and 730 days daily). Windows snap to whole hours, or whole weather days ending at 9 AM for daily data; the minimum span is one hour, or one day for daily-only measurements. No readings are fabricated. Older periods without the finer feed remain gaps and can still be viewed by selecting a coarser resolution. Scroll requests are debounced, pointer gestures fetch on release, and closing the viewer cancels pending work. The plot handles touch gestures; scroll the dialog outside the plot to move down the page.
+Panning keeps the chosen resolution. Zooming selects the finest supported native feed within the existing query bounds (up to 30 days of rainfall (7 days for other measurements) at ten-minute resolution, 31 days hourly and 730 days daily). Windows snap to whole hours, or whole weather days ending at 9 AM for daily data; the minimum span is one hour, or one day for daily-only measurements. No readings are fabricated. Older periods without the finer feed remain gaps and can still be viewed by selecting a coarser resolution. Scroll requests are debounced, pointer gestures fetch on release, and closing the viewer cancels pending work. The plot handles touch gestures; scroll the dialog outside the plot to move down the page.
 
 Left/right arrows inspect readings, Home/End select the first/last reading, Shift+left/right pan, +/− zoom and 0 resets. Statistics, table and the existing fitted trend use the loaded visible window. During navigation, summary values are withheld until the new window is loaded.
 
@@ -32,7 +32,7 @@ This UI pass changes neither collection scheduling nor database contents. Daily 
 
 | Resolution | Native feed | Maximum query | Usual range |
 | --- | --- | --- | --- |
-| 10 minute | MEM3 | 7 days / 1,008 intervals | 24 hours |
+| 10 minute | MEM3 | Rain: 30 days / 4,320 readings; others: 7 days / 1,008 readings | 24 hours |
 | Hourly | MEM2 | 31 days / 744 intervals | 7 days |
 | Daily | MEM1 | 730 days | 30 days |
 
@@ -68,3 +68,8 @@ The API accepts only named measurements, supported resolutions, bounded integer 
 Run `node tools/check.js` and `node --test test/*.test.js`. Chart tests cover native means/totals, gaps, quality floors and outliers, the daily boundary, availability, conflicts/interpolation, bounds, compass discontinuities and concurrent recording with the read-only worker. Keep the existing importer/collector tests intact.
 
 Browser verification uses a private copy of the local database and a mock station socket; never start another development poller against the live home station. Check both themes, phone width, both pages, table/keyboard access, earlier dates, empty history and unsupported resolutions. Check production authenticated history endpoints after Render's normal automatic deployment.
+
+
+### Comparing monthly rainfall
+
+Rainfall offers **30 days** at both ten-minute and hourly resolution. That preset ends at the last completed hour so both views cover the same native recording periods. Switching between those resolutions keeps the selected duration (up to 30 days) and end time, aligned to a completed hour; panned partial hours are aligned once on switching. Archive bounds still apply independently to each feed, so compare the displayed AEST start/end and missing-reading counts when their coverage differs. Totals are calculated from each feed's own recorded values; no hourly record is divided into synthetic ten-minute readings.

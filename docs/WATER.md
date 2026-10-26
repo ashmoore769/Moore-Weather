@@ -53,3 +53,12 @@ Live dam and recent river records refresh hourly, scheduled near hh:30 as recomm
 5. To pause, set `WATER_DATA_ENABLED=false`. To roll back, restore the prior application commit. The additional namespaced tables are harmless to the previous weather app; do not delete or replace the production database.
 
 Offline checks: `node tools/check.js` and `node --test test/*.test.js`. They do not start station polling. Production import completion must be verified after deployment; a prepared code update does not itself populate the hosted database.
+
+
+### Three-source dashboard
+
+Current and Daily Summary both show Scots College level/flow, Warwick town level, and Leslie Dam storage/volume. Wide screens arrange Scots–Warwick–Leslie; tablets give Warwick and Leslie the first row with Scots below; phones stack Warwick, Leslie, Scots. Each reading opens its own metric history.
+
+Warwick's dashboard preview always includes the 5m minor, 6m moderate and 7m major / McCahon Bridge references, including when there are no observations. Its difference badge uses the most recent native Warwick observation and the named 7m reference. Readings older than three hours, or a failed refresh, are marked as last available; missing/invalid readings do not produce a bridge difference. This is a gauge reference comparison, not a road status or an O. O. Madsen threshold. No Madsen value is inferred.
+
+Warwick retains the initially available BOM table and all subsequently collected records. No older Warwick archive import is required. The separate Scots College database histories and collection jobs remain intact. No schema migration or production data rewrite is part of this layout update.

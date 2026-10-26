@@ -60,10 +60,29 @@
     hourly: { step: HOUR, maxHours: 744 },
     daily: { step: 24 * HOUR, maxHours: 17520 }
   };
+  function maxHoursForResolution(resolution, metric = {}) {
+    if (resolution === '10m' && metric.id === 'rain') return 720;
+    if (resolution === 'daily' && metric.maxHours) return metric.maxHours;
+    return resolutions[resolution]?.maxHours;
+  }
+  // Compare complete native hours; never divide an hourly total into six
+  // invented ten-minute values. Existing coverage still bounds navigation.
+  function rainfallComparisonWindow(start, end, resolution, metric, now = Date.now()) {
+    const hours = Math.min(720, Math.max(1, Math.round((end - start) / HOUR)));
+    const finish = Math.floor(Math.min(end, now) / HOUR) * HOUR;
+    return navigationWindow(finish - hours * HOUR, finish, [resolution], now, resolution, metric);
+  }
+  function bridgeDifference(reading, bridge, now = Date.now()) {
+    if (!Number.isFinite(reading?.value) || !Number.isFinite(reading?.t) ||
+        !Number.isFinite(bridge?.level) || reading.t > now + 300000) return null;
+    const difference = Math.round((bridge.level - reading.value) * 100) / 100;
+    return { difference, stale: now - reading.t > 3 * HOUR,
+      text: Math.abs(difference).toFixed(2) + 'm (' + (difference > 0 ? 'Below Bridge' : difference < 0 ? 'Above Bridge' : 'At Bridge') + ')' };
+  }
   // Keep navigation within the existing API limits. Whole native periods are
   // essential for totals: daily rain cannot be split into invented hourly rain.
   function navigationWindow(start, end, supported, now = Date.now(), preferred, metric = {}) {
-    const limits = { ...resolutions, daily: { ...resolutions.daily, maxHours: metric.maxHours || resolutions.daily.maxHours } };
+    const limits = Object.fromEntries(Object.entries(resolutions).map(([id, spec]) => [id, { ...spec, maxHours: maxHoursForResolution(id, metric) }]));
     const available = Object.keys(resolutions).filter(r => supported.includes(r));
     const requestedHours = Math.max(1, (end - start) / HOUR);
     const resolution = available.includes(preferred) && requestedHours <= limits[preferred].maxHours ? preferred :
@@ -134,7 +153,7 @@
     }
     return items;
   }
-  const api = { segments, domain, fittedTrend, navigationWindow, visibleSeries, summary };
+  const api = { segments, domain, fittedTrend, navigationWindow, maxHoursForResolution, rainfallComparisonWindow, bridgeDifference, visibleSeries, summary };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.WeatherChart = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -2,7 +2,7 @@
   'use strict';
   const dailyPage = location.pathname.endsWith('daily.html');
   const $ = id => document.getElementById(id);
-  const colors = { air: '#2c9a8c', globe: '#c18a36', humidity: '#6686c4', pressure: '#468dbb', wind: '#249d9b', gust: '#b78641', direction: '#249d9b', solar: '#c39324', rain: '#438fd0', dew: '#698dc1', evaporation: '#708fae', ground: '#a78454' };
+  const colors = { 'leslie-storage': '#438fbd', 'leslie-volume': '#438fbd', air: '#2c9a8c', globe: '#c18a36', humidity: '#6686c4', pressure: '#468dbb', wind: '#249d9b', gust: '#b78641', direction: '#249d9b', solar: '#c39324', rain: '#438fd0', dew: '#698dc1', evaporation: '#708fae', ground: '#a78454' };
   const color = id => colors[id] || (id.startsWith('soil-moisture') ? '#438fd0' : '#2c9a8c');
   const timeFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   const dateFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short' });
@@ -28,7 +28,7 @@
     ['gardenBedTempVal', 'ground'], ['batteryVal', 'battery'], ['loadVal', 'load'], ['solarPanelVal', 'panel'], ['chargeVal', 'charge'],
     ...[10, 20, 30, 40].flatMap(depth => [[`soilTemp${depth}Val`, `soil-temp-${depth}`], [`moisture${depth}Val`, `soil-moisture-${depth}`]])
   ];
-  bindings.push(['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-warwick-level'], ['condamineFlow', 'condamine-flow']);
+  bindings.push(['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-warwick-level'], ['scotsLevel', 'condamine-level'], ['condamineFlow', 'condamine-flow']);
   let catalog = [], trendData, loadingTrends = false, modalRequest, selection, activeSeries, activeIndex = -1, chartGeometry;
   let resetView, loadedSeries, navigationTimer, previewFrame, gesture, pendingWindow, wheelWindow;
   const pointers = new Map();
@@ -40,7 +40,7 @@
     const card = value?.closest('.temp-hero, .quick-stat, .soil-reading-value, .soil-surface-temperature, .metric-row, .daily-reading-card, .rain-hero, .soil-depth-reading, .water-reading');
     if (!card) continue;
     card.classList.add('history-card'); card.tabIndex = 0; card.setAttribute('role', 'button');
-    card.setAttribute('aria-describedby', elementId);
+    card.setAttribute('aria-describedby', elementId + (metric === 'condamine-warwick-level' ? ' warwickReferenceNote' : ''));
     card.setAttribute('aria-haspopup', 'dialog'); card.setAttribute('aria-label', 'View history: ' + metric.replaceAll('-', ' '));
     card.style.setProperty('--history-color', color(metric));
     const spark = document.createElement('span'); spark.className = 'history-spark'; spark.setAttribute('aria-hidden', 'true');
@@ -157,7 +157,33 @@
     const latest = series.latest;
     if (mini && latest) svg.append(svgNode('circle', { cx: x(latest.t), cy: y(latest.value), r: 2.5, fill: stroke }));
   }
-  function drawSpark({ spark }, series) {
+  function drawWarwickPreview(entry, series) {
+    const svg = entry.spark.querySelector('svg'), width = Math.max(200, entry.spark.clientWidth), height = 174;
+    const left = 3, right = width - 4, top = 16, bottom = height - 22;
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.replaceChildren();
+    const [min, max] = WeatherChart.domain(series);
+    const x = t => left + (t - series.start) / (series.end - series.start) * (right - left);
+    const y = v => bottom - (v - min) / (max - min) * (bottom - top);
+    svg.append(svgNode('line', { x1: left, x2: right, y1: bottom, y2: bottom, stroke: 'var(--border)' }));
+    paths(svg, series, x, y, bottom, true);
+    for (const reference of series.metric.referenceLines || []) {
+      svg.append(svgNode('line', { class: 'water-reference-line', x1: left, x2: right, y1: y(reference.value), y2: y(reference.value),
+        stroke: reference.color, 'stroke-width': 1, 'stroke-dasharray': '4 4', 'vector-effect': 'non-scaling-stroke' }));
+      const label = reference.value === series.metric.bridge?.level ? 'Major / McCahon' : reference.label;
+      svg.append(svgNode('text', { class: 'water-reference-label', x: right - 1, y: y(reference.value) - 4,
+        'text-anchor': 'end', fill: reference.color }, reference.value + 'm · ' + label));
+    }
+    for (const [t, anchor] of [[series.start, 'start'], [series.end, 'end']]) {
+      svg.append(svgNode('text', { class: 'water-axis-label', x: x(t), y: height - 3, 'text-anchor': anchor }, dateFormat.format(t)));
+    }
+    entry.spark.querySelector('.history-spark-caption span').textContent = series.latest ?
+      '7 days · hourly · view history' : 'No readings in this window · references shown';
+  }
+  function drawSpark(entry, series) {
+    const { spark } = entry;
+    entry.series = series;
+    if (entry.metric === 'condamine-warwick-level' && series) { drawWarwickPreview(entry, series); return; }
     const svg = spark.querySelector('svg'), caption = spark.querySelector('.history-spark-caption span');
     svg.replaceChildren();
     if (!series?.latest) { caption.textContent = 'No readings in this window'; return; }
@@ -167,7 +193,7 @@
     svg.append(svgNode('line', { x1: 0, x2: 260, y1: 38, y2: 38, stroke: 'currentColor', opacity: .12 }));
     paths(svg, series, x, y, 38, true);
     const stale = series.end - series.latest.t > series.intervalSeconds * 2000;
-    caption.textContent = stale ? 'Last ' + timeFormat.format(series.latest.t) + ' · gaps' : series.resolution === 'daily' ? '30 days · daily' : series.resolution === 'hourly' ? (series.metric.id === 'condamine-warwick-level' ? '7 days · hourly' : '5 hours · hourly') : series.metric.id === 'rain' ? '5 hours · 10-min totals' : '5 hours · 10 min';
+    caption.textContent = stale ? 'Last ' + timeFormat.format(series.latest.t) + ' · gaps' : series.resolution === 'daily' ? '30 days · daily' : series.resolution === 'hourly' ? (['condamine-warwick-level', 'condamine-level'].includes(series.metric.id) ? '7 days · hourly' : '5 hours · hourly') : series.metric.id === 'rain' ? '5 hours · 10-min totals' : '5 hours · 10 min';
   }
   const ranges = { '10m': [[5, 'Last 5 hours'], [24, '24 hours'], [48, '2 days'], [168, '7 days']], hourly: [[5, 'Last 5 hours'], [24, '24 hours'], [168, '7 days'], [720, '30 days']], daily: [[168, '7 days'], [720, '30 days'], [2160, '90 days'], [8760, '1 year'], [17520, '2 years']] };
   function configure() {
@@ -176,9 +202,10 @@
     if (!metric.resolutions.includes(selection.resolution)) selection.resolution = metric.resolutions[0];
     if (metric.coverage && !metric.coverage[selection.resolution]) selection.resolution = metric.resolutions.find(r => metric.coverage[r]) || selection.resolution;
     const options = [...ranges[selection.resolution]];
+    if (metric.id === 'rain' && selection.resolution === '10m') options.push([720, '30 days']);
     const coverage = metric.coverage?.[selection.resolution];
     if (metric.water && selection.resolution === 'daily') options.push([87600, '10 years'], [175200, '20 years']);
-    const maxHours = selection.resolution === 'daily' ? metric.maxHours || 17520 : { '10m': 168, hourly: 744 }[selection.resolution];
+    const maxHours = WeatherChart.maxHoursForResolution(selection.resolution, metric);
     if (coverage && (coverage.last - coverage.start) / 3600000 <= maxHours) options.push(['all', 'All available history']);
     if (!selection.custom && !selection.allHistory && !options.some(([hours]) => hours === selection.hours)) selection.hours = selection.resolution === 'daily' ? 720 : 24;
     $('historyMetric').value = metric.id;
@@ -205,7 +232,7 @@
     setHistoryState('loading');
     selection = { metric, resolution: dailyPage ? 'daily' : '10m', hours: dailyPage ? 720 : 24, endDate: null };
     if (metric.startsWith('leslie-') || metric.startsWith('condamine-')) Object.assign(selection, { resolution: 'daily', hours: 720 });
-    if (metric === 'condamine-warwick-level') Object.assign(selection, { resolution: 'hourly', hours: 168 });
+    if (metric === 'condamine-warwick-level' || metric === 'condamine-level') Object.assign(selection, { resolution: 'hourly', hours: 168 });
     if (!dialog.open) dialog.showModal();
     dialog.querySelector('.history-scroll').scrollTop = 0;
     $('historyMessage').hidden = false; $('historyMessage').textContent = 'Loading history…';
@@ -234,6 +261,8 @@
     $('historyMessage').hidden = false; $('historyMessage').textContent = 'Loading history…';
     const metric = catalog.find(m => m.id === selection.metric), coverage = metric.coverage?.[selection.resolution];
     let end = selection.end ?? (selection.endDate ? Date.parse(selection.endDate + 'T23:59:59.999+10:00') : Date.now());
+    // The 30-day rain preset shares completed-hour endpoints at both resolutions.
+    if (metric.id === 'rain' && selection.hours === 720 && ['10m', 'hourly'].includes(selection.resolution) && !selection.allHistory) end = Math.floor(end / 3600000) * 3600000;
     if (selection.allHistory && coverage) { end = coverage.last; selection.hours = (coverage.last - coverage.start) / 3600000; }
     const target = WeatherChart.navigationWindow(end - selection.hours * 3600000, end, [selection.resolution], Date.now(), selection.resolution, metric);
     // Sub-hour archives still use the API's integer-hour request, with exact
@@ -269,7 +298,18 @@
   $('historyRange').addEventListener('change', () => { selection.allHistory = $('historyRange').value === 'all'; if (!selection.allHistory) selection.hours = Number($('historyRange').value); selection.endDate = null; presetChange(); });
   $('historyEnd').addEventListener('change', () => { if ($('historyEnd').value && $('historyEnd').checkValidity()) { selection.allHistory = false; selection.endDate = $('historyEnd').value; presetChange(); } });
   $('historyLatest').addEventListener('click', () => { selection.endDate = null; presetChange(); });
-  for (const button of dialog.querySelectorAll('[data-resolution]')) button.addEventListener('click', () => { selection.allHistory = false; selection.resolution = button.dataset.resolution; selection.hours = selection.resolution === 'daily' ? 720 : selection.resolution === 'hourly' ? 168 : 24; presetChange(); });
+  for (const button of dialog.querySelectorAll('[data-resolution]')) button.addEventListener('click', () => {
+    const resolution = button.dataset.resolution;
+    if (resolution === selection.resolution) return;
+    if (selection.metric === 'rain' && activeSeries && ['10m', 'hourly'].includes(resolution) && ['10m', 'hourly'].includes(selection.resolution)) {
+      const target = WeatherChart.rainfallComparisonWindow(activeSeries.start, activeSeries.end, resolution, activeSeries.metric);
+      Object.assign(selection, target, { allHistory: false, endDate: null });
+      selection.custom = Boolean(selection.custom) || ![...ranges[resolution].map(([hours]) => hours), 720].includes(target.hours);
+      configure(); loadHistory(); return;
+    }
+    selection.allHistory = false; selection.resolution = resolution;
+    selection.hours = resolution === 'daily' ? 720 : resolution === 'hourly' ? 168 : 24; presetChange();
+  });
 
   $('historyTrend').addEventListener('change', () => {
     try { localStorage.setItem('mooreWeatherTrend:'+selection.metric, String($('historyTrend').checked)); } catch {}
@@ -564,13 +604,30 @@
   }
   $('historyTable').addEventListener('toggle', renderTable);
   new ResizeObserver(() => drawChart()).observe($('historyChart'));
-  let loadingWater = false;
+  let loadingWater = false, lastBridgeReading, lastBridgeReference;
+  function renderBridge(unavailable = false) {
+    const difference = WeatherChart.bridgeDifference(lastBridgeReading, lastBridgeReference);
+    const badge = $('warwickBridge');
+    if (!badge) return;
+    $('warwickBridgeValue').textContent = difference?.text || 'River reading unavailable';
+    const stale = unavailable || difference?.stale;
+    badge.dataset.state = !difference ? 'unavailable' : stale ? 'stale' : difference.difference > 0 ? 'below' : difference.difference < 0 ? 'above' : 'at';
+    $('warwickBridgeContext').textContent = (difference && stale ? 'Last available · ' : '') +
+      (lastBridgeReference ? lastBridgeReference.name + ' · ' + lastBridgeReference.level.toFixed(2) + 'm gauge reference' : 'McCahon Bridge · awaiting reference');
+  }
+  const waterResize = new ResizeObserver(entries => {
+    for (const resize of entries) {
+      const entry = cards.find(c => c.spark === resize.target);
+      if (entry?.series) drawWarwickPreview(entry, entry.series);
+    }
+  });
+  for (const entry of cards.filter(c => c.metric === 'condamine-warwick-level')) waterResize.observe(entry.spark);
   async function refreshWater() {
     if (!$('localWater') || loadingWater) return;
     loadingWater = true;
     try {
       const data = await getJson('/api/water', AbortSignal.timeout(20000));
-      for (const [element, id] of [['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-warwick-level'], ['condamineFlow', 'condamine-flow']]) {
+      for (const [element, id] of [['leslieStorage', 'leslie-storage'], ['leslieVolume', 'leslie-volume'], ['condamineLevel', 'condamine-warwick-level'], ['scotsLevel', 'condamine-level'], ['condamineFlow', 'condamine-flow']]) {
         const row = data.readings[id];
         $(element).textContent = row ? row.value.toLocaleString('en-AU', { maximumFractionDigits: data.catalog.find(m => m.id === id).precision }) : '—';
         const updated = $(element + 'Time');
@@ -579,6 +636,9 @@
         if (entry && series) drawSpark(entry, series);
         else if (entry) { entry.spark.querySelector('svg').replaceChildren(); entry.spark.querySelector('.history-spark-caption span').textContent = 'Explore recorded history'; }
       }
+      lastBridgeReading = data.readings['condamine-warwick-level'];
+      lastBridgeReference = data.catalog.find(m => m.id === 'condamine-warwick-level')?.bridge;
+      renderBridge();
       const volume = data.readings['leslie-volume'];
       $('leslieCapacity').textContent = volume?.capacity ? 'Full supply capacity · ' + volume.capacity.toLocaleString('en-AU') + ' ML' : '';
       const archives = ['leslie-daily', 'condamine-level-backfill', 'condamine-flow-backfill', 'condamine-warwick-live'];
@@ -586,10 +646,11 @@
       const complete = archives.every(id => data.imports[id]?.complete);
       const riverCursor = data.imports['condamine-level-backfill']?.cursor;
       $('waterImportStatus').textContent = !data.collector?.enabled ? 'Collection paused · saved history remains available' :
-        delayed ? 'Some source updates are delayed · saved history remains available' : complete ? 'Available history imported · readings saved automatically' :
+        delayed ? 'Some source updates are delayed · saved history remains available' : complete ? 'Readings saved automatically · Warwick history grows with each update' :
           'Importing history' + (riverCursor ? ' · Scots College archive reached ' + fullDateFormat.format(riverCursor) : '') + ' · graphs fill as records arrive';
       $('waterImportStatus').classList.toggle('water-delayed', delayed);
     } catch {
+      renderBridge(true);
       $('waterImportStatus').textContent = 'Water updates unavailable · any readings shown are from the last successful update';
       $('waterImportStatus').classList.add('water-delayed');
     } finally { loadingWater = false; }

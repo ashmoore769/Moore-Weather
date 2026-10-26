@@ -1116,9 +1116,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 }
 </style>
 <link href="/history.css?v=5" rel="stylesheet"/>
-<script defer src="/history-chart.js?v=9"></script>
-<script defer src="/history.js?v=10"></script>
-<link rel="stylesheet" href="/water.css?v=1">
+<script defer src="/history-chart.js?v=10"></script>
+<script defer src="/history.js?v=11"></script>
+<link rel="stylesheet" href="/water.css?v=2">
 <link rel="stylesheet" href="/station-shell.css?v=5">
 <script defer src="/station-shell.js?v=5"></script>
 <script defer src="/station-alerts.js?v=3"></script>
@@ -1306,8 +1306,18 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <span id="dailyEvapVal">--</span>
 </div></div>
 </main>
-<section class="local-water" id="localWater" aria-label="Leslie Dam and Condamine River readings">
+<section class="local-water" id="localWater" aria-label="Warwick river, Leslie Dam and Scots College readings">
   <div class="water-grid">
+    <article class="water-panel water-river water-warwick">
+      <header><div><span class="water-eyebrow">Condamine River</span><h3>Warwick</h3></div><span class="water-site">041534</span></header>
+      <div class="water-bridge" id="warwickBridge" role="status">
+        <strong id="warwickBridgeValue">Awaiting river reading</strong>
+        <span id="warwickBridgeContext">McCahon Bridge · 7.00m gauge reference</span>
+      </div>
+      <div class="water-reading water-hero" aria-describedby="warwickReferenceNote"><span class="water-label">River level · Warwick town gauge</span><strong><span id="condamineLevel">—</span><small>m</small></strong><span class="water-time" id="condamineLevelTime">Awaiting source readings</span></div>
+      <p class="water-capacity water-reference-note" id="warwickReferenceNote">Gauge references: minor 5m · moderate 6m · major / McCahon Bridge 7m. Not O. O. Madsen Bridge or a road-access indicator.</p>
+      <footer><a href="https://www.bom.gov.au/fwo/IDQ65396/IDQ65396.041534.tbl.shtml" target="_blank" rel="noopener noreferrer">Source: BOM ↗</a><span>CC BY · unverified</span></footer>
+    </article>
     <article class="water-panel water-dam">
       <header><div><span class="water-eyebrow">Upper Condamine</span><h3>Leslie Dam</h3></div><span class="water-site">422315B</span></header>
       <div class="water-reading water-hero" aria-label="View Leslie Dam storage history">
@@ -1318,12 +1328,14 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
       <p class="water-capacity" id="leslieCapacity"></p>
       <footer><a href="https://www.sunwater.com.au/dams/leslie-dam/" target="_blank" rel="noopener noreferrer">Source: Sunwater ↗</a><span>Automated · unverified</span></footer>
     </article>
-    <article class="water-panel water-river">
-      <header><div><span class="water-eyebrow">Warwick town gauge</span><h3>Condamine River</h3></div><span class="water-site">041534</span></header>
-      <div class="water-reading water-hero"><span class="water-label">River level</span><strong><span id="condamineLevel">—</span><small>m</small></strong><span class="water-time" id="condamineLevelTime">Awaiting source readings</span></div>
-      <div class="water-reading water-volume"><span class="water-label">Flow · Scots College</span><strong><span id="condamineFlow">—</span><small>m³/s</small></strong><span class="water-time" id="condamineFlowTime">Awaiting source readings</span></div>
-      <p class="water-capacity">Level: Warwick Alert · Flow: Scots College 422310C</p>
-      <footer><a href="https://www.bom.gov.au/fwo/IDQ65396/IDQ65396.041534.plt.shtml" target="_blank" rel="noopener noreferrer">Level: BOM ↗</a><a href="https://water-monitoring.information.qld.gov.au/" target="_blank" rel="noopener noreferrer">Flow: Queensland WMIP ↗</a><span>CC BY · unverified</span></footer>
+    <article class="water-panel water-river water-scots">
+      <header><div><span class="water-eyebrow">Condamine · upstream</span><h3>Scots College</h3></div><span class="water-site">422310C</span></header>
+      <div class="water-scots-readings">
+        <div class="water-reading water-hero"><span class="water-label">River level · Scots College</span><strong><span id="scotsLevel">—</span><small>m</small></strong><span class="water-time" id="scotsLevelTime">Awaiting source readings</span></div>
+        <div class="water-reading water-volume"><span class="water-label">Flow · Scots College</span><strong><span id="condamineFlow">—</span><small>m³/s</small></strong><span class="water-time" id="condamineFlowTime">Awaiting source readings</span></div>
+      </div>
+      <p class="water-capacity">Separate upstream gauge · levels are not directly comparable with Warwick.</p>
+      <footer><a href="https://water-monitoring.information.qld.gov.au/" target="_blank" rel="noopener noreferrer">Source: Queensland WMIP ↗</a><span>CC BY · unverified</span></footer>
     </article>
   </div>
   <p class="water-import-status" id="waterImportStatus" role="status">Connecting to saved water readings…</p>
