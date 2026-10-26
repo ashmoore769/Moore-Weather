@@ -1,5 +1,5 @@
 /* Water sources share the dashboard surfaces and keep Warwick / Leslie prominent. */
-.local-water { margin: 26px 0 12px; color: var(--text); }
+.local-water { container-type: inline-size; margin: 26px 0 12px; color: var(--text); }
 .water-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.3px; color: var(--muted); }
 .water-site { font-size: 10px; color: var(--muted); flex-shrink: 0; }
 .water-grid { display: grid; grid-template-columns: 1fr; grid-template-areas: "warwick" "dam" "scots"; gap: 14px; }
@@ -35,14 +35,14 @@
 .water-panel a:hover { text-decoration: underline; }
 .water-import-status { min-height: 30px; font-size: 10px; line-height: 1.6; color: var(--muted); margin: 12px 4px 0; }
 .water-delayed { color: var(--text); }
-@media (min-width: 700px) {
+@container (min-width: 680px) {
   .water-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); grid-template-areas: "warwick dam" "scots scots"; gap: 16px; }
   .water-scots-readings { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
   .water-scots .water-volume { margin: 0; padding: 4px 0 4px 24px; border-top: 0; border-left: 1px solid var(--border); }
   .water-scots .water-volume strong { font-size: 36px; }
   .water-dam .water-hero .history-spark svg { height: 108px; }
 }
-@media (min-width: 1100px) {
+@container (min-width: 1000px) {
   .water-grid { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr) minmax(0, 1fr); grid-template-areas: "scots warwick dam"; }
   .water-scots-readings { display: block; }
   .water-scots .water-volume { margin-top: 16px; padding: 14px 0 4px; border-left: 0; border-top: 1px solid var(--border); }

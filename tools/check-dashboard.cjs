@@ -90,16 +90,16 @@ async function bounds(page, width) {
       const r = n.getBoundingClientRect(); return { x: r.x, right: r.right, y: r.y, bottom: r.bottom };
     });
     return { warwick: rect('.water-warwick'), dam: rect('.water-dam'), scots: rect('.water-scots'),
-      svg: rect('.water-warwick .history-spark svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
+      grid: rect('.water-grid'), svg: rect('.water-warwick .history-spark svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
   });
   for (const b of [boxes.warwick, boxes.dam, boxes.scots]) {
     assert.ok(b.x >= -1 && b.right <= width + 1, JSON.stringify({ width, boxes }));
   }
   assert.equal(boxes.overflow, false, 'Page must not scroll horizontally at ' + width);
-  if (width >= 1100) {
+  if (boxes.grid.width >= 1000) {
     assert.ok(boxes.scots.x < boxes.warwick.x && boxes.warwick.x < boxes.dam.x);
     assert.ok(Math.abs(boxes.scots.y - boxes.dam.y) < 1);
-  } else if (width >= 700) {
+  } else if (boxes.grid.width >= 680) {
     assert.ok(boxes.warwick.x < boxes.dam.x);
     assert.ok(boxes.scots.y >= boxes.warwick.bottom - 1);
   } else assert.ok(boxes.warwick.y < boxes.dam.y && boxes.dam.y < boxes.scots.y);
@@ -116,7 +116,7 @@ async function bounds(page, width) {
     for (const engine of [chromium, webkit]) {
       const browser = await engine.launch();
       try {
-        for (const width of [320, 393, 768, 1440]) {
+        for (const width of [320, 393, 768, 1024, 1440]) {
           const context = await browser.newContext({ viewport: { width, height: 960 } });
           await context.route('**/*', route => route.request().url().startsWith(origin) ? route.continue() : route.abort());
           const page = await context.newPage(), errors = [];
@@ -125,7 +125,7 @@ async function bounds(page, width) {
             mode = 'fresh';
             await page.goto(origin + pagePath); await ready(page);
             // Desktop uses the app's existing landscape layout class.
-            if (width >= 1100) await page.evaluate(() => document.body.classList.add('layout-landscape'));
+            if (width >= 900) await page.evaluate(() => document.body.classList.add('layout-landscape'));
             await page.locator('.local-water').scrollIntoViewIfNeeded();
             await page.waitForTimeout(80);
             await bounds(page, width);
@@ -154,6 +154,12 @@ async function bounds(page, width) {
             await page.locator('[data-resolution="10m"]').click(); await historyReady(page, '10m', 720);
             assert.equal(requests.at(-1).end, first.end);
             await page.locator('.history-close').click();
+            if (width === 1440) {
+              await page.evaluate(() => { document.body.classList.remove('layout-landscape'); document.body.classList.add('layout-portrait'); });
+              await page.waitForTimeout(80); await bounds(page, width);
+              await page.evaluate(() => document.documentElement.dataset.theme = 'light');
+              await bounds(page, width);
+            }
             assert.deepEqual(errors, []);
             checked++;
           }
