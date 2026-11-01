@@ -64,3 +64,25 @@ Check `/ping` for `database.ready`, `database.lastWrite`, each history feed's la
 The graph cards, history query endpoints and final GUI redesign are separate follow-up work. Pressure conditioning and the logger schedule remain unchanged during this deployment.
 
 Render's build reported five advisories in older Express dependencies. Compatible lockfile updates resolved them without changing the declared application dependencies. The resulting package audit reported zero known vulnerabilities; 22 database tests, 11 isolated HTTP/login/access checks and 28 syntax checks passed.
+
+## Diagnosing missing recent graphs
+
+A successful current (R3) reading proves the live-reading connection works, but
+does not prove that the logger's saved memories are advancing. History logs and
+the authenticated `/ping` feed status include actual rows received, the first and
+last returned observation timestamps, and the latest stored observation. Times
+are UTC (add ten hours for AEST). An identical downloaded batch is deduplicated;
+zero new records does not mean zero rows were received.
+
+Regular MEM1/2/3 replies with no rows are rejected without deleting saved data.
+Empty conditional MEM4 rainfall history is valid. A completed transfer is still
+reported as stale when its last observation exceeds 30 minutes for MEM3, two
+hours for MEM2, or two days for MEM1. `lastSuccess` is the transfer time; use
+`lastObservedAt` and `storedThrough` to assess freshness. Transfer failures log
+received byte counts without dumping station responses. SkyCam manifest logs
+also show the newest capture time, independently of a successful refresh.
+
+If returned and stored history timestamps remain fixed while R3 advances,
+investigate the logger's recording/memory state before changing database files.
+Do not reset station memories, replace the database, or run another collector
+against the same serial link as a diagnostic shortcut.

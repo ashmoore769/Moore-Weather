@@ -1175,7 +1175,7 @@ async function fetchSkyCamManifestFromOrigin() {
   const manifest = normalizeSkyCamManifest(parsed);
   skycamManifestCache = manifest;
   skycamManifestFetchedAt = Date.now();
-  logger.info(`[SKYCAM] Origin manifest refreshed (${manifest.count} images)`);
+  logger.info(`[SKYCAM] Origin manifest refreshed (${manifest.count} images); latest capture ${manifest.images.at(-1)?.capturedAt || 'none'}`);
   return manifest;
 }
 
