@@ -719,7 +719,7 @@ function runCurrentWeatherAttempt(attempt = 1, maxAttempts = 3) {
       persistence.record('r3', cleaned);
 
       logger.info(
-        `[CURRENT] Weather data cached (${fields.length} fields)`
+        `[CURRENT] Weather data cached (${fields.length} fields); observed ${observationTime(cleaned) === null ? 'unknown' : new Date(observationTime(cleaned)).toISOString()}`
       );
 
       complete(true);
