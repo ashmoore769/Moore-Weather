@@ -24,3 +24,20 @@ test('a river alert opens the water section in an existing app window or a new w
   f.events.notificationclick(event);await pending;assert.deepEqual(navigated,['/#localWater']);assert.equal(f.opened.length,0);
   const empty=fixture();empty.events.notificationclick(event);await pending;assert.deepEqual(empty.opened,['/#localWater']);
 });
+
+test('history reminders re-notify while recovery remains quiet and opens history status safely',async()=>{
+  const f=fixture();let pending;
+  for(const kind of ['history-missing','history-recovered']) {
+    f.events.push({data:{json:()=>({kind,tag:'moore-history-1',url:'/#historyStatus'})},waitUntil:p=>pending=p});
+    await pending;
+  }
+  assert.equal(f.shown[0].options.renotify,true);
+  assert.equal(f.shown[1].options.renotify,false);
+  assert.equal(f.shown[0].options.data.url,'/#historyStatus');
+  f.events.notificationclick({notification:{data:{url:'/#historyStatus'},close(){}},waitUntil:p=>pending=p});
+  await pending;assert.deepEqual(f.opened,['/#historyStatus']);
+  const navigated=[],client={url:'https://moore-weather.onrender.com/',focus:async()=>{},navigate:async url=>{navigated.push(url);return client;}};
+  const existing=fixture([client]);
+  existing.events.notificationclick({notification:{data:{url:'/#historyStatus'},close(){}},waitUntil:p=>pending=p});
+  await pending;assert.deepEqual(navigated,['/#historyStatus']);
+});

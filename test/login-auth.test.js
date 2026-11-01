@@ -28,7 +28,7 @@ test('new public login assets and request form keep weather, archive and SkyCam 
   for (const url of ['/login', '/login.css', '/login.js', '/theme.js', '/dashboard.css', '/help.html', '/install-help.css', '/install-help.js', '/moore-weather-favicon-v3.svg', '/api/access-request']) assert.equal((await get(url)).status, 200, url);
   assert.equal((await (await get('/api/access-request')).json()).enabled, false);
   const login = await (await get('/login')).text(); assert.match(login, /accessRequestForm/); assert.doesNotMatch(login, /mailto:/);
-  for (const url of ['/', '/index.html', '/daily.html', '/forecast.html', '/api/forecast', '/api/radar', '/api/history', '/api/water', '/weather', '/skycam/latest.jpg']) assert.equal((await get(url)).status, 401, url);
+  for (const url of ['/', '/index.html', '/daily.html', '/forecast.html', '/api/forecast', '/api/radar', '/api/history', '/api/alerts/history', '/api/water', '/weather', '/skycam/latest.jpg']) assert.equal((await get(url)).status, 401, url);
   const navigation = await get('/daily.html', { Accept: 'text/html' });
   assert.equal(navigation.status, 302); assert.match(navigation.headers.get('location'), /^\/login\?next=/);
   const post = body => fetch(base + '/login', { method: 'POST', body: new URLSearchParams(body), redirect: 'manual' });

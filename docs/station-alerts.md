@@ -27,3 +27,44 @@ The minute monitor reads the existing SQLite archive through the history worker.
 Bridge state and per-device accepted deliveries/retry times persist in station-alerts.sqlite, independently of station outage alerts. A failed near warning cannot delay a bridge-crossing notice. Transient failures retry after five minutes only while a fresh reading still warrants that notification. Separate push topics prevent station notices from replacing river notices; stable event tags reduce duplicate presentation if a network acknowledgement is lost. No synthetic notification is sent during deployment or automated tests.
 
 Notifications include the observed level, observation time in AEST and the named bridge reference. Tapping opens the water cards. Delivery depends on the device and push provider; these are reference-level notifications, not road closure information or O. O. Madsen Bridge measurements.
+
+## Saved-history safeguards
+
+Live R3 readings and saved history are monitored independently. A responding
+station can still have stopped recording its memories. The monitor reads the
+latest native MEM3, MEM2 and MEM1 record timestamps from the existing weather
+database once per minute. Repeated downloads, fresh R3 readings, estimated
+records and transfer success times cannot reset the history clock. It adds no
+station connections or remote commands. Conditional MEM4 rain events are excluded:
+no rain is a valid reason for no new event records.
+
+- Ten-minute history: warn after more than 30 minutes without a saved record.
+- Hourly history: warn after more than two hours without a saved record.
+- Daily history: expect the 09:00 AEST record by 09:30 AEST.
+- Missing records, invalid/future timestamps and an unavailable history database
+  also need attention; a missing or failed check cannot announce recovery.
+
+All affected feeds are grouped in one warning per subscribed device. While any
+feed is overdue, successful reminders repeat every 15 minutes without a daily
+cap. Once all three are current, devices that received the warning get one
+recovery notice and reminders stop. There is a two-minute startup grace period;
+outage identity, successful deliveries, reminder timing and five-minute provider
+retry delays persist in station-alerts.sqlite. A restart does not create a new
+incident or reset its reminder interval. A new subscription during an incident
+gets the current warning. Unsubscribing removes all weather, river and history
+deliveries for that device.
+
+History uses a separate Web Push topic from live station and river alerts. Its
+stable incident tag and renotify option request renewed notification presentation
+for reminders while replacing the previous history status where supported.
+Existing enabled devices receive history alerts automatically. Opening the updated
+app refreshes the notification worker; no new permission request is made.
+OS notification permissions, Focus modes and provider delivery still apply.
+
+Current, Daily Summary and Forecast show an amber saved-history warning whenever
+records are overdue, even without push permission. Alerts shows each feed's last
+saved time in AEST. Tapping a history notification opens these details. The
+authenticated /api/alerts/history route contains only health and record times;
+it exposes no subscriptions or keys. Its snapshot is cached for at most 30 seconds,
+and visible pages refresh it every minute. This service still cannot alert while
+the Render process itself is unavailable.

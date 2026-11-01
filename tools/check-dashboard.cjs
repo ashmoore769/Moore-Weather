@@ -6,6 +6,7 @@ const { chromium, webkit } = require('playwright');
 const { METRICS: WEATHER, normalizeRequest } = require('../lib/weather-history');
 const { METRICS: WATER } = require('../lib/water-data');
 const chart = require('../public/history-chart');
+const { historyHealth, expectedDaily } = require('../lib/history-alerts');
 const HOUR = 3600000, now = Date.now(), end = Math.floor(now / HOUR) * HOUR;
 const catalog = [...Object.values(WEATHER), ...Object.values(WATER)].map(m => ({ ...m,
   resolutions: m.resolutions || ['10m', 'hourly', 'daily'],
@@ -26,7 +27,7 @@ function series(id, resolution, hours, finish = end) {
   return { metric, resolution, start: finish - hours * HOUR, end: finish, intervalSeconds: step / 1000,
     points, latest: points.at(-1), missing: 0, note: 'Offline fixture', subtitle: 'Saved readings · AEST' };
 }
-let mode = 'fresh', requests = [];
+let mode = 'fresh', historyMode = 'fresh', requests = [];
 function water() {
   const readings = Object.fromEntries(Object.keys(WATER).map(id => [id, { value: id === 'leslie-storage' ? 78.5 :
     id === 'connolly-storage' ? 100 : id === 'connolly-volume' ? 2166 : id === 'leslie-volume' ? 83210 : id === 'condamine-flow' ? 37.2 : id === 'condamine-level' ? 1.668 : 5.34,
@@ -49,6 +50,13 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname.startsWith('/api/')) {
     res.setHeader('Content-Type', 'application/json');
+    if (url.pathname === '/api/alerts/history') {
+      if(historyMode==='error') { res.statusCode=503;return res.end(JSON.stringify({error:'Offline fixture'})); }
+      return res.end(JSON.stringify(historyHealth({enabled:true,ready:true,streams:{
+        mem3:new Date(now-(historyMode==='stale'?2*HOUR:10*60000)).toISOString(),
+        mem2:new Date(now-HOUR).toISOString(),mem1:new Date(expectedDaily(now)).toISOString()
+      }},now)));
+    }
     if (url.pathname === '/api/alerts/config') return res.end(JSON.stringify({ enabled: false }));
     if (url.pathname === '/api/water') return res.end(JSON.stringify(water()));
     if (url.pathname === '/api/trends') {
@@ -74,6 +82,7 @@ const server = http.createServer((req, res) => {
       // Keep real page markup and CSS. Only the changed history layer runs;
       // live polling, SkyCam, notifications and provider calls are excluded.
       if (!file.endsWith('forecast.html')) html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script><script src="/station-alerts.js"></script></body>');
+      else html=html.replace('</body>','<script src="/station-alerts.js"></script></body>');
       res.setHeader('Content-Type', 'text/html'); return res.end(html);
     }
     res.setHeader('Content-Type', file.endsWith('.css') ? 'text/css' : file.endsWith('.js') ? 'text/javascript' : file.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream');
@@ -208,7 +217,7 @@ async function visualWindows(page) {
           const page = await context.newPage(), errors = [];
           page.on('pageerror', error => errors.push(error.message));
           for (const pagePath of ['/index.html', '/daily.html']) {
-            mode = 'fresh';
+            mode = 'fresh'; historyMode = 'fresh';
             await page.goto(origin + pagePath); await ready(page);
             await page.evaluate(() => document.body.classList.add('weather-loaded'));
             // Desktop uses the app's existing landscape layout class.
@@ -284,10 +293,32 @@ async function visualWindows(page) {
             const alertBox = await page.locator('.alert-dialog').boundingBox();
             assert.ok(alertBox.x >= -1 && alertBox.x + alertBox.width <= width + 1);
             await page.locator('#alertClose').click();
+            await page.waitForFunction(()=>document.getElementById('historyAlertSummary').textContent.includes('up to date'));
+            assert.equal(await page.locator('#historyStatus').isVisible(),false);
+            historyMode='stale';
+            await page.evaluate(()=>window.__refreshCallbacks.forEach(fn=>fn()));
+            await page.waitForFunction(()=>!document.getElementById('historyStatus').hidden);
+            assert.match(await page.locator('#historyStatus').textContent(),/10-minute/);
+            assert.equal(await page.locator('#stationAlertsBtn').evaluate(n=>n.classList.contains('history-warning')),true);
+            const warningBox=await page.locator('#historyStatus').boundingBox();
+            assert.ok(warningBox.x>=0 && warningBox.x+warningBox.width<=width+1);
+            await page.locator('#historyStatus button').click();
+            assert.match(await page.locator('#historyFeedStatus').textContent(),/needs attention/);
+            assert.match(await page.locator('.alert-dialog').textContent(),/every 15 minutes/);
+            await page.locator('#alertClose').click();
+            historyMode='error';await page.evaluate(()=>window.__refreshCallbacks.forEach(fn=>fn()));
+            await page.waitForFunction(()=>document.querySelector('#historyStatus p').textContent.includes('unavailable'));
+            historyMode='fresh';await page.evaluate(()=>window.__refreshCallbacks.forEach(fn=>fn()));
+            await page.waitForFunction(()=>document.getElementById('historyStatus').hidden);
+            assert.equal(await page.locator('#stationAlertsBtn').evaluate(n=>n.classList.contains('history-warning')),false);
             assert.deepEqual(errors, []);
             checked++;
           }
+          historyMode='stale';
           await page.goto(origin + '/forecast.html'); await navigation(page,width);
+          await page.waitForFunction(()=>document.getElementById('historyStatus') && !document.getElementById('historyStatus').hidden);
+          assert.match(await page.locator('#historyStatus').textContent(),/10-minute/);
+          historyMode='fresh';
           await page.locator('.dashboard-history-button').click();
           await historyReady(page,'10m',24);
           await page.locator('.history-close').click();
@@ -316,6 +347,6 @@ async function visualWindows(page) {
         }
       } finally { await browser.close(); }
     }
-    console.log('PASS: ' + checked + ' page/browser/width combinations; four water cards, Connolly history, single-line navigation, matched camera/radar, twenty-four-hour previews, persistent references, bridge states and rainfall inches/peak dates, warning colours and exact 30-day rain comparisons.');
+    console.log('PASS: ' + checked + ' page/browser/width combinations; four water cards, Connolly history, single-line navigation, matched camera/radar, twenty-four-hour previews, persistent references, bridge states and rainfall inches/peak dates, warning colours, history outage/recovery banners without push permission, and exact 30-day rain comparisons.');
   } finally { server.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

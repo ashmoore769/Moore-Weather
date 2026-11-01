@@ -7,18 +7,19 @@ self.addEventListener('push',event=>{
   event.waitUntil(self.registration.showNotification(data.title || 'Moore Weather',{
     body:data.body || 'Open Moore Weather to check the station.',
     icon:'/moore-weather-icon-192-v2.png',tag:data.tag || 'moore-weather-status',
-    renotify:false,
+    renotify:data.kind==='history-missing',
     ...(Number.isFinite(data.timestamp)?{timestamp:data.timestamp}:{}),
-    data:{url:data.url==='/#localWater'?data.url:'/'}
+    data:{url:['/#localWater','/#historyStatus'].includes(data.url)?data.url:'/'}
   }));
 });
 self.addEventListener('notificationclick',event=>{
   event.notification.close();
   event.waitUntil((async()=>{
-    const destination=event.notification.data?.url==='/#localWater'?'/#localWater':'/';
+    const requested=event.notification.data?.url;
+    const destination=['/#localWater','/#historyStatus'].includes(requested)?requested:'/';
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const client of windows) if(new URL(client.url).origin===self.location.origin) {
-      if(destination==='/#localWater') {
+      if(destination!=='/') {
         try {const navigated=await client.navigate(destination); if(navigated)return navigated.focus();} catch {}
       }
       return client.focus();

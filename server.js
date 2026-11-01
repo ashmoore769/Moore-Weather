@@ -528,6 +528,7 @@ if (restoredDaily) {
 const { observationTime, mountAlerts } = require('./lib/station-alerts');
 const stationAlerts = mountAlerts(app, {
   env:process.env,logger,getObservation:()=>observationTime(cachedWeatherData),
+  getHistoryObservation:()=>persistence.historyStatus(),
   getBridgeObservation:()=>{
     const water=waterService.status();
     return water.enabled && water.ready ?
