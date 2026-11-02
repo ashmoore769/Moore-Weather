@@ -1,0 +1,42 @@
+/* Shared dark palette: the shell sits between the page and readable, raised cards.
+   Keep this after component styles so all five pages use the same surface levels. */
+html[data-theme="dark"] {
+  --page:#0d1722;
+  --surface-shell:#152332;
+  --surface:#1d3042;
+  --surface-soft:#203548;
+  --surface-raised:#284158;
+  --text:#f0f5fa;
+  --muted:#bdcad7;
+  --border:#365065;
+  --border-strong:#4a667e;
+  --history-line-strength:78%;
+}
+html[data-theme="dark"] :is(.dashboard-header,.dashboard-masthead,#weatherData,.forecast-main),
+html[data-theme="dark"] body.layout-landscape .dashboard-masthead {
+  background:var(--surface-shell);
+}
+html[data-theme="dark"] .forecast-hourly { background:var(--surface); }
+html[data-theme="dark"] :is(.temp-hero,.quick-stat,.daily-reading-card,.temperature-compact,.rain-hero,.soil-depth-card) {
+  border-top-color:color-mix(in srgb,var(--history-color,var(--stat-accent,var(--reading-accent,var(--temperature-accent,var(--card-line))))) 82%,var(--surface));
+}
+html[data-theme="dark"] .quick-stat.rain-stat { border-top-color:var(--rain); }
+html[data-theme="dark"] .layout-soil { border-top-color:#88af96; }
+html[data-theme="dark"] .layout-power { border-top-color:#c5aa70; }
+html[data-theme="dark"] .history-series-line { stroke-width:2.5; }
+html[data-theme="dark"] .history-spark .history-series-line { stroke-width:2.1; }
+html[data-theme="dark"] .history-spark-caption { font-size:10px; }
+html[data-theme="dark"] .alert-dialog .alert-primary { color:var(--page); }
+/* Only the street map is filtered. Radar rainfall pixels retain their original colours. */
+html[data-theme="dark"] .radar-base-tiles {
+  filter:invert(.9) hue-rotate(180deg) saturate(.45) brightness(1.12) contrast(.86);
+}
+html[data-theme="dark"] .radar-map .leaflet-control-zoom a {
+  background:var(--surface); color:var(--text); border-color:var(--border);
+}
+html[data-theme="dark"] .radar-map .leaflet-control-zoom a:hover { background:var(--surface-raised); }
+html[data-theme="dark"] .radar-map .leaflet-control-zoom a.leaflet-disabled { color:var(--muted); }
+html[data-theme="dark"] .radar-map .leaflet-control-attribution {
+  background:color-mix(in srgb,var(--surface) 94%,transparent); color:var(--muted);
+}
+html[data-theme="dark"] .radar-map .leaflet-control-attribution a { color:var(--accent); }

@@ -98,6 +98,37 @@ async function historyReady(page, resolution, hours) {
     document.querySelector('[data-resolution="' + resolution + '"]')?.getAttribute('aria-pressed') === 'true' &&
     (hours === undefined || document.querySelector('#historyRange').value === String(hours)), { resolution, hours });
 }
+
+async function readablePalette(page) {
+  const result = await page.evaluate(() => {
+    const css = getComputedStyle(document.documentElement);
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    const luminance = value => {
+      ctx.clearRect(0,0,1,1); ctx.fillStyle = value; ctx.fillRect(0,0,1,1);
+      const rgb = Array.from(ctx.getImageData(0,0,1,1).data).slice(0,3).map(v => {
+        const c = v / 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4;
+      });
+      return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
+    };
+    const contrast = (a,b) => (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+    const card = luminance(css.getPropertyValue('--surface'));
+    const muted = luminance(css.getPropertyValue('--muted'));
+    const lines = Array.from(document.querySelectorAll('.history-spark .history-series-line'));
+    return {
+      stylesheet: Array.from(document.styleSheets).some(s => s.href?.includes('/theme-palette.css')),
+      text: contrast(card,muted),
+      series: lines.map(line => contrast(card,luminance(getComputedStyle(line).stroke))),
+      surfaces: ['--page','--surface-shell','--surface'].map(v => luminance(css.getPropertyValue(v)))
+    };
+  });
+  assert.equal(result.stylesheet,true,'Shared palette must load');
+  assert.ok(result.text >= 4.5,'Small labels must remain readable');
+  assert.ok(result.surfaces[0] < result.surfaces[1] && result.surfaces[1] < result.surfaces[2],
+    'Cards must be visibly raised above the page and shell');
+  assert.ok(result.series.every(value => value >= 3),'Graph lines must remain distinct from their cards');
+}
+
 async function bounds(page, width) {
   const boxes = await page.evaluate(() => {
     const rect = selector => { const r = document.querySelector(selector).getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
@@ -226,6 +257,7 @@ async function visualWindows(page) {
             await page.waitForTimeout(80);
             await bounds(page, width);
             await navigation(page,width);
+            await readablePalette(page);
             assert.equal(await page.locator('#waterImportStatus').isVisible(), false);
             assert.match(await page.locator('#connollyStorageTime').textContent(), /Council report/);
             assert.equal(await page.locator('#connollyVolume').textContent(), '2,166');
@@ -316,6 +348,7 @@ async function visualWindows(page) {
           }
           historyMode='stale';
           await page.goto(origin + '/forecast.html'); await navigation(page,width);
+          await readablePalette(page);
           await page.waitForFunction(()=>document.getElementById('historyStatus') && !document.getElementById('historyStatus').hidden);
           assert.match(await page.locator('#historyStatus').textContent(),/10-minute/);
           historyMode='fresh';
@@ -342,6 +375,10 @@ async function visualWindows(page) {
             await page.waitForFunction(() => document.querySelector('#warwickBridge').dataset.state === 'stale');
             assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), 'false');
             assert.equal(await page.locator('#warwickBridge').evaluate(n => n.style.getPropertyValue('--bridge-warning-colour')), '');
+          }
+          for (const publicPage of ['/login.html','/help.html']) {
+            await page.goto(origin + publicPage);
+            await readablePalette(page);
           }
           await context.close();
         }

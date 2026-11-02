@@ -35,7 +35,7 @@ test('new visitors, legacy light defaults and invalid preferences start dark bef
     { mooreWeatherThemeVersion: '4', mooreWeatherTheme: 'invalid' }]) {
     const ui = theme(saved);
     assert.equal(ui.initial, 'dark'); assert.equal(ui.root.dataset.theme, 'dark');
-    assert.equal(ui.meta.content, '#0b1119');
+    assert.equal(ui.meta.content, '#0d1722');
     assert.equal(ui.button.attributes['aria-label'], 'Switch to light theme');
   }
 });

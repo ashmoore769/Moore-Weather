@@ -14,7 +14,7 @@
     document.documentElement.dataset.theme = mode;
     document.documentElement.dataset.themeMode = mode;
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.content = mode === 'light' ? '#eef2f6' : '#0b1119';
+    if (meta) meta.content = mode === 'light' ? '#eef2f6' : '#0d1722';
     const button = document.getElementById('themeToggleBtn');
     if (button) { button.setAttribute('aria-label', mode === 'light' ? 'Switch to dark theme' : 'Switch to light theme'); button.title = button.getAttribute('aria-label'); }
     const label = document.getElementById('themeToggleLabel'), icon = document.getElementById('themeToggleIcon');

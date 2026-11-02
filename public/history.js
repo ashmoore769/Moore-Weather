@@ -3,7 +3,7 @@
   const dailyPage = location.pathname.endsWith('daily.html');
   const $ = id => document.getElementById(id);
   const colors = { 'connolly-storage': '#658fbb', 'connolly-volume': '#658fbb', 'leslie-storage': '#438fbd', 'leslie-volume': '#438fbd', air: '#2c9a8c', globe: '#c18a36', humidity: '#6686c4', pressure: '#468dbb', wind: '#249d9b', gust: '#b78641', direction: '#249d9b', solar: '#c39324', rain: '#438fd0', dew: '#698dc1', evaporation: '#708fae', ground: '#a78454' };
-  const color = id => colors[id] || (id.startsWith('soil-moisture') ? '#438fd0' : '#2c9a8c');
+  const color = id => `color-mix(in srgb, ${colors[id] || (id.startsWith('soil-moisture') ? '#438fd0' : '#2c9a8c')} var(--history-line-strength, 100%), white)`;
   const timeFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   const dateFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short' });
   const fullDateFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short', year: 'numeric' });
@@ -161,7 +161,7 @@
       // Draw actual min/max envelopes only where both statistics are available.
       const bands = WeatherChart.segments(segment.map(p => ({ ...p, value: p.min !== null && p.max !== null ? p.value : null })));
       for (const band of bands) if (band.length > 1) svg.append(svgNode('path', { d: band.map((p, i) => `${i ? 'L' : 'M'}${x(p.t)},${y(p.max)}`).join(' ') + ' ' + [...band].reverse().map(p => `L${x(p.t)},${y(p.min)}`).join(' ') + ' Z', fill: stroke, opacity: .15 }));
-      svg.append(svgNode('path', { d, fill: 'none', stroke, 'stroke-width': mini ? 1.8 : 2.2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' }));
+      svg.append(svgNode('path', { class: 'history-series-line', d, fill: 'none', stroke, 'stroke-width': mini ? 1.8 : 2.2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke' }));
       const maximums = WeatherChart.segments(segment.map(p => ({ ...p, value: p.min === null ? p.max : null })));
       for (const upper of maximums) if (upper.length > 1) svg.append(svgNode('path', { d: upper.map((p, i) => `${i ? 'L' : 'M'}${x(p.t)},${y(p.value)}`).join(' '), fill: 'none', stroke, opacity: .6, 'stroke-width': 1.3, 'stroke-dasharray': '3 3', 'vector-effect': 'non-scaling-stroke' }));
       for (const p of segment) if (p.estimated || segment.length === 1) svg.append(svgNode('circle', { cx: x(p.t), cy: y(p.value), r: p.estimated ? 3.3 : 2, fill: p.estimated ? 'var(--surface)' : stroke, stroke, 'stroke-width': 1.5 }));
