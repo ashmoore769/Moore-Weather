@@ -9,13 +9,13 @@
   "theme_color": "#0d1722",
   "icons": [
     {
-      "src": "/moore-weather-icon-192-v2.png",
+      "src": "/moore-weather-icon-192-v2.png?v=moore-suite-20261103",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/moore-weather-icon-512-v2.png",
+      "src": "/moore-weather-icon-512-v2.png?v=moore-suite-20261103",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

@@ -6,7 +6,7 @@ self.addEventListener('push',event=>{
   try {data=event.data?.json() || {};} catch {}
   event.waitUntil(self.registration.showNotification(data.title || 'Moore Weather',{
     body:data.body || 'Open Moore Weather to check the station.',
-    icon:'/moore-weather-icon-192-v2.png',tag:data.tag || 'moore-weather-status',
+    icon:'/moore-weather-icon-192-v2.png?v=moore-suite-20261103',tag:data.tag || 'moore-weather-status',
     renotify:data.kind==='history-missing',
     ...(Number.isFinite(data.timestamp)?{timestamp:data.timestamp}:{}),
     data:{url:['/#localWater','/#historyStatus'].includes(data.url)?data.url:'/'}
