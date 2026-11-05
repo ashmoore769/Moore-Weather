@@ -375,6 +375,31 @@ test('synchronous interrupt write errors stop the burst and clean the lease with
   const session = await f.unlock(), stream = await (await f.connect(session)).connected();
   const result = await f.post('interrupt', { connectionId: stream.connectionId }, session);
   assert.equal(result.status, 502); await settle();
-  assert.equal(f.sockets[0].writes.length, 1); assert.equal(f.terminal.status().busy, false);
-  await f.clock.advance(1000); assert.equal(f.sockets[0].writes.length, 1);
+  assert.equal(f.sockets[0].writes.length, 1); assert.equal(f.terminal.status().state, 'closing');
+  await f.clock.advance(DRAIN_MS - 1); assert.equal(f.terminal.status().busy, true);
+  await f.clock.advance(1); assert.equal(f.sockets[0].writes.length, 1); assert.equal(f.terminal.status().busy, false);
+});
+
+test('an early TCP close retains the UART lease through one fixed cleanup deadline', async t => {
+  for (const duringCleanup of [false, true]) await t.test(duringCleanup ? 'peer closes during drain' : 'peer closes during command', async t => {
+    const f = await fixture(t), session = await f.unlock(), stream = await (await f.connect(session)).connected();
+    const socket = f.sockets[0];
+    assert.equal((await f.post('input', { connectionId: stream.connectionId, command: 'MEM3', commandId: crypto.randomUUID() }, session)).status, 200);
+    let polled = false; const current = f.queue.run('CURRENT', () => { polled = true; });
+    let disconnect;
+    if (duringCleanup) {
+      disconnect = f.post('disconnect', { connectionId: stream.connectionId }, session);
+      await until(() => f.terminal.status().state === 'closing');
+      await f.clock.advance(3000);
+    }
+    socket.destroyed = true; socket.finishClose(); await settle();
+    assert.equal(f.terminal.status().state, 'closing'); assert.equal(polled, false);
+    const remaining = DRAIN_MS - (duringCleanup ? 3000 : 0);
+    await f.clock.advance(remaining - 1); assert.equal(polled, false);
+    await f.clock.advance(1); await current;
+    if (disconnect) assert.equal((await disconnect).status, 200);
+    assert.equal(polled, true); assert.equal(f.terminal.status().busy, false);
+    assert.equal(f.sockets.length, 1, 'Cleanup never reconnects or retries a command');
+    assert.equal(socket.writes.filter(write => write.data.toString() === 'MEM3\r\n').length, 1);
+  });
 });

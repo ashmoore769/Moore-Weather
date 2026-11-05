@@ -14,13 +14,13 @@ One connected terminal owns the shared station queue. A current automatic reques
 
 Disconnect when finished. Inactivity for 60 seconds or a five-minute connection limit also ends the connection. Closing the page, locking the terminal, logging out or restarting the server triggers bounded cleanup. The automatic collectors are not permanently stopped by a terminal session.
 
-**Abort** sends five ASCII Ctrl+C (`0x03`) bytes, 100 milliseconds apart, on the owned connection. This implements the requested repeated Ctrl+C operation. It does not promise that the logger acknowledged the signal or that an already applied setting was undone. Disconnect cleanup interrupts and drains the connection before releasing the queue.
+**Abort** sends five ASCII Ctrl+C (`0x03`) bytes, 100 milliseconds apart, on the owned connection. This implements the requested repeated Ctrl+C operation. It does not promise that the logger acknowledged the signal or that an already applied setting was undone. Disconnect cleanup interrupts and drains the connection before releasing the queue. An established connection retains one fixed eight-second cleanup period even if TCP closes early: the gateway's serial output may outlive its TCP client. This bounded wait is not a logger acknowledgement, and it does not reconnect or retry commands.
 
 Commands are not automatically retried after an uncertain result. Check the station state before resending a setting command. The terminal accepts one printable command line of up to 512 bytes; it does not upload schedules or send arbitrary files. A connection has a bounded 2 MiB output allowance.
 
 ## Access configuration
 
-`MOORE_TERMINAL_PASSWORD_HASH` is a separately salted `scrypt$salt$hash` value stored in the service's private environment configuration. No real password or hash belongs in this repository. Missing or malformed configuration disables terminal access while leaving the weather app available.
+`MOORE_TERMINAL_PASSWORD_HASH` is a separately salted `scrypt$salt$hash` value stored in the service's private environment configuration. No real password or hash belongs in this repository. Missing or malformed configuration disables terminal access while leaving the weather app available. Setting `WEATHER_TERMINAL_ENABLED=false` also disables the terminal without changing its password hash.
 
 An unlock issues a short-lived, HttpOnly, SameSite=Strict cookie. Production cookies are Secure. State-changing requests require the exact same origin, JSON input and, after unlocking, the session's CSRF token. Each active connection also has its own tab capability, so another tab or browser cannot send commands, read output or interrupt it. Login attempts and server memory are bounded. Password checking is asynchronous.
 
