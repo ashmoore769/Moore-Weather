@@ -25,9 +25,11 @@
       if(!response.ok)throw Error('History status unavailable. Open alerts or try again shortly.');
       const health=await response.json();
       if(typeof health.enabled!=='boolean' || typeof health.delayed!=='boolean' || !Array.isArray(health.feeds))throw Error('History status unavailable. Try again shortly.');
-      banner.hidden=!health.enabled || !(health.delayed || health.incomplete || health.checking);
+      // Keep historical gaps and coverage checks in Alerts. The dashboard
+      // banner is for a current collection problem that needs attention.
+      banner.hidden=!health.enabled || !health.delayed;
       banner.querySelector('p').textContent=health.summary;
-      button.classList.toggle('history-warning',!banner.hidden);
+      button.classList.toggle('history-warning',health.enabled && Boolean(health.delayed || health.incomplete));
       $('historyAlertSummary').textContent=health.summary;
       $('historyFeedStatus').replaceChildren(...health.feeds.map(feed=>{
         const item=document.createElement('li');

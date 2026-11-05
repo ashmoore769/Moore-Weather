@@ -72,6 +72,8 @@ If the latest native water observation is invalid, an older usable observation i
 
 Future logger rows are quarantined with their original evidence. Valid latest-record queries ignore future maxima. Historical missing intervals are recorded in a durable ledger and remain visible when new readings resume. Actual measured backfills resolve gaps. Existing archives are audited in bounded background pages. No unbounded logger download or fabricated gap fill is performed automatically.
 
+Older archive gaps and routine coverage checks stay in the Alerts panel, with a compact Alerts indicator for unresolved gaps. They do not display a large dashboard banner when current history feeds are up to date. The banner remains available for an active history-feed delay or an unavailable status check.
+
 Current and Daily station transactions have a 15-second total deadline and a 16 KiB response limit, in addition to the socket inactivity timeout. A peer that keeps trickling bytes cannot hold the shared station queue indefinitely. Repeated minute ticks share one current-poll retry chain. Invalid/future timestamps are retained as evidence but cannot replace the displayed cache.
 
 ## Monitoring and release gates
