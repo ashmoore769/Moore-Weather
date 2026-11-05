@@ -99,6 +99,12 @@ CREATE INDEX IF NOT EXISTS weather_clock_pending ON weather_clock_corrections(st
   WHERE verified_at IS NULL;
 CREATE INDEX IF NOT EXISTS weather_clock_backward ON weather_clock_corrections(station_id, server_at)
   WHERE verified_at IS NOT NULL AND adjustment_ms < 0;
+-- Explicit backward spans account for measured gateway timing uncertainty.
+-- A side table preserves older correction rows and avoids altering their schema.
+CREATE TABLE IF NOT EXISTS weather_clock_backward_windows (
+  correction_id TEXT PRIMARY KEY REFERENCES weather_clock_corrections(id),
+  start_at TEXT NOT NULL, end_at TEXT NOT NULL, CHECK(start_at < end_at)
+) STRICT;
 CREATE VIEW IF NOT EXISTS weather_readings_raw AS
 SELECT r.station_id, r.stream, r.observed_at, r.local_timestamp, r.interval_start,
        r.reporting_date, f.sensor_key, f.name, f.unit, f.aggregation,

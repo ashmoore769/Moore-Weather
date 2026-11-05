@@ -27,6 +27,13 @@ function fixture(t) {
 function correction(server = base, adjustmentMs = -150000) {
   return { at: at(server), serverAt: at(server), stationAt: at(server - adjustmentMs), adjustmentMs };
 }
+function windowCorrection(server = base) {
+  // An eight-second TIME exchange bounds the pre-correction offset to
+  // [164s,173s]. The midpoint is 168.5s; verified SETTIME application may add
+  // at most another ten seconds to the old-clock upper endpoint.
+  return { ...correction(server, -168500), windowStartAt: at(Math.floor(server / 1000) * 1000),
+    windowEndAt: at(server + 183000) };
+}
 function row(stream, time, value = '1') {
   const local = at(time + 600 * 60000);
   return [local.slice(0, 10).replaceAll('-', '/'), local.slice(11, 19),
@@ -209,4 +216,131 @@ test('equal native timestamps retain distinct measured variants without requirin
   const result = f.p.recordHistory('mem3', reply('mem3', [base, base]));
   assert.equal(result.inserted, 2); assert.deepEqual(result.clockCorrectionIds, []);
   assert.equal(f.inspect(db => db.prepare('SELECT variants FROM conflicting_records').get().variants), 2);
+});
+
+test('explicit timing windows commit with the intent, survive restart and contribute to its stable identity', t => {
+  const f = fixture(t), intent = windowCorrection();
+  const id = f.p.recordClockCorrection(intent);
+  assert.equal(f.p.recordClockCorrection(intent), id);
+  const { windowStartAt, windowEndAt, ...legacy } = intent;
+  assert.notEqual(f.p.recordClockCorrection(legacy), id);
+  assert.notEqual(f.p.recordClockCorrection({ ...intent, windowEndAt: at(base + 183001) }), id);
+  f.inspect(db => {
+    const saved = db.prepare('SELECT start_at,end_at FROM weather_clock_backward_windows WHERE correction_id=?').get(id);
+    assert.equal(saved.start_at, windowStartAt); assert.equal(saved.end_at, windowEndAt);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM weather_clock_corrections').get().n, 3);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM weather_clock_backward_windows').get().n, 2);
+  });
+  f.setNow(base + 16000); f.restart();
+  assert.ok(f.p.pendingClockCorrections().some(item => item.id === id));
+  f.p.verifyClockCorrection(id, at(base + 16000));
+  f.setNow(base + 60 * 86400000); f.restart();
+  const result = f.p.recordHistory('mem4', reply('mem4', [base + 180000, base + 60000]));
+  assert.deepEqual(result.clockCorrectionIds, [id]);
+  assert.equal(f.inspect(db => db.prepare('PRAGMA foreign_key_check').all().length), 0);
+});
+
+test('failure to persist the explicit window rolls back the entire intent before a hardware write', t => {
+  const f = fixture(t), intent = windowCorrection();
+  f.inspect(db => db.exec(`CREATE TRIGGER reject_clock_window BEFORE INSERT ON weather_clock_backward_windows
+    BEGIN SELECT RAISE(ABORT,'fixture window failure'); END;`));
+  assert.throws(() => f.p.recordClockCorrection(intent), /fixture window failure/);
+  f.inspect(db => {
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM weather_clock_corrections').get().n, 0);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM weather_clock_backward_windows').get().n, 0);
+    db.exec('DROP TRIGGER reject_clock_window');
+  });
+  const id = f.p.recordClockCorrection(intent);
+  assert.match(id, /^[a-f0-9]{64}$/);
+  assert.equal(f.p.pendingClockCorrections()[0].id, id);
+});
+
+test('an eight-second asymmetric TIME reply authorizes only its verified expanded MEM4 window', t => {
+  const f = fixture(t), sent = base - 8000, received = base, sampleStation = base + 164000;
+  const minimumOffset = sampleStation - received, maximumOffset = sampleStation + 1000 - sent;
+  assert.deepEqual([minimumOffset, maximumOffset], [164000, 173000]);
+  const midpoint = (minimumOffset + maximumOffset) / 2;
+  const intent = { ...correction(base, -midpoint), windowStartAt: at(base), windowEndAt: at(base + maximumOffset + 10000) };
+  const { windowStartAt, windowEndAt, ...legacy } = intent;
+  verified(f, legacy); f.setNow(base + 600000);
+  const capture = reply('mem4', [base + 180000, base + 60000]);
+  assert.throws(() => f.p.recordHistory('mem4', capture), /not chronological/, 'legacy tolerance must remain unchanged');
+  const id = f.p.recordClockCorrection(intent);
+  assert.throws(() => f.p.recordHistory('mem4', capture), /not chronological/, 'an unverified timing window must not relax ordering');
+  f.p.verifyClockCorrection(id, at(base + 16000));
+  const result = f.p.recordHistory('mem4', capture);
+  assert.equal(result.inserted, 2); assert.deepEqual(result.clockCorrectionIds, [id]);
+  assert.equal(result.firstObservedAt, at(base + 60000)); assert.equal(result.lastObservedAt, at(base + 180000));
+  f.inspect(db => {
+    assert.deepEqual(Buffer.from(db.prepare('SELECT original_bytes FROM sources').get().original_bytes), Buffer.from(capture));
+    const links = db.prepare(`SELECT s.line_number,r.observed_at FROM source_records s JOIN records r ON r.id=s.record_id ORDER BY s.line_number`).all();
+    assert.deepEqual(links.map(item => [item.line_number, item.observed_at]), [[2, at(base + 180000)], [3, at(base + 60000)]]);
+  });
+});
+
+test('explicit windows keep exact three-second endpoint bounds, including a fractional command preparation time', t => {
+  const f = fixture(t), intent = windowCorrection(base + 999), id = verified(f, intent);
+  const start = Date.parse(intent.windowStartAt), end = Date.parse(intent.windowEndAt);
+  const ordered = times => f.inspect(db => orderVerifiedHistory(db, stationId, times.map(time => ({ utc: at(time) })), at(base + 600000)));
+  assert.deepEqual(ordered([end + 3000, start - 3000]).correctionIds, [id]);
+  for (const times of [[end + 3001, start], [end, start - 3001], [end + 100000, start + 100000]]) {
+    assert.throws(() => ordered(times), /not chronological/);
+  }
+});
+
+test('explicit timing windows reject incomplete, forward, inconsistent and over-five-minute bounds', t => {
+  const f = fixture(t), intent = windowCorrection();
+  for (const extra of [{ windowStartAt: undefined }, { windowEndAt: undefined }, { windowStartAt: null, windowEndAt: null },
+    { windowStartAt: '2026-11-05T12:00:00+10:00' }, { windowStartAt: at(base - 1) }, { windowStartAt: at(base + 1) },
+    { windowEndAt: at(base) }, { windowEndAt: at(base + 100000) }, { windowEndAt: at(base + 300001) }]) {
+    assert.throws(() => f.p.recordClockCorrection({ ...intent, ...extra }));
+  }
+  assert.throws(() => f.p.recordClockCorrection({ ...correction(base, 150000), windowStartAt: at(base), windowEndAt: at(base + 183000) }));
+  assert.equal(f.inspect(db => db.prepare('SELECT COUNT(*) AS n FROM weather_clock_corrections').get().n), 0);
+  const maximum = { ...correction(base, -285000), windowStartAt: at(base), windowEndAt: at(base + 300000) };
+  const id = verified(f, maximum);
+  f.inspect(db => {
+    assert.deepEqual(orderVerifiedHistory(db, stationId, [{ utc: at(base + 303000) }, { utc: at(base - 3000) }], at(base + 600000)).correctionIds, [id]);
+    assert.throws(() => orderVerifiedHistory(db, stationId, [{ utc: at(base + 303001) }, { utc: at(base - 3000) }], at(base + 600000)), /not chronological/);
+  });
+});
+
+test('expanded windows still require the same station and verification before capture receipt', t => {
+  const f = fixture(t), intent = windowCorrection(), id = f.p.recordClockCorrection(intent);
+  f.inspect(db => {
+    db.prepare('INSERT INTO stations VALUES(?,?,?,?,?)').run('other', 'Other', 'OTHER', 'Australia/Brisbane', 600);
+    const other = recordClockCorrection(db, 'other', intent);
+    verifyClockCorrection(db, 'other', other, at(base + 16000));
+  });
+  f.setNow(base + 600000);
+  const capture = reply('mem4', [base + 180000, base + 60000]);
+  assert.throws(() => f.p.recordHistory('mem4', capture), /not chronological/);
+  f.p.verifyClockCorrection(id, at(base + 610000));
+  assert.throws(() => f.p.recordHistory('mem4', capture), /not chronological/);
+  f.setNow(base + 620000);
+  assert.deepEqual(f.p.recordHistory('mem4', capture).clockCorrectionIds, [id]);
+});
+
+test('each verified explicit window explains at most one reversal in a capture', t => {
+  const f = fixture(t), first = verified(f, windowCorrection()); f.setNow(base + 1200000);
+  const repeated = reply('mem4', [base + 180000, base + 60000, base + 180000, base + 60000]);
+  assert.throws(() => f.p.recordHistory('mem4', repeated), /not chronological/);
+  assert.equal(f.inspect(db => db.prepare('SELECT COUNT(*) AS n FROM sources').get().n), 0);
+  const second = verified(f, windowCorrection(base + 600000));
+  const separate = reply('mem4', [base + 180000, base + 60000, base + 780000, base + 660000]);
+  assert.deepEqual(new Set(f.p.recordHistory('mem4', separate).clockCorrectionIds), new Set([first, second]));
+});
+
+test('adding the window side table preserves an existing legacy correction and schema version', t => {
+  const f = fixture(t), id = verified(f);
+  f.inspect(db => db.exec('DROP TABLE weather_clock_backward_windows'));
+  f.restart(); f.setNow(base + 600000);
+  const accepted = f.p.recordHistory('mem4', reply('mem4', [base + 120000, base + 60000]));
+  assert.deepEqual(accepted.clockCorrectionIds, [id]);
+  assert.throws(() => f.p.recordHistory('mem4', reply('mem4', [base + 180000, base + 60000])), /not chronological/);
+  f.inspect(db => {
+    assert.equal(db.prepare('PRAGMA user_version').get().user_version, 3);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM weather_clock_backward_windows').get().n, 0);
+    assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check, 'ok');
+  });
 });

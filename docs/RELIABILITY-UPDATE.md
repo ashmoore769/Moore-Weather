@@ -1,6 +1,6 @@
 # Moore Weather 1.1 reliability release
 
-Version 1.1.1 adds verified Brisbane station-clock synchronisation at startup and twice daily, plus prompt Current-page refresh when the server cache changes. See [Station clock synchronisation](CLOCK-SYNC.md) for the commands, bounded correction policy, archive handling and live verification steps.
+Version 1.1.2 adds verified Brisbane station-clock synchronisation at startup and twice daily, plus prompt Current-page refresh when the server cache changes. See [Station clock synchronisation](CLOCK-SYNC.md) for the commands, bounded correction policy, archive handling and live verification steps.
 
 ## Scope and rollback
 

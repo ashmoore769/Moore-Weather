@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const {
   createStationClock, parseStationTime, brisbaneParts, nextClockCheckAt,
-  readStationTime, writeStationTime, measuredDrift, correctionAllowed,
+  readStationTime, writeStationTime, measuredDrift, clockOffsetBounds, correctionAllowed,
   DRIFT_MS, MAX_CORRECTION_MS, MAX_RTT_MS, IO_TIMEOUT_MS, MAX_REPLY_BYTES, CORRECTION_COOLDOWN_MS
 } = require('../lib/station-clock');
 
@@ -69,6 +69,13 @@ function socketHarness({ autoConnect = true, writeError = false, connectError = 
 function sample(clock, drift = 0, extra = {}) {
   const at = clock.now();
   return { stationAt: at + drift, sentAt: at, receivedAt: at, roundTripMs: 0, ...extra };
+}
+
+function delayedSample(clock, { offset = 0, sampledAfter = 0, roundTripMs = 7800 } = {}) {
+  const sentAt = clock.now();
+  const stationAt = Math.floor((sentAt + sampledAfter + offset) / 1000) * 1000;
+  clock.move(roundTripMs);
+  return { stationAt, sentAt, receivedAt: clock.now(), roundTripMs };
 }
 
 function monitorHarness(t, options = {}) {
@@ -137,6 +144,84 @@ test('drift uses the round-trip midpoint and rejects timing that cannot justify 
     { receivedAt: BASE + MAX_RTT_MS + 1, roundTripMs: MAX_RTT_MS + 1 },
     { receivedAt: BASE - 1 }, { receivedAt: BASE + 1001 }]) {
     assert.throws(() => measuredDrift({ ...valid, ...extra }), /too uncertain/);
+  }
+});
+
+test('offset bounds account for whole-second timestamps, asymmetric 7.8-second replies and measured clock jitter', () => {
+  const cases = [
+    { stationAt: BASE, minimumMs: -7800, maximumMs: 1000 },
+    { stationAt: BASE + 7000, minimumMs: -800, maximumMs: 8000 }
+  ];
+  for (const item of cases) {
+    const result = clockOffsetBounds({ stationAt: item.stationAt, sentAt: BASE, receivedAt: BASE + 7800, roundTripMs: 7800 });
+    assert.equal(result.minimumMs, item.minimumMs); assert.equal(result.maximumMs, item.maximumMs);
+    assert.equal(result.estimatedMs, (item.minimumMs + item.maximumMs) / 2);
+  }
+  const jitter = clockOffsetBounds({ stationAt: BASE, sentAt: BASE, receivedAt: BASE + 7800, roundTripMs: 7700 });
+  assert.equal(jitter.minimumMs, -7900); assert.equal(jitter.maximumMs, 1100);
+  assert.throws(() => clockOffsetBounds({ stationAt: BASE, sentAt: BASE, receivedAt: BASE + 7800, roundTripMs: 6799 }), /uncertain/);
+  assert.throws(() => clockOffsetBounds({ stationAt: BASE, sentAt: BASE, receivedAt: BASE + MAX_RTT_MS + 1,
+    roundTripMs: MAX_RTT_MS + 1 }), /uncertain/);
+});
+
+test('a healthy clock with 7.8 seconds of request-side or response-side buffering needs no SETTIME', async t => {
+  for (const sampledAfter of [0, 7800]) {
+    const clock = fakeClock();
+    const h = monitorHarness(t, { clock, readTime: async () => delayedSample(clock, { sampledAfter }) });
+    const result = await h.monitor.check();
+    assert.equal(result.status, 'in-sync');
+    assert.equal(result.lastVerifiedAt, new Date(BASE + 7800).toISOString());
+    assert.equal(h.writes.length, 0); assert.equal(h.records.length, 0);
+  }
+});
+
+test('definite 75-second drift through the slow gateway is corrected once and independently verified', async t => {
+  for (const initialOffset of [-75000, 75000]) {
+    const clock = fakeClock(), commands = [];
+    let offset = initialOffset, readCount = 0;
+    const h = monitorHarness(t, { clock,
+      readTime: async () => { readCount++; return delayedSample(clock, { offset }); },
+      async writeTime(options) {
+        const command = options.makeCommand(); commands.push(command);
+        offset = Math.floor(clock.now() / 1000) * 1000 - clock.now();
+        return { command, sentAt: clock.now() };
+      }
+    });
+    const result = await h.monitor.check();
+    assert.equal(result.status, 'corrected'); assert.equal(readCount, 2);
+    assert.deepEqual(commands, ['SETTIME 12 00 07']);
+    assert.equal(h.records.length, 1); assert.equal(h.verified.length, 1);
+    assert.equal(h.verified[0].at, new Date(BASE + 15600).toISOString());
+  }
+});
+
+test('an ambiguous offset interval or unsafe possible five-minute offset cannot authorize correction', async t => {
+  for (const offset of [12000, -4000, 300000]) {
+    const clock = fakeClock();
+    const h = monitorHarness(t, { clock, readTime: async () => delayedSample(clock, { offset }) });
+    const result = await h.monitor.check();
+    assert.equal(result.status, 'warning'); assert.equal(result.lastVerifiedAt, null);
+    assert.equal(h.writes.length, 0); assert.equal(h.records.length, 0);
+  }
+});
+
+test('post-write verification requires the complete interval within both 10-second boundaries', async t => {
+  for (const item of [
+    { delay: 1000, stationOffset: 10000, accepted: true },
+    { delay: 999, stationOffset: 10000, accepted: false },
+    { delay: 1000, stationOffset: -9000, accepted: true },
+    { delay: 1001, stationOffset: -9000, accepted: false }
+  ]) {
+    const clock = fakeClock();
+    const h = monitorHarness(t, { clock, responses: [20000, () => {
+      clock.move(item.delay);
+      return sample(clock, 0, { stationAt: BASE + item.stationOffset });
+    }] });
+    const result = await h.monitor.check();
+    assert.equal(result.status, item.accepted ? 'corrected' : 'warning');
+    assert.equal(h.writes.length, 1); assert.equal(h.records.length, 1);
+    assert.equal(h.verified.length, item.accepted ? 1 : 0);
+    assert.equal(result.lastVerifiedAt !== null, item.accepted);
   }
 });
 
@@ -222,19 +307,21 @@ test('SETTIME is constructed at connection time, accepts only the fixed command 
   assert.match((await result).message, /rejected SETTIME/); assert.equal(refused.clock.timers.size, 0);
 });
 
-test('healthy clocks at both threshold edges are read-only; positive and negative drift require verified correction', async t => {
-  for (const drift of [-DRIFT_MS, 0, DRIFT_MS]) {
+test('clock intervals wholly inside tolerance are read-only; definite positive and negative drift require verified correction', async t => {
+  for (const drift of [-DRIFT_MS, 0, DRIFT_MS - 1000]) {
     const h = monitorHarness(t, { responses: [drift] });
     const result = await h.monitor.check();
-    assert.equal(result.status, 'in-sync'); assert.equal(result.driftSeconds, drift / 1000);
+    assert.equal(result.status, 'in-sync'); assert.equal(result.driftSeconds, (drift + 500) / 1000);
+    assert.equal(result.driftMinimumSeconds, drift / 1000);
+    assert.equal(result.driftMaximumSeconds, (drift + 1000) / 1000);
     assert.equal(h.writes.length, 0); assert.equal(h.records.length, 0); assert.equal(result.running, false);
   }
-  for (const drift of [-DRIFT_MS - 1, DRIFT_MS + 1, -120000, 120000]) {
+  for (const drift of [-DRIFT_MS - 1001, DRIFT_MS + 1, -120000, 120000]) {
     const h = monitorHarness(t, { responses: [drift, 1000] });
     const result = await h.monitor.check();
-    assert.equal(result.status, 'corrected'); assert.equal(result.driftSeconds, 1);
+    assert.equal(result.status, 'corrected'); assert.equal(result.driftSeconds, 1.5);
     assert.deepEqual(h.writes, ['SETTIME 12 00 00']);
-    assert.equal(h.records[0].adjustmentMs, -drift);
+    assert.equal(h.records[0].adjustmentMs, -(drift + 500));
     assert.deepEqual(h.verified, [{ id: 1, at: new Date(BASE).toISOString() }]);
     assert.deepEqual(h.events, ['TIME', 'record', 'SETTIME', 'TIME', 'verify']);
     assert.equal(h.queueLabels.length, 1, 'the read, write and verification share one queue transaction');
@@ -243,7 +330,7 @@ test('healthy clocks at both threshold edges are read-only; positive and negativ
 
 test('uncertain, invalid, large and wrong-date measurements cannot issue a SETTIME command', async t => {
   const cases = [new Error('malformed TIME'), MAX_CORRECTION_MS + 1, -86400000,
-    () => ({ stationAt: BASE + 10000, sentAt: BASE, receivedAt: BASE + 4000, roundTripMs: 4000 }),
+    () => ({ stationAt: BASE + 10000, sentAt: BASE, receivedAt: BASE + MAX_RTT_MS + 1, roundTripMs: MAX_RTT_MS + 1 }),
     () => ({ stationAt: BASE + 10000, sentAt: BASE, receivedAt: BASE + 1001, roundTripMs: 0 })];
   for (const response of cases) {
     const h = monitorHarness(t, { responses: [response] });
@@ -274,7 +361,7 @@ test('queue waits and connection waits cannot make SETTIME stale; callers share 
   const result = await pending;
   assert.equal(command, 'SETTIME 12 00 47');
   assert.equal(h.records[0].at, new Date(BASE + 47500).toISOString());
-  assert.equal(h.records[0].adjustmentMs, -20000);
+  assert.equal(h.records[0].adjustmentMs, -20500);
   assert.equal(result.status, 'corrected'); assert.equal(result.running, false);
 });
 
@@ -373,7 +460,7 @@ test('slow journaling or a backward server-clock step preserves intent but preve
     assert.equal(journal.length, 1, 'the durable intent survives a failed preparation');
     assert.equal(journal[0].at, new Date(BASE).toISOString());
     if (elapsed === 1000) {
-      assert.equal(result.status, 'corrected'); assert.equal(result.driftSeconds, -1);
+      assert.equal(result.status, 'corrected'); assert.equal(result.driftSeconds, -0.5);
       assert.deepEqual(h.writes, ['SETTIME 12 00 00']);
       assert.deepEqual(h.verified, [{ id: 17, at: new Date(BASE + 1000).toISOString() }]);
     } else {
@@ -386,7 +473,7 @@ test('slow journaling or a backward server-clock step preserves intent but preve
 
 test('a write alone never proves correction; failed or inaccurate verification stays pending', async t => {
   for (const after of [20000, new Error('verification read failed'),
-    () => ({ stationAt: BASE, sentAt: BASE, receivedAt: BASE + 5000, roundTripMs: 5000 })]) {
+    () => ({ stationAt: BASE, sentAt: BASE, receivedAt: BASE + MAX_RTT_MS + 1, roundTripMs: MAX_RTT_MS + 1 })]) {
     const h = monitorHarness(t, { responses: [20000, after] });
     const result = await h.monitor.check();
     assert.equal(result.status, 'warning'); assert.equal(result.lastCorrectionAt, null); assert.equal(result.lastVerifiedAt, null);

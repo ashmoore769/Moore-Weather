@@ -81,7 +81,10 @@
         if (name === 'database') parts.push('last saved ' + when(check.lastWrite));
         if (name === 'live') parts.push('observed ' + when(check.observedAt));
         if (name === 'clock') {
-          if (Number.isFinite(check.driftSeconds)) parts.push('station ' + Math.abs(check.driftSeconds).toFixed(1) + 's ' + (check.driftSeconds < 0 ? 'behind' : 'ahead'));
+          if (check.status === 'ok' && Number.isFinite(check.accuracySeconds)) parts.push('within ' + check.accuracySeconds + 's of server time');
+          else if (Number.isFinite(check.driftMinimumSeconds) && Number.isFinite(check.driftMaximumSeconds)) {
+            parts.push('possible clock difference ' + check.driftMinimumSeconds.toFixed(1) + ' to ' + check.driftMaximumSeconds.toFixed(1) + 's');
+          }
           if (check.lastVerifiedAt) parts.push('verified ' + when(check.lastVerifiedAt));
         }
         if (name === 'backups' && check.running) parts.push('backup in progress');
