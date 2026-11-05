@@ -14,16 +14,20 @@ jobs:
   backup:
     if: github.repository == 'ashmoore769/Moore-Weather' && github.ref == 'refs/heads/main'
     permissions:
-      contents: read
+      # The short-lived job token creates the unpublished backup release and
+      # uploads its encrypted assets; no static storage secret is required.
+      contents: write
       id-token: write
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 40
     outputs:
-      kind: ${{ steps.download.outputs.kind }}
+      kind: ${{ steps.upload.outputs.kind }}
       sha256: ${{ steps.ack.outputs.sha256 }}
       bytes: ${{ steps.ack.outputs.bytes }}
       created_at: ${{ steps.ack.outputs.created_at }}
       artifact_id: ${{ steps.ack.outputs.artifact_id }}
+      storage_provider: ${{ steps.ack.outputs.storage_provider }}
+      release_id: ${{ steps.upload.outputs.release_id }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -34,19 +38,17 @@ jobs:
       - name: Download and checksum encrypted recovery copy
         id: download
         run: node tools/offsite-backup-client.js download
-      - name: Store ciphertext outside the Render disk
+      - name: Store and verify ciphertext in the unpublished backup release
         id: upload
-        uses: actions/upload-artifact@v7
-        with:
-          name: encrypted-recovery-${{ steps.download.outputs.kind }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: recovery-artifact/backup.mwb
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 30
-      - name: Acknowledge the completed offsite artifact
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/release-backup-storage.js upload
+      - name: Acknowledge the verified offsite release asset
         id: ack
         env:
-          BACKUP_ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          BACKUP_ARTIFACT_ID: ${{ steps.upload.outputs.asset_id }}
+          BACKUP_RELEASE_ID: ${{ steps.upload.outputs.release_id }}
+          BACKUP_STORAGE_PROVIDER: github-release
         run: node tools/offsite-backup-client.js ack
 
   receipt:
@@ -55,9 +57,8 @@ jobs:
     permissions:
       contents: write
       id-token: none
-      actions: write
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
         with:
@@ -74,8 +75,10 @@ jobs:
           BACKUP_BYTES: ${{ needs.backup.outputs.bytes }}
           BACKUP_CREATED_AT: ${{ needs.backup.outputs.created_at }}
           BACKUP_ARTIFACT_ID: ${{ needs.backup.outputs.artifact_id }}
+          BACKUP_RELEASE_ID: ${{ needs.backup.outputs.release_id }}
+          BACKUP_STORAGE_PROVIDER: ${{ needs.backup.outputs.storage_provider }}
         run: node tools/record-backup-receipt.js
-      - name: Keep bounded encrypted recovery artifacts
+      - name: Keep the checkpoint and three verified daily release assets
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BACKUP_JOB_RESULT: ${{ needs.backup.result }}
@@ -85,4 +88,7 @@ jobs:
           BACKUP_BYTES: ${{ needs.backup.outputs.bytes }}
           BACKUP_CREATED_AT: ${{ needs.backup.outputs.created_at }}
           BACKUP_ARTIFACT_ID: ${{ needs.backup.outputs.artifact_id }}
-        run: node tools/rotate-backup-artifacts.js
+          BACKUP_ASSET_ID: ${{ needs.backup.outputs.artifact_id }}
+          BACKUP_RELEASE_ID: ${{ needs.backup.outputs.release_id }}
+          BACKUP_STORAGE_PROVIDER: github-release
+        run: node tools/release-backup-storage.js rotate

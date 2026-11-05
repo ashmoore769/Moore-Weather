@@ -2,13 +2,14 @@
 
 // This job records public, non-sensitive evidence of a completed offsite copy.
 // It never downloads a bundle, changes main, or passes credentials to git.
+const { normalizeStorageLocation } = require('./offsite-backup-client');
 const REPOSITORY = 'ashmoore769/Moore-Weather';
 const BRANCH = 'recovery-receipts';
 const REF = 'refs/heads/' + BRANCH;
 const API = 'https://api.github.com/repos/' + REPOSITORY + '/git';
 const WORKFLOW = REPOSITORY + '/.github/workflows/backups.yml@refs/heads/main';
-const validId = value => typeof value === 'string' && /^[1-9]\d{0,23}$/.test(value);
-const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value);
+const validId = value => typeof value === 'string' && /^[1-9]\d{0,23}$/.exec(value)?.[0] === value;
+const validSha = value => typeof value === 'string' && value.length === 40 && /^[a-f0-9]{40}$/.test(value);
 
 function receiptFromEnvironment(env, timestamp) {
   if (env.BACKUP_JOB_RESULT !== 'success') throw new Error('A successful backup job is required before recording a receipt');
@@ -18,11 +19,14 @@ function receiptFromEnvironment(env, timestamp) {
       !['push', 'schedule', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME)) {
     throw new Error('Backup receipt workflow context is not authorized');
   }
-  if (!validId(env.GITHUB_RUN_ID) || !/^[1-9]\d{0,7}$/.test(env.GITHUB_RUN_ATTEMPT || '') || !validId(env.BACKUP_ARTIFACT_ID)) {
+  if (!validId(env.GITHUB_RUN_ID) || !validId(env.GITHUB_RUN_ATTEMPT) || env.GITHUB_RUN_ATTEMPT.length > 8) {
     throw new Error('Backup receipt run or artifact identity is invalid');
   }
+  const location = normalizeStorageLocation({ artifactId: env.BACKUP_ARTIFACT_ID,
+    storageProvider: env.BACKUP_STORAGE_PROVIDER, releaseId: env.BACKUP_RELEASE_ID });
   const bytes = Number(env.BACKUP_BYTES), created = Date.parse(env.BACKUP_CREATED_AT);
-  if (!/^[a-f0-9]{64}$/.test(env.BACKUP_SHA256 || '') || !/^[1-9]\d{0,12}$/.test(env.BACKUP_BYTES || '') ||
+  if (typeof env.BACKUP_SHA256 !== 'string' || env.BACKUP_SHA256.length !== 64 || !/^[a-f0-9]{64}$/.test(env.BACKUP_SHA256) ||
+      /^[1-9]\d{0,12}$/.exec(env.BACKUP_BYTES || '')?.[0] !== env.BACKUP_BYTES ||
       !Number.isSafeInteger(bytes) || bytes > 6 * 1024 ** 3 || !Number.isFinite(created) ||
       new Date(created).toISOString() !== env.BACKUP_CREATED_AT || !Number.isFinite(timestamp)) {
     throw new Error('Backup receipt metadata is invalid');
@@ -32,7 +36,7 @@ function receiptFromEnvironment(env, timestamp) {
   return {
     schema: 1,
     repository: REPOSITORY,
-    artifactId: env.BACKUP_ARTIFACT_ID,
+    ...location,
     runId: env.GITHUB_RUN_ID,
     runAttempt: Number(env.GITHUB_RUN_ATTEMPT),
     runUrl: 'https://github.com/' + REPOSITORY + '/actions/runs/' + env.GITHUB_RUN_ID + '/attempts/' + env.GITHUB_RUN_ATTEMPT,

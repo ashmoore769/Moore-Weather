@@ -54,7 +54,8 @@ test('first successful backup creates an orphan receipt branch containing only p
   assert.equal(tree.tree.length, 1);
   assert.deepEqual({ ...tree.tree[0], content: undefined }, {path:'latest.json',mode:'100644',type:'blob',content:undefined});
   const receipt = JSON.parse(tree.tree[0].content);
-  assert.deepEqual(Object.keys(receipt).sort(), ['artifactId','bytes','createdAt','recordedAt','repository','runAttempt','runId','runUrl','schema','sha256'].sort());
+  assert.deepEqual(Object.keys(receipt).sort(), ['artifactId','bytes','createdAt','recordedAt','repository','runAttempt','runId','runUrl','schema','sha256','storageProvider'].sort());
+  assert.equal(receipt.storageProvider, 'github-actions');
   assert.equal(receipt.sha256, 'a'.repeat(64));
   assert.equal(receipt.bytes, 2048);
   assert.equal(receipt.createdAt, createdAt);
@@ -71,6 +72,17 @@ test('first successful backup creates an orphan receipt branch containing only p
     assert.doesNotMatch(JSON.stringify(call.body ?? null), /ghs_test_token|private-backup-key/);
   }
   assert.doesNotMatch(JSON.stringify([result,api.logs]), /ghs_test_token|private-backup-key/);
+});
+
+test('release receipts identify the draft release and asset without changing their independent branch', async () => {
+  const api = github(true);
+  const result = await recordBackupReceipt({...api,env:environment({BACKUP_STORAGE_PROVIDER:'github-release',BACKUP_RELEASE_ID:'456789'}),now:()=>timestamp});
+  assert.equal(result.receipt.storageProvider, 'github-release');
+  assert.equal(result.receipt.releaseId, '456789');
+  assert.equal(result.receipt.artifactId, '123456789');
+  assert.equal(JSON.parse(api.calls[2].body.tree[0].content).releaseId, '456789');
+  assert.equal(api.calls.at(-1).url, base+'/refs/heads/recovery-receipts');
+  assert.equal(api.calls.at(-1).body.force, false);
 });
 
 test('later receipts preserve other branch files and parent history and only fast-forward the fixed receipt ref', async () => {
@@ -113,7 +125,10 @@ test('invalid or injected receipt outputs fail before any GitHub mutation', asyn
     {BACKUP_SHA256:'a'.repeat(64)+'\nTOKEN=secret'}, {BACKUP_BYTES:'2048\nTOKEN=secret'},
     {BACKUP_BYTES:'-1'}, {BACKUP_BYTES:String(6*1024**3+1)}, {BACKUP_BYTES:'NaN'},
     {BACKUP_CREATED_AT:'not a date'}, {BACKUP_CREATED_AT:createdAt+'\nTOKEN=secret'},
-    {BACKUP_ARTIFACT_ID:'../main'}, {GITHUB_RUN_ID:'../main'}, {GITHUB_RUN_ATTEMPT:'0'},
+    {BACKUP_ARTIFACT_ID:'../main'}, {BACKUP_ARTIFACT_ID:'123\n'}, {GITHUB_RUN_ID:'../main'}, {GITHUB_RUN_ID:'123\n'},
+    {GITHUB_RUN_ATTEMPT:'0'}, {GITHUB_RUN_ATTEMPT:undefined}, {GITHUB_RUN_ATTEMPT:'1\n'},
+    {BACKUP_STORAGE_PROVIDER:'unknown'}, {BACKUP_STORAGE_PROVIDER:'github-release'},
+    {BACKUP_STORAGE_PROVIDER:'github-release',BACKUP_RELEASE_ID:'1\nBAD=value'}, {BACKUP_RELEASE_ID:'123'},
     {GITHUB_TOKEN:''}, {GITHUB_TOKEN:'token\nheader'}
   ]) {
     const api = github();
@@ -170,43 +185,70 @@ test('transport and malformed response errors cannot echo credentials', async ()
   }
 });
 
-test('acknowledgement emits only four safe job outputs, and emits none when acknowledgement fails', t => {
+test('acknowledgement validates storage identity and emits safe outputs only after a matching accepted receipt', t => {
   const client = require.resolve('../tools/offsite-backup-client');
-  for (const accepted of [true,false]) {
+  const cases = [
+    {accepted:true,provider:undefined,releaseId:undefined},
+    {accepted:true,provider:'github-actions',releaseId:undefined},
+    {accepted:false,provider:'github-actions',releaseId:undefined},
+    {accepted:true,provider:'github-release',releaseId:'456789'},
+    {accepted:false,provider:'github-release',releaseId:'456789'},
+    {accepted:true,provider:'github-release',releaseId:'456789',responseProvider:'github-actions'},
+    {accepted:true,provider:'github-release',releaseId:'456789',responseReleaseId:'456788'},
+    {accepted:true,provider:'github-release',releaseId:'456789',responseProvider:null}
+  ];
+  for (const item of cases) {
+    const {accepted,provider,releaseId} = item;
+    const resultProvider = Object.hasOwn(item,'responseProvider') ? item.responseProvider : provider;
+    const resultReleaseId = Object.hasOwn(item,'responseReleaseId') ? item.responseReleaseId : releaseId;
+    const succeeds = accepted && (resultProvider ?? 'github-actions') === (provider ?? 'github-actions') &&
+      (provider !== 'github-release' || resultReleaseId === releaseId);
     const directory = fs.mkdtempSync(path.join(os.tmpdir(),'moore-receipt-'));
     t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
     const output = path.join(directory,'github-output');
     fs.writeFileSync(path.join(directory,'recovery-receipt.json'),JSON.stringify({
       sha256:'a'.repeat(64),bytes:2048,createdAt,checkpoint:true,secret:'private-backup-key-not-for-receipts'
     }));
-    const script = `global.fetch=async url=>{
+    const result = {accepted,retentionCheckpointVerified:true,...(resultProvider===undefined?{}:{storageProvider:resultProvider}),...(resultReleaseId===undefined?{}:{releaseId:resultReleaseId})};
+    const location = {artifactId:'123456789',storageProvider:provider ?? 'github-actions',...(releaseId===undefined?{}:{releaseId})};
+    const script = `global.fetch=async (url,options)=>{
       if(String(url).startsWith('https://fixture.actions.githubusercontent.com/identity'))return Response.json({value:'fixture-oidc-token'});
-      if(String(url)==='https://moore-weather.onrender.com/internal/backups/ack')return Response.json({accepted:${accepted},retentionCheckpointVerified:true});
+      if(String(url)==='https://moore-weather.onrender.com/internal/backups/ack'){
+        require('node:assert/strict').deepEqual(JSON.parse(options.body),${JSON.stringify({sha256:'a'.repeat(64),...location})});
+        return Response.json(${JSON.stringify(result)});
+      }
       throw new Error('Unexpected offline fixture request');
     };
     require(${JSON.stringify(client)}).acknowledge().catch(error=>{console.error(error.message);process.exitCode=1;});`;
     const child = spawnSync(process.execPath,['-e',script],{cwd:directory,encoding:'utf8',env:{
       ACTIONS_ID_TOKEN_REQUEST_URL:'https://fixture.actions.githubusercontent.com/identity',
-      ACTIONS_ID_TOKEN_REQUEST_TOKEN:'fixture-request-token',BACKUP_ARTIFACT_ID:'123456789',GITHUB_OUTPUT:output
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN:'fixture-request-token',BACKUP_ARTIFACT_ID:'123456789',GITHUB_OUTPUT:output,
+      ...(provider===undefined?{}:{BACKUP_STORAGE_PROVIDER:provider}),...(releaseId===undefined?{}:{BACKUP_RELEASE_ID:releaseId})
     }});
-    assert.equal(child.status, accepted ? 0 : 1, child.stderr);
+    assert.equal(child.status, succeeds ? 0 : 1, child.stderr);
     assert.doesNotMatch(child.stdout+child.stderr, /fixture-oidc-token|fixture-request-token|private-backup-key/);
-    if (accepted) assert.equal(fs.readFileSync(output,'utf8'), 'sha256='+'a'.repeat(64)+'\nbytes=2048\ncreated_at='+createdAt+'\nartifact_id=123456789\n');
+    if (succeeds) assert.equal(fs.readFileSync(output,'utf8'), 'sha256='+'a'.repeat(64)+'\nbytes=2048\ncreated_at='+createdAt+
+      '\nartifact_id=123456789\nstorage_provider='+(provider ?? 'github-actions')+'\n'+(releaseId ? 'release_id='+releaseId+'\n':''));
     else assert.equal(fs.existsSync(output), false);
   }
 });
 
-test('workflow grants write access only to the receipt job after backup success and never gives it OIDC', () => {
+test('workflow grants release contents access with isolated backup identity and no Actions write scope', () => {
   const workflow = fs.readFileSync(path.join(__dirname,'../.github/workflows/backups.yml'),'utf8');
   const [backup,receipt] = workflow.split('\n  backup:\n')[1].split('\n  receipt:\n');
-  assert.match(backup,/permissions:\n      contents: read\n      id-token: write/);
-  assert.doesNotMatch(backup,/GITHUB_TOKEN:/);
+  assert.match(backup,/contents: write\n      id-token: write/);
+  assert.match(backup,/GITHUB_TOKEN: \$\{\{ github.token \}\}/);
+  assert.match(backup,/node tools\/release-backup-storage.js upload/);
   assert.match(receipt,/needs: backup/);
   assert.match(receipt,/needs\.backup\.result == 'success'/);
   assert.match(receipt,/permissions:\n      contents: write\n      id-token: none/);
+  assert.doesNotMatch(workflow,/actions: write|upload-artifact|rotate-backup-artifacts/);
   assert.match(receipt,/persist-credentials: false/);
   assert.doesNotMatch(receipt,/download-artifact|offsite-backup-client|internal\/backups/);
-  for (const name of ['sha256','bytes','created_at','artifact_id']) {
+  for (const name of ['sha256','bytes','created_at','artifact_id','storage_provider']) {
     assert.match(backup,new RegExp(name+': \\$\\{\\{ steps\\.ack\\.outputs\\.'+name+' \\}\\}'));
   }
+  assert.match(backup,/release_id: \$\{\{ steps.upload.outputs.release_id \}\}/);
+  assert.match(backup,/BACKUP_ARTIFACT_ID: \$\{\{ steps.upload.outputs.asset_id \}\}/);
+  assert.match(receipt,/BACKUP_STORAGE_PROVIDER: \$\{\{ needs.backup.outputs.storage_provider \}\}/);
 });

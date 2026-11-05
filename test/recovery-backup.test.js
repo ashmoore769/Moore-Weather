@@ -4,6 +4,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
+const zlib = require('node:zlib');
 const { DatabaseSync } = require('node:sqlite');
 const { createRecoveryBundle, restoreRecoveryBundle, verifyEnvelope } = require('../lib/recovery-backup');
 const { createBackupScheduler } = require('../lib/database-backups');
@@ -20,8 +22,55 @@ function fixture(t) {
     databases.push(db);
   }
   t.after(() => { for (const db of databases) db.close(); fs.rmSync(directory, { recursive: true, force: true }); });
-  return { directory, env };
+  return { directory, env, databases };
 }
+
+test('recovery compacts only its snapshots and excludes deleted payload while preserving all retained data', async t => {
+  const { directory, env, databases } = fixture(t);
+  const source = databases[0], retained = new Map();
+  source.exec('PRAGMA secure_delete=OFF; CREATE TABLE payloads(id INTEGER PRIMARY KEY, payload BLOB); BEGIN');
+  const insert = source.prepare('INSERT INTO payloads VALUES(?,?)');
+  for (let id = 1; id <= 1000; id++) {
+    const payload = crypto.randomBytes(1024); insert.run(id, payload);
+    if (id > 900) retained.set(id, payload);
+  }
+  source.exec('COMMIT; DELETE FROM payloads WHERE id<=900; PRAGMA wal_checkpoint(TRUNCATE)');
+  const original = fs.readFileSync(env.WEATHER_DB_PATH);
+  const originalFree = source.prepare('PRAGMA freelist_count').get().freelist_count;
+  assert.ok(originalFree > 100);
+  const ordinaryGzipBytes = zlib.gzipSync(original, { level: 6 }).length;
+  const result = await createRecoveryBundle({ env });
+  assert.ok(result.bytes < ordinaryGzipBytes / 3, 'deleted payload must not remain in the encrypted backup');
+  const output = path.join(directory, 'compacted-restore');
+  await restoreRecoveryBundle(path.join(env.WEATHER_BACKUP_DIR, result.file), output, { secret: env.MOORE_AUTH_COOKIE_SECRET });
+  const restored = new DatabaseSync(path.join(output, 'weather.sqlite'), { readOnly: true });
+  try {
+    const rows = restored.prepare('SELECT id,payload FROM payloads ORDER BY id').all();
+    assert.equal(rows.length, retained.size);
+    for (const row of rows) assert.deepEqual(Buffer.from(row.payload), retained.get(row.id));
+    assert.equal(restored.prepare('SELECT value FROM saved').get().value, 'private-weather.sqlite');
+    assert.equal(restored.prepare('PRAGMA freelist_count').get().freelist_count, 0);
+  } finally { restored.close(); }
+  assert.deepEqual(fs.readFileSync(env.WEATHER_DB_PATH), original, 'the live source file must remain unchanged');
+  assert.equal(source.prepare('PRAGMA freelist_count').get().freelist_count, originalFree);
+  assert.equal(source.prepare('SELECT count(*) AS n FROM payloads').get().n, retained.size);
+});
+
+test('failed compact-snapshot promotion removes owned work files and preserves completed backups and source data', async t => {
+  const { env, databases } = fixture(t);
+  const checkpoint = await createRecoveryBundle({ env, checkpoint: true });
+  const originalCheckpoint = fs.readFileSync(path.join(env.WEATHER_BACKUP_DIR, checkpoint.file));
+  fs.writeFileSync(path.join(env.WEATHER_BACKUP_DIR, 'owner-note.txt'), 'keep');
+  const rename = fs.renameSync;
+  t.mock.method(fs, 'renameSync', (from, to) => {
+    if (String(from).endsWith('.compact')) throw new Error('simulated snapshot promotion failure');
+    return rename(from, to);
+  });
+  await assert.rejects(createRecoveryBundle({ env }), /snapshot promotion failure/);
+  assert.deepEqual(fs.readdirSync(env.WEATHER_BACKUP_DIR).sort(), [checkpoint.file, 'owner-note.txt'].sort());
+  assert.deepEqual(fs.readFileSync(path.join(env.WEATHER_BACKUP_DIR, checkpoint.file)), originalCheckpoint);
+  assert.equal(databases[0].prepare('SELECT value FROM saved').get().value, 'private-weather.sqlite');
+});
 
 test('complete encrypted recovery includes committed WAL, alerts and access requests and restores all three', async t => {
   const { directory, env } = fixture(t);

@@ -23,6 +23,15 @@ function normalizeReceipt(receipt) {
   return { sha256: receipt.sha256, bytes: receipt.bytes, createdAt: new Date(created).toISOString(), checkpoint: receipt.checkpoint };
 }
 
+function normalizeStorageLocation({ artifactId, storageProvider = 'github-actions', releaseId } = {}) {
+  const validId = value => typeof value === 'string' && /^[1-9]\d{0,23}$/.exec(value)?.[0] === value;
+  if (!validId(artifactId) || !['github-actions', 'github-release'].includes(storageProvider) ||
+      (storageProvider === 'github-release' ? !validId(releaseId) : releaseId !== undefined)) {
+    throw new Error('Backup storage metadata is invalid');
+  }
+  return { artifactId, storageProvider, ...(storageProvider === 'github-release' ? { releaseId } : {}) };
+}
+
 async function identityToken() {
   const url = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
   if (url.protocol !== 'https:' || !url.hostname.endsWith('.actions.githubusercontent.com')) throw new Error('GitHub workflow identity is unavailable');
@@ -35,15 +44,29 @@ async function identityToken() {
   return token;
 }
 
-async function download() {
-  const deadline = Date.now() + 25 * 60000;
+async function download({ now = Date.now, wait = delay } = {}) {
+  const expectedCommit = process.env.GITHUB_SHA;
+  if (typeof expectedCommit !== 'string' || expectedCommit.length !== 40 || !/^[a-f0-9]{40}$/.test(expectedCommit)) {
+    throw new Error('Backup workflow deployment commit is invalid');
+  }
+  const deadline = now() + 25 * 60000;
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true, mode: 0o700 });
   let lastError;
-  while (Date.now() < deadline) {
+  while (now() < deadline) {
     try {
+      // A main-branch push can start this workflow before Render finishes
+      // deploying it. Do not export or acknowledge against an older server.
+      const health = await fetch(BASE + '/healthz', { redirect: 'error', cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(Math.min(10000, deadline - now())) });
+      if (!health.ok) {
+        await health.body?.cancel();
+        throw new Error('Deployment readiness returned HTTP ' + health.status);
+      }
+      const deployed = await health.json();
+      if (deployed?.status !== 'ok' || deployed.commit !== expectedCommit) throw new Error('Waiting for the workflow app version to finish deploying');
       const response = await fetch(BASE + '/internal/backups/export', {
         headers: { Authorization: 'Bearer ' + await identityToken() },
-        signal: AbortSignal.timeout(Math.min(20 * 60000, deadline - Date.now())), redirect: 'error'
+        signal: AbortSignal.timeout(Math.min(20 * 60000, deadline - now())), redirect: 'error'
       });
       if (!response.ok) {
         await response.body?.cancel();
@@ -74,9 +97,9 @@ async function download() {
     } catch (error) {
       lastError = error;
       fs.rmSync(OUTPUT + '.partial', { force: true });
-      if (Date.now() + 30000 >= deadline) break;
+      if (now() + 30000 >= deadline) break;
       console.log('Waiting for a verified recovery copy: ' + error.message);
-      await delay(30000);
+      await wait(30000);
     }
   }
   throw lastError || new Error('Recovery export deadline exceeded');
@@ -84,21 +107,28 @@ async function download() {
 
 async function acknowledge() {
   const receipt = normalizeReceipt(JSON.parse(fs.readFileSync(RECEIPT, 'utf8')));
-  const artifactId = process.env.BACKUP_ARTIFACT_ID;
-  if (!/^\d{1,24}$/.test(artifactId || '')) throw new Error('Artifact upload must succeed before acknowledgment');
+  const location = normalizeStorageLocation({ artifactId: process.env.BACKUP_ARTIFACT_ID,
+    storageProvider: process.env.BACKUP_STORAGE_PROVIDER, releaseId: process.env.BACKUP_RELEASE_ID });
   const response = await fetch(BASE + '/internal/backups/ack', {
     method: 'POST', redirect: 'error', signal: AbortSignal.timeout(30000),
     headers: { Authorization: 'Bearer ' + await identityToken(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sha256: receipt.sha256, artifactId })
+    body: JSON.stringify({ sha256: receipt.sha256, ...location })
   });
   if (!response.ok) throw new Error('Offsite acknowledgment returned HTTP ' + response.status);
   const result = await response.json();
-  if (!result.accepted) throw new Error('Offsite acknowledgment was not accepted');
+  if (result.accepted !== true) throw new Error('Offsite acknowledgment was not accepted');
+  // Old servers can acknowledge legacy Actions artifacts without returning a
+  // provider. A release asset requires an explicit matching server receipt.
+  if ((result.storageProvider ?? 'github-actions') !== location.storageProvider ||
+      (location.storageProvider === 'github-release' && result.releaseId !== location.releaseId)) {
+    throw new Error('Offsite acknowledgment storage location did not match');
+  }
   if (process.env.GITHUB_OUTPUT) {
     fs.appendFileSync(process.env.GITHUB_OUTPUT, 'sha256=' + receipt.sha256 + '\nbytes=' + receipt.bytes +
-      '\ncreated_at=' + receipt.createdAt + '\nartifact_id=' + artifactId + '\n');
+      '\ncreated_at=' + receipt.createdAt + '\nartifact_id=' + location.artifactId +
+      '\nstorage_provider=' + location.storageProvider + '\n' + (location.releaseId ? 'release_id=' + location.releaseId + '\n' : ''));
   }
-  console.log('Encrypted artifact ' + artifactId + ' stored offsite. Pre-retention checkpoint ready: ' + result.retentionCheckpointVerified);
+  console.log('Encrypted backup ' + location.artifactId + ' stored offsite (' + location.storageProvider + '). Pre-retention checkpoint ready: ' + result.retentionCheckpointVerified);
 }
 
 if (require.main === module) {
@@ -107,4 +137,4 @@ if (require.main === module) {
     .catch(error => { console.error(error.message); process.exitCode = 1; });
 }
 
-module.exports = { identityToken, download, acknowledge, normalizeReceipt };
+module.exports = { identityToken, download, acknowledge, normalizeReceipt, normalizeStorageLocation };

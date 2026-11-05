@@ -7,7 +7,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 const { rotateBackupArtifacts, retentionPlan, BUDGET } = require('../tools/rotate-backup-artifacts');
-const { normalizeReceipt } = require('../tools/offsite-backup-client');
+const { normalizeReceipt, normalizeStorageLocation } = require('../tools/offsite-backup-client');
 const repository = 'ashmoore769/Moore-Weather', repositoryId = 945419169;
 const base = 'https://api.github.com/repos/' + repository + '/actions';
 const timestamp = Date.parse('2026-11-05T12:00:00Z'), DAY = 86400000, MiB = 1024 * 1024;
@@ -184,6 +184,21 @@ test('receipt normalization rejects ambiguous checkpoint flags and output inject
   }
 });
 
+test('storage normalization separates legacy artifacts from release assets and rejects ambiguous job outputs', () => {
+  assert.deepEqual(normalizeStorageLocation({artifactId:'123'}), {artifactId:'123',storageProvider:'github-actions'});
+  assert.deepEqual(normalizeStorageLocation({artifactId:'123',storageProvider:'github-release',releaseId:'456'}),
+    {artifactId:'123',storageProvider:'github-release',releaseId:'456'});
+  for (const input of [
+    {artifactId:'123\n'}, {artifactId:'0'}, {artifactId:'0123'}, {artifactId:'123',storageProvider:'github-release'},
+    {artifactId:'123',storageProvider:'github-release',releaseId:'456\nBAD=1'},
+    {artifactId:'123',storageProvider:'github-release',releaseId:'456\n'},
+    {artifactId:'123',storageProvider:'github-release',releaseId:'0'},
+    {artifactId:'123',storageProvider:'github-actions\nBAD=1'},
+    {artifactId:'123',storageProvider:'github-actions',releaseId:'456'},
+    {artifactId:'123',storageProvider:'s3'}, {artifactId:'123',storageProvider:''}
+  ]) assert.throws(()=>normalizeStorageLocation(input), /storage metadata is invalid/);
+});
+
 test('verified download emits exactly the normalized backup kind before artifact upload', t => {
   const client = require.resolve('../tools/offsite-backup-client');
   const payload = Buffer.from('MWB1offline-encrypted-bundle-fixture');
@@ -193,6 +208,7 @@ test('verified download emits exactly the normalized backup kind before artifact
     t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
     const output = path.join(directory, 'github-output');
     const script = `global.fetch=async url=>{
+      if(String(url)==='https://moore-weather.onrender.com/healthz')return Response.json({status:'ok',commit:'${headSha}'});
       if(String(url).startsWith('https://fixture.actions.githubusercontent.com/identity'))return Response.json({value:'fixture-token'});
       if(String(url)==='https://moore-weather.onrender.com/internal/backups/export')return new Response(Buffer.from('${payload.toString('base64')}','base64'),{headers:{
         'x-backup-sha256':'${checksum}','x-backup-checkpoint':'${checkpoint}','x-backup-created-at':'2026-11-05T22:00:00+10:00'}});
@@ -200,7 +216,7 @@ test('verified download emits exactly the normalized backup kind before artifact
     };require(${JSON.stringify(client)}).download().catch(error=>{console.error(error.message);process.exitCode=1;});`;
     const child = spawnSync(process.execPath, ['-e', script], { cwd: directory, encoding: 'utf8', env: {
       ACTIONS_ID_TOKEN_REQUEST_URL: 'https://fixture.actions.githubusercontent.com/identity',
-      ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'fixture-request-token', GITHUB_OUTPUT: output
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'fixture-request-token', GITHUB_OUTPUT: output, GITHUB_SHA: headSha
     } });
     assert.equal(child.status, 0, child.stderr);
     assert.equal(fs.readFileSync(output, 'utf8'), 'kind=' + (checkpoint ? 'checkpoint' : 'daily') + '\n');
@@ -209,12 +225,61 @@ test('verified download emits exactly the normalized backup kind before artifact
   }
 });
 
-test('workflow runs rotation only after the acknowledged receipt and limits Actions write access to that job', () => {
+test('backup waits for the intended Render commit before requesting identity or exporting and bounds a superseded run', t => {
+  const client = require.resolve('../tools/offsite-backup-client');
+  const payload = Buffer.from('MWB1offline-encrypted-bundle-fixture');
+  const checksum = crypto.createHash('sha256').update(payload).digest('hex');
+  for (const scenario of ['deploys','superseded','invalid-commit']) {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(),'moore-deploy-gate-'));
+    t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+    const output = path.join(directory,'github-output');
+    const script = `const assert=require('node:assert/strict');let clock=0,checks=0,identities=0,exports=0,waits=0;
+      global.fetch=async (url,options)=>{
+        if(String(url)==='https://moore-weather.onrender.com/healthz'){
+          checks++;assert.equal(options.headers.Authorization,undefined);assert.equal(options.redirect,'error');assert.ok(options.signal);
+          return Response.json({status:'ok',commit:${JSON.stringify(scenario)}==='deploys'&&checks>1?'${headSha}':'${'f'.repeat(40)}'});
+        }
+        assert.equal(checks,2,'no authenticated request before the intended deployment');
+        if(String(url).startsWith('https://fixture.actions.githubusercontent.com/identity')){identities++;return Response.json({value:'fixture-token'});}
+        if(String(url)==='https://moore-weather.onrender.com/internal/backups/export'){
+          exports++;return new Response(Buffer.from('${payload.toString('base64')}','base64'),{headers:{
+            'x-backup-sha256':'${checksum}','x-backup-checkpoint':'true','x-backup-created-at':'2026-11-05T12:00:00.000Z'}});
+        }
+        throw Error('Unexpected offline request');
+      };
+      (async()=>{
+        let error;
+        try {await require(${JSON.stringify(client)}).download({now:()=>clock,wait:async ms=>{assert.equal(ms,30000);clock+=ms;waits++;}});}catch(caught){error=caught;}
+        if(${JSON.stringify(scenario)}==='deploys'){
+          assert.equal(error,undefined);assert.equal(checks,2);assert.equal(waits,1);assert.equal(identities,1);assert.equal(exports,1);
+        }else{
+          assert.ok(error);assert.equal(identities,0);assert.equal(exports,0);
+          if(${JSON.stringify(scenario)}==='superseded'){assert.equal(checks,50);assert.equal(waits,49);assert.match(error.message,/finish deploying/);}
+          else {assert.equal(checks,0);assert.match(error.message,/commit is invalid/);}
+        }
+      })().catch(error=>{console.error(error.message);process.exitCode=1;});`;
+    const child=spawnSync(process.execPath,['-e',script],{cwd:directory,encoding:'utf8',env:{
+      GITHUB_SHA:scenario==='invalid-commit'?headSha+'\n':headSha,GITHUB_OUTPUT:output,
+      ACTIONS_ID_TOKEN_REQUEST_URL:'https://fixture.actions.githubusercontent.com/identity',ACTIONS_ID_TOKEN_REQUEST_TOKEN:'fixture-request-token'
+    }});
+    assert.equal(child.status,0,child.stderr);
+    assert.equal(fs.existsSync(output),scenario==='deploys');
+    assert.equal(fs.existsSync(path.join(directory,'recovery-artifact','backup.mwb')),scenario==='deploys');
+    assert.doesNotMatch(child.stdout+child.stderr,/fixture-token|fixture-request-token/);
+  }
+});
+
+test('workflow rotates draft release assets only after acknowledgment and the receipt without touching legacy Actions artifacts', () => {
   const workflow = fs.readFileSync(path.join(__dirname, '../.github/workflows/backups.yml'), 'utf8');
   const [backup, receipt] = workflow.split('\n  backup:\n')[1].split('\n  receipt:\n');
-  assert.doesNotMatch(backup, /actions: write/); assert.match(receipt, /actions: write/);
+  assert.doesNotMatch(workflow, /actions: write|upload-artifact|rotate-backup-artifacts/);
+  assert.match(backup, /contents: write/); assert.match(receipt, /contents: write/);
   assert.match(receipt, /id-token: none/);
-  assert.match(backup, /name: encrypted-recovery-\$\{\{ steps.download.outputs.kind \}\}-\$\{\{ github.run_id \}\}-\$\{\{ github.run_attempt \}\}/);
-  assert.ok(receipt.indexOf('node tools/record-backup-receipt.js') < receipt.indexOf('node tools/rotate-backup-artifacts.js'));
+  assert.ok(backup.indexOf('node tools/release-backup-storage.js upload') < backup.indexOf('node tools/offsite-backup-client.js ack'));
+  assert.ok(receipt.indexOf('node tools/record-backup-receipt.js') < receipt.indexOf('node tools/release-backup-storage.js rotate'));
   assert.match(receipt, /BACKUP_RECEIPT_RESULT: \$\{\{ steps.receipt.outcome \}\}/);
+  assert.match(receipt, /BACKUP_JOB_RESULT: \$\{\{ needs.backup.result \}\}/);
+  assert.match(receipt, /BACKUP_ASSET_ID: \$\{\{ needs.backup.outputs.artifact_id \}\}/);
+  assert.match(receipt, /BACKUP_RELEASE_ID: \$\{\{ needs.backup.outputs.release_id \}\}/);
+  assert.match(receipt, /BACKUP_STORAGE_PROVIDER: github-release/);
 });
