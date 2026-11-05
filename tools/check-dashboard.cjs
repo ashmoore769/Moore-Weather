@@ -43,6 +43,7 @@ function series(id, resolution, hours, finish = end) {
 }
 let mode = 'fresh', historyMode = 'fresh', requests = [];
 let currentMode = 'fresh', weatherOffset = 0, skycamFailNewest = false, skycamAttempts = 0;
+let skycamIncomingSequence = 0;
 const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNU8Y5iYGBgYmBgYGBgAAAJYADNjl9iMQAAAABJRU5ErkJggg==', 'base64');
 const cameraFrames = [
   {id:'fixture-old', url:'/skycam/fixture-old.jpg', capturedAt:new Date(now - 10 * 60000).toISOString()},
@@ -95,8 +96,9 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === '/skycam/history') { res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify({images:cameraFrames})); }
   if (url.pathname.startsWith('/skycam/')) {
+    res.setHeader('Cache-Control','no-store');
     if (url.pathname.includes('fixture-new')) { skycamAttempts++; if(skycamFailNewest) {res.statusCode=503;return res.end();} }
-    res.setHeader('Content-Type','image/png'); res.setHeader('Cache-Control','no-store'); return res.end(pixel);
+    res.setHeader('Content-Type','image/png'); return res.end(pixel);
   }
   if (url.pathname.startsWith('/api/')) {
     res.setHeader('Content-Type', 'application/json');
@@ -313,21 +315,39 @@ async function failurePaths(page) {
 
   await page.evaluate(() => showSkyCamHistory(0, {manual:false,followLive:true,transitionMs:0}));
   const cameraTime = await page.locator('#skycamTime').textContent();
-  skycamFailNewest = true;
-  await page.evaluate(() => showSkyCamHistory(1, {manual:false,followLive:true,transitionMs:0}));
-  assert.equal(await page.locator('#skycamTime').textContent(), cameraTime);
-  assert.match(await page.locator('#skycamImageStage .is-active').getAttribute('src'), /fixture-old/);
-  assert.match(await page.locator('#skycamBadge').textContent(), /STALE/);
-  const attempts = skycamAttempts;
-  await page.evaluate(() => refreshSkyCam());
-  assert.ok(skycamAttempts > attempts, 'The same failed newest frame must be retried');
-  assert.equal(await page.locator('#skycamTime').textContent(), cameraTime);
-  skycamFailNewest = false; await page.evaluate(() => refreshSkyCam());
-  assert.notEqual(await page.locator('#skycamTime').textContent(), cameraTime);
-  assert.match(await page.locator('#skycamImageStage .is-active').getAttribute('src'), /fixture-new/);
-  await page.evaluate(fixtureNow => {Date.now=()=>fixtureNow+3600000;updateSkyCamControls();}, now);
-  assert.match(await page.locator('#skycamBadge').textContent(), /STALE/);
-  await page.evaluate(fixtureNow => {Date.now=()=>fixtureNow;updateSkyCamControls();}, now);
+  // The initial newest frame has already decoded in an image layer. WebKit can
+  // legitimately reuse those pixels when its origin later fails. Introduce an
+  // unseen capture through the real manifest path so this tests a failed load,
+  // rather than requiring every browser to re-fetch a valid cached image.
+  const id = 'fixture-new-incoming-' + (++skycamIncomingSequence);
+  const incoming = {id,url:'/skycam/'+id+'.jpg',capturedAt:new Date(now).toISOString()};
+  cameraFrames.push(incoming);
+  try {
+    skycamFailNewest = true;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const attempts = skycamAttempts;
+      const response = page.waitForResponse(result => new URL(result.url()).pathname === incoming.url);
+      await page.evaluate(() => refreshSkyCam());
+      assert.equal((await response).status(), 503, 'The new image must actually fail at the fixture origin');
+      assert.ok(skycamAttempts > attempts, 'The same unseen frame must be requested on each retry');
+      assert.equal(await page.locator('#skycamTime').textContent(), cameraTime);
+      assert.match(await page.locator('#skycamImageStage .is-active').getAttribute('src'), /fixture-old/);
+      assert.match(await page.locator('#skycamBadge').textContent(), /STALE/);
+    }
+    skycamFailNewest = false;
+    const response = page.waitForResponse(result => new URL(result.url()).pathname === incoming.url);
+    await page.evaluate(() => refreshSkyCam());
+    assert.equal((await response).status(), 200);
+    assert.equal(await page.locator('#skycamTime').textContent(), await page.evaluate(entry => formatSkyCamTime(entry.capturedAt), incoming));
+    assert.notEqual(await page.locator('#skycamTime').textContent(), cameraTime);
+    assert.equal(await page.locator('#skycamImageStage .is-active').getAttribute('src'), incoming.url);
+    await page.evaluate(fixtureNow => {Date.now=()=>fixtureNow+3600000;updateSkyCamControls();}, now);
+    assert.match(await page.locator('#skycamBadge').textContent(), /STALE/);
+  } finally {
+    skycamFailNewest = false;
+    cameraFrames.pop();
+    await page.evaluate(fixtureNow => {Date.now=()=>fixtureNow;updateSkyCamControls();}, now);
+  }
 }
 
 (async () => {
