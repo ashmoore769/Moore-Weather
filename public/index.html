@@ -1691,6 +1691,8 @@ let skycamDisplayedEntry = null;
 let skycamFollowLive = true;
 let skycamImageError = '';
 let skycamRetryEntryId = null;
+const skycamImageRetryUrls = new Map();
+let skycamImageRetrySerial = 0;
 let skycamHistoryError = false;
 let skycamImageLoading = false;
 let skycamSelectionToken = 0;
@@ -1815,6 +1817,22 @@ function normalizeSkyCamImageUrl(url) {
   }
 }
 
+function skyCamImageLoaded(image, url) {
+  return Boolean(image.complete && image.naturalWidth > 0 && image.currentSrc &&
+    normalizeSkyCamImageUrl(image.currentSrc) === normalizeSkyCamImageUrl(url));
+}
+
+function nextSkyCamRetryUrl(url) {
+  try {
+    const target = new URL(url, document.baseURI);
+    skycamImageRetrySerial = (skycamImageRetrySerial + 1) % 1000000;
+    // Replace one bounded query value. Safari may retain a failed image for
+    // its exact URL; a distinct retry must reach the server again.
+    target.searchParams.set('_mw_retry', Date.now().toString(36) + '-' + skycamImageRetrySerial.toString(36));
+    return target.href;
+  } catch { return url; }
+}
+
 async function transitionSkyCamImage(url, durationMs = SKYCAM_FADE_MS) {
   if (!url) return false;
   const layers = getSkyCamImageLayers();
@@ -1825,8 +1843,7 @@ async function transitionSkyCamImage(url, durationMs = SKYCAM_FADE_MS) {
   const transitionToken = ++skycamImageTransitionToken;
   active.classList.add('is-active');
   next.classList.remove('is-active', 'is-entering');
-  const targetUrl = normalizeSkyCamImageUrl(url);
-  if (active.complete && active.naturalWidth > 0 && normalizeSkyCamImageUrl(active.getAttribute('src') || '') === targetUrl) return true;
+  if (skyCamImageLoaded(active, url)) return true;
 
   // Load the actual incoming DOM image, not just a separate preloader. This
   // keeps the timestamp truthful even if a second network request fails.
@@ -1876,7 +1893,8 @@ async function showSkyCamHistory(index, options = {}) {
   updateSkyCamControls();
   const duration = Number.isFinite(options.transitionMs) ? options.transitionMs : skycamPlaying ? SKYCAM_TIMELAPSE_FADE_MS : SKYCAM_FADE_MS;
   let loaded = false;
-  try { loaded = await transitionSkyCamImage(entry.url, duration); } catch { loaded = false; }
+  const requestUrl = skycamImageRetryUrls.get(entry.id) || entry.url;
+  try { loaded = await transitionSkyCamImage(requestUrl, duration); } catch { loaded = false; }
   if (token !== skycamSelectionToken) return false;
   skycamImageLoading = false;
   if (loaded) {
@@ -1885,6 +1903,9 @@ async function showSkyCamHistory(index, options = {}) {
     skycamHistoryIndex = skycamHistory.findIndex(item => item.id === entry.id);
   } else {
     skycamImageError = 'Image unavailable';
+    // Keep the frame identity and capture time unchanged. Retaining the last
+    // successful retry URL also lets a later history selection reuse it.
+    skycamImageRetryUrls.set(entry.id, nextSkyCamRetryUrl(entry.url));
   }
   updateSkyCamControls();
   return loaded;
@@ -1954,6 +1975,10 @@ function sampleSkyCamTimelapseIndices() {
 }
 
 function loadSkyCamImage(image, url) {
+  // Inspect an already decoded resource before assigning src. During a new
+  // request some browsers can still expose the previous resource as complete.
+  if (skyCamImageLoaded(image, url)) return Promise.resolve(true);
+  const targetUrl = normalizeSkyCamImageUrl(url);
   return new Promise(resolve => {
     let settled = false;
     const finish = loaded => {
@@ -1964,14 +1989,15 @@ function loadSkyCamImage(image, url) {
       image.removeEventListener('error', onError);
       resolve(loaded);
     };
-    const onLoad = () => finish(image.naturalWidth > 0);
+    const onLoad = () => {
+      if (image.currentSrc && normalizeSkyCamImageUrl(image.currentSrc) === targetUrl) finish(image.naturalWidth > 0);
+    };
     const onError = () => finish(false);
     const timer = setTimeout(() => finish(false), SKYCAM_IMAGE_TIMEOUT_MS);
     image.addEventListener('load', onLoad);
     image.addEventListener('error', onError);
     image.decoding = 'async';
     image.src = url;
-    if (image.complete && image.naturalWidth > 0) finish(true);
   });
 }
 
@@ -2054,6 +2080,8 @@ async function loadSkyCamHistory() {
     const images = Array.isArray(payload.images) ? payload.images : [];
     skycamHistory = images.filter(entry => entry && entry.id && entry.url && Number.isFinite(Date.parse(entry.capturedAt)))
       .sort((a, b) => Date.parse(a.capturedAt) - Date.parse(b.capturedAt));
+    const availableIds = new Set(skycamHistory.map(entry => entry.id));
+    for (const id of skycamImageRetryUrls.keys()) if (!availableIds.has(id)) skycamImageRetryUrls.delete(id);
     skycamHistoryError = false;
     skycamHistoryIndex = skycamDisplayedEntry ? skycamHistory.findIndex(entry => entry.id === skycamDisplayedEntry.id) : -1;
     if (!skycamHistory.length) { updateSkyCamControls(); return; }

@@ -117,8 +117,8 @@ test('last-valid Warwick readings are stale even when their timestamp is recent'
   assert.equal(result.text, '0.20m (Below Bridge)');
 });
 
-function cameraBrowser() {
-  const nodes = new Map(), failures = new Set(), attempts = new Map(), hanging = new Set();
+function cameraBrowser({ retainCurrentUntilLoad = false } = {}) {
+  const nodes = new Map(), failures = new Set(), attempts = new Map(), hanging = new Set(), failedResources = new Set(), requests = [];
   const frames = [
     { id: 'old', url: '/old.jpg', capturedAt: new Date(now - 600000).toISOString() },
     { id: 'new', url: '/new.jpg', capturedAt: new Date(now - 60000).toISOString() },
@@ -131,20 +131,31 @@ function cameraBrowser() {
   class ImageNode {
     constructor() {
       this.dataset = {}; this.style = {}; this.listeners = new Map(); this.attributes = new Map();
-      this.complete = false; this.naturalWidth = 0; this.textContent = ''; this.classes = new Set();
+      this.complete = false; this.naturalWidth = 0; this.currentSrc = ''; this.textContent = ''; this.classes = new Set();
       this.classList = { add: (...values) => values.forEach(v => this.classes.add(v)), remove: (...values) => values.forEach(v => this.classes.delete(v)) };
     }
     addEventListener(name, callback) { if (!this.listeners.has(name)) this.listeners.set(name, new Set()); this.listeners.get(name).add(callback); }
     removeEventListener(name, callback) { this.listeners.get(name)?.delete(callback); }
     setAttribute(name, value) { this.attributes.set(name, value); }
     getAttribute(name) { return this.attributes.get(name); }
+    emit(name) { for (const callback of [...this.listeners.get(name) || []]) callback(); }
     set src(url) {
-      this.attributes.set('src', url); this.complete = false; this.naturalWidth = 0;
-      attempts.set(url, (attempts.get(url) || 0) + 1);
-      if (hanging.has(url)) return;
+      const target = new URL(url, 'https://fixture.test/'), key = target.href, resource = target.pathname;
+      this.attributes.set('src', url);
+      if (!retainCurrentUntilLoad) { this.complete = false; this.naturalWidth = 0; }
+      // Model Safari retaining a broken image resource for the exact URL. It
+      // can dispatch another error without making another network request.
+      if (failedResources.has(key)) {
+        queueMicrotask(() => { this.complete = true; this.naturalWidth = 0; this.currentSrc = key; this.emit('error'); });
+        return;
+      }
+      requests.push(key);
+      attempts.set(resource, (attempts.get(resource) || 0) + 1);
+      if (hanging.has(resource)) return;
       queueMicrotask(() => {
-        const okay = !failures.has(url); this.complete = true; this.naturalWidth = okay ? 1 : 0;
-        for (const callback of [...this.listeners.get(okay ? 'load' : 'error') || []]) callback();
+        const okay = !failures.has(resource); this.complete = true; this.naturalWidth = okay ? 1 : 0; this.currentSrc = key;
+        if (!okay) failedResources.add(key);
+        this.emit(okay ? 'load' : 'error');
       });
     }
   }
@@ -160,30 +171,44 @@ function cameraBrowser() {
   vm.runInContext(script, context);
   const show = (index, followLive = true) => vm.runInContext(`showSkyCamHistory(${index}, {manual:false,followLive:${followLive},transitionMs:0})`, context);
   const state = () => vm.runInContext('({entry:skycamDisplayedEntry,index:skycamHistoryIndex,layer:skycamImageLayer,loading:skycamImageLoading})', context);
-  return { context, node, frames, failures, hanging, attempts, show, state, close: () => { for (const timer of timers) clearTimeout(timer); } };
+  return { context, node, frames, failures, hanging, attempts, requests, show, state, close: () => { for (const timer of timers) clearTimeout(timer); } };
 }
 
-test('SkyCam timestamps commit only after the actual displayed image loads and failed IDs retry', async () => {
+test('SkyCam retries cached failed image requests with new URLs while preserving frame identity and time', async () => {
   const b = cameraBrowser();
   try {
     await b.context.refreshSkyCam();
     await b.show(0);
     const before = b.node('skycamTime').textContent;
-    b.failures.add('/new.jpg');
-    assert.equal(await b.show(1), false);
+    const incoming = {id:'incoming',url:'/incoming.jpg',capturedAt:new Date(now).toISOString()};
+    b.frames.push(incoming); b.failures.add(incoming.url);
+    await b.context.refreshSkyCam();
     assert.equal(b.state().entry.id, 'old');
     assert.equal(b.node('skycamTime').textContent, before);
     assert.equal(b.node('skycamBadge').textContent, 'SKYCAM · STALE');
-    const previousAttempts = b.attempts.get('/new.jpg');
+    const previousAttempts = b.attempts.get(incoming.url);
     await b.context.refreshSkyCam();
-    assert.ok(b.attempts.get('/new.jpg') > previousAttempts);
+    assert.ok(b.attempts.get(incoming.url) > previousAttempts, 'a cached failure must not suppress the next network attempt');
     assert.equal(b.state().entry.id, 'old');
-    b.failures.delete('/new.jpg'); await b.context.refreshSkyCam();
-    assert.equal(b.state().entry.id, 'new');
+    b.failures.delete(incoming.url); await b.context.refreshSkyCam();
+    assert.equal(b.state().entry.id, incoming.id);
+    assert.equal(b.state().entry.url, incoming.url);
+    assert.equal(b.state().entry.capturedAt, incoming.capturedAt);
     assert.notEqual(b.node('skycamTime').textContent, before);
     assert.equal(b.node('skycamBadge').textContent, 'SKYCAM · LIVE');
+    const attempts = b.requests.filter(url => new URL(url).pathname === incoming.url);
+    assert.equal(attempts.length, 3);
+    assert.equal(new Set(attempts).size, 3);
+    for (const url of attempts.slice(1)) {
+      assert.equal(new URL(url).searchParams.getAll('_mw_retry').length, 1);
+      assert.ok(new URL(url).search.length < 40, 'retry parameters must stay bounded');
+    }
+    await b.show(0); await b.show(2);
+    assert.equal(b.attempts.get(incoming.url), 3, 'a successfully decoded retry remains reusable');
     vm.runInContext('Date.now = () => ' + (now + 3600000) + '; updateSkyCamControls();', b.context);
     assert.equal(b.node('skycamBadge').textContent, 'SKYCAM · STALE');
+    b.frames.pop(); await b.context.refreshSkyCam();
+    assert.equal(vm.runInContext('skycamImageRetryUrls.size', b.context), 0, 'removed frames must not retain retry state');
   } finally { b.close(); }
 });
 
@@ -191,12 +216,37 @@ test('SkyCam stalled image has a bounded wait and retains its loaded frame', asy
   const b = cameraBrowser();
   try {
     await b.context.refreshSkyCam(); await b.show(0);
-    b.hanging.add('/new.jpg');
-    assert.equal(await b.show(1), false);
+    b.frames.push({id:'hanging',url:'/hanging.jpg',capturedAt:new Date(now).toISOString()});
+    b.hanging.add('/hanging.jpg');
+    await b.context.refreshSkyCam();
     assert.equal(b.state().entry.id, 'old');
     assert.equal(b.state().loading, false);
     assert.match(b.node('skycamPosition').textContent, /image unavailable/);
   } finally { b.close(); }
+});
+
+test('SkyCam does not certify a new src from retained old complete pixels or an unrelated load event', async () => {
+  const b = cameraBrowser({retainCurrentUntilLoad:true});
+  try {
+    await b.context.refreshSkyCam(); await b.show(0);
+    const before = b.node('skycamTime').textContent;
+    const next = b.node(b.state().layer === 0 ? 'skycamImageNext' : 'skycamImage');
+    assert.equal(next.complete, true);
+    assert.ok(next.currentSrc.endsWith('/new.jpg'));
+    b.frames.push({id:'pending',url:'/pending.jpg',capturedAt:new Date(now).toISOString()});
+    b.hanging.add('/pending.jpg');
+    let finished = false;
+    const load = b.context.refreshSkyCam().then(() => {finished=true;});
+    await new Promise(setImmediate);
+    next.emit('load'); // An old resource event must not satisfy the new request.
+    await new Promise(setImmediate);
+    assert.equal(finished, false);
+    assert.equal(b.node('skycamTime').textContent, before);
+    await load;
+    assert.equal(b.state().entry.id, 'old');
+    assert.equal(b.state().loading, false);
+    assert.equal(b.node('skycamTime').textContent, before);
+  } finally {b.close();}
 });
 
 test('a failed historical SkyCam selection retries without relabelling the visible newer frame', async () => {

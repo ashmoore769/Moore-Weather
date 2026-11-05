@@ -283,7 +283,7 @@ async function visualWindows(page) {
   });
   await page.waitForTimeout(60); await cameraLabels(page);
 }
-async function failurePaths(page) {
+async function failurePaths(page, browserName) {
   // A healthy ping must not relabel the last displayed observation after failure.
   weatherOffset = -HOUR;
   await page.evaluate(() => fetchWeather());
@@ -321,26 +321,45 @@ async function failurePaths(page) {
   // rather than requiring every browser to re-fetch a valid cached image.
   const id = 'fixture-new-incoming-' + (++skycamIncomingSequence);
   const incoming = {id,url:'/skycam/'+id+'.jpg',capturedAt:new Date(now).toISOString()};
+  const imageRequests = [];
+  async function expectImageResponse(status, step) {
+    console.log('SkyCam ' + browserName + ' phone: ' + step + ' for ' + id);
+    let response;
+    try {
+      [response] = await Promise.all([
+        page.waitForResponse(result => new URL(result.url()).pathname === incoming.url),
+        page.evaluate(() => refreshSkyCam())
+      ]);
+    } catch (error) {
+      const state = await page.evaluate(() => ({
+        displayed:skycamDisplayedEntry?.id,historyLoading:skycamHistoryLoading,imageLoading:skycamImageLoading,error:skycamImageError,
+        layers:getSkyCamImageLayers().map(image=>({src:image.getAttribute('src'),currentSrc:image.currentSrc,complete:image.complete,width:image.naturalWidth}))
+      })).catch(()=>({}));
+      throw new Error('SkyCam ' + browserName + ' ' + step + ' failed: ' + error.message + '; state=' + JSON.stringify(state));
+    }
+    assert.equal(response.status(), status, 'SkyCam ' + step + ' must reach the fixture origin');
+    imageRequests.push(response.url());
+  }
   cameraFrames.push(incoming);
   try {
     skycamFailNewest = true;
     for (let attempt = 0; attempt < 2; attempt++) {
       const attempts = skycamAttempts;
-      const response = page.waitForResponse(result => new URL(result.url()).pathname === incoming.url);
-      await page.evaluate(() => refreshSkyCam());
-      assert.equal((await response).status(), 503, 'The new image must actually fail at the fixture origin');
+      await expectImageResponse(503, 'failed request ' + (attempt + 1));
       assert.ok(skycamAttempts > attempts, 'The same unseen frame must be requested on each retry');
       assert.equal(await page.locator('#skycamTime').textContent(), cameraTime);
+      assert.equal(await page.evaluate(()=>skycamDisplayedEntry?.id), 'fixture-old');
       assert.match(await page.locator('#skycamImageStage .is-active').getAttribute('src'), /fixture-old/);
       assert.match(await page.locator('#skycamBadge').textContent(), /STALE/);
     }
     skycamFailNewest = false;
-    const response = page.waitForResponse(result => new URL(result.url()).pathname === incoming.url);
-    await page.evaluate(() => refreshSkyCam());
-    assert.equal((await response).status(), 200);
+    await expectImageResponse(200, 'recovery request');
+    assert.equal(new Set(imageRequests).size, 3, 'Every failed image retry must use a fresh request URL');
+    for (const url of imageRequests.slice(1)) assert.equal(new URL(url).searchParams.getAll('_mw_retry').length, 1);
     assert.equal(await page.locator('#skycamTime').textContent(), await page.evaluate(entry => formatSkyCamTime(entry.capturedAt), incoming));
     assert.notEqual(await page.locator('#skycamTime').textContent(), cameraTime);
-    assert.equal(await page.locator('#skycamImageStage .is-active').getAttribute('src'), incoming.url);
+    assert.equal(new URL(await page.locator('#skycamImageStage .is-active').getAttribute('src'), page.url()).pathname, incoming.url);
+    assert.deepEqual(await page.evaluate(()=>({id:skycamDisplayedEntry.id,url:skycamDisplayedEntry.url})), {id:incoming.id,url:incoming.url});
     await page.evaluate(fixtureNow => {Date.now=()=>fixtureNow+3600000;updateSkyCamControls();}, now);
     assert.match(await page.locator('#skycamBadge').textContent(), /STALE/);
   } finally {
@@ -406,7 +425,7 @@ async function failurePaths(page) {
             assert.equal(await page.locator('#warwickBridgeValue').textContent(), '1.66m (Below Bridge)');
             assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), 'false');
             if (pagePath.includes('index')) {
-              if (width === 393) await failurePaths(page);
+              if (width === 393) await failurePaths(page, engine.name());
               await visualWindows(page);
               assert.match(await page.locator('#powerTrendLabel').textContent(), /24-hour/);
               assert.match(await page.locator('#tempVal').locator('xpath=ancestor::*[contains(@class,"temp-hero")]').locator('.history-spark-caption').textContent(), /24 hours/);
