@@ -57,7 +57,7 @@ h2 { margin:0; font-size:17px; line-height:1.35; }
 .output-toolbar h2 { font-size:13px; font-weight:650; }
 .output-actions button { min-height:34px; padding:0 11px; font-size:12px; }
 .terminal-output { margin:0 0 20px; height:clamp(270px,42vh,480px); padding:16px; border:1px solid var(--border); border-radius:10px; overflow:auto; background:var(--console); color:var(--text); font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; tab-size:4; }
-.terminal-output:empty::before { content:"Connect to the station to begin."; color:var(--muted); }
+.terminal-output:empty::before { content:"Station responses appear here."; color:var(--muted); }
 .output-limit { margin:-10px 0 16px; color:var(--amber); font-size:12px; line-height:1.5; }
 .command-fields input { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
 .command-fields button { min-width:86px; }

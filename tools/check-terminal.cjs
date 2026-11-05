@@ -11,7 +11,7 @@ const MAX_OUTPUT_BYTES = 2 * 1024 * 1024;
 const greeting = 'Moore Weather fixture · 23.4°C\r\n<img src=x onerror="window.terminalInjected=true">\r\n';
 let fixture, origin, sequence = 0;
 function reset() {
-  fixture = { unlocked:false, enabled:true, portalExpired:false, active:null, connectMode:'connected', inputMode:'ok',
+  fixture = { unlocked:false, enabled:true, portalExpired:false, active:null, connectMode:'connected',
     connections:0, inputs:[], interrupts:0, disconnects:0, locks:0, requests:[], violations:[] };
 }
 function json(res, status, data) {
@@ -88,7 +88,6 @@ const server = http.createServer(async (req, res) => {
       assert.match(data.command,/^[\x20-\x7e]{1,512}$/);
       state.inputs.push({...data});
       emit(lease,{type:'data',text:data.command === 'TIME' ? '2026/11/05 16:30:00\r\n> ' : data.command+' reply\r\n> '});
-      if(state.inputMode==='drop') { state.inputMode='ok'; req.socket.destroy(); return; }
       json(res,200,{ok:true}); return;
     }
     if (url.pathname === '/api/terminal/interrupt') { state.interrupts++; emit(lease,{type:'data',text:'^C^C^C^C^C\r\n> '}); json(res,200,{ok:true}); return; }
@@ -193,12 +192,37 @@ async function check(context,engine,width) {
   await page.waitForFunction(()=>document.querySelector('#terminalStatus').textContent.includes('Ctrl+C sent'));
   assert.equal(fixture.interrupts,1);
 
-  fixture.inputMode='drop';
-  await page.locator('#terminalSend').click();
-  await page.waitForFunction(()=>document.querySelector('#terminalStatus').textContent.includes('Send could not be confirmed'));
-  await page.waitForTimeout(1200);
-  assert.equal(fixture.inputs.length,2,'an ambiguously acknowledged command must not be automatically resent');
-  assert.equal(await page.locator('#terminalCommand').inputValue(),'LISTALL');
+  // Complete one real HTTP POST, then hide its successful acknowledgement from
+  // the application. Destroying a reused socket can instead make Chromium retry
+  // below fetch(), which tests transport recovery rather than our no-resend rule.
+  await page.evaluate(() => {
+    const original = window.fetch;
+    let dropped = false;
+    window.__terminalDroppedAck = null;
+    window.__terminalRestoreFetch = () => { window.fetch = original; delete window.__terminalRestoreFetch; };
+    window.fetch = async (input, options) => {
+      const response = await original.call(window, input, options);
+      const pathname = new URL(typeof input === 'string' ? input : input.url, location.href).pathname;
+      if (!dropped && pathname === '/api/terminal/input' && options?.method === 'POST') {
+        dropped = true;
+        const ack = await response.json();
+        window.__terminalDroppedAck = { status:response.status, ok:ack.ok, commandId:JSON.parse(options.body).commandId };
+        throw new TypeError('Fixture acknowledgement lost after the server accepted the command.');
+      }
+      return response;
+    };
+  });
+  try {
+    await page.locator('#terminalSend').click();
+    await page.waitForFunction(()=>document.querySelector('#terminalStatus').textContent.includes('Send could not be confirmed'));
+    await page.waitForTimeout(1200);
+    assert.equal(fixture.inputs.length,2,'an ambiguously acknowledged command must not be automatically resent');
+    assert.deepEqual(await page.evaluate(()=>window.__terminalDroppedAck),{status:200,ok:true,commandId:fixture.inputs[1].commandId});
+    assert.match(await page.locator('#terminalOutput').textContent(),/LISTALL reply/);
+    assert.equal(await page.locator('#terminalCommand').inputValue(),'LISTALL');
+  } finally {
+    await page.evaluate(()=>window.__terminalRestoreFetch?.());
+  }
 
   if(width===393) {
     for(let i=0;i<3;i++) emit(fixture.active,{type:'data',text:'°'.repeat(400000)});
