@@ -103,6 +103,7 @@ function harness(t, { realPersistence = false, connectError = false } = {}) {
     ${source.slice(queueStart, queueEnd)}
     ${source.slice(pollStart, pollEnd)}
     ({ runCurrentWeatherAttempt, updateWeatherData, fetchDailyDataOnce, runStationTransaction,
+      closeQueue: () => { stationQueueClosing = true; },
       snapshot: () => ({ weather: cachedWeatherData, daily: cachedDailyData,
         lastPollTime, lastDailyPollTime, active: stationTransactionActive,
         currentInFlight: Boolean(currentWeatherRequestInFlight), dailyInFlight: Boolean(dailyStationRequestInFlight) }) });
@@ -180,6 +181,42 @@ test('the existing 31-field current compatibility and normal 32-field current/43
   assert.equal(h.records.filter(r => r.stream === 'r3').length, 2);
   assert.equal(h.records.filter(r => r.stream === 'mem1').length, 1);
   assert.equal(h.timers.size, 0);
+});
+
+test('combined replies, other memory shapes and multiline fragments cannot replace current readings', async t => {
+  const h = harness(t), before = h.api.snapshot().weather;
+  const invalid = [
+    valid('current') + '\r\n' + row('r3', '2026/11/05', '12:00:01'),
+    row('mem2'), row('mem1'), row('r3', '2026/11/05', '12:00:00', 30),
+    valid('current') + ',1', valid('current').replace(',1018.2', ',1018.2\r\nVER')
+  ];
+  for (const csv of invalid) {
+    const call = await begin(h, 'current');
+    call.socket.receive(response('current', csv));
+    assert.equal(await call.promise, false);
+    assert.equal(h.api.snapshot().weather, before);
+    assert.equal(h.records.length, 0, 'mixed/unknown framing is not imported as R3');
+    assert.equal(h.timers.size, 0);
+  }
+  const next = await begin(h, 'current');
+  next.socket.receive(response('current', valid('current')));
+  assert.equal(await next.promise, true);
+  assert.equal(h.api.snapshot().weather, valid('current'));
+});
+
+test('current framing accepts command echoes, completion markers and prompts without accepting a second record', async t => {
+  const h = harness(t), csv = valid('current');
+  for (const raw of ['> R3\r\n' + csv + '\r\n\\END OF DATA\r\n> ',
+    'r3\r\n' + csv + ',\\END', csv + '\r\nEND\r\n']) {
+    const call = await begin(h, 'current');
+    call.socket.receive(raw);
+    assert.equal(await call.promise, true);
+    assert.equal(h.api.snapshot().weather, csv);
+  }
+  const mixed = await begin(h, 'current');
+  mixed.socket.receive('> r3\r\n' + csv + '\r\n' + csv + '\r\n\\END OF DATA\r\n> ');
+  assert.equal(await mixed.promise, false);
+  assert.equal(h.records.length, 3);
 });
 
 test('valid replies without END are accepted consistently on close, error or idle timeout, with no live timers', async t => {
@@ -264,6 +301,26 @@ test('minute polls share one queued chain through queue waits and retry delays, 
   await flush(); assert.equal(h.sockets.length, 3);
   h.sockets[2].receive(response('current', valid('current')));
   assert.equal(await next, true);
+  assert.equal(h.timers.size, 0);
+});
+
+test('shutdown cancels queued and subsequent current/daily polls without unhandled rejections or station contact', async t => {
+  const h = harness(t);
+  let release;
+  const terminal = h.api.runStationTransaction('terminal cleanup fixture', () => new Promise(resolve => { release = resolve; }));
+  await flush();
+  const queuedPoll = h.api.updateWeatherData();
+  const queuedDaily = h.api.fetchDailyDataOnce();
+  h.api.closeQueue();
+  release();
+  await terminal;
+  assert.equal(await queuedPoll, false);
+  assert.equal(await queuedDaily, '');
+  assert.equal(h.api.snapshot().currentInFlight, false);
+  assert.equal(h.api.snapshot().dailyInFlight, false);
+  assert.equal(await h.api.updateWeatherData(), false);
+  assert.equal(await h.api.fetchDailyDataOnce(), '');
+  assert.equal(h.sockets.length, 0);
   assert.equal(h.timers.size, 0);
 });
 

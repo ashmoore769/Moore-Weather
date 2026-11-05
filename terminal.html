@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="theme-color" content="#0d1722">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Moore Weather">
+  <title>Moore Weather · Station terminal</title>
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="/moore-weather-touch-v2.png">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="/moore-weather-favicon-v3.svg">
+  <script src="/theme.js?v=5"></script>
+  <link rel="stylesheet" href="/terminal.css?v=1">
+  <link rel="stylesheet" href="/theme-palette.css?v=1">
+  <script defer src="/terminal.js?v=1"></script>
+</head>
+<body>
+  <div class="terminal-shell">
+    <header class="terminal-header">
+      <a class="terminal-brand" href="/index.html"><img src="/moore-weather-logo-v2.png" alt="" width="42" height="42"><span>Moore Weather<small>WEST WARWICK, QLD</small></span></a>
+      <div class="terminal-header-actions">
+        <a class="back-link" href="/index.html">Back to weather</a>
+        <button type="button" class="theme-button" id="themeToggleBtn" aria-label="Change theme"><span id="themeToggleIcon" aria-hidden="true"></span></button>
+      </div>
+    </header>
+    <main>
+      <div class="terminal-heading">
+        <div><p class="eyebrow">Station controls</p><h1>Station terminal</h1></div>
+        <button type="button" id="terminalLock" class="quiet-button" hidden>Lock terminal</button>
+      </div>
+      <p class="terminal-status" id="terminalStatus" role="status" aria-live="polite">Checking terminal access…</p>
+
+      <section class="unlock-panel" id="terminalUnlockPanel" aria-labelledby="unlockTitle">
+        <h2 id="unlockTitle">Unlock the terminal</h2>
+        <p>Use the separate terminal password to access the weather station.</p>
+        <form id="terminalUnlockForm">
+          <label for="terminalPassword">Terminal password</label>
+          <div class="unlock-fields">
+            <input type="password" id="terminalPassword" name="password" autocomplete="current-password" maxlength="256" required disabled>
+            <button type="submit" id="terminalUnlock" class="primary-button" disabled>Unlock</button>
+          </div>
+        </form>
+        <p class="small-note">Unlocking does not connect to the station.</p>
+      </section>
+
+      <section class="terminal-panel" id="terminalPanel" aria-label="Station terminal controls" hidden>
+        <div class="connection-bar">
+          <div class="connection-label"><span class="connection-dot" aria-hidden="true"></span><strong id="terminalConnectionState">Disconnected</strong></div>
+          <div class="connection-actions">
+            <button type="button" id="terminalConnect" class="primary-button">Connect</button>
+            <button type="button" id="terminalDisconnect" disabled>Disconnect</button>
+          </div>
+        </div>
+        <p class="lease-notice" id="terminalLeaseNotice" hidden>Weather collection resumes when you disconnect.</p>
+        <p class="connection-help" id="terminalLimits">Disconnects after 60 seconds of inactivity or 5 minutes per connection.</p>
+
+        <div class="output-toolbar">
+          <h2 id="terminalOutputTitle">Station output</h2>
+          <div class="output-actions">
+            <button type="button" id="terminalClear" title="Clear the terminal screen" disabled>Clear</button>
+            <button type="button" id="terminalCopy" disabled>Copy</button>
+            <button type="button" id="terminalSave" disabled>Save text</button>
+          </div>
+        </div>
+        <pre class="terminal-output" id="terminalOutput" tabindex="0" aria-labelledby="terminalOutputTitle"></pre>
+        <p class="output-limit" id="terminalOutputLimit" hidden>The screen has reached its 2 MiB limit. Save or clear it to display more output.</p>
+
+        <form class="command-form" id="terminalCommandForm">
+          <label for="terminalCommand">Command</label>
+          <div class="command-fields">
+            <input type="text" id="terminalCommand" name="command" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="512" placeholder="For example, TIME" aria-describedby="terminalCommandHelp" disabled>
+            <button type="submit" id="terminalSend" class="primary-button" disabled>Send</button>
+          </div>
+        </form>
+        <div class="command-tools">
+          <div class="quick-commands" aria-label="Fill a command">
+            <button type="button" data-command="TIME" title="Fill TIME">TIME</button>
+            <button type="button" data-command="VER" title="Fill VER">VER</button>
+            <button type="button" data-command="LISTALL" title="Fill LISTALL">LISTALL</button>
+            <button type="button" data-command="r3" title="Fill r3">r3</button>
+          </div>
+          <button type="button" id="terminalInterrupt" class="interrupt-button" disabled>Abort · Ctrl+C</button>
+        </div>
+        <p class="small-note" id="terminalCommandHelp">Enter sends one command with CR+LF. ↑ / ↓ recalls commands from this page. Abort sends Ctrl+C five times; it cannot undo a command already applied. Storage schedule changes need a matching app update.</p>
+      </section>
+      <noscript><p class="terminal-status">Enable JavaScript to use the terminal.</p></noscript>
+    </main>
+    <footer class="terminal-footer">Moore Weather · Station terminal <a href="/index.html">Return to current readings</a></footer>
+  </div>
+</body>
+</html>

@@ -108,6 +108,7 @@ const logger = winston.createLogger({
 });
 
 const app = express();
+let stationTerminal = null;
 app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.urlencoded({ extended: false, limit: "2kb", inflate: false }));
@@ -448,6 +449,7 @@ app.post("/login", (req, res) => {
 });
 
 function handleLogout(req, res) {
+  stationTerminal?.revoke(req, res);
   clearAuthCookie(res);
   res.set("Cache-Control", "no-store");
   res.redirect(req.method === "POST" ? 303 : 302, "/login?loggedOut=1");
@@ -556,9 +558,12 @@ const stationAlerts = mountAlerts(app, {
 // separate TCP clients.
 let stationTransactionTail = Promise.resolve();
 let stationTransactionActive = null;
+let stationQueueClosing = false;
 
 function runStationTransaction(label, task) {
+  if (stationQueueClosing) return Promise.reject(new Error('Station service is shutting down'));
   const run = stationTransactionTail.then(async () => {
+    if (stationQueueClosing) throw new Error('Station service is shutting down');
     stationTransactionActive = label;
     logger.info(`[STATION] Starting ${label}`);
 
@@ -593,6 +598,12 @@ const stationClock = require('./lib/station-clock').createStationClock({
   verifyCorrection: (id, at) => persistence.verifyClockCorrection(id, at),
   pendingCorrections: () => persistence.pendingClockCorrections()
 });
+stationTerminal = require('./lib/station-terminal').createStationTerminal({
+  env: process.env, host: WEATHER_STATION_HOST, port: WEATHER_STATION_PORT,
+  runTransaction: runStationTransaction, logger
+});
+stationTerminal.mount(app);
+logger.info('[TERMINAL] ' + (stationTerminal.status().enabled ? 'Separate password protection enabled' : 'Disabled; no valid password hash configured'));
 const databaseBackups = require('./lib/database-backups').createBackupScheduler(process.env, persistence, logger);
 const weatherRetention = require('./lib/weather-retention').createWeatherRetention(process.env, {
   isReady: () => persistence.status().ready,
@@ -744,15 +755,17 @@ function runCurrentWeatherAttempt(attempt = 1, maxAttempts = 3) {
     const cacheReceivedDataIfValid = () => {
       if (finished || !receivedData) return false;
 
-      const cleaned = receivedData
-        .replace(/^r3\s*/, "")
-        .trim()
-        .replace(/,?\s*\\?END.*$/i, "");
+      const lines = receivedData.split(/[\r\n]+/)
+        .map(line => line.trim().replace(/^>\s*/, ''))
+        .filter(line => line && !/^r3$/i.test(line) && !/^\\?END(?: OF DATA)?$/i.test(line));
+      if (lines.length !== 1) return false;
+      const cleaned = lines[0].replace(/,?\s*\\?END(?: OF DATA)?$/i, '').trim();
 
       const fields = cleaned.split(",");
-      // Preserve the existing compatible current shape. A 43-field daily
-      // reply must never overwrite the current-weather cache.
-      if (fields.length < 31 || fields.length === 43) return false;
+      // Preserve the known legacy/current shapes, but reject a concatenated
+      // reply or another memory bank. A delayed terminal or retry response
+      // must not be displayed as a plausible set of current sensor values.
+      if (![31, 32].includes(fields.length) || /[\r\n]/.test(cleaned)) return false;
 
       persistence.record('r3', cleaned);
       const observedAt = observationTime(cleaned);
@@ -839,7 +852,12 @@ function updateWeatherData(attempt = 1, maxAttempts = 3) {
     }
     return false;
   })();
-  const shared = request.finally(() => {
+  const shared = request.catch(error => {
+    // Timer-driven polls have no caller to consume a rejection. In particular,
+    // a queued poll cancelled during shutdown must not interrupt terminal drain.
+    if (!stationQueueClosing) logger.warn('[CURRENT] Poll could not complete: ' + error.message);
+    return false;
+  }).finally(() => {
     if (currentWeatherRequestInFlight === shared) currentWeatherRequestInFlight = null;
   });
   currentWeatherRequestInFlight = shared;
@@ -954,7 +972,12 @@ function fetchDailyDataOnce() {
     }
   }));
 
-  const shared = request.finally(() => {
+  const shared = request.catch(error => {
+    // Both scheduled work and Express 4 routes use this helper. Preserve the
+    // cache and settle cleanly if shutdown cancels their shared queue entry.
+    if (!stationQueueClosing) logger.warn('[DAILY] Poll could not complete: ' + error.message);
+    return '';
+  }).finally(() => {
     if (dailyStationRequestInFlight === shared) dailyStationRequestInFlight = null;
   });
   dailyStationRequestInFlight = shared;
@@ -1492,6 +1515,7 @@ app.get("/ping", (req, res) => {
     databaseBackups: databaseBackups.status(),
     retention: weatherRetention.status(),
     stationClock: stationClock.status(),
+    stationTerminal: stationTerminal.status(),
     systemHealth: systemHealth.snapshot(),
     weatherStationHost: WEATHER_STATION_HOST,
     weatherStationPort: WEATHER_STATION_PORT,
@@ -1517,7 +1541,28 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.listen(PORT, () => {
+const webServer = app.listen(PORT, () => {
   logger.info(`Server running at http://localhost:${PORT}`);
   schedulePolling();
 });
+
+// An active terminal must finish its bounded interrupt/drain before a deploy
+// closes the TCP connection. Prevent waiting automatic polls from starting
+// after that lease is released during shutdown.
+let shutdownStarted = false;
+function shutdown() {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  stationQueueClosing = true;
+  stationClock.stop();
+  historyCollector.stop();
+  const deadline = setTimeout(() => process.exit(0), 10000);
+  deadline.unref();
+  Promise.resolve(stationTerminal.stop()).catch(() => {
+    logger.warn('[TERMINAL] Shutdown cleanup could not complete');
+  }).finally(() => {
+    webServer.close(() => process.exit(0));
+  });
+}
+process.once('SIGTERM', shutdown);
+process.once('SIGINT', shutdown);
