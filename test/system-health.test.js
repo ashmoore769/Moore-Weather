@@ -26,3 +26,22 @@ test('system health separates fresh readings, storage, backups and blocked reten
   assert.equal(health.snapshot().checks.storage.status, 'low');
   assert.equal(health.snapshot().status, 'degraded');
 });
+
+test('clock warnings reach operational health while verified corrections restore it', () => {
+  let now = Date.parse('2026-11-05T12:00:00Z');
+  let clockState = { enabled: true, status: 'checking' };
+  const health = createSystemHealth({ now: () => now, env: { WEATHER_HISTORY_ENABLED: 'false' },
+    persistence: { status: () => ({ enabled: false }), historyStatus: () => ({ ready: false }) },
+    backups: { status: () => ({ enabled: false }) }, retention: { status: () => ({ enabled: false }) },
+    clock: { status: () => clockState }, getObservation: () => now });
+  now += 3 * 60000;
+  clockState = { enabled: true, status: 'warning', driftSeconds: -72, error: 'Station TIME verification did not confirm synchronisation' };
+  assert.equal(health.snapshot().status, 'degraded');
+  assert.equal(health.snapshot().checks.clock.status, 'warning');
+  assert.equal(health.snapshot().checks.clock.driftSeconds, -72);
+  assert.equal(health.snapshot().checks.live.status, 'ok');
+  clockState = { enabled: true, status: 'corrected', driftSeconds: -0.4, lastVerifiedAt: new Date(now).toISOString() };
+  assert.equal(health.snapshot().status, 'ok');
+  assert.equal(health.snapshot().checks.clock.status, 'ok');
+  assert.equal(health.snapshot().checks.clock.lastVerifiedAt, clockState.lastVerifiedAt);
+});

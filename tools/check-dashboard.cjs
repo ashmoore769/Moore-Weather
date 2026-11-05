@@ -92,7 +92,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/daily') return res.end(dailyRecord());
   if (url.pathname === '/ping') {
     res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify({stationObservedAt:new Date(now).toISOString(),lastWeatherPoll:new Date(now).toISOString(),dailyUpToDate:true,dailySummaryDate:expectedReportingDate(now)}));
+    return res.end(JSON.stringify({stationObservedAt:new Date(Math.floor((now + weatherOffset) / 1000) * 1000).toISOString(),lastWeatherPoll:new Date(now).toISOString(),dailyUpToDate:true,dailySummaryDate:expectedReportingDate(now)}));
   }
   if (url.pathname === '/skycam/history') { res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify({images:cameraFrames})); }
   if (url.pathname.startsWith('/skycam/')) {

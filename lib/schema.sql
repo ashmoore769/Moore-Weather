@@ -87,6 +87,18 @@ CREATE TABLE IF NOT EXISTS weather_maintenance_state (
   station_id TEXT NOT NULL REFERENCES stations(id), task TEXT NOT NULL,
   value_json TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(station_id,task)
 ) STRICT;
+-- Clock intents commit before SETTIME; only a fresh verified readback permits
+-- the tightly bounded historical-order exception. Keep this additive for rollback.
+CREATE TABLE IF NOT EXISTS weather_clock_corrections (
+  id TEXT PRIMARY KEY, station_id TEXT NOT NULL REFERENCES stations(id),
+  recorded_at TEXT NOT NULL, station_at TEXT NOT NULL, server_at TEXT NOT NULL,
+  adjustment_ms REAL NOT NULL CHECK(adjustment_ms BETWEEN -300000 AND 300000),
+  verified_at TEXT
+) STRICT;
+CREATE INDEX IF NOT EXISTS weather_clock_pending ON weather_clock_corrections(station_id, recorded_at DESC)
+  WHERE verified_at IS NULL;
+CREATE INDEX IF NOT EXISTS weather_clock_backward ON weather_clock_corrections(station_id, server_at)
+  WHERE verified_at IS NOT NULL AND adjustment_ms < 0;
 CREATE VIEW IF NOT EXISTS weather_readings_raw AS
 SELECT r.station_id, r.stream, r.observed_at, r.local_timestamp, r.interval_start,
        r.reporting_date, f.sensor_key, f.name, f.unit, f.aggregation,

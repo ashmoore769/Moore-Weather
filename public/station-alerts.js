@@ -62,7 +62,7 @@
       const health = await response.json();
       if (!health.checks || typeof health.checks !== 'object') throw Error('System health could not be read.');
       $('systemHealthSummary').textContent = healthStatus(health.status);
-      const labels = {storage:'Storage',backups:'Backups',retention:'Raw weather retention',history:'Saved history',historyGaps:'Saved history',database:'Weather database',live:'Station feed'};
+      const labels = {clock:'Station clock',storage:'Storage',backups:'Backups',retention:'Raw weather retention',history:'Saved history',historyGaps:'Saved history',database:'Weather database',live:'Station feed'};
       $('systemHealthChecks').replaceChildren(...Object.entries(health.checks).map(([name,check]) => {
         const item = document.createElement('li');
         if (!check || typeof check !== 'object') { item.textContent = (labels[name] || name) + ': Unknown'; return item; }
@@ -80,6 +80,10 @@
         }
         if (name === 'database') parts.push('last saved ' + when(check.lastWrite));
         if (name === 'live') parts.push('observed ' + when(check.observedAt));
+        if (name === 'clock') {
+          if (Number.isFinite(check.driftSeconds)) parts.push('station ' + Math.abs(check.driftSeconds).toFixed(1) + 's ' + (check.driftSeconds < 0 ? 'behind' : 'ahead'));
+          if (check.lastVerifiedAt) parts.push('verified ' + when(check.lastVerifiedAt));
+        }
         if (name === 'backups' && check.running) parts.push('backup in progress');
         const gaps = check.completeness || check;
         if (Number.isFinite(gaps.unresolvedGaps)) parts.push(gaps.unresolvedGaps + ' unresolved history gap' + (gaps.unresolvedGaps === 1 ? '' : 's'));

@@ -1122,8 +1122,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <script defer src="/history.js?v=17"></script>
 <link rel="stylesheet" href="/water.css?v=5">
 <link rel="stylesheet" href="/station-shell.css?v=7">
-<script defer src="/station-shell.js?v=6"></script>
-<script defer src="/station-alerts.js?v=7"></script>
+<script defer src="/station-shell.js?v=7"></script>
+<script defer src="/station-alerts.js?v=8"></script>
 <link rel="stylesheet" href="/dashboard.css?v=10">
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/radar.css?v=2">
@@ -1652,18 +1652,17 @@ async function fetchWeather() {
 }
 
 function scheduleNextFetch() {
-    if (refreshTimeout) {
-        clearTimeout(refreshTimeout);
-    }
-    const now = new Date();
-    let delay;
-    if (now.getSeconds() < 20) {
-        delay = (20 - now.getSeconds()) * 1000;
-    } else {
-        delay = ((60 - now.getSeconds()) + 20) * 1000;
-    }
-    refreshTimeout = setTimeout(fetchWeather, delay);
+    clearTimeout(refreshTimeout);
+    // /ping prompts an earlier fetch when the server cache changes. Keep a
+    // fallback if status checks fail; /weather never polls the physical logger.
+    refreshTimeout = setTimeout(fetchWeather, 60000);
 }
+
+window.addEventListener('weather-cache-update', () => {
+    // A status hint must not bypass a failed request's retry backoff. The fetch
+    // function also coalesces hints arriving while a request is already running.
+    if (!document.hidden && retryAttempts === 0) fetchWeather();
+});
 
 function manualFetch() {
     if (refreshTimeout) {

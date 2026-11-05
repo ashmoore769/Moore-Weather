@@ -583,6 +583,16 @@ const historyCollector = require('./lib/weather-history-collector').createHistor
   enabled: process.env.WEATHER_HISTORY_ENABLED === 'true', persistence,
   runTransaction: runStationTransaction, host: WEATHER_STATION_HOST, port: WEATHER_STATION_PORT, logger
 });
+// Enabled by default only on the deployed service. Local runs must opt in to
+// hardware clock writes explicitly; TIME/SETTIME share the same UART queue.
+const stationClock = require('./lib/station-clock').createStationClock({
+  enabled: process.env.WEATHER_CLOCK_SYNC_ENABLED === 'true' ||
+    (IS_RENDER && process.env.WEATHER_CLOCK_SYNC_ENABLED !== 'false'),
+  host: WEATHER_STATION_HOST, port: WEATHER_STATION_PORT, runTransaction: runStationTransaction, logger,
+  recordCorrection: correction => persistence.recordClockCorrection(correction),
+  verifyCorrection: (id, at) => persistence.verifyClockCorrection(id, at),
+  pendingCorrections: () => persistence.pendingClockCorrections()
+});
 const databaseBackups = require('./lib/database-backups').createBackupScheduler(process.env, persistence, logger);
 const weatherRetention = require('./lib/weather-retention').createWeatherRetention(process.env, {
   isReady: () => persistence.status().ready,
@@ -590,7 +600,7 @@ const weatherRetention = require('./lib/weather-retention').createWeatherRetenti
   logger
 });
 const systemHealth = require('./lib/system-health').createSystemHealth({ env: process.env, persistence,
-  backups: databaseBackups, retention: weatherRetention, getObservation: () => observationTime(cachedWeatherData) });
+  backups: databaseBackups, retention: weatherRetention, clock: stationClock, getObservation: () => observationTime(cachedWeatherData) });
 app.get('/api/system-health', (_req, res) => {
   res.set('Cache-Control', 'private, no-store');
   res.json(systemHealth.snapshot());
@@ -1191,6 +1201,9 @@ function scheduleNextDailyFetch() {
 }
 
 function schedulePolling() {
+  // Queue the startup clock check before the first current reading. Later
+  // checks run at 06:05/18:05 Brisbane time, away from the 09:00 daily rollover.
+  stationClock.start();
   waterService.start();
   setTimeout(() => databaseBackups.run(), 90000);
   setInterval(() => databaseBackups.run(), 3600000);
@@ -1478,6 +1491,7 @@ app.get("/ping", (req, res) => {
     water: waterService.status(),
     databaseBackups: databaseBackups.status(),
     retention: weatherRetention.status(),
+    stationClock: stationClock.status(),
     systemHealth: systemHealth.snapshot(),
     weatherStationHost: WEATHER_STATION_HOST,
     weatherStationPort: WEATHER_STATION_PORT,

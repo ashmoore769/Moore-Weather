@@ -41,12 +41,20 @@
       if (response.status === 401) { location.assign('/login'); return; }
       if (!response.ok) throw Error('Status unavailable');
       const data = await response.json(); stationObserved = Date.parse(data.stationObservedAt); polled = Date.parse(data.lastWeatherPoll); failed = false;
+      const displayed = current ? Date.parse(current.dataset.observedAt) : NaN;
+      // A cache change is only a request to fetch the actual readings. Compare
+      // for inequality so a backwards station-clock correction also refreshes.
+      if (!document.hidden && Number.isFinite(displayed) && Number.isFinite(stationObserved) && stationObserved !== displayed) {
+        window.dispatchEvent(new Event('weather-cache-update'));
+      }
     } catch { failed = true; }
     finally { busy = false; paint(); }
   }
   window.addEventListener('weather-reading-update', paint);
   paint(); refresh();
-  setInterval(() => { if (!document.hidden) refresh(); }, 30000);
+  // Current checks the server cache often enough to stay within its freshness
+  // window. These HTTP checks never add physical station polls.
+  setInterval(() => { if (!document.hidden) refresh(); }, current ? 15000 : 30000);
   setInterval(() => { if (!document.hidden) paint(); }, 1000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 })();

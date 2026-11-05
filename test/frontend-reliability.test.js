@@ -14,8 +14,8 @@ const now = Date.parse('2026-11-05T04:30:00Z');
 const values = () => quality.currentSensors.map(key => key === '7' ? 1000 : key === '6' ? 400 : key === '3' ? 50 : key === '21' ? 13.8 : key === '23' ? 10 : key === '32' ? 0 : 20);
 const currentCSV = (time = '14:30:00', v = values()) => ['2026/11/05', time, ...v].join(',');
 
-function browser() {
-  const nodes = new Map(), listeners = new Map(), timers = [];
+function browser({ currentPage = true } = {}) {
+  const nodes = new Map(), listeners = new Map(), timers = [], intervals = [], requests = [];
   const node = id => {
     if (!nodes.has(id)) nodes.set(id, {
       textContent: '', dataset: {}, hidden: false, disabled: false, style: { setProperty() {}, removeProperty() {} },
@@ -23,24 +23,45 @@ function browser() {
     });
     return nodes.get(id);
   };
-  let weather = currentCSV(), failure = false;
+  let weather = currentCSV(), failure = false, pingFailure = false, weatherGate = null;
+  let stationObservedAt = new Date(now).toISOString();
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } }
   const context = vm.createContext({
     console, Date: Clock, Intl, Event, AbortSignal, WeatherQuality: quality,
-    document: { getElementById: node, querySelector: selector => selector === '[data-current-readings]' ? node('weatherData') : null, body: node('body'), addEventListener() {}, hidden: false },
-    setTimeout: (callback, delay) => { timers.push({ callback, delay }); return timers.length; }, clearTimeout() {}, setInterval() {},
+    document: { getElementById: node, querySelector: selector => currentPage && selector === '[data-current-readings]' ? node('weatherData') : null, body: node('body'), addEventListener() {}, hidden: false },
+    setTimeout: (callback, delay) => { timers.push({ callback, delay, active: true }); return timers.length; },
+    clearTimeout: id => { if (timers[id - 1]) timers[id - 1].active = false; },
+    setInterval: (callback, delay) => { intervals.push({ callback, delay }); return intervals.length; },
     location: { assign() { throw Error('Unexpected redirect'); } },
     fetch: async (url, options) => {
       assert.ok(options.signal, 'network requests must be bounded');
-      if (url === '/ping') return { ok: true, json: async () => ({ stationObservedAt: new Date(now).toISOString(), lastWeatherPoll: new Date(now).toISOString() }) };
-      if (failure) throw Error('Network unavailable');
-      return { ok: true, text: async () => weather };
+      requests.push(url);
+      if (url === '/ping') {
+        if (pingFailure) throw Error('Status unavailable');
+        const observed = stationObservedAt;
+        return { ok: true, json: async () => ({ stationObservedAt: observed, lastWeatherPoll: new Date(now).toISOString() }) };
+      }
+      assert.equal(url, '/weather', 'this fixture must only read cached application endpoints');
+      const body = weather, failed = failure;
+      if (weatherGate) await weatherGate;
+      if (failed) throw Error('Network unavailable');
+      return { ok: true, text: async () => body };
     },
   });
   context.window = { addEventListener: (type, fn) => listeners.set(type, fn), dispatchEvent: event => listeners.get(event.type)?.() };
-  vm.runInContext(script.slice(0, script.indexOf('const SKYCAM_ENDPOINT')), context);
+  if (currentPage) vm.runInContext(script.slice(0, script.indexOf('const SKYCAM_ENDPOINT')), context);
   vm.runInContext(fs.readFileSync(require.resolve('../public/station-shell.js'), 'utf8'), context);
-  return { node, context, timers, setWeather: csv => { weather = csv; }, fail: value => { failure = value; }, update: csv => context.updateWeatherData(csv), refresh: () => context.fetchWeather() };
+  return {
+    node, context, timers, intervals, requests,
+    setWeather: csv => { weather = csv; }, fail: value => { failure = value; },
+    setPing: value => { stationObservedAt = value; }, failPing: value => { pingFailure = value; },
+    holdWeather: promise => { weatherGate = promise; },
+    update: csv => context.updateWeatherData(csv), refresh: () => context.fetchWeather(),
+    ping: async () => { intervals.find(timer => timer.delay === (currentPage ? 15000 : 30000)).callback(); await new Promise(setImmediate); },
+    runTimer: async timer => { assert.ok(timer.active); timer.active = false; await timer.callback(); },
+    activeTimer: () => { const active = timers.filter(timer => timer.active); assert.equal(active.length, 1); return active[0]; },
+    weatherRequests: () => requests.filter(url => url === '/weather').length,
+  };
 }
 
 test('Current and Daily quality policy stays identical to the archive configuration', () => {
@@ -84,6 +105,107 @@ test('a successful ping cannot label undisplayed or failed Current readings LIVE
   b.setWeather(currentCSV()); await b.refresh();
   assert.equal(b.node('statusBadge').textContent, '● LIVE');
   assert.equal(b.node('currentReadingStatus').hidden, true);
+});
+
+test('Current checks the server cache every 15 seconds while other pages retain 30-second status checks', async () => {
+  const current = browser(), daily = browser({ currentPage: false });
+  await new Promise(setImmediate);
+  assert.deepEqual(current.intervals.map(timer => timer.delay), [15000, 1000]);
+  assert.deepEqual(daily.intervals.map(timer => timer.delay), [30000, 1000]);
+  await current.ping(); await daily.ping();
+  assert.deepEqual(current.requests, ['/ping', '/ping']);
+  assert.deepEqual(daily.requests, ['/ping', '/ping']);
+});
+
+test('a changed server cache fetches Current promptly but only rendered readings change freshness', async () => {
+  const b = browser();
+  await new Promise(setImmediate);
+  b.setWeather(currentCSV('14:28:00')); await b.refresh();
+  const oldTime = b.node('timeVal').textContent, fallback = b.activeTimer();
+  assert.equal(b.node('statusBadge').textContent, '● DELAYED');
+  assert.equal(fallback.delay, 60000);
+
+  const v = values(); v[3] = 26;
+  b.setWeather(currentCSV('14:30:00', v));
+  let release;
+  b.holdWeather(new Promise(resolve => { release = resolve; }));
+  await b.ping();
+  assert.equal(b.weatherRequests(), 2, 'a different cached timestamp starts a reading fetch');
+  assert.equal(fallback.active, false, 'the in-flight fetch replaces the old fallback');
+  assert.equal(b.node('timeVal').textContent, oldTime);
+  assert.equal(b.node('tempVal').textContent, '20.0°C');
+  assert.equal(b.node('statusBadge').textContent, '● DELAYED');
+  await b.ping();
+  assert.equal(b.weatherRequests(), 2, 'repeated cache hints share the in-flight request');
+
+  release(); await new Promise(setImmediate);
+  assert.equal(b.node('weatherData').dataset.observedAt, '2026-11-05T14:30:00+10:00');
+  assert.equal(b.node('tempVal').textContent, '26.0°C');
+  assert.equal(b.node('statusBadge').textContent, '● LIVE');
+  assert.equal(b.activeTimer().delay, 60000);
+  await b.ping();
+  assert.equal(b.weatherRequests(), 2, 'an already displayed cache does not fetch again');
+});
+
+test('Current accepts a backwards timestamp correction announced by the server cache', async () => {
+  const b = browser();
+  await new Promise(setImmediate);
+  b.setWeather(currentCSV('14:31:00')); await b.refresh();
+  const previous = Date.parse(b.node('weatherData').dataset.observedAt);
+  b.setWeather(currentCSV('14:30:00')); await b.ping();
+  assert.equal(b.weatherRequests(), 2);
+  assert.ok(Date.parse(b.node('weatherData').dataset.observedAt) < previous);
+  assert.equal(b.node('weatherData').dataset.observedAt, '2026-11-05T14:30:00+10:00');
+  assert.equal(b.node('statusBadge').textContent, '● LIVE');
+});
+
+test('cache-change hints preserve Current failure backoff and do not relabel retained readings', async () => {
+  const b = browser();
+  await new Promise(setImmediate);
+  b.setWeather(currentCSV('14:28:00')); await b.refresh();
+  const oldTime = b.node('timeVal').textContent;
+  b.fail(true); await b.ping();
+  assert.equal(b.weatherRequests(), 2);
+  assert.equal(b.node('statusBadge').textContent, '● STALE');
+  assert.equal(b.node('timeVal').textContent, oldTime);
+
+  for (const delay of [1000, 2000, 4000, 8000, 16000, 30000, 30000]) {
+    const retry = b.activeTimer(), requests = b.weatherRequests();
+    assert.equal(retry.delay, delay);
+    await b.ping(); await b.ping();
+    assert.equal(b.weatherRequests(), requests, 'status hints must wait for the scheduled retry');
+    assert.equal(b.activeTimer(), retry, 'a ping must not reset the retry timer');
+    assert.equal(b.node('timeVal').textContent, oldTime);
+    await b.runTimer(retry);
+  }
+
+  b.fail(false); b.setWeather(currentCSV());
+  await b.runTimer(b.activeTimer());
+  assert.equal(b.node('statusBadge').textContent, '● LIVE');
+  assert.equal(b.node('currentReadingStatus').hidden, true);
+  assert.equal(b.activeTimer().delay, 60000);
+});
+
+test('invalid or unavailable status checks leave the independent 60-second Current fallback intact', async () => {
+  const b = browser();
+  await new Promise(setImmediate);
+  b.setWeather(currentCSV('14:28:00')); await b.refresh();
+  const fallback = b.activeTimer();
+  for (const value of [null, '', 'invalid timestamp']) {
+    b.setPing(value); await b.ping();
+  }
+  b.context.document.hidden = true;
+  b.setPing(new Date(now).toISOString()); await b.ping();
+  b.context.document.hidden = false;
+  b.failPing(true); await b.ping();
+  assert.equal(b.weatherRequests(), 1);
+  assert.equal(b.activeTimer(), fallback);
+  assert.equal(b.node('statusBadge').textContent, '● DELAYED');
+  assert.equal(fallback.delay, 60000);
+  b.setWeather(currentCSV()); await b.runTimer(fallback);
+  assert.equal(b.weatherRequests(), 2);
+  assert.equal(b.node('statusBadge').textContent, '● LIVE');
+  assert.equal(b.activeTimer().delay, 60000);
 });
 
 test('a faulty globe or soil sensor never freezes healthy Current readings or creates derived zeroes', async () => {
