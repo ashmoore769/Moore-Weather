@@ -1117,12 +1117,13 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 }
 </style>
 <link href="/history.css?v=6" rel="stylesheet"/>
-<script defer src="/history-chart.js?v=11"></script>
-<script defer src="/history.js?v=16"></script>
+<script src="/sensor-quality.js?v=1"></script>
+<script defer src="/history-chart.js?v=12"></script>
+<script defer src="/history.js?v=17"></script>
 <link rel="stylesheet" href="/water.css?v=5">
-<link rel="stylesheet" href="/station-shell.css?v=6">
-<script defer src="/station-shell.js?v=5"></script>
-<script defer src="/station-alerts.js?v=5"></script>
+<link rel="stylesheet" href="/station-shell.css?v=7">
+<script defer src="/station-shell.js?v=6"></script>
+<script defer src="/station-alerts.js?v=6"></script>
 <link rel="stylesheet" href="/dashboard.css?v=10">
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/radar.css?v=2">
@@ -1161,7 +1162,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
   </div>
   </div>
 </header>
-<main id="weatherData">
+<main id="weatherData" data-current-readings>
+<p class="reading-status" id="currentReadingStatus" role="status" hidden></p>
 <div class="content-layout">
 <section aria-label="Primary weather readings" class="panel-card primary-card layout-primary">
 <div class="temperature-heroes">
@@ -1219,7 +1221,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <div class="current-visuals">
 <div aria-label="SkyCam" class="layout-skycam">
 <div class="skycam-container" title="SkyCam">
-<div class="skycam-badge" id="skycamBadge">SKYCAM · LIVE</div>
+<div class="skycam-badge" id="skycamBadge">SKYCAM · WAITING</div>
 <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
 <div class="skycam-rotate-hint" id="skycamRotateHint" aria-hidden="true">↻ Landscape gives the best view</div>
 <button aria-label="Show older SkyCam image" class="skycam-nav skycam-nav-prev" id="skycamPrev" onclick="stepSkyCam(-1)" type="button">‹</button>
@@ -1229,7 +1231,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 </div>
 <button aria-label="Show newer SkyCam image" class="skycam-nav skycam-nav-next" disabled="" id="skycamNext" onclick="stepSkyCam(1)" type="button">›</button>
 <div class="skycam-caption">
-<span id="skycamTime">LIVE / latest</span>
+<span id="skycamTime">Capture time unavailable</span>
 <div class="skycam-actions" aria-label="SkyCam playback controls">
 <button class="skycam-action" id="skycamTimelapse" type="button" onclick="toggleSkyCamTimelapse()" aria-label="Play the last 24 hours" aria-pressed="false" title="Play the last 24 hours"><span id="skycamTimelapseIcon" aria-hidden="true">▶</span><span class="skycam-action-text" id="skycamTimelapseLabel">Timelapse</span></button>
 <button class="skycam-action" id="skycamDownload" type="button" onclick="downloadSkyCamFrame()" aria-label="Download this SkyCam image" title="Download this image"><span aria-hidden="true">↓</span><span class="skycam-action-text">Download</span></button>
@@ -1495,312 +1497,158 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     let initialLoadComplete = false;
     let refreshTimeout;
     let retryAttempts = 0;
-    const MAX_RETRY_ATTEMPTS = 3;
     const WEATHER_ENDPOINT = "/weather";
 
     /*****************************
     * MAIN UPDATE FUNCTION *
     *****************************/
+    function setCurrentStatus(message = '', kind = 'warning') {
+      const status = document.getElementById('currentReadingStatus');
+      if (!status) return;
+      status.hidden = !message;
+      status.dataset.kind = kind;
+      status.textContent = message;
+    }
+
     function updateWeatherData(data) {
-  console.log("Raw CSV data:", data);
-  const lines = data.replace(/^r3\s*/, "").trim().replace(/,?END$/, "").split(",");
-  console.log("Parsed lines array:", lines);
+      // Parse the whole record before touching the page. A bad sensor becomes
+      // unavailable; the other sensors and this observation still advance.
+      const reading = WeatherQuality.parseCurrent(data);
+      const [windSpeed, windDirDeg, humidityRaw, temperatureRaw, rainInLastMinRaw,
+        solarRad, pressureRaw, gardenBedTemp, batteryVoltageVal, loadCurrent,
+        rawSolarVoltage, chargeCurrent, peakWindGustVal, vectorWindSpeedVal,
+        vectorWindDirVal, rainSince9, evapRate, , dailyEvap, dewPoint,
+        soilTemp10, soilTemp20, soilTemp30, soilTemp40, moisture10Val,
+        moisture20Val, moisture30Val, moisture40Val, blackGlobeTemp] = reading.values;
+      const valid = Number.isFinite;
+      const put = (id, value, precision = 1, suffix = '', color = '') => {
+        const node = document.getElementById(id);
+        if (!node) return;
+        node.textContent = valid(value) ? value.toFixed(precision) + suffix : '--';
+        node.style.color = valid(value) ? color : 'var(--muted)';
+        node.dataset.quality = valid(value) ? 'valid' : 'unavailable';
+        node.title = valid(value) ? '' : 'Reading unavailable or outside the station quality limits';
+      };
+      const putDirection = (id, value) => {
+        document.getElementById(id).textContent = valid(value) ? getWindDirection(value) : '--';
+      };
+      const tempColor = value => valid(value) ? getTemperatureColorAndDesc(value).color : 'var(--muted)';
+      put('windSpeedVal', windSpeed);
+      put('windDirDegVal', windDirDeg);
+      putDirection('windDirTextVal', windDirDeg);
+      put('humidityVal', humidityRaw, 1, '%', valid(humidityRaw) ? getHumidityColor(humidityRaw) : '');
+      put('tempVal', temperatureRaw, 1, '°C', tempColor(temperatureRaw));
+      document.getElementById('tempVal').closest('.temp-hero')?.style.setProperty('--hero-accent', tempColor(temperatureRaw));
+      put('bigTempVal', temperatureRaw, 1, '°C', valid(temperatureRaw) ? '#FFF' : '');
+      document.getElementById('airTempBox').style.backgroundColor = tempColor(temperatureRaw);
 
-  if (lines.length < 31) {
-    const error = new Error(`Incomplete weather data: received ${lines.length} fields, expected at least 31`);
-    console.error(error.message, lines);
-    throw error;
-  }
-      try {
-        // Extract data from CSV indices
-        const dateStr = lines[0];
-        const timeStr = lines[1];
-        const windSpeed = parseFloat(lines[2]);
-        const windDirDeg = parseFloat(lines[3]);
-        const humidityRaw = parseFloat(lines[4]);
-        const temperatureRaw = parseFloat(lines[5]);
-        let rainInLastMinRaw = parseFloat(lines[6]);
-        const solarRadRaw = parseFloat(lines[7]);
-        const pressureRaw = parseFloat(lines[8]);
-        const gardenBedTemp = parseFloat(lines[9]);
-        const batteryVoltageVal = parseFloat(lines[10]);
-        const loadCurrent = parseFloat(lines[11]);
-        const rawSolarVoltage = parseFloat(lines[12]);
-        const chargeCurrent = parseFloat(lines[13]);
-        const peakWindGustVal = parseFloat(lines[14]);
-        const vectorWindSpeedVal = parseFloat(lines[15]);
-        const vectorWindDirVal = parseFloat(lines[16]);
-        const rainSince9 = parseFloat(lines[17]);
-        const evapRate = parseFloat(lines[18]);
-        const dailyEvap = parseFloat(lines[20]);
-        const dewPoint = parseFloat(lines[21]);
-        const soilTemp10 = parseFloat(lines[22]);
-        const soilTemp20 = parseFloat(lines[23]);
-        const soilTemp30 = parseFloat(lines[24]);
-        const soilTemp40 = parseFloat(lines[25]);
-        const moisture10Val = parseFloat(lines[26]);
-        const moisture20Val = parseFloat(lines[27]);
-        const moisture30Val = parseFloat(lines[28]);
-        const moisture40Val = parseFloat(lines[29]);
-        const blackGlobeTemp = parseFloat(lines[30]);
+      // Derived readings are unavailable when one of their inputs is unavailable.
+      const apparent = [temperatureRaw, humidityRaw, windSpeed].every(valid)
+        ? getApparentTemperature(temperatureRaw, humidityRaw, windSpeed) : null;
+      put('feelsLikeVal', apparent, 1, '°C', tempColor(apparent));
+      const feelsNote = document.getElementById('feelsLikeNote');
+      const difference = valid(apparent) ? apparent - temperatureRaw : null;
+      feelsNote.textContent = !valid(apparent) ? 'Waiting for valid temperature, humidity and wind readings'
+        : Math.abs(difference) < .5 ? 'Similar to the air temperature'
+          : `${Math.abs(difference).toFixed(1)}°C ${difference > 0 ? 'warmer' : 'cooler'} than the air`;
+      document.getElementById('feelsLikeBox').setAttribute('aria-label', valid(apparent)
+        ? `Feels like ${apparent.toFixed(1)} degrees Celsius; ${feelsNote.textContent}` : 'Feels like unavailable');
 
-        // Validate the data
-        if (isNaN(windSpeed) || isNaN(windDirDeg) || isNaN(humidityRaw) || isNaN(temperatureRaw) || isNaN(blackGlobeTemp) || isNaN(dewPoint)) {
-          const error = new Error("Invalid numeric values in weather data");
-          console.error(error.message, lines);
-          throw error;
-        }
-
-        // DATE & TIME
-        document.getElementById("weatherData").dataset.observedAt = dateStr.replaceAll("/", "-") + "T" + timeStr + "+10:00";
-
-        // WIND
-        document.getElementById("windSpeedVal").textContent = windSpeed.toFixed(1);
-        document.getElementById("windDirDegVal").textContent = windDirDeg.toFixed(1);
-        document.getElementById("windDirTextVal").textContent = getWindDirection(windDirDeg);
-
-        // HUMIDITY
-        const humidityColor = getHumidityColor(humidityRaw);
-        const humidityFormatted = `<span style="color:${humidityColor}; font-weight:bold;">${humidityRaw.toFixed(1)}%</span>`;
-document.getElementById("humidityVal").innerHTML = humidityFormatted;
-
-        // TEMPERATURE
-        const tempData = getTemperatureColorAndDesc(temperatureRaw);
-        const tempSpan = document.getElementById("tempVal");
-        tempSpan.textContent = temperatureRaw.toFixed(1) + "°C";
-        tempSpan.style.color = tempData.color;
-        tempSpan.closest(".temp-hero")?.style.setProperty("--hero-accent", tempData.color);
-
-        // BOM-style non-radiation apparent temperature: air temperature,
-        // humidity and wind speed. This is a local station estimate.
-        const apparentTemperature = getApparentTemperature(temperatureRaw, humidityRaw, windSpeed);
-        const apparentTempData = getTemperatureColorAndDesc(apparentTemperature);
-        const feelsLikeElement = document.getElementById("feelsLikeVal");
-        const feelsLikeNote = document.getElementById("feelsLikeNote");
-        const feelsLikeBox = document.getElementById("feelsLikeBox");
-        const apparentDifference = apparentTemperature - temperatureRaw;
-
-        feelsLikeElement.textContent = apparentTemperature.toFixed(1) + "°C";
-        feelsLikeElement.style.color = apparentTempData.color;
-
-        if (Math.abs(apparentDifference) < 0.5) {
-          feelsLikeNote.textContent = "Similar to the air temperature";
-        } else {
-          feelsLikeNote.textContent = `${Math.abs(apparentDifference).toFixed(1)}°C ${apparentDifference > 0 ? "warmer" : "cooler"} than the air`;
-        }
-
-        feelsLikeBox.setAttribute(
-          "aria-label",
-          `Feels like ${apparentTemperature.toFixed(1)} degrees Celsius; ${feelsLikeNote.textContent}`
-        );
-
-        // Big Temperature Box: update text and container background color dynamically
-        const bigTempElement = document.getElementById("bigTempVal");
-        bigTempElement.textContent = temperatureRaw.toFixed(1) + "°C";
-        const bigTempContainer = document.getElementById("airTempBox");
-        bigTempContainer.style.backgroundColor = tempData.color;
-        bigTempElement.style.color = "#FFF";
-
-        // RAIN SINCE 9AM
-        document.getElementById("rainSince9Val").textContent = Number.isFinite(rainSince9) ? rainSince9.toFixed(1) : "--";
-
-        // RAIN IN LAST MINUTE
-        if (isNaN(rainInLastMinRaw)) {
-          console.warn("Rain/Last Min is NaN. Defaulting to 0.0 mm");
-          rainInLastMinRaw = 0.0;
-        }
-        let rainInLastMinDisplay = rainInLastMinRaw.toFixed(1) + " mm";
-        if (rainInLastMinRaw >= 0.2) {
-          rainInLastMinDisplay = `<span style="color:var(--rain); font-weight:bold;">${rainInLastMinDisplay}</span>`;
-        }
-        document.getElementById("rainInLastMinVal").innerHTML = rainInLastMinDisplay;
-
-        // SOLAR RADIATION
-        const solarRad = Math.max(0, solarRadRaw);
-        let solarRadColor = solarRad === 0 ? "var(--solar-night)" :
-          solarRad <= 100 ? "var(--solar-low)" :
-          solarRad <= 299 ? "var(--solar-mid)" :
-          solarRad <= 600 ? "var(--solar-moderate)" :
-          solarRad <= 800 ? "var(--solar-high)" :
-          solarRad <= 1100 ? "var(--solar-strong)" : "var(--solar-extreme)";
-        let solarRadDisplay = solarRad.toFixed(1) + " W/m²";
-        if (solarRad > 0) {
-          solarRadDisplay = `<span style="font-weight:bold; color:${solarRadColor};">${solarRadDisplay}</span>`;
-        } else {
-          solarRadDisplay = `<span style="color:${solarRadColor};">${solarRadDisplay}</span>`;
-        }
-        document.getElementById("solarRadVal").innerHTML = solarRadDisplay;
-
-        const globeTempData = getTemperatureColorAndDesc(blackGlobeTemp);
-const globeElem = document.getElementById("blackGlobeTempVal");
-globeElem.innerHTML = `<span style="color:${globeTempData.color}; font-weight:bold;">${blackGlobeTemp.toFixed(1)}°C</span>`;
-globeElem.closest(".temp-hero")?.style.setProperty("--hero-accent", globeTempData.color);
-
-// Radiant Heat Diff Calculation
-const radiantDiff = blackGlobeTemp - temperatureRaw;
-const radiantDiffElem = document.getElementById("radiantDiffVal");
-const radiantDiffBox = document.getElementById("radiantDiffBox");
-
-// Format value with +/- and 1 decimal
-const diffFormatted = (radiantDiff >= 0 ? "+" : "") + radiantDiff.toFixed(1) + "°C";
-radiantDiffElem.textContent = diffFormatted;
-
-// Radiant difference uses the same neutral Conditions styling as other metrics.
-radiantDiffBox.style.backgroundColor = "";
-radiantDiffBox.style.borderColor = "";
-radiantDiffElem.style.color = "";
-
-// Temp Above Dew Point
-const dewDiff = temperatureRaw - dewPoint;
-const dewDiffElem = document.getElementById("dewDiffVal");
-const dewDiffBox = document.getElementById("dewDiffBox");
-const dewRelationText = document.getElementById("dewRelationText");
-
-// Express the absolute margin in plain language underneath dew point.
-const dewFormatted = Math.abs(dewDiff).toFixed(1) + "°C";
-dewDiffElem.textContent = dewFormatted;
-dewRelationText.textContent = dewDiff >= 0 ? "above" : "below";
-
-// Dew margin uses the same neutral Conditions styling as other metrics.
-dewDiffBox.style.backgroundColor = "";
-dewDiffBox.style.borderColor = "";
-dewDiffElem.style.color = "";
-
-
-        // SHALLOW GROUND TEMPERATURE
-        const groundTempElement = document.getElementById("gardenBedTempVal");
-        const groundTempReading = document.getElementById("groundTempReading");
-        const hasGroundTemperature = Number.isFinite(gardenBedTemp);
-        groundTempElement.textContent = hasGroundTemperature ? gardenBedTemp.toFixed(1) : "--";
-
-        if (groundTempReading) {
-          groundTempReading.style.setProperty(
-            "--ground-temp-color",
-            hasGroundTemperature ? getTemperatureColorAndDesc(gardenBedTemp).color : "var(--muted)"
-          );
-          groundTempReading.setAttribute(
-            "aria-label",
-            hasGroundTemperature
-              ? `Ground temperature ${gardenBedTemp.toFixed(1)} degrees Celsius`
-              : "Ground temperature unavailable"
-          );
-        }
-
-        // PRESSURE (with 1.9 hPa offset)
-        let adjustedPressure = pressureRaw - 1.9;
-        let pressureDisplay = adjustedPressure.toFixed(1) + " hPa";
-        if (adjustedPressure >= 1020) {
-          pressureDisplay = `<span style="color:var(--pressure-high); font-weight:bold;">${pressureDisplay}</span>`;
-        }
-        document.getElementById("pressureVal").innerHTML = pressureDisplay;
-
-        // BATTERY
-        const batteryVoltage = batteryVoltageVal.toFixed(1);
-        let batteryColor = batteryVoltageVal < 12.5 ? "var(--battery-bad)" : "var(--battery-good)";
-        let batteryVoltageDisplay = `<span style="color:${batteryColor};">${batteryVoltage} V</span>`;
-        if (batteryVoltageVal >= 13.8) {
-          batteryVoltageDisplay = `<span style="color:var(--battery-good); font-weight:bold;">${batteryVoltage} V</span>`;
-        }
-        document.getElementById("batteryVal").innerHTML = batteryVoltageDisplay;
-
-        // LOAD
-        document.getElementById("loadVal").textContent = loadCurrent.toFixed(1);
-
-        // SOLAR PANEL
-        let solarPanelDisplay = "☀️ " + rawSolarVoltage.toFixed(1) + " V";
-        if (rawSolarVoltage < batteryVoltageVal) {
-          solarPanelDisplay = "🌙 0.0 V";
-        }
-        document.getElementById("solarPanelVal").textContent = solarPanelDisplay;
-
-        // CHARGE
-        let chargeDisplay = chargeCurrent.toFixed(1) + " mA";
-        if (batteryVoltageVal < 13.80) {
-          chargeDisplay = chargeCurrent > loadCurrent
-            ? `<span style="color:var(--battery-good);">${chargeDisplay}</span>`
-            : `<span style="color:var(--battery-bad);">${chargeDisplay}</span>`;
-        }
-        document.getElementById("chargeVal").innerHTML = chargeDisplay;
-
-        // PEAK WIND GUST
-        let peakWindGustDisplay = peakWindGustVal.toFixed(1) + " km/h";
-        if (peakWindGustVal > 25) {
-          peakWindGustDisplay = `<span style="color:var(--red); font-weight:bold;">${peakWindGustDisplay}</span>`;
-        } else if (peakWindGustVal > 10) {
-          peakWindGustDisplay = `<span style="color:var(--gust-warn); font-weight:bold;">${peakWindGustDisplay}</span>`;
-        }
-        document.getElementById("peakWindGustVal").innerHTML = peakWindGustDisplay;
-
-        // VECTOR WIND
-        document.getElementById("vectorWindSpeedVal").textContent = vectorWindSpeedVal.toFixed(1);
-        document.getElementById("vectorWindDirDegVal").textContent = vectorWindDirVal.toFixed(1);
-        document.getElementById("vectorWindDirTextVal").textContent = getWindDirection(vectorWindDirVal);
-
-        // EVAP & DEW POINT
-        document.getElementById("evapRateVal").textContent = evapRate.toFixed(3);
-        document.getElementById("dailyEvapVal").textContent = dailyEvap.toFixed(3);
-        document.getElementById("dewPointVal").textContent = dewPoint.toFixed(1);
-
-        // ENVIROPRO FOUR-CHANNEL SOIL PROFILE
-        updateSoilProfile([
-          { depth: 10, temperature: soilTemp10, moisture: moisture10Val },
-          { depth: 20, temperature: soilTemp20, moisture: moisture20Val },
-          { depth: 30, temperature: soilTemp30, moisture: moisture30Val },
-          { depth: 40, temperature: soilTemp40, moisture: moisture40Val },
-        ]);
-
-        document.body.classList.add("weather-loaded");
-
-      } catch (error) {
-        // Preserve the last good readings and let fetchWeather() handle retry/backoff.
-        console.error("Error parsing or updating data:", error);
-        throw error;
+      put('rainSince9Val', rainSince9);
+      put('rainInLastMinVal', rainInLastMinRaw, 1, ' mm', rainInLastMinRaw >= .2 ? 'var(--rain)' : '');
+      const solarColor = solarRad === 0 ? 'var(--solar-night)' : solarRad <= 100 ? 'var(--solar-low)'
+        : solarRad <= 299 ? 'var(--solar-mid)' : solarRad <= 600 ? 'var(--solar-moderate)'
+          : solarRad <= 800 ? 'var(--solar-high)' : solarRad <= 1100 ? 'var(--solar-strong)' : 'var(--solar-extreme)';
+      put('solarRadVal', solarRad, 1, ' W/m²', solarColor);
+      put('blackGlobeTempVal', blackGlobeTemp, 1, '°C', tempColor(blackGlobeTemp));
+      document.getElementById('blackGlobeTempVal').closest('.temp-hero')?.style.setProperty('--hero-accent', tempColor(blackGlobeTemp));
+      const radiant = [blackGlobeTemp, temperatureRaw].every(valid) ? blackGlobeTemp - temperatureRaw : null;
+      put('radiantDiffVal', radiant, 1, '°C');
+      if (valid(radiant) && radiant >= 0) document.getElementById('radiantDiffVal').textContent = '+' + radiant.toFixed(1) + '°C';
+      const dewDifference = [temperatureRaw, dewPoint].every(valid) ? temperatureRaw - dewPoint : null;
+      put('dewDiffVal', valid(dewDifference) ? Math.abs(dewDifference) : null, 1, '°C');
+      document.getElementById('dewRelationText').textContent = valid(dewDifference) ? (dewDifference >= 0 ? 'above' : 'below') : 'unavailable';
+      for (const id of ['radiantDiffBox', 'dewDiffBox']) {
+        const box = document.getElementById(id);
+        box.style.backgroundColor = ''; box.style.borderColor = '';
       }
+      put('gardenBedTempVal', gardenBedTemp);
+      const ground = document.getElementById('groundTempReading');
+      ground?.style.setProperty('--ground-temp-color', tempColor(gardenBedTemp));
+      ground?.setAttribute('aria-label', valid(gardenBedTemp) ? `Ground temperature ${gardenBedTemp.toFixed(1)} degrees Celsius` : 'Ground temperature unavailable');
+
+      // Keep the established Current-only 1.9 hPa display correction. Screening
+      // happens first against the original station reading, just as in history.
+      const pressure = valid(pressureRaw) ? pressureRaw - 1.9 : null;
+      put('pressureVal', pressure, 1, ' hPa', pressure >= 1020 ? 'var(--pressure-high)' : '');
+      const batteryColor = batteryVoltageVal < 12.5 ? 'var(--battery-bad)' : 'var(--battery-good)';
+      put('batteryVal', batteryVoltageVal, 1, ' V', batteryColor);
+      put('loadVal', loadCurrent);
+      // Below-battery panel voltage retains the established night convention.
+      const panel = document.getElementById('solarPanelVal');
+      put('solarPanelVal', rawSolarVoltage, 1, ' V');
+      if (valid(rawSolarVoltage)) panel.textContent = valid(batteryVoltageVal) && rawSolarVoltage < batteryVoltageVal ? '🌙 0.0 V' : '☀️ ' + rawSolarVoltage.toFixed(1) + ' V';
+      const chargeColor = [chargeCurrent, loadCurrent, batteryVoltageVal].every(valid) && batteryVoltageVal < 13.8
+        ? (chargeCurrent > loadCurrent ? 'var(--battery-good)' : 'var(--battery-bad)') : '';
+      put('chargeVal', chargeCurrent, 1, ' mA', chargeColor);
+      put('peakWindGustVal', peakWindGustVal, 1, ' km/h', peakWindGustVal > 25 ? 'var(--red)' : peakWindGustVal > 10 ? 'var(--gust-warn)' : '');
+      put('vectorWindSpeedVal', vectorWindSpeedVal);
+      put('vectorWindDirDegVal', vectorWindDirVal);
+      putDirection('vectorWindDirTextVal', vectorWindDirVal);
+      put('evapRateVal', evapRate, 3);
+      put('dailyEvapVal', dailyEvap, 3);
+      put('dewPointVal', dewPoint);
+      updateSoilProfile([
+        { depth: 10, temperature: soilTemp10, moisture: moisture10Val },
+        { depth: 20, temperature: soilTemp20, moisture: moisture20Val },
+        { depth: 30, temperature: soilTemp30, moisture: moisture30Val },
+        { depth: 40, temperature: soilTemp40, moisture: moisture40Val },
+      ]);
+      const current = document.getElementById('weatherData');
+      current.dataset.observedAt = reading.observedAt;
+      current.dataset.renderedAt = new Date().toISOString();
+      current.dataset.unavailableSensors = String(reading.unavailable.length);
+      delete current.dataset.fetchError;
+      setCurrentStatus(reading.unavailableNames.length ? 'Unavailable sensor readings: ' + reading.unavailableNames.join(', ') + '. Other readings are shown from the same observation.' : '');
+      document.body.classList.add('weather-loaded');
+      window.dispatchEvent(new Event('weather-reading-update'));
+      return reading;
     }
 
  /*****************************
  * FETCH & AUTO-REFRESH LOGIC *
  *****************************/
-function fetchWeather() {
-    // const statusText = document.getElementById("status");
-    const spinnerContainer = document.getElementById("spinnerContainer");
-    const fetchBtn = document.getElementById("fetchBtn");
-
-    // setStatusBadge("Fetching", "fetching");
-    // if (statusText) statusText.className = "connected";
-    spinnerContainer.style.display = "block";
+let weatherRequestInFlight = false;
+async function fetchWeather() {
+    if (weatherRequestInFlight) return;
+    weatherRequestInFlight = true;
+    clearTimeout(refreshTimeout);
+    const spinnerContainer = document.getElementById('spinnerContainer');
+    const fetchBtn = document.getElementById('fetchBtn');
+    spinnerContainer.style.display = 'block';
     fetchBtn.disabled = true;
-
-    fetch(WEATHER_ENDPOINT)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Server responded with " + response.status);
-            }
-            return response.text();
-        })
-        .then(data => {
-            updateWeatherData(data);
-            // setStatusBadge("Connected", "connected");
-            // if (statusText) statusText.className = "connected";
-            retryAttempts = 0;
-            if (!initialLoadComplete) {
-                initialLoadComplete = true;
-            }
-            // Schedule next fetch at 20 seconds past the minute
-            scheduleNextFetch();
-        })
-        .catch(error => {
-            console.error("Fetch error:", error);
-            retryAttempts++;
-
-            const retryDelay = Math.min(30000, 1000 * Math.pow(2, retryAttempts - 1));
-            console.log(`Fetch failed — retrying in ${retryDelay / 1000}s (attempt ${retryAttempts})`);
-            refreshTimeout = setTimeout(fetchWeather, retryDelay);
-        })
-        .finally(() => {
-            spinnerContainer.style.display = "none";
-            fetchBtn.disabled = false;
-        });
+    try {
+      const response = await fetch(WEATHER_ENDPOINT, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
+      if (response.status === 401) { location.assign('/login'); return; }
+      if (!response.ok) throw new Error('Current readings are temporarily unavailable.');
+      updateWeatherData(await response.text());
+      retryAttempts = 0;
+      initialLoadComplete = true;
+      scheduleNextFetch();
+    } catch (error) {
+      const current = document.getElementById('weatherData');
+      current.dataset.fetchError = 'true';
+      const retained = current.dataset.observedAt ? 'The previous observation is still shown. ' : '';
+      setCurrentStatus(retained + (error.name === 'TimeoutError' || error.name === 'AbortError'
+        ? 'The current-reading request timed out.' : 'The latest readings could not be loaded.') + ' Retrying automatically.', 'error');
+      window.dispatchEvent(new Event('weather-reading-update'));
+      retryAttempts += 1;
+      refreshTimeout = setTimeout(fetchWeather, Math.min(30000, 1000 * 2 ** Math.min(retryAttempts - 1, 5)));
+    } finally {
+      weatherRequestInFlight = false;
+      spinnerContainer.style.display = 'none';
+      fetchBtn.disabled = false;
+    }
 }
 
 function scheduleNextFetch() {
@@ -1839,6 +1687,16 @@ let skycamPlaybackToken = 0;
 let skycamImageLayer = 0;
 let skycamImageTransitionToken = 0;
 let skycamFocusMode = false;
+let skycamDisplayedEntry = null;
+let skycamFollowLive = true;
+let skycamImageError = '';
+let skycamRetryEntryId = null;
+let skycamHistoryError = false;
+let skycamImageLoading = false;
+let skycamSelectionToken = 0;
+let skycamHistoryLoading = false;
+const SKYCAM_FRESH_MS = 25 * 60 * 1000;
+const SKYCAM_IMAGE_TIMEOUT_MS = 12000;
 
 function formatSkyCamTime(isoString) {
   const date = new Date(isoString);
@@ -1857,13 +1715,21 @@ function formatSkyCamTime(isoString) {
 }
 
 function isSkyCamLive() {
-  return skycamHistory.length > 0 && skycamHistoryIndex === skycamHistory.length - 1;
+  if (!skycamDisplayedEntry || !skycamHistory.length) return false;
+  const age = Date.now() - Date.parse(skycamDisplayedEntry.capturedAt);
+  return skycamDisplayedEntry.id === skycamHistory.at(-1).id && age >= -90000 && age <= SKYCAM_FRESH_MS;
 }
 
 function stopSkyCamPlayback(update = true) {
   if (skycamPlaying) {
     skycamPlaying = false;
     skycamPlaybackToken += 1;
+    skycamSelectionToken += 1;
+    skycamImageTransitionToken += 1;
+    skycamImageLoading = false;
+    const layers = getSkyCamImageLayers();
+    layers[skycamImageLayer]?.classList.add('is-active');
+    layers[1 - skycamImageLayer]?.classList.remove('is-active', 'is-entering');
   }
   if (update) updateSkyCamControls();
 }
@@ -1887,12 +1753,13 @@ function updateSkyCamControls() {
 
   const hasHistory = skycamHistory.length > 0;
   const live = isSkyCamLive();
+  const latest = Boolean(skycamDisplayedEntry && skycamDisplayedEntry.id === skycamHistory.at(-1)?.id);
 
   prevBtn.disabled = !hasHistory || skycamHistoryIndex <= 0;
-  nextBtn.disabled = !hasHistory || live;
-  if (liveBtn) liveBtn.disabled = !hasHistory || live;
+  nextBtn.disabled = !hasHistory || latest;
+  if (liveBtn) liveBtn.disabled = !hasHistory || (latest && !skycamImageError);
   if (downloadBtn) {
-    const entry = hasHistory && skycamHistoryIndex >= 0 ? skycamHistory[skycamHistoryIndex] : null;
+    const entry = skycamDisplayedEntry;
     downloadBtn.disabled = !entry || !entry.id;
     downloadBtn.title = entry ? `Download ${entry.id}.jpg` : "Download this image";
   }
@@ -1914,24 +1781,23 @@ function updateSkyCamControls() {
   if (focusLabel) focusLabel.textContent = skycamFocusMode ? "Exit" : "Maximise";
 
   if (badge) {
-    badge.textContent = skycamPlaying
-      ? "SKYCAM · TIMELAPSE"
-      : live
-        ? "SKYCAM · LIVE"
-        : "SKYCAM · HISTORY";
+    const state = skycamPlaying ? 'TIMELAPSE' : skycamImageLoading ? 'LOADING'
+      : !skycamDisplayedEntry ? (skycamImageError || skycamHistoryError ? 'UNAVAILABLE' : 'WAITING')
+        : skycamFollowLive && (!live || skycamImageError || skycamHistoryError) ? 'STALE'
+          : latest && live ? 'LIVE' : 'HISTORY';
+    badge.textContent = 'SKYCAM · ' + state;
   }
-
-  if (!hasHistory || skycamHistoryIndex < 0) {
-    timeLabel.textContent = "LIVE / latest";
-    positionLabel.textContent = "History building...";
-    return;
-  }
-
-  const entry = skycamHistory[skycamHistoryIndex];
-  if (!entry) return;
-
-  timeLabel.textContent = formatSkyCamTime(entry.capturedAt);
-  positionLabel.textContent = `${skycamHistoryIndex + 1} of ${skycamHistory.length}${live ? " · LIVE" : ""}`;
+  const entry = skycamDisplayedEntry;
+  timeLabel.textContent = entry ? formatSkyCamTime(entry.capturedAt) : 'Capture time unavailable';
+  const age = entry ? Date.now() - Date.parse(entry.capturedAt) : NaN;
+  let position = skycamHistoryIndex >= 0 ? `${skycamHistoryIndex + 1} of ${skycamHistory.length}` : entry ? 'Previously loaded image' : 'Waiting for image history';
+  if (entry && skycamFollowLive && age > SKYCAM_FRESH_MS) position += ` · captured ${Math.floor(age / 60000)}m ago`;
+  if (entry && age < -90000) position += ' · check camera clock';
+  if (skycamImageLoading) position += ' · loading image';
+  else if (skycamImageError) position += ' · image unavailable; retrying';
+  else if (skycamHistoryError) position += ' · history unavailable; retrying';
+  else if (latest && live) position += ' · LIVE';
+  positionLabel.textContent = position;
 }
 
 function getSkyCamImageLayers() {
@@ -1951,87 +1817,81 @@ function normalizeSkyCamImageUrl(url) {
 
 async function transitionSkyCamImage(url, durationMs = SKYCAM_FADE_MS) {
   if (!url) return false;
-
   const layers = getSkyCamImageLayers();
   const active = layers[skycamImageLayer];
-  const nextLayerIndex = skycamImageLayer === 0 ? 1 : 0;
+  const nextLayerIndex = 1 - skycamImageLayer;
   const next = layers[nextLayerIndex];
   if (!active || !next) return false;
-
-  const targetUrl = normalizeSkyCamImageUrl(url);
-  if (normalizeSkyCamImageUrl(active.getAttribute("src") || "") === targetUrl) return true;
-
   const transitionToken = ++skycamImageTransitionToken;
-  const loaded = await preloadSkyCamFrame(url);
+  active.classList.add('is-active');
+  next.classList.remove('is-active', 'is-entering');
+  const targetUrl = normalizeSkyCamImageUrl(url);
+  if (active.complete && active.naturalWidth > 0 && normalizeSkyCamImageUrl(active.getAttribute('src') || '') === targetUrl) return true;
+
+  // Load the actual incoming DOM image, not just a separate preloader. This
+  // keeps the timestamp truthful even if a second network request fails.
+  next.style.transitionDuration = '0ms';
+  const loaded = await loadSkyCamImage(next, url);
   if (!loaded || transitionToken !== skycamImageTransitionToken) return false;
-
   const safeDuration = Math.max(0, Number(durationMs) || 0);
-  next.src = url;
-  next.classList.remove("is-active");
-  next.classList.add("is-entering");
-  next.style.transitionDuration = "0ms";
-
-  // Keep the previous frame completely opaque underneath the incoming frame.
-  // Only the new frame fades, which prevents the two opacities dipping together
-  // and briefly exposing the black SkyCam stage on Safari/iOS.
+  next.classList.add('is-entering');
   void next.offsetWidth;
   next.style.transitionDuration = `${safeDuration}ms`;
-
-  await new Promise((resolve) => {
+  await new Promise(resolve => {
     let finished = false;
     const finish = () => {
       if (finished) return;
       finished = true;
-      next.removeEventListener("transitionend", onTransitionEnd);
+      next.removeEventListener('transitionend', onTransitionEnd);
       resolve();
     };
-    const onTransitionEnd = (event) => {
-      if (event.target === next && event.propertyName === "opacity") finish();
-    };
-
-    next.addEventListener("transitionend", onTransitionEnd);
+    const onTransitionEnd = event => { if (event.target === next && event.propertyName === 'opacity') finish(); };
+    next.addEventListener('transitionend', onTransitionEnd);
     window.setTimeout(finish, safeDuration + 90);
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        if (transitionToken !== skycamImageTransitionToken) return finish();
-        next.classList.add("is-active");
-        if (safeDuration === 0) finish();
-      });
-    });
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      if (transitionToken !== skycamImageTransitionToken) return finish();
+      next.classList.add('is-active');
+      if (safeDuration === 0) finish();
+    }));
   });
-
-  if (transitionToken !== skycamImageTransitionToken) {
-    return false;
-  }
-
-  active.classList.remove("is-active");
-  next.classList.remove("is-entering");
+  if (transitionToken !== skycamImageTransitionToken) return false;
+  active.classList.remove('is-active');
+  next.classList.remove('is-entering');
   skycamImageLayer = nextLayerIndex;
   return true;
 }
 
-function showSkyCamHistory(index, options = {}) {
-  if (!skycamHistory.length) return;
+async function showSkyCamHistory(index, options = {}) {
+  if (!skycamHistory.length) return false;
   if (options.manual !== false) stopSkyCamPlayback(false);
-
   const safeIndex = Math.max(0, Math.min(index, skycamHistory.length - 1));
   const entry = skycamHistory[safeIndex];
-  if (!entry) return;
-
-  skycamHistoryIndex = safeIndex;
-  const transitionMs = Number.isFinite(options.transitionMs)
-    ? options.transitionMs
-    : (skycamPlaying ? SKYCAM_TIMELAPSE_FADE_MS : SKYCAM_FADE_MS);
-
-  transitionSkyCamImage(entry.url, transitionMs).catch((error) => {
-    console.error("SkyCam image transition error:", error);
-  });
+  if (!entry) return false;
+  if (options.followLive !== undefined) skycamFollowLive = options.followLive;
+  else if (options.manual !== false) skycamFollowLive = safeIndex === skycamHistory.length - 1;
+  const token = ++skycamSelectionToken;
+  skycamImageLoading = true;
+  skycamImageError = '';
+  skycamRetryEntryId = entry.id;
   updateSkyCamControls();
+  const duration = Number.isFinite(options.transitionMs) ? options.transitionMs : skycamPlaying ? SKYCAM_TIMELAPSE_FADE_MS : SKYCAM_FADE_MS;
+  let loaded = false;
+  try { loaded = await transitionSkyCamImage(entry.url, duration); } catch { loaded = false; }
+  if (token !== skycamSelectionToken) return false;
+  skycamImageLoading = false;
+  if (loaded) {
+    skycamRetryEntryId = null;
+    skycamDisplayedEntry = entry;
+    skycamHistoryIndex = skycamHistory.findIndex(item => item.id === entry.id);
+  } else {
+    skycamImageError = 'Image unavailable';
+  }
+  updateSkyCamControls();
+  return loaded;
 }
 
 function downloadSkyCamFrame() {
-  if (!skycamHistory.length || skycamHistoryIndex < 0) return;
-  const entry = skycamHistory[skycamHistoryIndex];
+  const entry = skycamDisplayedEntry;
   if (!entry || !entry.id) return;
 
   // The authenticated Render endpoint supplies Content-Disposition so Safari,
@@ -2046,19 +1906,13 @@ function downloadSkyCamFrame() {
   link.remove();
 }
 
-function goSkyCamLive(options = {}) {
+async function goSkyCamLive(options = {}) {
   if (options.manual !== false) stopSkyCamPlayback(false);
-
-  if (skycamHistory.length) {
-    showSkyCamHistory(skycamHistory.length - 1, { manual: false });
-    return;
-  }
-
-  transitionSkyCamImage(`${SKYCAM_ENDPOINT}?t=${Date.now()}`, SKYCAM_FADE_MS).catch((error) => {
-    console.error("SkyCam live transition error:", error);
-  });
-  skycamHistoryIndex = -1;
-  updateSkyCamControls();
+  skycamFollowLive = true;
+  if (skycamHistory.length) return showSkyCamHistory(skycamHistory.length - 1, { manual: false, followLive: true });
+  // An unlabelled latest image cannot establish a capture time. Leave the
+  // previous labelled frame visible while the manifest is retried.
+  return refreshSkyCam();
 }
 
 function stepSkyCam(direction) {
@@ -2068,9 +1922,9 @@ function stepSkyCam(direction) {
     return;
   }
 
-  if (skycamHistoryIndex < 0) skycamHistoryIndex = skycamHistory.length - 1;
-  const target = Math.max(0, Math.min(skycamHistoryIndex + direction, skycamHistory.length - 1));
-  showSkyCamHistory(target, { manual: false });
+  const selected = skycamHistoryIndex < 0 ? skycamHistory.length - 1 : skycamHistoryIndex;
+  const target = Math.max(0, Math.min(selected + direction, skycamHistory.length - 1));
+  showSkyCamHistory(target, { manual: false, followLive: target === skycamHistory.length - 1 });
 }
 
 function sampleSkyCamTimelapseIndices() {
@@ -2099,21 +1953,30 @@ function sampleSkyCamTimelapseIndices() {
   return sampled;
 }
 
-function preloadSkyCamFrame(url) {
-  return new Promise((resolve) => {
-    const image = new Image();
-    image.decoding = "async";
-    image.onload = async () => {
-      try {
-        if (typeof image.decode === "function") await image.decode();
-      } catch (error) {
-        // The image is already loaded; decoding hints are best-effort only.
-      }
-      resolve(true);
+function loadSkyCamImage(image, url) {
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = loaded => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      image.removeEventListener('load', onLoad);
+      image.removeEventListener('error', onError);
+      resolve(loaded);
     };
-    image.onerror = () => resolve(false);
+    const onLoad = () => finish(image.naturalWidth > 0);
+    const onError = () => finish(false);
+    const timer = setTimeout(() => finish(false), SKYCAM_IMAGE_TIMEOUT_MS);
+    image.addEventListener('load', onLoad);
+    image.addEventListener('error', onError);
+    image.decoding = 'async';
     image.src = url;
+    if (image.complete && image.naturalWidth > 0) finish(true);
   });
+}
+
+function preloadSkyCamFrame(url) {
+  return loadSkyCamImage(new Image(), url);
 }
 
 function prefetchSkyCamFrames(indices, startAt) {
@@ -2153,10 +2016,9 @@ async function startSkyCamTimelapse() {
     const entry = skycamHistory[historyIndex];
     if (!entry) continue;
 
-    await preloadSkyCamFrame(entry.url);
+    const loaded = await showSkyCamHistory(historyIndex, { manual: false, followLive: false });
     if (!skycamPlaying || token !== skycamPlaybackToken) return;
-
-    showSkyCamHistory(historyIndex, { manual: false });
+    if (!loaded) { stopSkyCamPlayback(); return; }
     prefetchSkyCamFrames(indices, position);
 
     if (position < indices.length - 1) {
@@ -2182,53 +2044,33 @@ function toggleSkyCamTimelapse() {
 }
 
 async function loadSkyCamHistory() {
-  const wasLive = skycamHistoryIndex < 0 || isSkyCamLive();
-  const selectedId = !wasLive && skycamHistory[skycamHistoryIndex]
-    ? skycamHistory[skycamHistoryIndex].id
-    : null;
-  const previousLiveId = isSkyCamLive() && skycamHistory[skycamHistoryIndex]
-    ? skycamHistory[skycamHistoryIndex].id
-    : null;
-
-  const response = await fetch(`${SKYCAM_HISTORY_ENDPOINT}?t=${Date.now()}`, {
-    cache: "no-store",
-  });
-
-  if (response.status === 401) {
-    window.location.assign("/login");
-    return;
+  if (skycamHistoryLoading || skycamPlaying) return;
+  skycamHistoryLoading = true;
+  try {
+    const response = await fetch(`${SKYCAM_HISTORY_ENDPOINT}?t=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+    if (response.status === 401) { window.location.assign('/login'); return; }
+    if (!response.ok) throw new Error(`SkyCam history returned ${response.status}`);
+    const payload = await response.json();
+    const images = Array.isArray(payload.images) ? payload.images : [];
+    skycamHistory = images.filter(entry => entry && entry.id && entry.url && Number.isFinite(Date.parse(entry.capturedAt)))
+      .sort((a, b) => Date.parse(a.capturedAt) - Date.parse(b.capturedAt));
+    skycamHistoryError = false;
+    skycamHistoryIndex = skycamDisplayedEntry ? skycamHistory.findIndex(entry => entry.id === skycamDisplayedEntry.id) : -1;
+    if (!skycamHistory.length) { updateSkyCamControls(); return; }
+    if (skycamFollowLive) {
+      const newest = skycamHistory.length - 1;
+      // A failed attempt never updates displayedEntry, so the same newest ID
+      // will be retried on the next manifest refresh.
+      if (skycamDisplayedEntry?.id !== skycamHistory[newest].id || skycamImageError)
+        await showSkyCamHistory(newest, { manual: false, followLive: true });
+      else updateSkyCamControls();
+    } else if (skycamImageError && skycamHistory.some(entry => entry.id === skycamRetryEntryId)) {
+      await showSkyCamHistory(skycamHistory.findIndex(entry => entry.id === skycamRetryEntryId), {manual:false,followLive:false});
+    } else if (skycamHistoryIndex >= 0) updateSkyCamControls();
+    else await showSkyCamHistory(0, { manual: false, followLive: false });
+  } finally {
+    skycamHistoryLoading = false;
   }
-  if (!response.ok) throw new Error(`SkyCam history returned ${response.status}`);
-
-  const payload = await response.json();
-  const images = Array.isArray(payload.images) ? payload.images : [];
-  skycamHistory = images.filter((entry) => entry && entry.id && entry.url && entry.capturedAt);
-
-  if (!skycamHistory.length) {
-    skycamHistoryIndex = -1;
-    updateSkyCamControls();
-    return;
-  }
-
-  if (wasLive) {
-    const newestIndex = skycamHistory.length - 1;
-    const newestId = skycamHistory[newestIndex].id;
-    skycamHistoryIndex = newestIndex;
-    if (newestId !== previousLiveId) showSkyCamHistory(newestIndex, { manual: false });
-    else updateSkyCamControls();
-    return;
-  }
-
-  const newIndex = skycamHistory.findIndex((entry) => entry.id === selectedId);
-  if (newIndex >= 0) {
-    skycamHistoryIndex = newIndex;
-    updateSkyCamControls();
-    return;
-  }
-
-  // If a very old selected frame has rolled out of the retained history,
-  // remain at the oldest frame still available instead of unexpectedly jumping live.
-  showSkyCamHistory(0, { manual: false });
 }
 
 function applySkyCamFocusState(enabled) {
@@ -2304,21 +2146,23 @@ function toggleSkyCamFocus() {
   }
 }
 
-function refreshSkyCam() {
+async function refreshSkyCam() {
   if (skycamPlaying) return;
-  loadSkyCamHistory().catch((error) => {
-    console.error("SkyCam history error:", error);
+  try { await loadSkyCamHistory(); }
+  catch {
+    skycamHistoryError = true;
     updateSkyCamControls();
-  });
+  }
 }
 
-window.addEventListener("load", () => {
+window.addEventListener('load', () => {
   fetchWeather();
-  loadSkyCamHistory().catch((error) => {
-    console.error("SkyCam history error:", error);
-    updateSkyCamControls();
-  });
+  updateSkyCamControls();
+  refreshSkyCam();
   setInterval(refreshSkyCam, 60000);
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { fetchWeather(); refreshSkyCam(); }
 });
   </script>
 <script>

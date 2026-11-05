@@ -7,7 +7,21 @@ const { METRICS: WEATHER, normalizeRequest } = require('../lib/weather-history')
 const { METRICS: WATER } = require('../lib/water-data');
 const chart = require('../public/history-chart');
 const { historyHealth, expectedDaily } = require('../lib/history-alerts');
+const quality = require('../public/sensor-quality');
+const { expectedReportingDate } = require('../public/daily-summary');
 const HOUR = 3600000, now = Date.now(), end = Math.floor(now / HOUR) * HOUR;
+const screenshotRoot = path.resolve(__dirname, '../artifacts/dashboard');
+const screenshotWidths = new Map([[393, 'phone'], [1440, 'desktop']]);
+async function reviewScreenshot(page, engine, width, view, selector) {
+  if (!screenshotWidths.has(width)) return;
+  fs.mkdirSync(screenshotRoot, {recursive:true});
+  const file = path.join(screenshotRoot, `${engine.name()}-${screenshotWidths.get(width)}-${view}.png`);
+  if (selector) await page.locator(selector).screenshot({path:file,animations:'disabled'});
+  else {
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.screenshot({path:file,animations:'disabled',fullPage:false});
+  }
+}
 const catalog = [...Object.values(WEATHER), ...Object.values(WATER)].map(m => ({ ...m,
   resolutions: m.resolutions || ['10m', 'hourly', 'daily'],
   coverage: Object.fromEntries((m.resolutions || ['10m', 'hourly', 'daily']).map(r => {
@@ -28,6 +42,24 @@ function series(id, resolution, hours, finish = end) {
     points, latest: points.at(-1), missing: 0, note: 'Offline fixture', subtitle: 'Saved readings · AEST' };
 }
 let mode = 'fresh', historyMode = 'fresh', requests = [];
+let currentMode = 'fresh', weatherOffset = 0, skycamFailNewest = false, skycamAttempts = 0;
+const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNU8Y5iYGBgYmBgYGBgAAAJYADNjl9iMQAAAABJRU5ErkJggg==', 'base64');
+const cameraFrames = [
+  {id:'fixture-old', url:'/skycam/fixture-old.jpg', capturedAt:new Date(now - 10 * 60000).toISOString()},
+  {id:'fixture-new', url:'/skycam/fixture-new.jpg', capturedAt:new Date(now - 60000).toISOString()}
+];
+function currentRecord() {
+  const local = new Date(now + weatherOffset + 10 * HOUR).toISOString();
+  const values = quality.currentSensors.map(key => key === '7' ? 1000 : key === '6' ? 400 : key === '3' ? 50 : key === '21' ? 13.8 : key === '23' ? 10 : key === '32' ? 0 : 20);
+  values[3] = currentMode === 'partial' ? 25.7 : 23.4;
+  if (currentMode === 'partial') { values[28] = 'NaN'; values[20] = -100; }
+  return [local.slice(0,10).replaceAll('-', '/'), local.slice(11,19), ...values].join(',');
+}
+function dailyRecord() {
+  const local = new Date(Date.parse(expectedReportingDate(now) + 'T00:00:00Z') + 24 * HOUR).toISOString();
+  const values = Array(41).fill(20); values[34] = values[35] = values[36] = 1000;
+  return [local.slice(0,10).replaceAll('-', '/'), '09:00:00', ...values].join(',');
+}
 function water() {
   const readings = Object.fromEntries(Object.keys(WATER).map(id => [id, { value: id === 'leslie-storage' ? 78.5 :
     id === 'connolly-storage' ? 100 : id === 'connolly-volume' ? 2166 : id === 'leslie-volume' ? 83210 : id === 'condamine-flow' ? 37.2 : id === 'condamine-level' ? 1.668 : 5.34,
@@ -39,6 +71,7 @@ function water() {
   if (mode === 'at') row.value = 7;
   if (mode === 'stale') { row.t = now - HOUR; row.value = 6.8; }
   if (mode === 'missing') readings['condamine-warwick-level'] = null;
+  if (mode === 'invalid-latest') { row.value=6.8; row.lastAvailable=true; row.latestValueAvailable=false; row.latestObservedAt=now; }
   const preview = series('condamine-warwick-level', 'hourly', 168);
   if (mode === 'missing') { preview.points.forEach(p => p.value = null); preview.latest = null; preview.missing = 168; }
   return { catalog: catalog.filter(m => m.water), readings, collector: { enabled: true }, imports: Object.fromEntries(
@@ -48,6 +81,23 @@ function water() {
 const publicRoot = path.resolve(__dirname, '../public');
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
+  // Serve the complete production pages and scripts. Every station/provider
+  // response below is local, including camera image bytes; external traffic is blocked.
+  if (url.pathname === '/weather') {
+    if (currentMode === 'hang') return;
+    if (currentMode === 'error') { res.statusCode=503; return res.end('Fixture unavailable'); }
+    return res.end(currentMode === 'malformed' ? 'broken record' : currentRecord());
+  }
+  if (url.pathname === '/daily') return res.end(dailyRecord());
+  if (url.pathname === '/ping') {
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({stationObservedAt:new Date(now).toISOString(),lastWeatherPoll:new Date(now).toISOString(),dailyUpToDate:true,dailySummaryDate:expectedReportingDate(now)}));
+  }
+  if (url.pathname === '/skycam/history') { res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify({images:cameraFrames})); }
+  if (url.pathname.startsWith('/skycam/')) {
+    if (url.pathname.includes('fixture-new')) { skycamAttempts++; if(skycamFailNewest) {res.statusCode=503;return res.end();} }
+    res.setHeader('Content-Type','image/png'); res.setHeader('Cache-Control','no-store'); return res.end(pixel);
+  }
   if (url.pathname.startsWith('/api/')) {
     res.setHeader('Content-Type', 'application/json');
     if (url.pathname === '/api/alerts/history') {
@@ -55,8 +105,21 @@ const server = http.createServer((req, res) => {
       return res.end(JSON.stringify(historyHealth({enabled:true,ready:true,streams:{
         mem3:new Date(now-(historyMode==='stale'?2*HOUR:10*60000)).toISOString(),
         mem2:new Date(now-HOUR).toISOString(),mem1:new Date(expectedDaily(now)).toISOString()
-      }},now)));
+      },completeness:{checked:true,streams:{
+        mem3:{checked:true,unresolvedGaps:historyMode==='gaps'?2:0,missingIntervals:historyMode==='gaps'?4:0,firstMissingAt:new Date(now-4*HOUR).toISOString(),lastMissingAt:new Date(now-3*HOUR).toISOString()},
+        mem2:{checked:true},mem1:{checked:true}
+      }}},now)));
     }
+    if (url.pathname === '/api/system-health') return res.end(JSON.stringify({checkedAt:new Date(now).toISOString(),status:'degraded',checks:{
+      storage:{status:'ok',freeBytes:4*1024**3,dbBytes:256*1024**2},
+      backups:{status:'pending',lastSuccess:new Date(now-6*HOUR).toISOString(),offsiteConfigured:false,offsiteLastSuccess:null},
+      retention:{status:'waiting-for-backup',days:15,lastRun:null},
+      database:{status:'ok',lastWrite:new Date(now-60000).toISOString()},
+      live:{status:'ok',observedAt:new Date(now).toISOString()},
+      history:{status:'incomplete',completeness:{checked:true,unresolvedGaps:2}}
+    }}));
+    if (url.pathname === '/api/radar' || url.pathname === '/api/forecast') {res.statusCode=503;return res.end(JSON.stringify({error:'Offline fixture'}));}
+    if (url.pathname === '/api/access-request') return res.end(JSON.stringify({enabled:false}));
     if (url.pathname === '/api/alerts/config') return res.end(JSON.stringify({ enabled: false }));
     if (url.pathname === '/api/water') return res.end(JSON.stringify(water()));
     if (url.pathname === '/api/trends') {
@@ -78,11 +141,7 @@ const server = http.createServer((req, res) => {
   if (!file.startsWith(publicRoot + path.sep)) { res.statusCode = 403; return res.end(); }
   try {
     if (file.endsWith('.html')) {
-      let html = fs.readFileSync(file, 'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
-      // Keep real page markup and CSS. Only the changed history layer runs;
-      // live polling, SkyCam, notifications and provider calls are excluded.
-      if (!file.endsWith('forecast.html')) html = html.replace('</body>', '<script src="/history-chart.js"></script><script src="/history.js"></script><script src="/station-alerts.js"></script></body>');
-      else html=html.replace('</body>','<script src="/station-alerts.js"></script></body>');
+      const html = fs.readFileSync(file, 'utf8');
       res.setHeader('Content-Type', 'text/html'); return res.end(html);
     }
     res.setHeader('Content-Type', file.endsWith('.css') ? 'text/css' : file.endsWith('.js') ? 'text/javascript' : file.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream');
@@ -222,13 +281,64 @@ async function visualWindows(page) {
   });
   await page.waitForTimeout(60); await cameraLabels(page);
 }
+async function failurePaths(page) {
+  // A healthy ping must not relabel the last displayed observation after failure.
+  weatherOffset = -HOUR;
+  await page.evaluate(() => fetchWeather());
+  const previousTime = await page.locator('#timeVal').textContent();
+  const previousObservation = await page.locator('#weatherData').getAttribute('data-observed-at');
+  weatherOffset = 0; currentMode = 'error';
+  await page.evaluate(() => fetchWeather());
+  assert.equal(await page.locator('#timeVal').textContent(), previousTime);
+  assert.equal(await page.locator('#weatherData').getAttribute('data-observed-at'), previousObservation);
+  assert.match(await page.locator('#statusBadge').textContent(), /STALE/);
+  assert.match(await page.locator('#currentReadingStatus').textContent(), /previous observation/);
+  currentMode = 'partial'; await page.evaluate(() => fetchWeather());
+  assert.equal(await page.locator('#tempVal').textContent(), '25.7°C');
+  assert.equal(await page.locator('#blackGlobeTempVal').textContent(), '--');
+  assert.equal(await page.locator('#soilTemp10Val').textContent(), '--');
+  assert.equal(await page.locator('#radiantDiffVal').textContent(), '--');
+  assert.match(await page.locator('#statusBadge').textContent(), /PARTIAL/);
+  currentMode = 'hang';
+  await page.evaluate(async () => {
+    const timeout = AbortSignal.timeout;
+    AbortSignal.timeout = ms => timeout.call(AbortSignal, ms === 12000 ? 40 : ms);
+    try { await fetchWeather(); } finally { AbortSignal.timeout = timeout; }
+  });
+  assert.match(await page.locator('#currentReadingStatus').textContent(), /timed out/);
+  assert.equal(await page.locator('#fetchBtn').isDisabled(), false);
+  currentMode = 'fresh'; await page.evaluate(() => fetchWeather());
+  assert.match(await page.locator('#statusBadge').textContent(), /LIVE/);
+  assert.equal(await page.locator('#currentReadingStatus').isVisible(), false);
+
+  await page.evaluate(() => showSkyCamHistory(0, {manual:false,followLive:true,transitionMs:0}));
+  const cameraTime = await page.locator('#skycamTime').textContent();
+  skycamFailNewest = true;
+  await page.evaluate(() => showSkyCamHistory(1, {manual:false,followLive:true,transitionMs:0}));
+  assert.equal(await page.locator('#skycamTime').textContent(), cameraTime);
+  assert.match(await page.locator('#skycamImageStage .is-active').getAttribute('src'), /fixture-old/);
+  assert.match(await page.locator('#skycamBadge').textContent(), /STALE/);
+  const attempts = skycamAttempts;
+  await page.evaluate(() => refreshSkyCam());
+  assert.ok(skycamAttempts > attempts, 'The same failed newest frame must be retried');
+  assert.equal(await page.locator('#skycamTime').textContent(), cameraTime);
+  skycamFailNewest = false; await page.evaluate(() => refreshSkyCam());
+  assert.notEqual(await page.locator('#skycamTime').textContent(), cameraTime);
+  assert.match(await page.locator('#skycamImageStage .is-active').getAttribute('src'), /fixture-new/);
+  await page.evaluate(fixtureNow => {Date.now=()=>fixtureNow+3600000;updateSkyCamControls();}, now);
+  assert.match(await page.locator('#skycamBadge').textContent(), /STALE/);
+  await page.evaluate(fixtureNow => {Date.now=()=>fixtureNow;updateSkyCamControls();}, now);
+}
+
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = 'http://127.0.0.1:' + server.address().port;
   let checked = 0;
   try {
-    for (const engine of [chromium, webkit]) {
-      const browser = await engine.launch();
+    const engines = (process.env.DASHBOARD_BROWSERS || 'chromium,webkit').split(',').map(name => ({chromium,webkit})[name]);
+    assert.ok(engines.every(Boolean), 'DASHBOARD_BROWSERS supports chromium,webkit');
+    for (const engine of engines) {
+      const browser = await engine.launch(engine === chromium && process.env.CHROMIUM_EXECUTABLE ? {executablePath:process.env.CHROMIUM_EXECUTABLE} : {});
       try {
         for (const width of [320, 393, 768, 1024, 1440]) {
           const context = await browser.newContext({ viewport: { width, height: 960 } });
@@ -238,7 +348,6 @@ async function visualWindows(page) {
             Date.now = () => fixtureNow;
             window.__refreshCallbacks = [];
             window.__historyUsage = [];
-            window.mooreAnalytics = { track: (name, data) => window.__historyUsage.push({ name, data }) };
             const original = window.setInterval;
             window.setInterval = (callback, interval, ...args) => {
               if (interval === 60000) window.__refreshCallbacks.push(callback);
@@ -248,11 +357,20 @@ async function visualWindows(page) {
           const page = await context.newPage(), errors = [];
           page.on('pageerror', error => errors.push(error.message));
           for (const pagePath of ['/index.html', '/daily.html']) {
-            mode = 'fresh'; historyMode = 'fresh';
+            mode = 'fresh'; historyMode = 'fresh'; currentMode='fresh'; weatherOffset=0;skycamFailNewest=false;
             await page.goto(origin + pagePath); await ready(page);
-            await page.evaluate(() => document.body.classList.add('weather-loaded'));
+            await page.evaluate(() => {
+              const track = window.mooreAnalytics?.track;
+              window.mooreAnalytics = {track: (name,data) => {window.__historyUsage.push({name,data});track?.(name,data);}};
+            });
+            if (pagePath.includes('index')) await page.waitForFunction(() => document.querySelector('[data-current-readings]').dataset.observedAt && document.querySelector('#skycamBadge').textContent.includes('LIVE'));
+            else await page.waitForFunction(() => document.querySelector('#dailyStatusBadge').textContent.includes('CURRENT'));
             // Desktop uses the app's existing landscape layout class.
             if (width >= 900) await page.evaluate(() => document.body.classList.add('layout-landscape'));
+            // Two representative viewports per browser, with bounded captures
+            // instead of images of every long page in the responsive matrix.
+            await reviewScreenshot(page, engine, width, pagePath.includes('index') ? 'current' : 'daily');
+            if (pagePath.includes('index')) await reviewScreenshot(page, engine, width, 'skycam', '.layout-skycam');
             await page.locator('.local-water').scrollIntoViewIfNeeded();
             await page.waitForTimeout(80);
             await bounds(page, width);
@@ -268,6 +386,7 @@ async function visualWindows(page) {
             assert.equal(await page.locator('#warwickBridgeValue').textContent(), '1.66m (Below Bridge)');
             assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), 'false');
             if (pagePath.includes('index')) {
+              if (width === 393) await failurePaths(page);
               await visualWindows(page);
               assert.match(await page.locator('#powerTrendLabel').textContent(), /24-hour/);
               assert.match(await page.locator('#tempVal').locator('xpath=ancestor::*[contains(@class,"temp-hero")]').locator('.history-spark-caption').textContent(), /24 hours/);
@@ -322,8 +441,19 @@ async function visualWindows(page) {
             await page.locator('#stationAlertsBtn').click();
             assert.match(await page.locator('#alertTitle').textContent(), /river alerts/);
             assert.match(await page.locator('.alert-dialog').textContent(), /0.50m below McCahon/);
+            await page.waitForFunction(() => document.querySelector('#systemHealthChecks').textContent.includes('off-site copy not configured'));
+            assert.match(await page.locator('#systemHealthChecks').textContent(), /2 unresolved history gaps/);
+            assert.match(await page.locator('#systemHealthChecks').textContent(), /Backups: Pending/);
+            assert.match(await page.locator('#systemHealthChecks').textContent(), /Waiting for verified backup/);
+            assert.match(await page.locator('#systemHealthChecks').textContent(), /Saved history: Older gaps remain/);
             const alertBox = await page.locator('.alert-dialog').boundingBox();
             assert.ok(alertBox.x >= -1 && alertBox.x + alertBox.width <= width + 1);
+            if (pagePath.includes('index') && screenshotWidths.has(width)) {
+              await page.locator('#systemHealth summary').click();
+              await page.locator('#systemHealth').scrollIntoViewIfNeeded();
+              await reviewScreenshot(page, engine, width, 'alerts-health', '#systemHealth');
+              await page.locator('#systemHealth summary').click();
+            }
             await page.locator('#alertClose').click();
             await page.waitForFunction(()=>document.getElementById('historyAlertSummary').textContent.includes('up to date'));
             assert.equal(await page.locator('#historyStatus').isVisible(),false);
@@ -338,6 +468,10 @@ async function visualWindows(page) {
             assert.match(await page.locator('#historyFeedStatus').textContent(),/needs attention/);
             assert.match(await page.locator('.alert-dialog').textContent(),/every 15 minutes/);
             await page.locator('#alertClose').click();
+            historyMode='gaps';await page.evaluate(()=>window.__refreshCallbacks.forEach(fn=>fn()));
+            await page.waitForFunction(()=>document.getElementById('historyFeedStatus').textContent.includes('4 missing intervals'));
+            assert.match(await page.locator('#historyFeedStatus').textContent(),/2 unresolved gaps/);
+            assert.match(await page.locator('#historyStatus').textContent(),/unresolved gaps/);
             historyMode='error';await page.evaluate(()=>window.__refreshCallbacks.forEach(fn=>fn()));
             await page.waitForFunction(()=>document.querySelector('#historyStatus p').textContent.includes('unavailable'));
             historyMode='fresh';await page.evaluate(()=>window.__refreshCallbacks.forEach(fn=>fn()));
@@ -356,7 +490,7 @@ async function visualWindows(page) {
           await historyReady(page,'10m',24);
           await page.locator('.history-close').click();
           if (width === 393) {
-            for (const [state, text] of [['watch', '1.00m (Below Bridge)'], ['near', '0.50m (Below Bridge)'], ['above', '0.21m (Above Bridge)'], ['at', '0.00m (At Bridge)'], ['stale', '0.20m (Below Bridge)'], ['missing', 'River reading unavailable']]) {
+            for (const [state, text] of [['watch', '1.00m (Below Bridge)'], ['near', '0.50m (Below Bridge)'], ['above', '0.21m (Above Bridge)'], ['at', '0.00m (At Bridge)'], ['stale', '0.20m (Below Bridge)'], ['invalid-latest', '0.20m (Below Bridge)'], ['missing', 'River reading unavailable']]) {
               mode = state; await page.reload(); await ready(page);
               assert.equal(await page.locator('#warwickBridgeValue').textContent(), text);
               const warning = ['watch','near','above','at'].includes(state);
@@ -365,7 +499,7 @@ async function visualWindows(page) {
                 const style = await page.locator('#warwickBridge').getAttribute('style');
                 assert.match(style, new RegExp('hsl\\(' + (state === 'watch' ? 42 : state === 'near' ? 21 : 0)));
               }
-              if (state === 'stale') assert.match(await page.locator('#warwickBridgeContext').textContent(), /Last available/);
+              if (state === 'stale' || state === 'invalid-latest') assert.match(await page.locator('#warwickBridgeContext').textContent(), /Last available/);
               await bounds(page, width);
             }
             // A failed/stale update must remove warning styling on the existing card.
@@ -384,6 +518,7 @@ async function visualWindows(page) {
         }
       } finally { await browser.close(); }
     }
-    console.log('PASS: ' + checked + ' page/browser/width combinations; four water cards, Connolly history, single-line navigation, matched camera/radar, twenty-four-hour previews, persistent references, bridge states and rainfall inches/peak dates, warning colours, history outage/recovery banners without push permission, and exact 30-day rain comparisons.');
+    console.log('PASS: complete production scripts, failed-reading and failed-image recovery, truthful timestamps, partial sensor faults, bounded requests, health details; ' + checked + ' page/browser/width combinations; four water cards, Connolly history, single-line navigation, matched camera/radar, twenty-four-hour previews, persistent references, bridge states and rainfall inches/peak dates, warning colours, history outage/recovery banners without push permission, and exact 30-day rain comparisons.');
+    console.log('Review screenshots: ' + screenshotRoot + ' (Current, SkyCam, Daily and Alerts health at phone and desktop widths).');
   } finally { server.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

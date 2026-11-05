@@ -229,12 +229,13 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
   </style>
 <link href="/daily.css?v=1" rel="stylesheet"/>
 <link href="/history.css?v=6" rel="stylesheet"/>
-<script defer src="/history-chart.js?v=11"></script>
-<script defer src="/history.js?v=16"></script>
+<script src="/sensor-quality.js?v=1"></script>
+<script defer src="/history-chart.js?v=12"></script>
+<script defer src="/history.js?v=17"></script>
 <link rel="stylesheet" href="/water.css?v=5">
-<link rel="stylesheet" href="/station-shell.css?v=6">
-<script defer src="/station-shell.js?v=5"></script>
-<script defer src="/station-alerts.js?v=5"></script>
+<link rel="stylesheet" href="/station-shell.css?v=7">
+<script defer src="/station-shell.js?v=6"></script>
+<script defer src="/station-alerts.js?v=6"></script>
 <link rel="stylesheet" href="/dashboard.css?v=10">
 <link rel="stylesheet" href="/theme-palette.css?v=1">
 </head>
@@ -277,6 +278,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
           <span id="dailyStatusText">Reading status</span>
         </div></section>
         <div id="errorMessage" class="error-message" role="status"></div>
+        <p class="reading-status" id="dailySensorStatus" role="status" hidden></p>
 
         <section class="daily-section" aria-labelledby="overviewTitle"><div class="section-header"><h2 id="overviewTitle">The day at a glance</h2><span>24-hour highlights</span></div><div class="daily-overview-grid">
           <article class="daily-reading-card temperature-compact" id="airTempSummary" style="--temperature-accent:var(--accent)">
@@ -472,7 +474,7 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 
   <div id="spinnerContainer" class="spinner-container" aria-hidden="true"><div class="spinner"></div></div>
 
-  <script defer src="/daily-summary.js?v=1"></script>
+  <script defer src="/daily-summary.js?v=2"></script>
   <script>
 
 

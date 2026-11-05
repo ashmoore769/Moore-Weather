@@ -31,3 +31,34 @@ test('snapshot exposes independent Scots / Warwick previews and retains bridge l
   assert.match(warwick.note, /Collection continues automatically/);
   assert.doesNotMatch(warwick.note, /Historical imports continue/);
 });
+
+test('an unusable newest water observation marks the fallback as last available until fresh valid data returns', t => {
+  const store = new WaterStore(':memory:'); t.after(() => store.close());
+  const reader = new WaterReader(store.db), id = 'condamine-warwick-level';
+  const sample = (value, time) => ({ metric: id, value, t: time, min: value, max: value,
+    stream: 'point', quality: null, qualityText: 'Unverified', priority: 1, raw: '{}' });
+  assert.equal(reader.snapshot().readings[id], null);
+  store.save([sample(6.8, now - 10 * 60000), sample(null, now - 5 * 60000)],
+    'condamine-warwick-live', { lastSuccess: new Date(now).toISOString(), error: null });
+  const fallback = reader.snapshot().readings[id];
+  assert.equal(fallback.value, 6.8);
+  assert.equal(fallback.t, now - 10 * 60000);
+  assert.equal(fallback.latestObservedAt, now - 5 * 60000);
+  assert.equal(fallback.latestValueAvailable, false);
+  assert.equal(fallback.lastAvailable, true);
+  assert.equal(reader.bridgeObservation().value, null);
+  store.save([sample(0, now)]);
+  const current = reader.snapshot().readings[id];
+  assert.equal(current.value, 0);
+  assert.equal(current.latestObservedAt, now);
+  assert.equal(current.latestValueAvailable, true);
+  assert.equal(current.lastAvailable, false);
+});
+
+test('all-null water data remains unavailable without inventing a number', t => {
+  const store = new WaterStore(':memory:'); t.after(() => store.close());
+  store.save([{ metric: 'condamine-warwick-level', value: null, t: now, min: null, max: null,
+    stream: 'point', quality: null, qualityText: 'Missing', priority: 1, raw: '{}' }]);
+  const reading = new WaterReader(store.db).snapshot().readings['condamine-warwick-level'];
+  assert.equal(reading, null);
+});

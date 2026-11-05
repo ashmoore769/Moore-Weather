@@ -19,6 +19,10 @@ async function createBackup(source, directory, now = new Date()) {
   const compressed = path.join(directory, filename + '.gz.partial');
   const destination = path.join(directory, filename + '.gz');
   if (fs.existsSync(destination) || fs.existsSync(temp) || fs.existsSync(compressed)) throw new Error('Backup destination already exists');
+  const disk = fs.statfsSync(directory);
+  const sourceBytes = fs.statSync(source).size + (fs.existsSync(source + '-wal') ? fs.statSync(source + '-wal').size : 0);
+  if (disk.bavail * disk.bsize < 2 * sourceBytes + 64 * 1024 * 1024) throw new Error('Insufficient free space for a native backup');
+  try {
   const db = new DatabaseSync(source, { readOnly: true, timeout: 10000 });
   try {
     await backup(db, temp);
@@ -34,6 +38,10 @@ async function createBackup(source, directory, now = new Date()) {
   // Retain three verified compressed backups. Never remove other user files.
   for (const old of [...existing, path.basename(destination)].sort().slice(0, -3)) fs.unlinkSync(path.join(directory, old));
   return { created: true, file: path.basename(destination), bytes: fs.statSync(destination).size };
+  } finally {
+    fs.rmSync(temp, { force: true });
+    fs.rmSync(compressed, { force: true });
+  }
 }
 if (require.main === module) {
   const [source, directory] = process.argv.slice(2);

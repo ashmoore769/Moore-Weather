@@ -61,7 +61,7 @@ The API accepts only named measurements, supported resolutions, bounded integer 
 
 `lib/weather-history.js` matches sensor identity, native unit and aggregation across registered layouts. It first selects a bounded timestamp window using `records_time`, then reads only relevant observation fields. It does not scan the archive or contact the EW10. Windows include explicit null slots so gaps are never bridged.
 
-`weather-history-api.js` runs reads in one read-only worker thread so chart rendering requests cannot block the polling event loop. Duplicate requests share a promise. There are at most eight outstanding jobs, 32 cached responses, a 60-second cache lifetime and a 15-second timeout. A failed worker is terminated and can restart after ten seconds. Normal recording and backups retain their existing owner and settings. No schema migration or new environment variables are needed.
+`weather-history-api.js` runs reads in one read-only worker thread so chart rendering requests cannot block the polling event loop. Duplicate requests share a promise. There are at most eight outstanding jobs, 32 cached responses, a 60-second cache lifetime and a 15-second timeout. A failed worker is terminated and can restart after ten seconds. Chart reads remain separate from normal recording and backups. The current release adds backward-compatible history-coverage metadata and a bounded maintenance worker; see [DATABASE.md](DATABASE.md).
 
 ## Verification
 
@@ -78,3 +78,14 @@ Rainfall offers **30 days** at both ten-minute and hourly resolution. That prese
 ### Rainfall display units and peak dates
 
 Millimetres remain the primary stored and displayed unit. The history total and Current page's rain-since-9am card show a muted parenthesised inches conversion (25.4mm = 1 inch), rounded to two decimal places. Missing totals have no conversion; measured zero displays 0.00 in. The highest rainfall reading includes its native recording-period ending date/time in AEST. Ties use the earliest period; interpolated rainfall is excluded from recorded totals and rainfall extremes. The timestamp is not an assertion of the exact moment rain fell within that period.
+
+
+## Saved-history coverage and retention
+
+The dashboard's latest saved timestamp describes freshness. It does not prove that every earlier interval was received. MEM1, MEM2 and MEM3 missing intervals are now tracked in a durable ledger, including across restarts. A later successful download keeps an unresolved earlier gap visible until measured history is imported to fill it. Explicitly labelled interpolations remain estimates and do not mark those intervals as recovered.
+
+Existing archives are checked in bounded background batches after startup. While that check runs, coverage is shown as checking rather than complete. The check covers the supported current-format period and measured endpoints; it excludes conditional MEM4 rainfall events and does not infer data before the first supplied record. No automatic unbounded logger search is performed. A long outage can require a manual download, after which normal imports update the same ledger.
+
+The one-minute R3 cache retains the latest 15 days. Native ten-minute, hourly, daily and rain-event archives remain retained, so historical graphs and summaries keep their original resolutions and records. Cleanup waits for the verified pre-retention backup gate. See [DATABASE.md](DATABASE.md) for exact boundary, source preservation, page reuse and rollback behavior.
+
+Future logger timestamps are quarantined instead of advancing saved-history health. If the logger clock is corrected, valid rows in the same recent-memory tail can resume the archive while the future rows remain isolated for diagnosis.

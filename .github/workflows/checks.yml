@@ -1,7 +1,7 @@
 name: Offline checks
 on:
   push:
-    branches: [main, 'update/water-cards-rainfall-*', 'update/analytics-*', 'update/dashboard-*']
+    branches: [main, 'update/water-cards-rainfall-*', 'update/analytics-*', 'update/dashboard-*', 'update/reliability-*']
 permissions:
   contents: read
 concurrency:
@@ -39,3 +39,12 @@ jobs:
 
       - name: Check analytics and privacy controls
         run: node tools/check-analytics.cjs
+
+      - name: Save dashboard review screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dashboard-review
+          path: artifacts/dashboard/
+          if-no-files-found: warn
+          retention-days: 7

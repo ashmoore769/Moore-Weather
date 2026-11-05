@@ -122,3 +122,12 @@ body { -webkit-text-size-adjust:100%; }
   .history-status { margin:10px 12px 0; padding:10px 12px; align-items:flex-start; flex-wrap:wrap; }
   .history-status p { flex:1 1 210px; }
 }
+
+.reading-status { margin: 8px 0 14px; padding: 10px 12px; border: 1px solid var(--amber); border-radius: 10px; color: var(--text); background: var(--surface); font-size: .85rem; line-height: 1.45; }
+.reading-status[hidden] { display: none; }
+.reading-status[data-kind="error"] { border-color: var(--red); }
+.system-health { margin-top: 12px; font-size: .85rem; }
+.system-health summary { cursor: pointer; font-weight: 700; }
+.system-health ul { padding-left: 18px; margin: 8px 0; }
+.system-health li { margin: 5px 0; line-height: 1.4; }
+.system-health .health-time { color: var(--muted); font-size: .8rem; }

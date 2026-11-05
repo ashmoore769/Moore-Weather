@@ -155,16 +155,41 @@ WHERE station_id = 'moore-weather'
 ORDER BY observed_at;
 ```
 
-Do not copy an actively written `.sqlite` file alone: committed data may still be in its WAL sidecar. Use the backup command. A verified initial snapshot is saved in `data/backups/`; keep another copy off this PC for disaster recovery. No retention policy deletes historical observations.
+Do not copy an actively written `.sqlite` file alone: committed data may still be in its WAL sidecar. Use the backup command. A verified initial snapshot is saved in `data/backups/`; keep another copy off this PC for disaster recovery. The one-minute R3 cache now has a rolling 15-day retention policy, described below. MEM1, MEM2, MEM3, MEM4 and water archives are preserved.
 
 ## Optional app recording and production hosting
 
 `WEATHER_DB_PATH` is blank by default. Setting it to `data/weather.sqlite` enables recording of **the existing R3 and memory 1 polls** and restores their last unambiguous, numerically valid records after restart. It does not start an additional polling process. Database failures are logged and exposed in the authenticated `/ping` response while the live dashboard continues operating. Failed writes are not replayed automatically; unresolved failures can leave gaps.
 
-`WEATHER_HISTORY_ENABLED=true` enables bounded recent-history downloads through the same station queue: memory 3 every ten minutes, memory 2 hourly, memory 4 every five minutes and memory 1 every six hours. Requests are staggered, with at most one history request per minute. They use `MEM n LAST 8` (eight kilobytes), or four kilobytes for memory 1, rather than a full-memory search. Replies require a completion marker and valid chronological rows before import; a 20-second deadline and 32 KB response cap limit failures. Overlapping records deduplicate. A missing overlap is reported in `/ping` and logs; long outages may still require a manually downloaded history file.
+`WEATHER_HISTORY_ENABLED=true` enables bounded recent-history downloads through the same station queue: memory 3 every ten minutes, memory 2 hourly, memory 4 every five minutes and memory 1 every six hours. Requests are staggered, with at most one history request per minute. They use `MEM n LAST 8` (eight kilobytes), or four kilobytes for memory 1, rather than a full-memory search. Replies require a completion marker and valid chronological rows before import; a 20-second deadline and 32 KB response cap limit failures. Overlapping records deduplicate. Missing periodic intervals are recorded durably and reported in `/ping`, even after later downloads overlap successfully. Long outages may still require a manually downloaded history file. The collector does not issue an unbounded recovery search.
 
 The owner approved a 5 GB persistent disk on 11 October 2026 at US$1.25/month, mounted at `/var/data`. The initial transfer passed compressed and uncompressed SHA-256 comparisons, integrity and foreign-key checks, and the expected measurement count. Production recording is enabled with `WEATHER_DB_PATH=/var/data/weather.sqlite`. The adapter only enables writes beneath that actual persistent mount and refuses to create an empty initial database. Local recording remains disabled in this PC's private `.env`.
 
-Set `WEATHER_BACKUP_DIR=/var/data/backups` for automatic native SQLite backups, with integrity and foreign-key checks before gzip compression. The scheduler checks hourly, creates a backup when the last one is at least 23 hours old and retains three completed compressed copies. Backup work runs in a separate process. These backups share the database disk: retain the verified PC copy and periodically download a recent backup for independent disaster recovery. Render disk snapshots are not a substitute for consistent SQLite backups.
+Set `WEATHER_BACKUP_DIR=/var/data/backups` for the backup coordinator. The current backup, encryption, offsite verification and restore procedure is in [OPERATIONS.md](OPERATIONS.md). The first retention prune remains blocked until the coordinator confirms its verified pre-retention checkpoint and required offsite acknowledgment. A local copy alone is not evidence that offsite recovery is available. Render disk snapshots are not a substitute for consistent SQLite backups.
 
 Only one application process should own station polling. All enabled history requests share the existing server queue. The manually run inspection tool is bounded and allows only the listed read commands; do not run it as a second recurring poller beside Render.
+
+
+## One-minute R3 retention
+
+The owner approved a rolling **15-day** window for R3 on 5 November 2026. The cutoff is an exact UTC instant, `now - 15 × 24 hours`; a record exactly at the cutoff is kept. This applies only to `records.stream='r3'`. Daily, hourly, ten-minute, conditional rain, diagnostic and water archives are not pruned.
+
+`lib/weather-retention.js` exposes `createWeatherRetention(env, { isReady, canPrune, logger, now })`, with `run()`, `status()` and `close()`. The server supplies the backup coordinator's verified checkpoint gate. The worker asks the parent to recheck that gate before **each** deletion batch and defaults to denying deletion. Coverage auditing can run while deletion is blocked.
+
+The worker deletes at most 100 R3 records in each transaction, including their measurements and source links. It preserves any record referenced by an estimate. Source bytes are removed only when no retained record links to that source. An R3 source containing recent rejected rows stays available for diagnosis; orphaned rejected R3 sources expire 15 days after receipt. Source cleanup also has a bounded candidate scan and a persisted cursor. Non-R3 sources and rejected rows are not removed.
+
+A pass has a two-second work budget, at most ten deletion batches and a yield between batches. It uses a separate worker thread and a 50 ms SQLite busy timeout; contention is retried on a later scheduled pass. The application event loop does not run the cleanup queries. Coverage bootstrap scans are also bounded, with short transactions, and never contact the logger.
+
+SQLite makes deleted pages available for reuse. The database file does **not** immediately shrink on disk, and this job never runs a full `VACUUM`. The `pages.reusableBytes` status value records the available internal space. The next readings reuse that space, as verified by the real-database regression test. A one-off physical compaction, if later required for disk headroom, needs a separate planned maintenance procedure with a verified backup and sufficient temporary space.
+
+## Clock quarantine and history completeness
+
+Live R3/MEM1 recording and recent-memory imports quarantine rows more than 90 seconds ahead of their receipt time. The original source bytes and a reason remain in `rejected_rows`; such rows do not enter the live archive. A mixed logger tail can contain future rows followed by correctly dated rows after a clock correction. The valid subset is checked for chronological order and imported, so the collector can recover immediately. Older future rows already in a database remain preserved but are excluded from cache restoration and the latest saved-history timestamp.
+
+`weather_history_gaps` records missing intervals between measured MEM1, MEM2 and MEM3 timestamps. Importing a missing measured record splits or resolves its gap atomically with the import. A successful later overlapping download does not erase an earlier hole; an interpolation is not a recovered measurement. MEM4 is conditional and has no regular-interval completeness check. Deliberately excluded pre-current-format history is outside this check.
+
+`weather_history_audits` tracks a bounded audit of an existing archive. On restart, the audit is reset and reconciles any changes made by older code or an offline importer. Existing gap warnings remain durable while the audit runs. `historyStatus().completeness.checked` remains false until the scan finishes. `complete` means no tracked missing interval between measured endpoints in the supported period; it does not prove that unknown periods before the first supplied record exist. Freshness and completeness are separate health concepts.
+
+The metadata tables and supporting indexes are additive, and `PRAGMA user_version` stays at 3. Previous application code can therefore reopen the database without a destructive migration. Rolling back code cannot restore pruned R3 data; that requires restoring the verified pre-retention checkpoint. Restoring a checkpoint also restores its point-in-time observations, so preserve newer production data before undertaking a data rollback.
+
+Regression command: `node --test test/weather-maintenance.test.js test/weather-store.test.js test/weather-deployment.test.js test/weather-history.test.js`. These tests use real temporary SQLite databases and do not contact the station.

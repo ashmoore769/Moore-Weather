@@ -31,7 +31,8 @@ SkyCam images and its persistent history manifest originate on Vultr. Render req
 | `PORT` | HTTP listener; default 10000 |
 | `WEATHER_DB_PATH`, `WEATHER_DB_LAYOUT` | Optional SQL database path and verified layout override; blank disables recording |
 | `WEATHER_HISTORY_ENABLED` | Enables bounded recent-memory collection through the existing queue |
-| `WEATHER_BACKUP_DIR` | Enables three rotating, verified compressed native SQLite backups |
+| `WEATHER_BACKUP_DIR` | Enables three recent complete encrypted recovery bundles and the pre-retention checkpoint |
+| `WEATHER_BACKUP_ENCRYPTION_KEY` | Optional separate recovery secret; defaults to the existing cookie secret; preserve original keys when rotating |
 
 Production secrets are not in the current Git tree. Keep recovered values in the ignored local `.env`, never in documentation or source control. Do not replace production authentication values merely to start a local development copy.
 
@@ -57,7 +58,7 @@ Use Node 24.14 or later in the 24 release line as declared in `package.json`. Re
 
 The collector downloads recent kilobytes only, deduplicates overlaps and logs incomplete replies or missing overlap. It never runs a multi-month memory search. Ten-minute history is checked every ten minutes, hourly history hourly, rainfall events every five minutes, and daily history every six hours in addition to the existing 09:10 request. A failed download retries after five minutes instead of waiting the full normal interval; malformed rows are rejected with a bounded diagnostic excerpt. On each scheduler tick at most one history request is added. The EW10 connection is shared with current/daily polling through the same queue.
 
-Backups run in a child process, verify native SQLite copies and keep three compressed files under `/var/data/backups`. These protect against some application mistakes but share the disk; the verified PC snapshot is the initial independent copy. Periodic off-Render copies and long-outage catch-up remain operational follow-up work. Do not use Render disk snapshot rollback as the primary SQLite recovery method.
+Backups run in a child process and now include weather/water data, push-alert/device state and the access-request queue. Native SQLite copies are verified, compressed and encrypted; three recent complete bundles and the initial pre-retention checkpoint remain under `/var/data/backups`. The GitHub backup workflow stores encrypted artifacts off Render daily, with 30-day retention and an acknowledged SHA-256 checksum. The initial rolling 15-day R3 cleanup stays blocked until that checkpoint is offsite. See [reliability update](RELIABILITY-UPDATE.md) for recovery keys, safe restore commands and rollback limitations. Long outages remain visible as durable gaps and can require manual logger backfill. Do not use Render disk snapshot rollback as the primary SQLite recovery method.
 
 Check `/ping` for `database.ready`, `database.lastWrite`, each history feed's last success/error/warning and `databaseBackups`. Database errors leave the current dashboard working but require attention to avoid collection gaps. Stop only history collection with `WEATHER_HISTORY_ENABLED=false`; blank `WEATHER_DB_PATH` disables all SQL recording without deleting the database. Do not delete/recreate the disk or overwrite a live database for rollback. Preserve a native backup before any future repair.
 

@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  const quality = typeof module !== 'undefined' && module.exports ? require('./sensor-quality') : globalThis.WeatherQuality;
   // MEM 1 is a completed 9 AM–9 AM weather day. Use UTC only as calendar
   // arithmetic here so the visitor's timezone cannot change its reporting day.
   function parseSummary(csv) {
@@ -10,10 +11,8 @@
     const [year, month, day] = date.split('/').map(Number);
     const end = Date.UTC(year, month - 1, day);
     if (new Date(end).toISOString().slice(0,10) !== date.replaceAll('/','-')) throw new Error('The station summary has an invalid date.');
-    const values = raw.map(value => value.trim() !== '' && Number.isFinite(Number(value)) ? Number(value) : null);
-    // Preserve stored values. The presentation floor matches Current and history.
-    for (const index of [15,37]) if (values[index] !== null) values[index] = Math.max(0, values[index]);
-    return { values, start: end - 86400000, end, reportingDate: new Date(end - 86400000).toISOString().slice(0,10) };
+    const screened = quality.screenValues(raw, quality.dailySensors);
+    return { ...screened, start: end - 86400000, end, reportingDate: new Date(end - 86400000).toISOString().slice(0,10) };
   }
   const format = (value, precision = 1) => value === null || !Number.isFinite(value) ? '—' : value.toFixed(precision);
   const direction = value => value === null ? '—' : ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(((value % 360 + 360) % 360) / 22.5) % 16];
@@ -67,6 +66,11 @@
     });
     set('summaryForDay', dateLabel.format(next.start));
     set('summaryPeriod', `9 AM ${shortDate.format(next.start)} → 9 AM ${shortDate.format(next.end)} · AEST`);
+    const issue = $('dailySensorStatus');
+    if (issue) {
+      issue.hidden = !next.unavailableNames.length;
+      issue.textContent = next.unavailableNames.length ? 'Unavailable sensor readings: ' + next.unavailableNames.join(', ') + '. Other daily readings remain available.' : '';
+    }
     $('errorMessage').style.display = 'none';
     paintStatus();
   }

@@ -165,3 +165,56 @@ test('history health is available without push support and exposes no subscriber
   assert.equal(result.feeds.length, 3);
   assert.doesNotMatch(JSON.stringify(result), /endpoint|publicKey|vapid|p256dh/);
 });
+
+function withGap(snapshot, { checked = true, missing = 2 } = {}) {
+  return { ...snapshot, completeness: { checked, complete: checked && missing === 0, unresolvedGaps: missing ? 1 : 0,
+    streams: Object.fromEntries(['mem3', 'mem2', 'mem1'].map(stream => [stream, { checked,
+      unresolvedGaps: stream === 'mem3' && missing ? 1 : 0, missingIntervals: stream === 'mem3' ? missing : 0,
+      firstMissingAt: stream === 'mem3' && missing ? '2026-11-01T21:50:00.000Z' : null,
+      lastMissingAt: stream === 'mem3' && missing ? '2026-11-01T22:00:00.000Z' : null }])) } };
+}
+
+test('older gaps stay visible while fresh feeds stop recurring notifications across restarts', async t => {
+  const f = setup(t); f.alerts.subscribe(sub());
+  const health = historyHealth(withGap(fresh(f.now())), f.now());
+  assert.equal(health.incomplete, true); assert.equal(health.delayed, false); assert.equal(health.complete, false);
+  assert.equal(health.feeds[0].stale, false); assert.equal(health.feeds[0].missingIntervals, 2);
+  assert.match(health.summary, /up to date/); assert.match(health.summary, /unresolved gaps/);
+  await f.alerts.history.tick(withGap(fresh(f.now())));
+  f.restart(); f.advance(REPEAT_MS);
+  await f.alerts.history.tick(withGap(fresh(f.now()), { missing: 1 }));
+  assert.equal(f.sent.length, 0);
+  await f.alerts.history.tick(withGap(fresh(f.now(), { mem3: staleTen })));
+  assert.equal(f.sent.length, 1);
+  assert.match(f.sent[0].payload.body, /2 missing intervals/);
+  assert.match(f.sent[0].payload.body, /2026-11-01/);
+  assert.equal(f.sent[0].payload.kind, 'history-missing');
+  await f.alerts.history.tick(withGap(fresh(f.now()), { missing: 1 }));
+  assert.equal(f.sent[1].payload.kind, 'history-recovered');
+  assert.match(f.sent[1].payload.body, /Older archive gaps remain/);
+  assert.doesNotMatch(f.sent[1].payload.body, /no tracked gaps/i);
+  f.restart(); f.advance(REPEAT_MS);
+  await f.alerts.history.tick(withGap(fresh(f.now()), { missing: 1 }));
+  assert.equal(f.sent.length, 2);
+  await f.alerts.history.tick(withGap(fresh(f.now()), { missing: 0 }));
+  assert.equal(f.sent.length, 2);
+  assert.equal(historyHealth(withGap(fresh(f.now()), { missing: 0 }), f.now()).complete, true);
+});
+
+test('current-feed recovery during an unfinished coverage audit does not claim complete history', async t => {
+  const f = setup(t); f.alerts.subscribe(sub());
+  await f.alerts.history.tick(withGap(fresh(f.now(), { mem3: staleTen })));
+  const pending = withGap(fresh(f.now()), { missing: 0, checked: false });
+  const health = historyHealth(pending, f.now());
+  assert.equal(health.delayed, false); assert.equal(health.checking, true); assert.equal(health.complete, false);
+  assert.match(health.summary, /completeness is not yet confirmed/);
+  await f.alerts.history.tick(pending);
+  assert.equal(f.sent.length, 2);
+  assert.equal(f.sent[1].payload.kind, 'history-recovered');
+  assert.match(f.sent[1].payload.body, /coverage is still being checked/);
+  assert.doesNotMatch(f.sent[1].payload.body, /no tracked.*gaps/i);
+  f.restart(); f.advance(REPEAT_MS);
+  await f.alerts.history.tick(withGap(fresh(f.now()), { missing: 0, checked: false }));
+  await f.alerts.history.tick(withGap(fresh(f.now()), { missing: 0 }));
+  assert.equal(f.sent.length, 2);
+});

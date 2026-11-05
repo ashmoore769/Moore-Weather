@@ -575,7 +575,7 @@
     }
     if (!pointers.size) {
       const s = activeSeries, t = s.start + plotFraction(event.clientX) * (s.end - s.start);
-      inspect(Math.round((t - (s.points[0]?.t || s.start)) / (s.intervalSeconds * 1000)));
+      inspect(WeatherChart.nearestPointIndex(s.points, t));
     }
   });
   function finishPointer(event) {
@@ -587,7 +587,7 @@
     if (pendingWindow) commitNavigation();
     else if (!moved && activeSeries && chartGeometry) {
       const s = activeSeries, t = s.start + plotFraction(event.clientX) * (s.end - s.start);
-      inspect(Math.round((t - (s.points[0]?.t || s.start)) / (s.intervalSeconds * 1000)));
+      inspect(WeatherChart.nearestPointIndex(s.points, t));
     }
   }
   chart.addEventListener('pointerup', finishPointer);
@@ -647,7 +647,7 @@
       badge.style.removeProperty('--bridge-warning-colour'); badge.style.removeProperty('--bridge-warning-tint');
     }
     badge.dataset.state = !difference ? 'unavailable' : stale ? 'stale' : difference.difference > 0 ? 'below' : difference.difference < 0 ? 'above' : 'at';
-    $('warwickBridgeContext').textContent = (difference && stale ? 'Last available · ' : '') +
+    $('warwickBridgeContext').textContent = (difference && stale ? (lastBridgeReading?.lastAvailable ? 'Last available; newest observation unavailable · ' : 'Last available · ') : '') +
       (lastBridgeReference ? lastBridgeReference.name + ' · ' + lastBridgeReference.level.toFixed(2) + 'm gauge reference' : 'McCahon Bridge · awaiting reference');
   }
   const waterResize = new ResizeObserver(entries => {
@@ -664,11 +664,11 @@
       const data = await getJson('/api/water', AbortSignal.timeout(20000));
       for (const [element, id] of waterBindings) {
         const row = data.readings[id];
-        $(element).textContent = row ? row.value.toLocaleString('en-AU', { maximumFractionDigits: data.catalog.find(m => m.id === id).precision }) : '—';
+        $(element).textContent = Number.isFinite(row?.value) ? row.value.toLocaleString('en-AU', { maximumFractionDigits: data.catalog.find(m => m.id === id).precision }) : '—';
         const updated = $(element + 'Time');
         if (updated) updated.textContent = id.startsWith('connolly-') ?
-          (row ? 'Council report · ' + fullDateFormat.format(row.t) + (Date.now() - row.t > 14 * 86400000 ? ' · awaiting newer report' : '') : 'Awaiting council report') :
-          row ? (Date.now() - row.t > (id === 'condamine-warwick-level' ? 30 * 60000 : 3 * 3600000) ? 'Last available · ' : 'Updated · ') + stamp(row.t) : 'Awaiting source readings';
+          (Number.isFinite(row?.value) ? (row.lastAvailable ? 'Last available council report · ' : 'Council report · ') + fullDateFormat.format(row.t) + (row.lastAvailable ? ' · latest report unavailable' : Date.now() - row.t > 14 * 86400000 ? ' · awaiting newer report' : '') : 'Awaiting council report') :
+          Number.isFinite(row?.value) ? (row.lastAvailable || Date.now() - row.t > (id === 'condamine-warwick-level' ? 30 * 60000 : 3 * 3600000) ? 'Last available · ' : 'Updated · ') + stamp(row.t) + (row.lastAvailable ? ' · newest observation unavailable' : '') : 'Latest source reading unavailable';
         const entry = cards.find(c => c.metric === id), series = data.series.find(s => s.metric.id === id);
         if (entry && series) drawSpark(entry, series);
         else if (entry) { entry.spark.querySelector('svg').replaceChildren(); entry.spark.querySelector('.history-spark-caption span').textContent = 'Explore recorded history'; }

@@ -110,7 +110,7 @@ const logger = winston.createLogger({
 const app = express();
 app.set("trust proxy", 1);
 app.use(cors());
-app.use(express.urlencoded({ extended: false, limit: "2kb" }));
+app.use(express.urlencoded({ extended: false, limit: "2kb", inflate: false }));
 
 /* =========================================================
    SHARED-PASSWORD AUTHENTICATION
@@ -456,6 +456,20 @@ function handleLogout(req, res) {
 app.get("/logout", handleLogout);
 app.post("/logout", handleLogout);
 
+// Public operational endpoints contain no weather readings or private state.
+// The backup endpoints have their own strict GitHub workflow identity check;
+// they can export authenticated ciphertext only, never database plaintext.
+app.get('/healthz', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ status: 'ok', version: require('./package.json').version, commit: process.env.RENDER_GIT_COMMIT || null });
+});
+app.get('/health/monitor', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const status = systemHealth.snapshot().status;
+  res.status(status === 'degraded' ? 503 : 200).json({ status: status === 'starting' ? 'ok' : status });
+});
+require('./lib/backup-auth').mountBackupRoutes(app, { getScheduler: () => databaseBackups, logger });
+
 app.use((req, res, next) => {
   const payload = authenticatedPayload(req);
 
@@ -570,6 +584,17 @@ const historyCollector = require('./lib/weather-history-collector').createHistor
   runTransaction: runStationTransaction, host: WEATHER_STATION_HOST, port: WEATHER_STATION_PORT, logger
 });
 const databaseBackups = require('./lib/database-backups').createBackupScheduler(process.env, persistence, logger);
+const weatherRetention = require('./lib/weather-retention').createWeatherRetention(process.env, {
+  isReady: () => persistence.status().ready,
+  canPrune: () => databaseBackups.status().retentionCheckpointVerified,
+  logger
+});
+const systemHealth = require('./lib/system-health').createSystemHealth({ env: process.env, persistence,
+  backups: databaseBackups, retention: weatherRetention, getObservation: () => observationTime(cachedWeatherData) });
+app.get('/api/system-health', (_req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.json(systemHealth.snapshot());
+});
 
 let skycamManifestCache = null;
 let skycamManifestFetchedAt = 0;
@@ -682,23 +707,30 @@ function dailyCacheStatus() {
    CURRENT WEATHER (r3)
    ========================================================= */
 
+const STATION_SOCKET_DEADLINE_MS = 15000;
+const STATION_SOCKET_MAX_BYTES = 16 * 1024;
+let currentWeatherRequestInFlight = null;
+
 function runCurrentWeatherAttempt(attempt = 1, maxAttempts = 3) {
   return new Promise((resolve) => {
     const client = new net.Socket();
     let receivedData = "";
+    let receivedBytes = 0;
     let finished = false;
+    let deadline;
 
     const complete = (success) => {
       if (finished) return;
       finished = true;
+      clearTimeout(deadline);
+      client.setTimeout(0);
       client.destroy();
       resolve(success);
     };
 
-    // The EW10 can leave TCP open after the complete logger reply has arrived.
-    // Validate/cache received data before treating timeout/close as failure.
-    // Also reject a 43-field daily-summary response so it can never poison the
-    // current-weather cache even if unexpected serial data is encountered.
+    // The EW10 can leave TCP open after a complete logger reply. Preserve the
+    // raw observation before validating its timestamp, so invalid/future rows
+    // are still quarantined when persistence is enabled.
     const cacheReceivedDataIfValid = () => {
       if (finished || !receivedData) return false;
 
@@ -708,87 +740,100 @@ function runCurrentWeatherAttempt(attempt = 1, maxAttempts = 3) {
         .replace(/,?\s*\\?END.*$/i, "");
 
       const fields = cleaned.split(",");
-      const hasCurrentShape =
-        fields.length >= 31 &&
-        fields.length !== 43 &&
-        /^\d{4}\/\d{2}\/\d{2}$/.test(fields[0] || "") &&
-        /^\d{2}:\d{2}:\d{2}$/.test(fields[1] || "");
+      // Preserve the existing compatible current shape. A 43-field daily
+      // reply must never overwrite the current-weather cache.
+      if (fields.length < 31 || fields.length === 43) return false;
 
-      if (!hasCurrentShape) return false;
+      persistence.record('r3', cleaned);
+      const observedAt = observationTime(cleaned);
+      if (!Number.isFinite(observedAt) || observedAt > Date.now() + 90000) {
+        logger.warn(`[CURRENT] Invalid or future observation timestamp; cache preserved (attempt ${attempt}/${maxAttempts})`);
+        complete(false);
+        return false;
+      }
 
       cachedWeatherData = cleaned;
       lastPollTime = new Date();
-      persistence.record('r3', cleaned);
-
-      logger.info(
-        `[CURRENT] Weather data cached (${fields.length} fields); observed ${observationTime(cleaned) === null ? 'unknown' : new Date(observationTime(cleaned)).toISOString()}`
-      );
-
+      logger.info(`[CURRENT] Weather data cached (${fields.length} fields); observed ${new Date(observedAt).toISOString()}`);
       complete(true);
       return true;
     };
 
+    // Inactivity alone is insufficient: a trickling peer can otherwise keep
+    // the shared station queue occupied indefinitely.
+    deadline = setTimeout(() => {
+      if (finished || cacheReceivedDataIfValid() || finished) return;
+      logger.warn(`[CURRENT] Transaction deadline exceeded (attempt ${attempt}/${maxAttempts})`);
+      complete(false);
+    }, STATION_SOCKET_DEADLINE_MS);
     client.setTimeout(5000);
 
-    client.connect(
-      WEATHER_STATION_PORT,
-      WEATHER_STATION_HOST,
-      () => {
-        logger.info(
-          `[CURRENT] Connected for r3 (attempt ${attempt}/${maxAttempts})`
-        );
-        client.write("r3\r\n");
-      }
-    );
-
     client.on("data", (data) => {
+      if (finished) return;
+      receivedBytes += Buffer.byteLength(data);
+      if (receivedBytes > STATION_SOCKET_MAX_BYTES) {
+        logger.warn(`[CURRENT] Response exceeded ${STATION_SOCKET_MAX_BYTES} bytes; cache preserved`);
+        complete(false);
+        return;
+      }
       receivedData += data.toString();
-
-      if (/\\?END\b/i.test(receivedData)) {
-        cacheReceivedDataIfValid();
+      if (/\\?END\b/i.test(receivedData) && !cacheReceivedDataIfValid() && !finished) {
+        logger.warn(`[CURRENT] Invalid r3 response (attempt ${attempt}/${maxAttempts}); response rejected`);
+        complete(false);
       }
     });
 
     client.on("close", () => {
-      if (finished) return;
-      if (cacheReceivedDataIfValid()) return;
-
-      logger.warn(
-        `[CURRENT] Invalid r3 response (attempt ${attempt}/${maxAttempts}); response rejected`
-      );
+      if (finished || cacheReceivedDataIfValid() || finished) return;
+      logger.warn(`[CURRENT] Invalid r3 response (attempt ${attempt}/${maxAttempts}); response rejected`);
       complete(false);
     });
 
     client.on("error", (err) => {
-      if (cacheReceivedDataIfValid()) return;
-      logger.warn(
-        `[CURRENT] Socket error: ${err.message} (attempt ${attempt}/${maxAttempts})`
-      );
+      if (finished || cacheReceivedDataIfValid() || finished) return;
+      logger.warn(`[CURRENT] Socket error: ${err.message} (attempt ${attempt}/${maxAttempts})`);
       complete(false);
     });
 
     client.on("timeout", () => {
-      if (cacheReceivedDataIfValid()) return;
-      logger.warn(
-        `[CURRENT] Socket timeout (attempt ${attempt}/${maxAttempts})`
-      );
+      if (finished || cacheReceivedDataIfValid() || finished) return;
+      logger.warn(`[CURRENT] Socket timeout (attempt ${attempt}/${maxAttempts})`);
       complete(false);
     });
+
+    try {
+      client.connect(WEATHER_STATION_PORT, WEATHER_STATION_HOST, () => {
+        if (finished) return;
+        logger.info(`[CURRENT] Connected for r3 (attempt ${attempt}/${maxAttempts})`);
+        client.write("r3\r\n");
+      });
+    } catch (err) {
+      logger.warn(`[CURRENT] Connection failed: ${err.message} (attempt ${attempt}/${maxAttempts})`);
+      complete(false);
+    }
   });
 }
 
-async function updateWeatherData(attempt = 1, maxAttempts = 3) {
-  const success = await runStationTransaction(
-    `CURRENT r3 attempt ${attempt}/${maxAttempts}`,
-    () => runCurrentWeatherAttempt(attempt, maxAttempts)
-  );
-
-  if (success || attempt >= maxAttempts) {
-    return success;
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  return updateWeatherData(attempt + 1, maxAttempts);
+function updateWeatherData(attempt = 1, maxAttempts = 3) {
+  // Coalesce the entire chain, including queue waits and retry delays. A new
+  // minute tick must not add another chain behind a stalled station request.
+  if (currentWeatherRequestInFlight) return currentWeatherRequestInFlight;
+  const request = (async () => {
+    for (let next = attempt; next <= maxAttempts; next++) {
+      const success = await runStationTransaction(
+        `CURRENT r3 attempt ${next}/${maxAttempts}`,
+        () => runCurrentWeatherAttempt(next, maxAttempts)
+      );
+      if (success || next >= maxAttempts) return success;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    return false;
+  })();
+  const shared = request.finally(() => {
+    if (currentWeatherRequestInFlight === shared) currentWeatherRequestInFlight = null;
+  });
+  currentWeatherRequestInFlight = shared;
+  return shared;
 }
 
 /* =========================================================
@@ -799,139 +844,111 @@ async function updateWeatherData(attempt = 1, maxAttempts = 3) {
    ========================================================= */
 
 function fetchDailyDataOnce() {
-  // Serialize the actual weather-station transaction. If a scheduled refresh,
-  // page load and/or Force Update arrive together, they all share ONE request.
+  // A scheduled refresh, page load and Force Update share one queued request.
   if (dailyStationRequestInFlight) {
     logger.info("[DAILY] Joining existing MEM 1 LAST request");
     return dailyStationRequestInFlight;
   }
 
-  const requestPromise = runStationTransaction("DAILY MEM 1 LAST", () =>
-    new Promise((resolve) => {
+  const request = runStationTransaction("DAILY MEM 1 LAST", () => new Promise(resolve => {
     const client = new net.Socket();
     let receivedData = "";
+    let receivedBytes = 0;
     let finished = false;
+    let deadline;
 
     const finish = (value) => {
       if (finished) return;
       finished = true;
+      clearTimeout(deadline);
+      client.setTimeout(0);
       client.destroy();
       resolve(value);
     };
 
-    // As with r3, the EW10 may leave TCP open after the complete logger reply
-    // has arrived. Validate/cache the received summary before declaring a
-    // timeout, and finish immediately when END is seen.
+    // Every completion path uses this validator, including a socket that
+    // closes without END. No fallback may bypass timestamp validation.
     const acceptReceivedDailyDataIfValid = () => {
       if (finished || !receivedData) return false;
-
-      const lines = receivedData.split(/\r?\n/);
-      const dataLine = lines.find((line) =>
-        /^\d{4}\/\d{2}\/\d{2}/.test(line)
-      );
-
+      const dataLine = receivedData.split(/\r?\n/).find(line => /^\d{4}\/\d{2}\/\d{2}/.test(line));
       if (!dataLine) return false;
-
-      const cleaned = dataLine
-        .trim()
-        .replace(/,?\s*\\?END.*$/i, "");
-
+      const cleaned = dataLine.trim().replace(/,?\s*\\?END.*$/i, "");
       const fields = cleaned.split(",");
       if (fields.length !== 43) return false;
 
+      persistence.record('mem1', cleaned);
+      const observedAt = observationTime(cleaned);
+      if (!Number.isFinite(observedAt) || observedAt > Date.now() + 90000 || fields[1] !== '09:00:00') {
+        logger.warn('[DAILY] Invalid or future daily observation timestamp; cache preserved');
+        finish("");
+        return false;
+      }
+
       cachedDailyData = cleaned;
       lastDailyPollTime = new Date();
-      persistence.record('mem1', cleaned);
-
       const status = dailyCacheStatus();
-      logger.info(
-        `[DAILY] Valid summary cached; displayed=${status.displayedDate}, expected=${status.expectedDate}, current=${status.current}`
-      );
-
+      logger.info(`[DAILY] Valid summary cached; displayed=${status.displayedDate}, expected=${status.expectedDate}, current=${status.current}`);
       finish(cleaned);
       return true;
     };
 
+    deadline = setTimeout(() => {
+      if (finished || acceptReceivedDailyDataIfValid() || finished) return;
+      logger.warn('[DAILY] Transaction deadline exceeded');
+      finish("");
+    }, STATION_SOCKET_DEADLINE_MS);
     client.setTimeout(5000);
 
-    client.connect(
-      WEATHER_STATION_PORT,
-      WEATHER_STATION_HOST,
-      () => {
-        logger.info("[DAILY] Sending MEM 1 LAST to weather station");
-        client.write("MEM 1 LAST\r\n");
-      }
-    );
-
     client.on("data", (data) => {
+      if (finished) return;
+      receivedBytes += Buffer.byteLength(data);
+      if (receivedBytes > STATION_SOCKET_MAX_BYTES) {
+        logger.warn(`[DAILY] Response exceeded ${STATION_SOCKET_MAX_BYTES} bytes; cache preserved`);
+        finish("");
+        return;
+      }
       receivedData += data.toString();
-
-      if (/\\?END\b/i.test(receivedData)) {
-        acceptReceivedDailyDataIfValid();
+      if (/\\?END\b/i.test(receivedData) && !acceptReceivedDailyDataIfValid() && !finished) {
+        logger.warn('[DAILY] Invalid summary response; cache preserved');
+        finish("");
       }
     });
 
     client.on("close", () => {
-      if (finished) return;
-      if (acceptReceivedDailyDataIfValid()) return;
-
-      const lines = receivedData.split(/\r?\n/);
-      const dataLine = lines.find((line) =>
-        /^\d{4}\/\d{2}\/\d{2}/.test(line)
-      );
-
-      if (!dataLine) {
-        logger.warn("[DAILY] No valid dated data line received");
-        return finish("");
-      }
-
-      const cleaned = dataLine
-        .trim()
-        .replace(/,?\s*\\?END.*$/i, "");
-
-      const fields = cleaned.split(",");
-
-      if (fields.length !== 43) {
-        logger.warn(
-          `[DAILY] Invalid field count (${fields.length}), expected 43`
-        );
-        return finish("");
-      }
-
-      cachedDailyData = cleaned;
-      lastDailyPollTime = new Date();
-      persistence.record('mem1', cleaned);
-
-      const status = dailyCacheStatus();
-
-      logger.info(
-        `[DAILY] Valid summary cached; displayed=${status.displayedDate}, expected=${status.expectedDate}, current=${status.current}`
-      );
-
-      finish(cleaned);
+      if (finished || acceptReceivedDailyDataIfValid() || finished) return;
+      logger.warn('[DAILY] No valid daily summary received; cache preserved');
+      finish("");
     });
 
     client.on("error", (err) => {
-      if (acceptReceivedDailyDataIfValid()) return;
+      if (finished || acceptReceivedDailyDataIfValid() || finished) return;
       logger.warn(`[DAILY] Socket error: ${err.message}`);
       finish("");
     });
 
     client.on("timeout", () => {
-      if (acceptReceivedDailyDataIfValid()) return;
-      logger.warn("[DAILY] Socket timeout");
+      if (finished || acceptReceivedDailyDataIfValid() || finished) return;
+      logger.warn('[DAILY] Socket timeout');
       finish("");
     });
-  })
-  );
 
-  dailyStationRequestInFlight = requestPromise;
-
-  return requestPromise.finally(() => {
-    if (dailyStationRequestInFlight === requestPromise) {
-      dailyStationRequestInFlight = null;
+    try {
+      client.connect(WEATHER_STATION_PORT, WEATHER_STATION_HOST, () => {
+        if (finished) return;
+        logger.info('[DAILY] Sending MEM 1 LAST to weather station');
+        client.write("MEM 1 LAST\r\n");
+      });
+    } catch (err) {
+      logger.warn(`[DAILY] Connection failed: ${err.message}`);
+      finish("");
     }
+  }));
+
+  const shared = request.finally(() => {
+    if (dailyStationRequestInFlight === shared) dailyStationRequestInFlight = null;
   });
+  dailyStationRequestInFlight = shared;
+  return shared;
 }
 
 /* =========================================================
@@ -1059,61 +1076,12 @@ function skyCamOriginTarget(relativePath) {
 }
 
 function fetchSkyCamOriginBuffer(relativePath, maxBytes) {
-  return new Promise((resolve, reject) => {
-    const target = skyCamOriginTarget(relativePath);
-    const transport = target.protocol === "https:" ? https : http;
-    const agent = target.protocol === "https:" ? skycamHttpsAgent : skycamHttpAgent;
-    const headers = {
-      Accept: "*/*",
-      "User-Agent": "Moore-Weather-Render/2",
-    };
-
-    if (SKYCAM_ORIGIN_TOKEN) {
-      headers["X-SkyCam-Origin-Token"] = SKYCAM_ORIGIN_TOKEN;
-    }
-
-    const request = transport.request(
-      target,
-      {
-        method: "GET",
-        headers,
-        agent,
-      },
-      (upstream) => {
-        if (upstream.statusCode !== 200) {
-          upstream.resume();
-          reject(new Error(`SkyCam origin ${relativePath} returned HTTP ${upstream.statusCode}`));
-          return;
-        }
-
-        const chunks = [];
-        let totalBytes = 0;
-
-        upstream.on("data", (chunk) => {
-          totalBytes += chunk.length;
-          if (totalBytes > maxBytes) {
-            request.destroy(
-              new Error(`SkyCam origin response exceeded ${maxBytes} byte safety limit`)
-            );
-            return;
-          }
-          chunks.push(chunk);
-        });
-
-        upstream.on("end", () => {
-          resolve({
-            buffer: Buffer.concat(chunks),
-            headers: upstream.headers,
-          });
-        });
-      }
-    );
-
-    request.setTimeout(SKYCAM_ORIGIN_TIMEOUT_MS, () => {
-      request.destroy(new Error(`SkyCam origin timeout for ${relativePath}`));
-    });
-    request.on("error", reject);
-    request.end();
+  const target = skyCamOriginTarget(relativePath);
+  return require('./lib/skycam-client').fetchOriginBuffer(target, {
+    token: SKYCAM_ORIGIN_TOKEN,
+    agent: target.protocol === 'https:' ? skycamHttpsAgent : skycamHttpAgent,
+    timeoutMs: SKYCAM_ORIGIN_TIMEOUT_MS,
+    maxBytes,
   });
 }
 
@@ -1226,6 +1194,21 @@ function schedulePolling() {
   waterService.start();
   setTimeout(() => databaseBackups.run(), 90000);
   setInterval(() => databaseBackups.run(), 3600000);
+  // Maintenance is bounded and runs off the polling thread. Every short delete
+  // batch checks that the pre-retention recovery copy is verified and offsite.
+  let lastMaintenanceState = '';
+  const maintainWeatherHistory = async () => {
+    const result = await weatherRetention.run();
+    if (!result || result.error || result.busy) return;
+    const phase = result.blocked ? 'waiting for verified offsite checkpoint' : result.hasMore ? 'clearing initial backlog' : 'rolling window current';
+    if (phase !== lastMaintenanceState || result.deletedRecords || result.deletedSources) {
+      logger.info('[RETENTION] ' + phase + '; removed ' + (result.deletedRecords || 0) + ' R3 records this pass; total ' +
+        (result.totals?.deletedRecords || 0) + '; cutoff ' + result.cutoff + '; reusable bytes ' + (result.pages?.reusableBytes || 0));
+      lastMaintenanceState = phase;
+    }
+  };
+  setTimeout(maintainWeatherHistory, 45000);
+  setInterval(maintainWeatherHistory, 60000);
   // Current readings every minute.
   setInterval(updateWeatherData, 60000);
   updateWeatherData();
@@ -1494,6 +1477,8 @@ app.get("/ping", (req, res) => {
     history: historyCollector.status(),
     water: waterService.status(),
     databaseBackups: databaseBackups.status(),
+    retention: weatherRetention.status(),
+    systemHealth: systemHealth.snapshot(),
     weatherStationHost: WEATHER_STATION_HOST,
     weatherStationPort: WEATHER_STATION_PORT,
     lastWeatherPoll: lastPollTime ? lastPollTime.toISOString() : null,

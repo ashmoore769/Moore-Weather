@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS sources (
   layout_id TEXT NOT NULL REFERENCES layouts(id), imported_at TEXT NOT NULL,
   original_bytes BLOB NOT NULL
 ) STRICT;
+CREATE INDEX IF NOT EXISTS sources_retention ON sources(station_id, stream, imported_at, id);
 CREATE TABLE IF NOT EXISTS records (
   id TEXT PRIMARY KEY, station_id TEXT NOT NULL REFERENCES stations(id),
   stream TEXT NOT NULL, layout_id TEXT NOT NULL REFERENCES layouts(id),
@@ -41,6 +42,7 @@ CREATE TABLE IF NOT EXISTS source_records (
   source_id TEXT NOT NULL REFERENCES sources(id), line_number INTEGER NOT NULL,
   record_id TEXT NOT NULL REFERENCES records(id), PRIMARY KEY(source_id, line_number)
 ) STRICT;
+CREATE INDEX IF NOT EXISTS source_records_record ON source_records(record_id, source_id);
 CREATE TABLE IF NOT EXISTS rejected_rows (
   source_id TEXT NOT NULL REFERENCES sources(id), line_number INTEGER NOT NULL,
   raw_line TEXT NOT NULL, reason TEXT NOT NULL, PRIMARY KEY(source_id, line_number)
@@ -59,6 +61,31 @@ CREATE TABLE IF NOT EXISTS record_estimates (
   record_id TEXT PRIMARY KEY REFERENCES records(id),
   previous_record_id TEXT NOT NULL REFERENCES records(id), next_record_id TEXT NOT NULL REFERENCES records(id),
   method TEXT NOT NULL, note TEXT NOT NULL, created_at TEXT NOT NULL
+) STRICT;
+CREATE INDEX IF NOT EXISTS record_estimates_previous ON record_estimates(previous_record_id);
+CREATE INDEX IF NOT EXISTS record_estimates_next ON record_estimates(next_record_id);
+-- Additive operational metadata deliberately keeps schema version 3. Older
+-- application releases can still open the database during a code rollback.
+CREATE TABLE IF NOT EXISTS weather_history_gaps (
+  station_id TEXT NOT NULL REFERENCES stations(id), stream TEXT NOT NULL CHECK(stream IN ('mem1','mem2','mem3')),
+  previous_at TEXT NOT NULL, next_at TEXT NOT NULL, interval_seconds INTEGER NOT NULL,
+  missing_intervals INTEGER NOT NULL CHECK(missing_intervals > 0),
+  detected_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+  CHECK(previous_at < next_at), PRIMARY KEY(station_id,stream,previous_at,next_at)
+) STRICT;
+CREATE TABLE IF NOT EXISTS weather_history_audits (
+  station_id TEXT NOT NULL REFERENCES stations(id), stream TEXT NOT NULL CHECK(stream IN ('mem1','mem2','mem3')),
+  cursor_at TEXT, complete INTEGER NOT NULL CHECK(complete IN (0,1)), updated_at TEXT NOT NULL,
+  PRIMARY KEY(station_id,stream)
+) STRICT;
+CREATE TABLE IF NOT EXISTS weather_quarantine_state (
+  station_id TEXT NOT NULL REFERENCES stations(id), stream TEXT NOT NULL,
+  future_rows INTEGER NOT NULL, last_received_at TEXT NOT NULL, last_observed_at TEXT NOT NULL,
+  PRIMARY KEY(station_id,stream)
+) STRICT;
+CREATE TABLE IF NOT EXISTS weather_maintenance_state (
+  station_id TEXT NOT NULL REFERENCES stations(id), task TEXT NOT NULL,
+  value_json TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(station_id,task)
 ) STRICT;
 CREATE VIEW IF NOT EXISTS weather_readings_raw AS
 SELECT r.station_id, r.stream, r.observed_at, r.local_timestamp, r.interval_start,

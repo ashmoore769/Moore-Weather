@@ -13,6 +13,19 @@
     if (segment.length) result.push(segment);
     return result;
   }
+  // Reported water observations can be days apart. Locate the timestamp
+  // actually under the pointer instead of assuming evenly spaced array slots.
+  function nearestPointIndex(points, time) {
+    if (!points.length || !Number.isFinite(time)) return -1;
+    let low = 0, high = points.length - 1;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if (points[middle].t < time) low = middle + 1;
+      else high = middle;
+    }
+    if (low > 0 && time - points[low - 1].t <= points[low].t - time) return low - 1;
+    return low;
+  }
   function domain(series, includeReferences = true) {
     if (series.metric.kind === 'direction') return [0, 360];
     const values = series.points.flatMap(p => p.value === null ? [] : [p.value, p.min, p.max].filter(v => v !== null));
@@ -84,7 +97,7 @@
     if (!Number.isFinite(reading?.value) || !Number.isFinite(reading?.t) ||
         !Number.isFinite(bridge?.level) || reading.t > now + 300000) return null;
     const difference = Math.round((bridge.level - reading.value) * 100) / 100;
-    return { difference, stale: now - reading.t > 30 * 60000,
+    return { difference, stale: reading.lastAvailable === true || reading.latestValueAvailable === false || now - reading.t > 30 * 60000,
       text: Math.abs(difference).toFixed(2) + 'm (' + (difference > 0 ? 'Below Bridge' : difference < 0 ? 'Above Bridge' : 'At Bridge') + ')' };
   }
   // Keep navigation within the existing API limits. Whole native periods are
@@ -162,7 +175,7 @@
     }
     return items;
   }
-  const api = { segments, domain, fittedTrend, navigationWindow, maxHoursForResolution, rainfallComparisonWindow, rainfallInches, bridgeWarning, bridgeDifference, visibleSeries, summary };
+  const api = { segments, nearestPointIndex, domain, fittedTrend, navigationWindow, maxHoursForResolution, rainfallComparisonWindow, rainfallInches, bridgeWarning, bridgeDifference, visibleSeries, summary };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.WeatherChart = api;
 })(typeof window !== 'undefined' ? window : globalThis);

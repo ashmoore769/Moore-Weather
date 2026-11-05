@@ -1,0 +1,73 @@
+name: Encrypted recovery backup
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '37 17 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: encrypted-recovery-backup
+  cancel-in-progress: false
+jobs:
+  backup:
+    if: github.repository == 'ashmoore769/Moore-Weather' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      sha256: ${{ steps.ack.outputs.sha256 }}
+      bytes: ${{ steps.ack.outputs.bytes }}
+      created_at: ${{ steps.ack.outputs.created_at }}
+      artifact_id: ${{ steps.ack.outputs.artifact_id }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Download and checksum encrypted recovery copy
+        run: node tools/offsite-backup-client.js download
+      - name: Store ciphertext outside the Render disk
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: encrypted-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: recovery-artifact/backup.mwb
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Acknowledge the completed offsite artifact
+        id: ack
+        env:
+          BACKUP_ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+        run: node tools/offsite-backup-client.js ack
+
+  receipt:
+    needs: backup
+    if: github.repository == 'ashmoore769/Moore-Weather' && github.ref == 'refs/heads/main' && needs.backup.result == 'success'
+    permissions:
+      contents: write
+      id-token: none
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Record the completed backup receipt
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BACKUP_JOB_RESULT: ${{ needs.backup.result }}
+          BACKUP_SHA256: ${{ needs.backup.outputs.sha256 }}
+          BACKUP_BYTES: ${{ needs.backup.outputs.bytes }}
+          BACKUP_CREATED_AT: ${{ needs.backup.outputs.created_at }}
+          BACKUP_ARTIFACT_ID: ${{ needs.backup.outputs.artifact_id }}
+        run: node tools/record-backup-receipt.js

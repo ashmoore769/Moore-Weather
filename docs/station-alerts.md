@@ -6,7 +6,7 @@ The server checks once per minute. An outage notification is due after more than
 
 This monitors the station while the Render process runs; it does not independently monitor a Render outage. Provider acceptance is not proof that a notification was displayed on the phone.
 
-Push keys, subscriptions and delivery state live in **station-alerts.sqlite** beside WEATHER_DB_PATH on the existing persistent disk. These private files are excluded from Git. Preserve this database together with weather data if moving the disk; the weather-only rotating backup archive does not include it. Keys are generated once and retained across deployments. No external email/SMS account or extra Render service is needed. Set WEATHER_ALERTS_ENABLED=false to disable notifications.
+Push keys, subscriptions and delivery state live in **station-alerts.sqlite** beside WEATHER_DB_PATH on the existing persistent disk. These private files are excluded from Git. Version 1.1 includes this database in the complete encrypted recovery bundle alongside weather data and access requests; earlier weather-only backups do not include it. Keys are generated once and retained across deployments. No external email/SMS account or extra Render service is needed. Set WEATHER_ALERTS_ENABLED=false to disable notifications. See [recovery instructions](RELIABILITY-UPDATE.md) before moving or restoring the disk.
 
 Authenticated subscription endpoints require a matching Origin and accept only known browser push gateways. Neither subscription keys nor endpoints appear in logs or the public config response. The service worker handles notifications only and never caches weather responses.
 

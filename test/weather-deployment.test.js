@@ -129,7 +129,7 @@ test('history continues through the month boundary without replacing earlier rec
   assert.equal(next.storedThrough, next.lastObservedAt);
 });
 
-test('collector distinguishes stale source observations from successful transfers and clears on recovery', async t => {
+test('collector distinguishes stale transfers and retains unresolved gaps after freshness recovers', async t => {
   const dir = directory(), db = path.join(dir, 'weather.sqlite');
   const p = createPersistence({ WEATHER_DB_PATH: db }, logger);
   t.after(() => { p.close(); fs.rmSync(dir, { recursive: true, force: true }); });
@@ -154,7 +154,8 @@ test('collector distinguishes stale source observations from successful transfer
   batch = reply([row('10:10:00'), row('12:10:00')]);
   await collector.tick();
   state = collector.status().feeds.mem3;
-  assert.equal(state.warning, null);
+  assert.doesNotMatch(state.warning, /Logger history is stale/);
+  assert.match(state.warning, /unresolved history gap/);
   assert.equal(state.received, 2);
   assert.equal(state.lastObservedAt, '2026-10-11T02:10:00.000Z');
   assert.equal(state.storedThrough, state.lastObservedAt);

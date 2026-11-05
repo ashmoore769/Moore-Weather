@@ -11,8 +11,13 @@ _archive/
 data/
 Weather Station Data/
 *.sqlite
+*.sqlite-*
 *.sqlite3
 *.db
+*.mwb
+recovery-artifact/
+recovery-receipt.json
+artifacts/
 *.pem
 *.key
 Backup/
