@@ -162,6 +162,14 @@ test('local size, checksum, encrypted format and 2 GiB limit fail before any Git
   }
 });
 
+test('deadline while hashing closes the local descriptor without any API request or asynchronous cleanup error', async t => {
+  const files = localFiles(t), f = fixture();
+  let calls = 0;
+  await assert.rejects(uploadReleaseBackup({ ...f, ...files, env: environment(),
+    now: () => timestamp + (calls++ > 1 ? 600001 : 0) }), /time limit/);
+  assert.equal(f.state.calls.length, 0);
+});
+
 test('workflow context rejects forks, non-main refs, unrelated workflows, injection and missing credentials', async t => {
   const files = localFiles(t);
   for (const extra of [{ GITHUB_REPOSITORY_ID: '1' }, { GITHUB_REPOSITORY_OWNER_ID: '1' }, { GITHUB_ACTIONS: 'false' },

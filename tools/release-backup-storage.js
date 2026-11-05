@@ -189,10 +189,18 @@ async function verifiedFile(directory, receipt, now, deadline) {
     if (!info.isFile() || info.size !== receipt.bytes || info.size < 4) throw new Error('Encrypted recovery file size does not match its receipt');
     const magic = Buffer.alloc(4); fs.readSync(fd, magic, 0, 4, 0);
     if (magic.toString() !== 'MWB1') throw new Error('Recovery file is not an encrypted Moore Weather bundle');
-    const digest = crypto.createHash('sha256');
-    for await (const chunk of fs.createReadStream(filename, { fd, autoClose: false, start: 0 })) {
+    const digest = crypto.createHash('sha256'), buffer = Buffer.alloc(64 * 1024);
+    let position = 0;
+    // Keep explicit ownership of this descriptor while hashing. A cancelled
+    // ReadStream iterator can close an fd even with autoClose disabled.
+    for (;;) {
       if (now() >= deadline) throw new Error('Recovery storage exceeded its time limit');
-      digest.update(chunk);
+      const count = await new Promise((resolve, reject) => fs.read(fd, buffer, 0, buffer.length, position,
+        (error, bytesRead) => error ? reject(error) : resolve(bytesRead)));
+      if (!count) break;
+      position += count;
+      if (position > receipt.bytes) throw new Error('Encrypted recovery file size changed during verification');
+      digest.update(buffer.subarray(0, count));
     }
     if (digest.digest('hex') !== receipt.sha256) throw new Error('Encrypted recovery file checksum does not match its receipt');
     return { fd, filename };
