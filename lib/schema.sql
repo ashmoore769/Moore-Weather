@@ -105,6 +105,28 @@ CREATE TABLE IF NOT EXISTS weather_clock_backward_windows (
   correction_id TEXT PRIMARY KEY REFERENCES weather_clock_corrections(id),
   start_at TEXT NOT NULL, end_at TEXT NOT NULL, CHECK(start_at < end_at)
 ) STRICT;
+CREATE TABLE IF NOT EXISTS weather_layout_cutovers (
+  id TEXT PRIMARY KEY, station_id TEXT NOT NULL REFERENCES stations(id), stream TEXT NOT NULL,
+  old_layout_id TEXT NOT NULL REFERENCES layouts(id), new_layout_id TEXT NOT NULL REFERENCES layouts(id),
+  schedule_changed_at TEXT NOT NULL, first_new_at TEXT NOT NULL, first_complete_at TEXT NOT NULL,
+  evidence_json TEXT NOT NULL, created_at TEXT NOT NULL
+) STRICT;
+CREATE TABLE IF NOT EXISTS weather_layout_repairs (
+  record_id TEXT PRIMARY KEY REFERENCES records(id), cutover_id TEXT NOT NULL REFERENCES weather_layout_cutovers(id),
+  old_layout_id TEXT NOT NULL REFERENCES layouts(id), new_layout_id TEXT NOT NULL REFERENCES layouts(id),
+  canonical_id TEXT NOT NULL UNIQUE, original_field_ids_json TEXT NOT NULL,
+  evidence_json TEXT NOT NULL, repaired_at TEXT NOT NULL
+) STRICT;
+CREATE INDEX IF NOT EXISTS weather_layout_repairs_cutover ON weather_layout_repairs(cutover_id, record_id);
+CREATE TABLE IF NOT EXISTS weather_layout_field_exclusions (
+  record_id TEXT NOT NULL, field_id INTEGER NOT NULL,
+  cutover_id TEXT NOT NULL REFERENCES weather_layout_cutovers(id), reason TEXT NOT NULL,
+  evidence_json TEXT NOT NULL, created_at TEXT NOT NULL,
+  PRIMARY KEY(record_id, field_id),
+  FOREIGN KEY(record_id, field_id) REFERENCES observations(record_id, field_id)
+) STRICT;
+CREATE INDEX IF NOT EXISTS weather_layout_exclusions_cutover ON weather_layout_field_exclusions(cutover_id, reason);
+CREATE INDEX IF NOT EXISTS records_mem3_layout_time ON records(station_id, layout_id, observed_at) WHERE stream='mem3';
 CREATE VIEW IF NOT EXISTS weather_readings_raw AS
 SELECT r.station_id, r.stream, r.observed_at, r.local_timestamp, r.interval_start,
        r.reporting_date, f.sensor_key, f.name, f.unit, f.aggregation,
@@ -115,6 +137,7 @@ FROM observations o JOIN records r ON r.id=o.record_id JOIN fields f ON f.id=o.f
 LEFT JOIN record_estimates e ON e.record_id=r.id;
 CREATE VIEW IF NOT EXISTS weather_readings_review AS
 SELECT w.*, CASE
+  WHEN x.reason IS NOT NULL THEN x.reason
   WHEN p.station_id IS NULL THEN NULL
   WHEN w.local_timestamp < p.earliest_local_timestamp THEN 'before-current-format'
   WHEN w.quality != 'valid' THEN 'not-numeric'
@@ -134,7 +157,9 @@ SELECT w.*, CASE
       AND (bad.value < p.pressure_min_hpa OR bad.value > p.pressure_max_hpa)
   ) THEN 'pressure-outside-station-range'
   ELSE NULL END AS exclusion_reason
-FROM weather_readings_raw w LEFT JOIN data_quality_policies p ON p.station_id=w.station_id
+FROM weather_readings_raw w
+LEFT JOIN weather_layout_field_exclusions x ON x.record_id=w.record_id AND x.field_id=w.field_id
+LEFT JOIN data_quality_policies p ON p.station_id=w.station_id
 LEFT JOIN sensor_quality_limits lim ON lim.station_id=w.station_id AND lim.sensor_key=w.sensor_key;
 CREATE VIEW IF NOT EXISTS weather_readings AS
 SELECT w.station_id, w.stream, w.observed_at, w.local_timestamp, w.interval_start,
