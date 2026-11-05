@@ -36,14 +36,14 @@ async function identityToken() {
 }
 
 async function download() {
-  const deadline = Date.now() + 20 * 60000;
+  const deadline = Date.now() + 25 * 60000;
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true, mode: 0o700 });
   let lastError;
   while (Date.now() < deadline) {
     try {
       const response = await fetch(BASE + '/internal/backups/export', {
         headers: { Authorization: 'Bearer ' + await identityToken() },
-        signal: AbortSignal.timeout(Math.min(10 * 60000, deadline - Date.now())), redirect: 'error'
+        signal: AbortSignal.timeout(Math.min(20 * 60000, deadline - Date.now())), redirect: 'error'
       });
       if (!response.ok) {
         await response.body?.cancel();

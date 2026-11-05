@@ -17,7 +17,7 @@ jobs:
       contents: read
       id-token: write
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 35
     outputs:
       kind: ${{ steps.download.outputs.kind }}
       sha256: ${{ steps.ack.outputs.sha256 }}
