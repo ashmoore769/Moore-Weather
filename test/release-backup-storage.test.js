@@ -128,6 +128,87 @@ test('upload creates only the marked unpublished draft and streams a hash-verifi
   assert.doesNotMatch(JSON.stringify(f.state.logs), /ghs_fixture/);
 });
 
+test('draft creation and conflict wait for list visibility without a second creation request', async t => {
+  for (const conflict of [false, true]) {
+    const files = localFiles(t), waits = [];
+    let created = false, hiddenReads = 0;
+    const f = fixture({ releases: [], onRequest({ route, options, parsed, state }) {
+      if (route === '/releases' && options.method === 'POST') {
+        created = true;
+        if (conflict) {
+          state.releases.push(release());
+          return Response.json({ message: 'already exists' }, { status: 422 });
+        }
+      }
+      if (route === '/releases' && options.method === 'GET' && parsed.searchParams.get('page') === '1' && created && hiddenReads++ < 2) {
+        return Response.json([]);
+      }
+    } });
+    const result = await uploadReleaseBackup({ ...f, ...files, env: environment(), wait: async ms => waits.push(ms) });
+    assert.equal(result.assetId, '500');
+    assert.deepEqual(waits, [2000, 2000]);
+    assert.equal(f.state.calls.filter(call => call.method === 'POST' && call.url === api + '/releases').length, 1);
+    assert.equal(f.state.uploads.length, 1);
+    assert.ok(f.state.calls.filter(call => call.method === 'GET').every(call => call.cache === 'no-store' && call.headers['Cache-Control'] === 'no-cache'));
+  }
+});
+
+test('draft visibility retries are bounded and never retry identity, ambiguity or deadline failures', async t => {
+  for (const mode of ['absent', 'identity', 'ambiguity', 'deadline']) {
+    const files = localFiles(t), waits = [];
+    let clock = timestamp, reads = 0;
+    const f = fixture({ releases: [], onRequest({ route, options, parsed, state }) {
+      if (route === '/releases' && options.method === 'POST' && mode === 'deadline') clock += 10 * 60000 - 1000;
+      if (route !== '/releases' || options.method !== 'GET' || parsed.searchParams.get('page') !== '1' || !state.created.length) return;
+      reads++;
+      if (mode === 'identity') return Response.json([release({ draft: false })]);
+      if (mode === 'ambiguity') return Response.json([release(), release({ id: 8 })]);
+      return Response.json([]);
+    } });
+    await assert.rejects(uploadReleaseBackup({ ...f, ...files, env: environment(), now: () => clock,
+      wait: async ms => { waits.push(ms); clock += ms; } }), /unavailable|unpublished state|ambiguous|time limit/);
+    assert.equal(reads, mode === 'absent' ? 6 : 1);
+    assert.equal(waits.length, mode === 'absent' ? 5 : 0);
+    assert.equal(f.state.created.length, 1);
+    assert.equal(f.state.uploads.length, 0);
+    assert.deepEqual(f.state.deleted, []);
+  }
+});
+
+test('uploaded asset waits for list visibility before acknowledging verified membership', async t => {
+  const files = localFiles(t), waits = [];
+  let hiddenReads = 0;
+  const f = fixture({ onRequest({ route, options, parsed, state }) {
+    if (route === '/releases/7/assets' && options.method === 'GET' && parsed.searchParams.get('page') === '1' && state.uploads.length && hiddenReads++ < 2) {
+      return Response.json([]);
+    }
+  } });
+  const result = await uploadReleaseBackup({ ...f, ...files, env: environment({ GITHUB_OUTPUT: files.output }), wait: async ms => waits.push(ms) });
+  assert.equal(result.assetId, '500');
+  assert.deepEqual(waits, [2000, 2000]);
+  assert.equal(f.state.uploads.length, 1);
+  assert.equal(fs.readFileSync(files.output, 'utf8'), 'asset_id=500\nrelease_id=7\nkind=checkpoint\n');
+});
+
+test('asset membership retries stop on a mismatch and bound persistent absence without another upload', async t => {
+  for (const mode of ['absent', 'mismatch']) {
+    const files = localFiles(t), waits = [];
+    let reads = 0;
+    const f = fixture({ onRequest({ route, options, parsed, state }) {
+      if (route !== '/releases/7/assets' || options.method !== 'GET' || parsed.searchParams.get('page') !== '1' || !state.uploads.length) return;
+      reads++;
+      return Response.json(mode === 'absent' ? [] : [{ ...state.assets[0], digest: 'sha256:' + 'b'.repeat(64) }]);
+    } });
+    await assert.rejects(uploadReleaseBackup({ ...f, ...files, env: environment({ GITHUB_OUTPUT: files.output }),
+      wait: async ms => waits.push(ms) }), /Current recovery asset membership/);
+    assert.equal(reads, mode === 'absent' ? 6 : 1);
+    assert.equal(waits.length, mode === 'absent' ? 5 : 0);
+    assert.equal(f.state.uploads.length, 1);
+    assert.equal(fs.existsSync(files.output), false);
+    assert.deepEqual(f.state.deleted, []);
+  }
+});
+
 test('a matching checkpoint is reused across workflow runs without uploading duplicate ciphertext', async t => {
   const metadata = receipt(), files = localFiles(t, metadata);
   const existing = forReceipt(12, metadata, { label: assetLabel(metadata, { ...context, runId: '12345', attempt: 2 }) });

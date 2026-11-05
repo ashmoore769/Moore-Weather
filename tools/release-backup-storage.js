@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { finished } = require('node:stream/promises');
+const { setTimeout: delay } = require('node:timers/promises');
 const { normalizeReceipt } = require('./offsite-backup-client');
 
 const REPOSITORY = 'ashmoore769/Moore-Weather';
@@ -22,6 +23,7 @@ const LABEL = /^moore-weather-recovery\/v1;run=([1-9]\d{0,15});attempt=([1-9]\d{
 const MAX_BYTES = 2 * 1024 ** 3 - 1;
 const PAGE_SIZE = 100, MAX_PAGES = 10, MAX_CANDIDATES = 100, MAX_JSON_BYTES = 8 * 1024 * 1024;
 const UPLOAD_DEADLINE_MS = 10 * 60000, ROTATE_DEADLINE_MS = 3 * 60000;
+const VISIBILITY_ATTEMPTS = 6, VISIBILITY_RETRY_MS = 2000;
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const id = value => typeof value === 'string' && /^[1-9]\d{0,15}$/.test(value) && positive(Number(value)) && String(Number(value)) === value;
 const sha = value => typeof value === 'string' && /^[a-f0-9]{40}$/.test(value) && value.length === 40;
@@ -87,7 +89,7 @@ function matchesReceipt(asset, receipt) {
   return asset && asset.name === assetName(receipt) && asset.sha256 === receipt.sha256 && asset.bytes === receipt.bytes && asset.createdAt === receipt.createdAt;
 }
 
-function client({ env, fetchImpl, now, duration }) {
+function client({ env, fetchImpl, now, duration, wait = delay }) {
   const deadline = now() + duration;
   async function request(method, endpoint, { body, stream, bytes, allowConflict = false } = {}) {
     const remaining = deadline - now();
@@ -96,9 +98,11 @@ function client({ env, fetchImpl, now, duration }) {
     const url = (stream ? UPLOADS : API) + endpoint;
     let response;
     try {
-      response = await fetchImpl(url, { method, redirect: 'error', signal: AbortSignal.timeout(Math.min(stream ? 8 * 60000 : 30000, remaining)),
+      response = await fetchImpl(url, { method, redirect: 'error', ...(method === 'GET' ? { cache: 'no-store' } : {}),
+        signal: AbortSignal.timeout(Math.min(stream ? 8 * 60000 : 30000, remaining)),
         headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + env.GITHUB_TOKEN,
           'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'Moore-Weather-recovery',
+          ...(method === 'GET' ? { 'Cache-Control': 'no-cache' } : {}),
           ...(stream ? { 'Content-Type': 'application/octet-stream', 'Content-Length': String(bytes) } :
             body === undefined ? {} : { 'Content-Type': 'application/json' }) },
         ...(stream ? { body: stream, duplex: 'half' } : body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -143,18 +147,33 @@ function client({ env, fetchImpl, now, duration }) {
     }
     throw new Error('Recovery ' + kind + ' inventory exceeds its bounded limit; nothing was deleted');
   }
-  async function discover(create = false) {
+  async function retryMissing(read) {
+    // A successful GitHub mutation can precede its visibility in a list.
+    // Retry absence only; identity, ambiguity and HTTP failures still stop.
+    for (let attempt = 0; attempt < VISIBILITY_ATTEMPTS; attempt++) {
+      const found = await read();
+      if (found !== null || attempt === VISIBILITY_ATTEMPTS - 1) return found;
+      if (deadline - now() <= VISIBILITY_RETRY_MS) throw new Error('Recovery storage exceeded its time limit');
+      await wait(VISIBILITY_RETRY_MS);
+    }
+  }
+  async function listedRelease() {
     const releases = await inventory('/releases', 'release');
     const matching = releases.filter(item => item.tag_name === TAG || item.name === RELEASE_NAME || item.body?.includes(MARKER));
     if (matching.length > 1) throw new Error('Recovery release discovery is ambiguous');
-    if (matching.length) return validateRelease(matching[0]);
+    return matching.length ? validateRelease(matching[0]) : null;
+  }
+  async function discover(create = false) {
+    const existing = await listedRelease();
+    if (existing) return existing;
     if (!create) throw new Error('Unpublished recovery release is unavailable');
     const made = await request('POST', '/releases', { body: { tag_name: TAG, target_commitish: 'main', name: RELEASE_NAME,
       body: RELEASE_BODY, draft: true, prerelease: true, make_latest: 'false', generate_release_notes: false }, allowConflict: true });
     if (!made?.conflict) validateRelease(made);
     // Re-read after creation/conflict; never continue if another matching draft
     // appeared concurrently. Existing releases are never patched or removed.
-    const discovered = await discover(false);
+    const discovered = await retryMissing(listedRelease);
+    if (!discovered) throw new Error('Unpublished recovery release is unavailable');
     if (!made?.conflict && discovered.id !== made.id) throw new Error('Recovery release changed during creation');
     return discovered;
   }
@@ -170,7 +189,7 @@ function client({ env, fetchImpl, now, duration }) {
     }
   }
   const freshRelease = async releaseId => validateRelease(await request('GET', '/releases/' + releaseId), releaseId);
-  return { request, inventory, discover, provenance, authorize, freshRelease };
+  return { request, inventory, discover, provenance, authorize, freshRelease, retryMissing };
 }
 
 function readReceipt(directory) {
@@ -208,22 +227,29 @@ async function verifiedFile(directory, receipt, now, deadline) {
 }
 
 async function confirmAsset(api, release, asset, receipt) {
-  await api.freshRelease(release.id);
-  const listed = (await api.inventory('/releases/' + release.id + '/assets', 'asset')).find(item => item.id === asset.id);
+  const listed = await api.retryMissing(async () => {
+    await api.freshRelease(release.id);
+    const member = (await api.inventory('/releases/' + release.id + '/assets', 'asset')).find(item => item.id === asset.id);
+    if (!member) return null;
+    const value = candidate(member);
+    if (!sameAsset(asset, value)) throw new Error('Current recovery asset membership, checksum or workflow identity is invalid');
+    return value;
+  });
+  if (!listed) throw new Error('Current recovery asset membership, checksum or workflow identity is invalid');
   const detailed = candidate(await api.request('GET', '/releases/assets/' + asset.id));
-  if (!sameAsset(asset, candidate(listed)) || !sameAsset(asset, detailed) || !matchesReceipt(asset, receipt) || !(await api.provenance(asset))) {
+  if (!sameAsset(asset, detailed) || !matchesReceipt(asset, receipt) || !(await api.provenance(asset))) {
     throw new Error('Current recovery asset membership, checksum or workflow identity is invalid');
   }
   return detailed;
 }
 
 async function uploadReleaseBackup({ env = process.env, fetchImpl = globalThis.fetch, now = Date.now,
-  directory = process.cwd(), log = console.log } = {}) {
+  directory = process.cwd(), log = console.log, wait = delay } = {}) {
   const context = workflowContext(env), receipt = readReceipt(directory), deadline = now() + UPLOAD_DEADLINE_MS;
   const file = await verifiedFile(directory, receipt, now, deadline);
   let stream;
   try {
-    const api = client({ env, fetchImpl, now, duration: Math.max(0, deadline - now()) });
+    const api = client({ env, fetchImpl, now, duration: Math.max(0, deadline - now()), wait });
     await api.authorize(context);
     const release = await api.discover(true);
     const inventory = await api.inventory('/releases/' + release.id + '/assets', 'asset');
@@ -280,9 +306,9 @@ function fingerprint(items) {
     item.uploader?.id, item.uploader?.login, item.uploader?.type]).sort((a, b) => a[0] - b[0]));
 }
 
-async function rotateReleaseBackups({ env = process.env, fetchImpl = globalThis.fetch, now = Date.now, log = console.log } = {}) {
+async function rotateReleaseBackups({ env = process.env, fetchImpl = globalThis.fetch, now = Date.now, log = console.log, wait = delay } = {}) {
   const context = workflowContext(env), receipt = rotationReceipt(env);
-  const api = client({ env, fetchImpl, now, duration: ROTATE_DEADLINE_MS });
+  const api = client({ env, fetchImpl, now, duration: ROTATE_DEADLINE_MS, wait });
   await api.authorize(context);
   const release = await api.discover(false);
   if (String(release.id) !== env.BACKUP_RELEASE_ID) throw new Error('Receipt names a different recovery release');
