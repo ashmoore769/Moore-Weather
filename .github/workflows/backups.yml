@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
+      kind: ${{ steps.download.outputs.kind }}
       sha256: ${{ steps.ack.outputs.sha256 }}
       bytes: ${{ steps.ack.outputs.bytes }}
       created_at: ${{ steps.ack.outputs.created_at }}
@@ -31,12 +32,13 @@ jobs:
         with:
           node-version: '24'
       - name: Download and checksum encrypted recovery copy
+        id: download
         run: node tools/offsite-backup-client.js download
       - name: Store ciphertext outside the Render disk
         id: upload
         uses: actions/upload-artifact@v7
         with:
-          name: encrypted-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          name: encrypted-recovery-${{ steps.download.outputs.kind }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: recovery-artifact/backup.mwb
           if-no-files-found: error
           compression-level: 0
@@ -53,8 +55,9 @@ jobs:
     permissions:
       contents: write
       id-token: none
+      actions: write
     runs-on: ubuntu-24.04
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
         with:
@@ -63,6 +66,7 @@ jobs:
         with:
           node-version: '24'
       - name: Record the completed backup receipt
+        id: receipt
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BACKUP_JOB_RESULT: ${{ needs.backup.result }}
@@ -71,3 +75,14 @@ jobs:
           BACKUP_CREATED_AT: ${{ needs.backup.outputs.created_at }}
           BACKUP_ARTIFACT_ID: ${{ needs.backup.outputs.artifact_id }}
         run: node tools/record-backup-receipt.js
+      - name: Keep bounded encrypted recovery artifacts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BACKUP_JOB_RESULT: ${{ needs.backup.result }}
+          BACKUP_RECEIPT_RESULT: ${{ steps.receipt.outcome }}
+          BACKUP_KIND: ${{ needs.backup.outputs.kind }}
+          BACKUP_SHA256: ${{ needs.backup.outputs.sha256 }}
+          BACKUP_BYTES: ${{ needs.backup.outputs.bytes }}
+          BACKUP_CREATED_AT: ${{ needs.backup.outputs.created_at }}
+          BACKUP_ARTIFACT_ID: ${{ needs.backup.outputs.artifact_id }}
+        run: node tools/rotate-backup-artifacts.js
