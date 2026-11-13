@@ -25,6 +25,115 @@ function fixture(t) {
   return { directory, env, databases };
 }
 
+function directoryBytes(directory) {
+  if (!fs.existsSync(directory)) return 0;
+  return fs.readdirSync(directory, { withFileTypes: true }).reduce((sum, entry) => {
+    const filename = path.join(directory, entry.name);
+    return sum + (entry.isDirectory() ? directoryBytes(filename) : fs.statSync(filename).size);
+  }, 0);
+}
+
+function limitedBackupDisk(t, directory, usableBytes) {
+  const reserve = 512 * 1024 * 1024;
+  const existing = directoryBytes(directory), capacity = existing + usableBytes + reserve;
+  let peak = existing;
+  const measure = () => { const bytes = directoryBytes(directory); peak = Math.max(peak, bytes); return bytes; };
+  t.mock.method(fs, 'statfsSync', () => ({ bsize: 1, bavail: Math.max(0, capacity - measure()) }));
+  const rename = fs.renameSync;
+  t.mock.method(fs, 'renameSync', (...args) => { measure(); return rename(...args); });
+  return { peak: () => peak - existing, reserve };
+}
+
+test('recovery fits one logical snapshot and compressed output without staging a second database copy', async t => {
+  const { directory, env, databases } = fixture(t);
+  const source = databases[0];
+  source.exec('PRAGMA wal_autocheckpoint=0; CREATE TABLE payloads(id INTEGER PRIMARY KEY, payload BLOB);');
+  source.prepare('INSERT INTO payloads VALUES(1,?)').run(Buffer.alloc(8 * 1024 * 1024, 0x5a));
+  const logicalBytes = source.prepare('PRAGMA page_count').get().page_count * source.prepare('PRAGMA page_size').get().page_size;
+  const usableBytes = logicalBytes + 1280 * 1024;
+  const disk = limitedBackupDisk(t, env.WEATHER_BACKUP_DIR, usableBytes);
+  const result = await createRecoveryBundle({ env });
+  assert.ok(result.verified);
+  assert.ok(disk.peak() <= usableBytes, 'actual staging must leave the 512 MiB reserve available');
+  assert.ok(disk.peak() < 2 * logicalBytes, 'do not keep two full database copies during compaction');
+  const destination = path.join(directory, 'limited-disk-restore');
+  await restoreRecoveryBundle(path.join(env.WEATHER_BACKUP_DIR, result.file), destination, { secret: env.MOORE_AUTH_COOKIE_SECRET });
+  const restored = new DatabaseSync(path.join(destination, 'weather.sqlite'), { readOnly: true });
+  try { assert.deepEqual(Buffer.from(restored.prepare('SELECT payload FROM payloads').get().payload), Buffer.alloc(8 * 1024 * 1024, 0x5a)); }
+  finally { restored.close(); }
+});
+
+test('incompressible output cannot consume the disk reserve or replace a completed checkpoint', async t => {
+  const { env, databases } = fixture(t);
+  const checkpoint = await createRecoveryBundle({ env, checkpoint: true });
+  const checkpointBytes = fs.readFileSync(path.join(env.WEATHER_BACKUP_DIR, checkpoint.file));
+  fs.writeFileSync(path.join(env.WEATHER_BACKUP_DIR, 'owner-note.txt'), 'keep');
+  const source = databases[0], payload = crypto.randomBytes(2 * 1024 * 1024);
+  source.exec('CREATE TABLE payloads(id INTEGER PRIMARY KEY, payload BLOB);');
+  source.prepare('INSERT INTO payloads VALUES(1,?)').run(payload);
+  const logicalBytes = source.prepare('PRAGMA page_count').get().page_count * source.prepare('PRAGMA page_size').get().page_size;
+  const usableBytes = logicalBytes + 1088 * 1024;
+  const disk = limitedBackupDisk(t, env.WEATHER_BACKUP_DIR, usableBytes);
+  await assert.rejects(createRecoveryBundle({ env }), /Recovery compression exceeded its disk budget|Insufficient free disk space for recovery compression/);
+  assert.ok(disk.peak() <= usableBytes, 'failed compression must preserve the reserve');
+  assert.deepEqual(fs.readdirSync(env.WEATHER_BACKUP_DIR).sort(), [checkpoint.file, 'owner-note.txt'].sort());
+  assert.deepEqual(fs.readFileSync(path.join(env.WEATHER_BACKUP_DIR, checkpoint.file)), checkpointBytes);
+  assert.deepEqual(Buffer.from(source.prepare('SELECT payload FROM payloads').get().payload), payload);
+});
+
+test('a genuine snapshot-space shortage reports numeric requirements and leaves source files unchanged', async t => {
+  const { env, databases } = fixture(t);
+  const original = fs.readFileSync(env.WEATHER_DB_PATH), wal = fs.readFileSync(env.WEATHER_DB_PATH + '-wal');
+  limitedBackupDisk(t, env.WEATHER_BACKUP_DIR, 1024 * 1024);
+  await assert.rejects(createRecoveryBundle({ env }), error => {
+    assert.match(error.message, /^Insufficient free disk space for recovery snapshot: available \d+ bytes, required \d+ bytes \(including 536870912 bytes reserve\)$/);
+    assert.equal(error.message.includes(env.WEATHER_DB_PATH), false);
+    assert.equal(error.message.includes(env.MOORE_AUTH_COOKIE_SECRET), false);
+    return true;
+  });
+  assert.deepEqual(fs.readdirSync(env.WEATHER_BACKUP_DIR), []);
+  assert.deepEqual(fs.readFileSync(env.WEATHER_DB_PATH), original);
+  assert.deepEqual(fs.readFileSync(env.WEATHER_DB_PATH + '-wal'), wal);
+  assert.equal(databases[0].prepare('SELECT value FROM saved').get().value, 'private-weather.sqlite');
+});
+
+test('a compression preflight failure opens no dangling reader before cleaning scratch', async t => {
+  const { env } = fixture(t);
+  let snapshotReads = 0;
+  const createReadStream = fs.createReadStream;
+  t.mock.method(fs, 'createReadStream', (filename, ...args) => {
+    if (String(filename).startsWith(env.WEATHER_BACKUP_DIR + path.sep) && path.basename(filename) === 'weather.sqlite') snapshotReads++;
+    return createReadStream(filename, ...args);
+  });
+  t.mock.method(fs, 'statfsSync', () => {
+    const scratch = fs.existsSync(env.WEATHER_BACKUP_DIR) && fs.readdirSync(env.WEATHER_BACKUP_DIR).find(name => name.startsWith('.recovery-work-'));
+    const ready = scratch && fs.existsSync(path.join(env.WEATHER_BACKUP_DIR, scratch, 'weather.sqlite'));
+    // The snapshot and hash succeed, then another disk user consumes the
+    // available output budget just before the compression streams are opened.
+    return { bsize: 1, bavail: ready ? 513 * 1024 * 1024 - 1 : 4 * 1024 ** 3 };
+  });
+  await assert.rejects(createRecoveryBundle({ env }), /Insufficient free disk space for recovery compression/);
+  assert.equal(snapshotReads, 1, 'only the completed hash read may have opened; compression must not start');
+  assert.deepEqual(fs.readdirSync(env.WEATHER_BACKUP_DIR), []);
+  await new Promise(resolve => setImmediate(resolve));
+});
+
+test('ciphertext space is checked separately after all compressed inputs are ready', async t => {
+  const { env } = fixture(t);
+  const reserve = 512 * 1024 * 1024;
+  t.mock.method(fs, 'statfsSync', () => {
+    const scratch = fs.existsSync(env.WEATHER_BACKUP_DIR) && fs.readdirSync(env.WEATHER_BACKUP_DIR).find(name => name.startsWith('.recovery-work-'));
+    const files = scratch ? fs.readdirSync(path.join(env.WEATHER_BACKUP_DIR, scratch)) : [];
+    const gzipOnly = files.length === 3 && files.every(name => name.endsWith('.sqlite.gz'));
+    const compressedBytes = gzipOnly ? directoryBytes(path.join(env.WEATHER_BACKUP_DIR, scratch)) : 0;
+    // Simulate other live writes consuming space after snapshot compression.
+    // There is room for the compressed inputs, but not the complete envelope.
+    return { bsize: 1, bavail: gzipOnly ? reserve + 1024 * 1024 + compressedBytes : 4 * 1024 ** 3 };
+  });
+  await assert.rejects(createRecoveryBundle({ env }), /Insufficient free disk space for recovery encryption: available \d+ bytes, required \d+ bytes/);
+  assert.deepEqual(fs.readdirSync(env.WEATHER_BACKUP_DIR), []);
+});
+
 test('recovery compacts only its snapshots and excludes deleted payload while preserving all retained data', async t => {
   const { directory, env, databases } = fixture(t);
   const source = databases[0], retained = new Map();
@@ -73,8 +182,20 @@ test('failed compact-snapshot promotion removes owned work files and preserves c
 });
 
 test('complete encrypted recovery includes committed WAL, alerts and access requests and restores all three', async t => {
-  const { directory, env } = fixture(t);
+  const { directory, env, databases } = fixture(t);
+  const originals = new Map();
+  for (const name of ['weather.sqlite', 'station-alerts.sqlite', 'access-requests.sqlite']) {
+    for (const suffix of ['', '-wal']) {
+      const filename = path.join(directory, name + suffix);
+      originals.set(filename, fs.readFileSync(filename));
+    }
+    assert.ok(originals.get(path.join(directory, name + '-wal')).length > 32, 'committed data is still in the WAL');
+    assert.equal(originals.get(path.join(directory, name)).includes(Buffer.from('private-' + name)), false,
+      'the committed row must not already be present in the physical source file');
+  }
   const result = await createRecoveryBundle({ env, checkpoint: true });
+  for (const [filename, original] of originals) assert.deepEqual(fs.readFileSync(filename), original, 'backup must not rewrite live database or WAL bytes');
+  for (const [index, db] of databases.entries()) assert.equal(db.prepare('SELECT id FROM saved').get().id, index + 1);
   assert.equal(result.verified, true);
   assert.equal(result.databases.length, 3);
   const source = path.join(env.WEATHER_BACKUP_DIR, result.file);
