@@ -1,6 +1,6 @@
 /* A second window onto the weather, directly below the SkyCam. */
 .radar-panel { min-width:0; scroll-margin-top:18px; }
-.radar-map-stage { position:relative; height:360px; border-radius:var(--card-radius,16px); overflow:hidden; isolation:isolate; background:var(--page); }
+.radar-map-stage { --radar-scale-slot:110px; --radar-credit-slot:150px; position:relative; height:360px; border-radius:var(--card-radius,16px); overflow:hidden; isolation:isolate; background:var(--page); }
 .radar-map,.radar-map.leaflet-container { width:100%; height:100%; background:var(--page); }
 .radar-title-badge,.radar-frame-badge,.radar-map-button,.radar-interaction,
 .radar-panel .radar-map .leaflet-bar.leaflet-control-zoom a,
@@ -39,7 +39,8 @@
 .radar-tools { position:absolute; z-index:500; top:50px; right:10px; display:flex; gap:6px; }
 .radar-map-button { display:grid; place-items:center; width:44px; min-height:44px; padding:0; background:var(--viewer-control,rgba(13,22,30,.52)); cursor:pointer; }
 .radar-map-button:hover:enabled,.radar-interaction:hover:enabled { color:var(--viewer-text,#f5f9fc); border-color:rgba(240,248,255,.5); background:var(--viewer-hover,rgba(13,22,30,.72)); }
-.radar-interaction { position:absolute; z-index:550; left:50%; bottom:42px; transform:translateX(-50%); display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:8px 15px; font:650 11px/1.15 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; white-space:nowrap; cursor:pointer; }
+/* Keep the explore control in the clear space between the scale and credit. */
+.radar-interaction { position:absolute; z-index:550; left:var(--radar-scale-slot); right:var(--radar-credit-slot); bottom:4px; width:max-content; max-width:calc(100% - var(--radar-scale-slot) - var(--radar-credit-slot)); margin-inline:auto; display:inline-flex; align-items:center; justify-content:center; min-height:28px; padding:4px 8px; font:650 10px/1.15 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; white-space:normal; text-align:center; cursor:pointer; }
 .radar-map-stage[data-interactive="false"] .radar-map { cursor:pointer; touch-action:pan-y pinch-zoom; }
 .radar-map-stage[data-interactive="false"] .leaflet-control-zoom { visibility:hidden; pointer-events:none; }
 .radar-map-stage[data-interactive="true"] .radar-map { touch-action:none; }
@@ -61,7 +62,8 @@ html[data-theme="dark"] .radar-base-tiles { filter:invert(.93) hue-rotate(180deg
 .radar-panel .radar-map .leaflet-bar.leaflet-control-zoom a:hover { background:var(--viewer-hover,rgba(13,22,30,.72)); }
 .radar-panel .radar-map .leaflet-bar.leaflet-control-zoom a.leaflet-disabled { color:var(--viewer-text,#f5f9fc); opacity:.4; }
 .radar-panel .radar-map .leaflet-control-scale-line { padding:3px 7px; font-size:9px; }
-.radar-panel .radar-map .leaflet-control-attribution.leaflet-control { border-bottom:0; border-right:0; border-bottom-right-radius:0; }
+.radar-panel .radar-map .leaflet-control-scale { margin:0 0 4px 4px; }
+.radar-panel .radar-map .leaflet-control-attribution.leaflet-control { max-width:140px; margin:0 4px 4px 0; padding:3px 4px; line-height:1.2; text-align:center; }
 .radar-panel .radar-map .leaflet-control-attribution.leaflet-control a { color:var(--viewer-text,#f5f9fc); }
 .radar-map .leaflet-popup-content { margin:8px 13px; font-size:11px; font-weight:600; }
 .radar-map .leaflet-popup-tip { background:var(--viewer-surface,rgba(13,22,30,.62)); box-shadow:var(--viewer-shadow,0 1px 5px rgba(0,0,0,.12)); }
@@ -78,6 +80,10 @@ html[data-theme="dark"] .radar-base-tiles { filter:invert(.93) hue-rotate(180deg
   .radar-legend { gap:4px; font-size:8px; }
   .radar-legend-colours { width:48px; }
   .radar-frame-badge,.radar-tools { right:10px; }
+}
+@media(max-width:374px) {
+  .radar-map-stage { --radar-credit-slot:98px; }
+  .radar-panel .radar-map .leaflet-control-attribution.leaflet-control { max-width:90px; }
 }
 /* Short phone maps need a horizontal zoom pair below the top-right tools. */
 @media(max-width:359px) {
