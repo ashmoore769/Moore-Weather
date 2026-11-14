@@ -1124,6 +1124,12 @@ function fetchSkyCamOriginBuffer(relativePath, maxBytes) {
   });
 }
 
+async function fetchSkyCamOriginImage(relativePath) {
+  const result = await fetchSkyCamOriginBuffer(relativePath, SKYCAM_MAX_IMAGE_BYTES);
+  require('./lib/skycam-client').assertJpegBuffer(result.buffer);
+  return result;
+}
+
 function skyCamArchivePathFromId(id) {
   const match = String(id || "").match(/^SkyCam_00_(\d{4})(\d{2})(\d{2})(\d{6})$/);
   if (!match) return null;
@@ -1402,13 +1408,11 @@ app.get("/daily", async (req, res) => {
 // Lightweight status endpoint used by daily.html to reflect the
 // safety interlock and background/station refresh state.
 app.get("/skycam/latest.jpg", async (req, res) => {
+  res.set("Cache-Control", "no-store");
   try {
-    const { buffer, headers } = await fetchSkyCamOriginBuffer(
-      "/latest.jpg",
-      SKYCAM_MAX_IMAGE_BYTES
-    );
+    const { buffer } = await fetchSkyCamOriginImage("/latest.jpg");
 
-    res.set("Content-Type", headers["content-type"] || "image/jpeg");
+    res.set("Content-Type", "image/jpeg");
     res.set("Content-Length", String(buffer.length));
     res.set("Cache-Control", "no-store, no-cache, must-revalidate");
     res.set("X-Content-Type-Options", "nosniff");
@@ -1442,6 +1446,7 @@ app.get("/skycam/history", async (req, res) => {
 });
 
 app.get("/skycam/history/:id", async (req, res) => {
+  res.set("Cache-Control", "no-store");
   const archivePath = skyCamArchivePathFromId(req.params.id);
   if (!archivePath) {
     return res.status(404).send("SkyCam history image not found.");
@@ -1454,12 +1459,9 @@ app.get("/skycam/history/:id", async (req, res) => {
       return res.status(404).send("SkyCam history image not found.");
     }
 
-    const { buffer, headers } = await fetchSkyCamOriginBuffer(
-      archivePath,
-      SKYCAM_MAX_IMAGE_BYTES
-    );
+    const { buffer } = await fetchSkyCamOriginImage(archivePath);
 
-    res.set("Content-Type", headers["content-type"] || "image/jpeg");
+    res.set("Content-Type", "image/jpeg");
     res.set("Content-Length", String(buffer.length));
     res.set("Cache-Control", "private, max-age=31536000, immutable");
     res.set("X-Content-Type-Options", "nosniff");
@@ -1471,6 +1473,7 @@ app.get("/skycam/history/:id", async (req, res) => {
 });
 
 app.get("/skycam/download/:id", async (req, res) => {
+  res.set("Cache-Control", "no-store");
   const archivePath = skyCamArchivePathFromId(req.params.id);
   if (!archivePath) {
     return res.status(404).send("SkyCam history image not found.");
@@ -1483,10 +1486,7 @@ app.get("/skycam/download/:id", async (req, res) => {
       return res.status(404).send("SkyCam history image not found.");
     }
 
-    const { buffer, headers } = await fetchSkyCamOriginBuffer(
-      archivePath,
-      SKYCAM_MAX_IMAGE_BYTES
-    );
+    const { buffer } = await fetchSkyCamOriginImage(archivePath);
 
     // The strict ID validator above makes this filename header-safe.
     const filename = entry.id.replace(
@@ -1494,7 +1494,7 @@ app.get("/skycam/download/:id", async (req, res) => {
       "SkyCam_$1_$2"
     ) + ".jpg";
 
-    res.set("Content-Type", headers["content-type"] || "image/jpeg");
+    res.set("Content-Type", "image/jpeg");
     res.set("Content-Length", String(buffer.length));
     res.set("Content-Disposition", `attachment; filename="${filename}"`);
     res.set("Cache-Control", "private, no-store");

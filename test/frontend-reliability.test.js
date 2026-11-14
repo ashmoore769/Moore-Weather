@@ -296,6 +296,64 @@ function cameraBrowser({ retainCurrentUntilLoad = false } = {}) {
   return { context, node, frames, failures, hanging, attempts, requests, show, state, close: () => { for (const timer of timers) clearTimeout(timer); } };
 }
 
+test('SkyCam first-load failure shows an older valid frame truthfully and recovers the newest later', async () => {
+  const b = cameraBrowser();
+  try {
+    b.failures.add('/new.jpg');
+    await b.context.refreshSkyCam();
+    assert.equal(b.state().entry.id, 'old');
+    assert.equal(b.state().entry.capturedAt, b.frames[0].capturedAt);
+    assert.equal(vm.runInContext('skycamFollowLive', b.context), true);
+    assert.equal(b.node('skycamBadge').textContent, 'SKYCAM · STALE');
+    assert.equal(b.node('skycamBadge').dataset.state, 'stale');
+    assert.match(b.node('skycamPosition').textContent, /latest image unavailable; retrying/);
+    const timestamp = b.node('skycamTime').textContent;
+    await b.context.refreshSkyCam();
+    assert.equal(b.attempts.get('/new.jpg'), 2);
+    assert.equal(b.node('skycamTime').textContent, timestamp);
+    b.failures.delete('/new.jpg');
+    await b.context.refreshSkyCam();
+    assert.equal(b.state().entry.id, 'new');
+    assert.notEqual(b.node('skycamTime').textContent, timestamp);
+    assert.equal(b.node('skycamBadge').dataset.state, 'live');
+    assert.equal(b.node('skycamBadge').textContent, 'SKYCAM · LIVE');
+  } finally { b.close(); }
+});
+
+test('SkyCam initial fallback is bounded and older navigation works before any frame has loaded', async () => {
+  const b = cameraBrowser();
+  try {
+    b.frames.splice(0, b.frames.length, ...Array.from({ length: 7 }, (_, i) => ({
+      id: 'frame-' + i, url: '/frame-' + i + '.jpg', capturedAt: new Date(now - (7 - i) * 600000).toISOString()
+    })));
+    for (const frame of b.frames) b.failures.add(frame.url);
+    await b.context.refreshSkyCam();
+    assert.equal(b.requests.length, 4, 'Try newest plus at most three older frames');
+    assert.equal(b.state().entry, null);
+    assert.equal(b.node('skycamBadge').dataset.state, 'unavailable');
+    assert.doesNotMatch(b.node('skycamPosition').textContent, /Waiting for image history/);
+    assert.equal(b.node('skycamPrev').disabled, false);
+    b.failures.delete(b.frames[5].url);
+    await b.context.stepSkyCam(-1);
+    assert.equal(b.state().entry.id, b.frames[5].id);
+    assert.equal(b.node('skycamBadge').dataset.state, 'history');
+  } finally { b.close(); }
+});
+
+test('SkyCam initial fallback cannot override a manual frame selection made during a failed load', async () => {
+  const b = cameraBrowser();
+  try {
+    b.hanging.add('/new.jpg');
+    const refresh = b.context.refreshSkyCam();
+    await new Promise(setImmediate);
+    await b.show(0, false);
+    await refresh;
+    assert.equal(b.state().entry.id, 'old');
+    assert.equal(vm.runInContext('skycamFollowLive', b.context), false);
+    assert.equal(b.node('skycamBadge').dataset.state, 'history');
+  } finally { b.close(); }
+});
+
 test('SkyCam retries cached failed image requests with new URLs while preserving frame identity and time', async () => {
   const b = cameraBrowser();
   try {

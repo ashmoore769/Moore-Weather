@@ -901,6 +901,7 @@ body.skycam-focus-open { overflow: hidden; overscroll-behavior: none; }
 }
 
 .skycam-badge {
+  --skycam-status-rgb: 168,185,200;
   position: absolute;
   left: 10px;
   top: 10px;
@@ -921,7 +922,11 @@ body.skycam-focus-open { overflow: hidden; overscroll-behavior: none; }
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
-.skycam-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #46d47e; box-shadow: 0 0 0 3px rgba(70,212,126,.14); }
+.skycam-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--skycam-status-rgb)); box-shadow: 0 0 0 3px rgba(var(--skycam-status-rgb),.14); }
+.skycam-badge[data-state="live"] { --skycam-status-rgb: 70,212,126; }
+.skycam-badge:is([data-state="stale"],[data-state="loading"]) { --skycam-status-rgb: 255,205,95; }
+.skycam-badge[data-state="unavailable"] { --skycam-status-rgb: 255,139,139; }
+.skycam-badge:is([data-state="history"],[data-state="timelapse"]) { --skycam-status-rgb: 142,199,255; }
 
 .skycam-interval-badge {
   position: absolute;
@@ -1223,7 +1228,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <div class="current-visuals">
 <div aria-label="SkyCam" class="layout-skycam">
 <div class="skycam-container" title="SkyCam">
-<div class="skycam-badge" id="skycamBadge">SKYCAM · WAITING</div>
+<div class="skycam-badge" id="skycamBadge" data-state="waiting">SKYCAM · WAITING</div>
 <div class="skycam-interval-badge" title="SkyCam captures a new image every 10 minutes">UPDATES · EVERY 10 MIN</div>
 <div class="skycam-rotate-hint" id="skycamRotateHint" aria-hidden="true">↻ Landscape gives the best view</div>
 <button aria-label="Show older SkyCam image" class="skycam-nav skycam-nav-prev" id="skycamPrev" onclick="stepSkyCam(-1)" type="button">‹</button>
@@ -1759,6 +1764,7 @@ let skycamSelectionToken = 0;
 let skycamHistoryLoading = false;
 const SKYCAM_FRESH_MS = 25 * 60 * 1000;
 const SKYCAM_IMAGE_TIMEOUT_MS = 12000;
+const SKYCAM_INITIAL_FALLBACK_LIMIT = 3;
 
 function formatSkyCamTime(isoString) {
   const date = new Date(isoString);
@@ -1817,7 +1823,7 @@ function updateSkyCamControls() {
   const live = isSkyCamLive();
   const latest = Boolean(skycamDisplayedEntry && skycamDisplayedEntry.id === skycamHistory.at(-1)?.id);
 
-  prevBtn.disabled = !hasHistory || skycamHistoryIndex <= 0;
+  prevBtn.disabled = !hasHistory || (skycamHistoryIndex < 0 ? skycamHistory.length < 2 : skycamHistoryIndex === 0);
   nextBtn.disabled = !hasHistory || latest;
   if (liveBtn) liveBtn.disabled = !hasHistory || (latest && !skycamImageError);
   if (downloadBtn) {
@@ -1848,15 +1854,19 @@ function updateSkyCamControls() {
         : skycamFollowLive && (!live || skycamImageError || skycamHistoryError) ? 'STALE'
           : latest && live ? 'LIVE' : 'HISTORY';
     badge.textContent = 'SKYCAM · ' + state;
+    badge.dataset.state = state.toLowerCase();
   }
   const entry = skycamDisplayedEntry;
   timeLabel.textContent = entry ? formatSkyCamTime(entry.capturedAt) : 'Capture time unavailable';
   const age = entry ? Date.now() - Date.parse(entry.capturedAt) : NaN;
-  let position = skycamHistoryIndex >= 0 ? `${skycamHistoryIndex + 1} of ${skycamHistory.length}` : entry ? 'Previously loaded image' : 'Waiting for image history';
+  let position = skycamHistoryIndex >= 0 ? `${skycamHistoryIndex + 1} of ${skycamHistory.length}`
+    : entry ? 'Previously loaded image' : hasHistory ? 'Image history available' : 'Waiting for image history';
   if (entry && skycamFollowLive && age > SKYCAM_FRESH_MS) position += ` · captured ${Math.floor(age / 60000)}m ago`;
   if (entry && age < -90000) position += ' · check camera clock';
   if (skycamImageLoading) position += ' · loading image';
-  else if (skycamImageError) position += ' · image unavailable; retrying';
+  else if (skycamImageError) position = entry
+    ? position + (skycamFollowLive ? ' · latest image unavailable; retrying' : ' · image unavailable; retrying')
+    : 'Image unavailable; retrying';
   else if (skycamHistoryError) position += ' · history unavailable; retrying';
   else if (latest && live) position += ' · LIVE';
   positionLabel.textContent = position;
@@ -1971,6 +1981,31 @@ async function showSkyCamHistory(index, options = {}) {
   return loaded;
 }
 
+async function showSkyCamLatest() {
+  const newest = skycamHistory.length - 1;
+  if (newest < 0) return false;
+  const token = skycamSelectionToken + 1;
+  const loaded = await showSkyCamHistory(newest, { manual: false, followLive: true });
+  if (loaded || skycamDisplayedEntry || skycamSelectionToken !== token || !skycamFollowLive || skycamPlaying) return loaded;
+
+  // On first load an incomplete newest upload must not hide usable history.
+  // Bound the work, keep each frame's actual timestamp, and leave follow-live
+  // enabled so the newest image is retried on the next refresh.
+  const latestError = skycamImageError;
+  const oldest = Math.max(0, newest - SKYCAM_INITIAL_FALLBACK_LIMIT);
+  for (let index = newest - 1; index >= oldest; index--) {
+    const fallbackToken = skycamSelectionToken + 1;
+    const recovered = await showSkyCamHistory(index, { manual: false, followLive: true });
+    if (skycamSelectionToken !== fallbackToken || !skycamFollowLive || skycamPlaying) return false;
+    if (recovered) {
+      skycamImageError = latestError;
+      updateSkyCamControls();
+      return true;
+    }
+  }
+  return false;
+}
+
 function downloadSkyCamFrame() {
   const entry = skycamDisplayedEntry;
   if (!entry || !entry.id) return;
@@ -1990,7 +2025,7 @@ function downloadSkyCamFrame() {
 async function goSkyCamLive(options = {}) {
   if (options.manual !== false) stopSkyCamPlayback(false);
   skycamFollowLive = true;
-  if (skycamHistory.length) return showSkyCamHistory(skycamHistory.length - 1, { manual: false, followLive: true });
+  if (skycamHistory.length) return showSkyCamLatest();
   // An unlabelled latest image cannot establish a capture time. Leave the
   // previous labelled frame visible while the manifest is retried.
   return refreshSkyCam();
@@ -2005,7 +2040,7 @@ function stepSkyCam(direction) {
 
   const selected = skycamHistoryIndex < 0 ? skycamHistory.length - 1 : skycamHistoryIndex;
   const target = Math.max(0, Math.min(selected + direction, skycamHistory.length - 1));
-  showSkyCamHistory(target, { manual: false, followLive: target === skycamHistory.length - 1 });
+  return showSkyCamHistory(target, { manual: false, followLive: target === skycamHistory.length - 1 });
 }
 
 function sampleSkyCamTimelapseIndices() {
@@ -2150,7 +2185,7 @@ async function loadSkyCamHistory() {
       // A failed attempt never updates displayedEntry, so the same newest ID
       // will be retried on the next manifest refresh.
       if (skycamDisplayedEntry?.id !== skycamHistory[newest].id || skycamImageError)
-        await showSkyCamHistory(newest, { manual: false, followLive: true });
+        await showSkyCamLatest();
       else updateSkyCamControls();
     } else if (skycamImageError && skycamHistory.some(entry => entry.id === skycamRetryEntryId)) {
       await showSkyCamHistory(skycamHistory.findIndex(entry => entry.id === skycamRetryEntryId), {manual:false,followLive:false});
