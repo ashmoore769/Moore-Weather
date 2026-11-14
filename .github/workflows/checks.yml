@@ -1,7 +1,7 @@
 name: Offline checks
 on:
   push:
-    branches: [main, 'update/water-cards-rainfall-*', 'update/analytics-*', 'update/dashboard-*', 'update/reliability-*']
+    branches: [main, 'update/water-cards-rainfall-*', 'update/analytics-*', 'update/dashboard-*', 'update/reliability-*', 'feature/fronius-solar-*']
 permissions:
   contents: read
 concurrency:
@@ -25,6 +25,12 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - name: Set up collector test runtime
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Check the Fronius collector offline
+        run: python3 -m unittest discover -s integrations/fronius -p 'test_*.py' -v
       - name: Verify current Connolly council source
         if: startsWith(github.ref, 'refs/heads/update/dashboard-')
         run: node tools/verify-connolly.cjs
@@ -38,6 +44,8 @@ jobs:
       - name: Check responsive water cards and rainfall comparison
         if: ${{ hashFiles('tools/check-dashboard.cjs') != '' }}
         run: node tools/check-dashboard.cjs
+      - name: Check the private solar card and connection states
+        run: node tools/check-solar.cjs
 
       - name: Check analytics and privacy controls
         run: node tools/check-analytics.cjs

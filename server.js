@@ -471,6 +471,9 @@ app.get('/health/monitor', (_req, res) => {
   res.status(status === 'degraded' ? 503 : 200).json({ status: status === 'starting' ? 'ok' : status });
 });
 require('./lib/backup-auth').mountBackupRoutes(app, { getScheduler: () => databaseBackups, logger });
+// The Pi can submit only solar measurements using its separate machine token.
+// Browser reads below still require the existing private portal login.
+require('./lib/solar-service').mountSolarIngest(app, { env: process.env, getService: () => solarService });
 
 app.use((req, res, next) => {
   const payload = authenticatedPayload(req);
@@ -517,6 +520,9 @@ let dailyStationRequestInFlight = null;
 // Optional SQL persistence shares the existing polling owner and adds no logger
 // connections. Blank WEATHER_DB_PATH leaves production behaviour unchanged.
 const persistence = require('./lib/weather-persistence').createPersistence(process.env, logger);
+const solarService = require('./lib/solar-service').createSolarService({ env: process.env,
+  isReady: () => persistence.status().ready, logger });
+require('./lib/solar-service').mountSolarRead(app, { getService: () => solarService });
 const historyApi = require('./lib/weather-history-api').createHistoryApi({
   filename: process.env.WEATHER_DB_PATH,
   isReady: () => persistence.status().ready,
@@ -1512,6 +1518,7 @@ app.get("/ping", (req, res) => {
     database: persistence.status(),
     history: historyCollector.status(),
     water: waterService.status(),
+    solar: solarService.status(),
     databaseBackups: databaseBackups.status(),
     retention: weatherRetention.status(),
     stationClock: stationClock.status(),
@@ -1561,7 +1568,7 @@ function shutdown() {
   Promise.resolve(stationTerminal.stop()).catch(() => {
     logger.warn('[TERMINAL] Shutdown cleanup could not complete');
   }).finally(() => {
-    webServer.close(() => process.exit(0));
+    webServer.close(() => { solarService.close(); process.exit(0); });
   });
 }
 process.once('SIGTERM', shutdown);

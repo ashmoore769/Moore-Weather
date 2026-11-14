@@ -1,0 +1,35 @@
+.solar-card {
+  margin:24px 0 0;
+  padding:20px;
+  border-top:3px solid var(--solar-moderate);
+  min-width:0;
+}
+.solar-card[hidden],.solar-card [hidden] { display:none !important; }
+.solar-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+.solar-header .eyebrow { margin:0 0 5px; }
+.solar-header .section-title { margin:0; }
+.solar-state { display:flex; align-items:flex-end; flex-direction:column; gap:7px; min-width:0; text-align:right; }
+.solar-badge { display:inline-block; padding:4px 8px; border-radius:5px; background:var(--surface-soft); color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.5px; }
+.solar-badge-fresh { color:var(--green); background:var(--green-soft); }
+.solar-badge-partial,.solar-badge-waiting { color:var(--amber); background:var(--amber-soft); }
+.solar-badge-stale,.solar-badge-unavailable,.solar-badge-check { color:var(--red); background:var(--red-soft); }
+.solar-observed { color:var(--muted); font-size:11px; line-height:1.5; }
+.solar-main { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; margin-top:22px; }
+.solar-reading,.solar-flow { display:flex; flex-direction:column; gap:7px; min-width:0; }
+.solar-label { color:var(--muted); font-size:11px; line-height:1.5; }
+.solar-reading strong { color:var(--text); font-size:27px; font-weight:650; line-height:1.2; letter-spacing:-.6px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.solar-reading small,.solar-flow small { color:var(--muted); font-size:11px; line-height:1.5; }
+.solar-flows { display:flex; flex-wrap:wrap; gap:16px 32px; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
+.solar-flow { flex:1 1 120px; }
+.solar-flow strong { color:var(--text); font-size:18px; font-weight:650; font-variant-numeric:tabular-nums; }
+.solar-note,.solar-message { margin:15px 0 0; color:var(--muted); font-size:11px; line-height:1.6; overflow-wrap:anywhere; }
+.solar-message { padding:10px 12px; background:var(--surface-soft); border-radius:7px; }
+.solar-card[data-state="stale"] .solar-reading strong,.solar-card[data-state="unavailable"] .solar-reading strong,.solar-card[data-state="check"] .solar-reading strong { color:var(--muted); }
+@media(max-width:600px) {
+  .solar-card { padding:16px; }
+  .solar-header { gap:12px; }
+  .solar-state { max-width:65%; }
+  .solar-main { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px 14px; }
+  .solar-reading:last-child { grid-column:1 / -1; padding-top:16px; border-top:1px solid var(--border); }
+  .solar-reading strong { font-size:25px; }
+}
