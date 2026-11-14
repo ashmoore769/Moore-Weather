@@ -1,5 +1,16 @@
 /* Shared finish: quiet surfaces, measured accents, compact station identity. */
-:root { --card-line:#438fbd; --card-radius:16px; }
+:root {
+  --card-line:#438fbd; --card-radius:16px;
+  /* Shared glass surfaces keep the camera and radar controls in one family. */
+  --viewer-surface:rgba(13,22,30,.62);
+  --viewer-control:rgba(13,22,30,.52);
+  --viewer-hover:rgba(13,22,30,.72);
+  --viewer-border:rgba(240,248,255,.25);
+  --viewer-text:#f5f9fc;
+  --viewer-radius:999px;
+  --viewer-blur:8px;
+  --viewer-shadow:0 1px 5px rgba(0,0,0,.12);
+}
 html[data-theme="dark"] {
   --surface:#121b27; --surface-soft:#141f2c; --surface-raised:#172331;
   --border:#293746; --border-strong:#3c4d60;
@@ -44,6 +55,43 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 .layout-soil { border-top:3px solid #658d75; display:flex; flex-direction:column; }
 .layout-power { border-top:3px solid #a58d55; }
 .skycam-container { border:0; box-shadow:none; border-radius:var(--card-radius); }
+.skycam-badge,.skycam-interval-badge,.skycam-caption > span,.skycam-action,.skycam-nav,.skycam-rotate-hint {
+  border:1px solid var(--viewer-border);
+  border-radius:var(--viewer-radius);
+  color:var(--viewer-text);
+  background:var(--viewer-surface);
+  box-shadow:var(--viewer-shadow);
+  text-shadow:0 1px 2px rgba(0,0,0,.45);
+  backdrop-filter:blur(var(--viewer-blur));
+  -webkit-backdrop-filter:blur(var(--viewer-blur));
+}
+.skycam-badge,.skycam-interval-badge { min-height:28px; padding:6px 10px; line-height:1.1; }
+.skycam-badge { font-size:10px; font-weight:800; letter-spacing:.55px; }
+.skycam-interval-badge { font-size:9px; font-weight:750; letter-spacing:.45px; }
+.skycam-nav { width:44px; height:44px; background:var(--viewer-control); font-size:32px; }
+.skycam-action { min-width:40px; min-height:40px; padding:8px 10px; background:var(--viewer-surface); }
+.skycam-action:hover:not(:disabled),.skycam-nav:hover:not(:disabled) { background:var(--viewer-hover); }
+.skycam-nav:disabled { opacity:.28; }
+.skycam-action:focus-visible,.skycam-nav:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.skycam-actions { flex-shrink:0; gap:4px; }
+.skycam-caption { gap:6px; }
+.skycam-caption > span { min-width:0; line-height:1.2; }
+/* The live status is already shown above. Keep the jump button when useful. */
+#skycamLive:disabled { display:none; }
+@media(max-width:600px) {
+  .skycam-caption { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:4px; font-size:9px; }
+  .skycam-caption > span { min-height:28px; padding:5px 6px; overflow-wrap:anywhere; }
+  .skycam-caption > #skycamPosition { justify-self:end; }
+  .skycam-action { width:40px; min-width:40px; min-height:40px; padding:0; font-size:13px; background:var(--viewer-control); }
+  #skycamLive .skycam-action-text { display:none; }
+  .skycam-nav { width:44px; height:44px; }
+  .skycam-interval-badge { min-height:28px; padding:6px 8px; font-size:8px; }
+}
+@media(max-width:359px) {
+  .skycam-container:has(#skycamLive:not(:disabled)) .skycam-caption { grid-template-columns:minmax(0,1fr) minmax(0,1fr); row-gap:5px; }
+  .skycam-container:has(#skycamLive:not(:disabled)) .skycam-actions { grid-row:2; grid-column:1 / -1; justify-self:center; }
+  .skycam-container:has(#skycamLive:not(:disabled)) #skycamPosition { grid-row:1; grid-column:2; }
+}
 .water-panel { border-radius:var(--card-radius); }
 .primary-meta { gap:10px; margin-top:10px; }
 .temperature-heroes { gap:10px; }
@@ -149,20 +197,19 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 @media(max-width:370px) { .dashboard-tabs { gap:10px; } .dashboard-tab { font-size:11px; } }
 
 /* Current keeps its reading order on phones; the two visuals share a column on desktop. */
-.current-page .content-layout { grid-template-areas:"primary" "skycam" "radar" "soil"; gap:18px; }
+.current-page .content-layout { grid-template-areas:"primary" "skycam" "radar"; gap:18px; }
 .current-page .layout-soil { min-width:0; }
 .current-page .current-power { margin:24px 0 0; }
 @media(min-width:900px) {
   body.current-page.layout-landscape .content-layout {
     grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);
-    grid-template-areas:"primary visuals" "soil visuals";
-    grid-template-rows:auto 1fr;
+    grid-template-areas:"primary visuals";
+    grid-template-rows:auto;
     gap:20px; align-items:start;
   }
-  body.current-page.layout-landscape .current-visuals { grid-area:visuals; display:flex; flex-direction:column; gap:20px; min-width:0; align-self:stretch; }
-  body.current-page.layout-landscape .layout-soil { align-self:stretch; }
-  body.current-page.layout-landscape .layout-radar { display:flex; flex-direction:column; flex:1; }
-  body.current-page.layout-landscape .radar-map-stage { flex:1; height:0; min-height:320px; }
+  body.current-page.layout-landscape .current-visuals { grid-area:visuals; display:flex; flex-direction:column; gap:20px; min-width:0; align-self:start; }
+  body.current-page.layout-landscape .layout-radar { display:flex; flex-direction:column; }
+  body.current-page.layout-landscape .radar-map-stage { aspect-ratio:4 / 3; height:auto; min-height:0; }
   body.current-page.layout-landscape .current-power { display:grid; grid-template-columns:150px minmax(0,1fr); align-items:center; gap:24px; padding:20px 24px; }
   body.current-page.layout-landscape .current-power .section-header { display:block; margin:0; }
   body.current-page.layout-landscape .current-power .section-title { margin-bottom:6px; }
@@ -233,4 +280,3 @@ body.current-page.layout-portrait :is(#skycamTimelapse,#skycamDownload,#skycamFo
 body.current-page.layout-landscape .layout-radar { flex:none; }
 
 .current-page .radar-map { position:absolute; inset:0; }
-
