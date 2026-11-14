@@ -221,7 +221,6 @@ body.current-page.layout-portrait :is(#skycamTimelapse,#skycamDownload,#skycamFo
 @media(max-width:600px) {
   .dashboard-tabs { width:100%; grid-template-columns:repeat(4,auto); gap:2px; padding:3px; box-sizing:border-box; }
   .dashboard-navigation .dashboard-tab,body.layout-landscape .dashboard-navigation .dashboard-tab { padding:0 5px; font-size:11px; }
-  .nav-current-detail { display:none; }
 }
 @media(max-width:359px) {
   .dashboard-navigation .dashboard-tab,body.layout-landscape .dashboard-navigation .dashboard-tab { padding:0 3px; font-size:10.5px; gap:3px; }

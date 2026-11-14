@@ -12,9 +12,9 @@
 <link href="/site.webmanifest" rel="manifest"/>
 <link href="/moore-weather-touch-v2.png" rel="apple-touch-icon" sizes="180x180"/>
 <link href="/moore-weather-favicon-v3.svg" rel="icon" sizes="any" type="image/svg+xml"/>
-<title>Moore Weather · West Warwick</title>
+<title>Moore Weather · Dashboard</title>
 <script src="/theme.js?v=5"></script>
-  <script defer src="/analytics.js?v=2"></script>
+  <script defer src="/analytics.js?v=3"></script>
 <style>
 :root {
   color-scheme: light;
@@ -1129,9 +1129,12 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <link rel="stylesheet" href="/station-shell.css?v=7">
 <script defer src="/station-shell.js?v=7"></script>
 <script defer src="/station-alerts.js?v=9"></script>
-<link rel="stylesheet" href="/dashboard.css?v=10">
+<link rel="stylesheet" href="/dashboard.css?v=11">
 <link rel="stylesheet" href="/solar.css?v=3">
 <script defer src="/solar.js?v=3"></script>
+<link rel="stylesheet" href="/forecast-summary.css?v=1">
+<script defer src="/forecast-summary-model.js?v=1"></script>
+<script defer src="/forecast-summary.js?v=1"></script>
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/radar.css?v=2">
 <link rel="stylesheet" href="/soil.css?v=1">
@@ -1160,7 +1163,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     </div>
   <div class="dashboard-navigation">
     <nav class="dashboard-tabs" aria-label="Weather views">
-      <button type="button" class="dashboard-tab" id="fetchBtn" aria-current="page" title="Refresh current readings" onclick="manualFetch()">Current<span class="nav-current-detail"> Readings</span></button>
+      <button type="button" class="dashboard-tab" id="fetchBtn" aria-current="page" title="Refresh station readings" onclick="manualFetch()">Dashboard</button>
       <a class="dashboard-tab" href="/forecast.html">Forecast</a>
       <a class="dashboard-tab" id="dailySummaryBtn" href="/daily.html">Daily Summary</a>
       <button id="browseHistory" type="button" class="dashboard-tab dashboard-history-button" aria-haspopup="dialog" aria-label="Browse weather trends and history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h17M7 14l4-5 4 3 5-7"/></svg><span>Trends</span></button>
@@ -1318,6 +1321,21 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <span id="dailyEvapVal">--</span>
 </div></div>
 </main>
+<section id="forecastSummary" class="panel-card section-card forecast-summary" aria-labelledby="forecastSummaryTitle" aria-busy="true">
+  <header class="forecast-summary-header"><h2 id="forecastSummaryTitle" class="section-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14h10a4 4 0 0 0 .2-8 5.5 5.5 0 0 0-10.5 1A3.5 3.5 0 0 0 7 14Z"/><path d="m8 17-1 3m6-3-1 3m6-3-1 3"/></svg>Forecast<span>Next 24h</span></h2><a class="forecast-summary-full" href="/forecast.html">Full forecast <span aria-hidden="true">↗</span></a></header>
+  <div class="forecast-summary-layout"><div class="forecast-summary-overview">
+    <div class="forecast-summary-metrics"><div class="forecast-summary-rain"><span>Expected rain</span><strong id="forecastSummaryRain">–</strong></div><div><span>Peak rain chance</span><strong id="forecastSummaryChance">–</strong></div><div class="forecast-summary-temperature"><span>High / low</span><strong id="forecastSummaryTemps">–</strong></div></div>
+    <p id="forecastSummarySignal" class="forecast-summary-signal" role="status">Loading the outlook…</p>
+    <p id="forecastSummaryTiming" class="forecast-summary-timing"></p>
+  </div><div class="forecast-summary-hourly">
+    <div class="forecast-summary-chart-heading"><span>Hourly rain · AEST</span><span>Current hour included</span></div>
+    <div id="forecastSummaryPlot" class="forecast-summary-plot" role="slider" tabindex="0" aria-label="Hourly rain forecast" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="23" aria-valuenow="0" aria-valuetext="Forecast loading" aria-describedby="forecastSummaryChartNote"><svg id="forecastSummaryChart" viewBox="0 0 720 110" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+    <div id="forecastSummaryInspect" class="forecast-summary-inspect" aria-live="polite">Hourly forecast loading.</div>
+    <p id="forecastSummaryChartNote" class="forecast-summary-sr-only">Rain bars show the amount expected during each hour. Tap or drag horizontally to inspect; use left and right arrow keys, Home or End on a keyboard. Temperature is for the end of the selected hour. All times are AEST.</p>
+  </div></div>
+  <footer class="forecast-summary-footer"><span><a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a><span id="forecastSummarySource"> · Warwick area</span></span><a href="https://www.bom.gov.au/qld/warnings.shtml" target="_blank" rel="noopener noreferrer">BOM warnings <span aria-hidden="true">↗</span></a></footer>
+  <noscript><p class="forecast-summary-timing">Enable JavaScript to view the forecast summary.</p></noscript>
+</section>
 <section id="homeSolar" class="panel-card section-card solar-card" aria-labelledby="solarTitle" hidden>
   <header class="solar-header">
     <h2 class="section-title" id="solarTitle"><svg class="solar-title-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>Home solar</h2>

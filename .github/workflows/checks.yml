@@ -47,6 +47,9 @@ jobs:
       - name: Check the private solar card and connection states
         run: node tools/check-solar.cjs
 
+      - name: Check the forecast summary and hourly rain controls
+        run: node tools/check-forecast-summary.cjs
+
       - name: Check analytics and privacy controls
         run: node tools/check-analytics.cjs
 
