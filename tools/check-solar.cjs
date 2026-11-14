@@ -77,7 +77,9 @@ async function layout(page, width, context, { notice = false } = {}) {
   const result = await page.evaluate(() => {
     const card = document.querySelector('#homeSolar'), rect = card.getBoundingClientRect();
     const children = [...card.querySelectorAll('.solar-header,.solar-main,.solar-reading,.solar-flow,.solar-note,.solar-message,.solar-hero,.solar-day-grid,.solar-history,.solar-history-header,.solar-chart-toolbar,.solar-chart-inspect,[role="tablist"],[role="tabpanel"]')]
-      .filter(element => element.getBoundingClientRect().height > 0)
+      // Visually clipped accessibility hints are deliberately 1px wide; only
+      // rendered content can create visible layout overflow.
+      .filter(element => element.getBoundingClientRect().height > 0 && getComputedStyle(element).clipPath === 'none')
       .map(element => ({ name: element.className, left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right,
         width: element.clientWidth, scroll: element.scrollWidth }));
     const panels = [...card.querySelectorAll('[role="tabpanel"]')].map(element => ({ id: element.id,
