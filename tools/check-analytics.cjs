@@ -30,6 +30,14 @@ function downloadSdk() {
     request.on('error', reject);
   });
 }
+async function assertDark(page) {
+  assert.deepEqual(await page.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    scheme: getComputedStyle(document.documentElement).colorScheme,
+    toggle: Boolean(document.querySelector('#themeToggleBtn')),
+    chrome: document.querySelector('meta[name="theme-color"]').content
+  })), { theme:'dark', scheme:'dark', toggle:false, chrome:'#0d1722' });
+}
 (async () => {
   const sdk = await downloadSdk();
   assert.ok(sdk.includes('umami') && sdk.length > 500, 'Official public SDK downloaded');
@@ -38,8 +46,12 @@ function downloadSdk() {
     const browser = await engine.launch();
     try {
       async function fixture(options = {}) {
-        const context = await browser.newContext({ viewport: { width: options.width || 393, height: 852 }, serviceWorkers: 'block' });
+        const context = await browser.newContext({ viewport: { width: options.width || 393, height: 852 }, serviceWorkers: 'block', colorScheme: 'light' });
         const requests = [], errors = [], external = [];
+        await context.addInitScript(() => {
+          localStorage.setItem('mooreWeatherTheme', 'light');
+          localStorage.setItem('mooreWeatherThemeVersion', '4');
+        });
         if (options.excluded) await context.addInitScript(() => localStorage.setItem('umami.disabled', '1'));
         if (options.gpc) await context.addInitScript(() => Object.defineProperty(navigator, 'globalPrivacyControl', { get: () => true }));
         await context.route('**/*', async route => {
@@ -67,7 +79,7 @@ function downloadSdk() {
               .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
               .replace(/\sonclick="[^"]*"/gi, '');
             // Retain real markup/CSS. Skip live polling and media scripts.
-            html = html.replace('</head>', '<script src="/theme.js?v=4"></script><script defer src="/analytics.js?v=1"></script></head>');
+            html = html.replace('</head>', '<script src="/theme.js?v=6"></script><script defer src="/analytics.js?v=1"></script></head>');
             return route.fulfill({ contentType: 'text/html', body: html });
           }
           const type = file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' :
@@ -82,6 +94,7 @@ function downloadSdk() {
         ['/forecast.html', '/forecast.html'], ['/login', '/login'], ['/help.html', '/help.html']]) {
         const f = await fixture();
         await f.page.goto(origin + pathname + '?email=PRIVATE&next=SECRET#password=HIDDEN');
+        await assertDark(f.page);
         await f.page.waitForFunction(() => Boolean(window.umami?.track));
         await until(() => f.requests.some(r => r.type === 'event' && !r.payload.name), 'initial pageview');
         assert.equal(f.requests.filter(r => r.type === 'event' && !r.payload.name).length, 1, 'One pageview per page');
@@ -126,6 +139,7 @@ function downloadSdk() {
       for (const options of [{ excluded: true }, { gpc: true }, { blocked: true }]) {
         const f = await fixture(options);
         await f.page.goto(origin + '/help.html');
+        await assertDark(f.page);
         await f.page.waitForTimeout(150);
         assert.equal(f.requests.length, 0);
         if (!options.blocked) assert.equal(f.external.length, 0, 'No SDK request when excluded');
@@ -136,6 +150,7 @@ function downloadSdk() {
       for (const width of [320, 1440]) {
         const f = await fixture({ width, excluded: true });
         await f.page.goto(origin + '/help.html#usage-statistics');
+        await assertDark(f.page);
         await f.page.locator('#analyticsExclude').scrollIntoViewIfNeeded();
         const bounds = await f.page.locator('#analyticsExclude').boundingBox();
         assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width + 1 && bounds.height >= 44);

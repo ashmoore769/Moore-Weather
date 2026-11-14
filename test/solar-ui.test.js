@@ -19,6 +19,7 @@ function fixture(t, initial = payload(), options = {}) {
   const nodes = new Map([...html.matchAll(/\bid="([^"]+)"/g)].map(match => [match[1], { textContent: '', hidden: false, dataset: {}, className: '', style: {}, attributes: {}, listeners: {}, setAttribute(name, value) { this.attributes[name] = String(value); }, addEventListener(name, fn) { this.listeners[name] = fn; }, removeEventListener(name) { delete this.listeners[name]; }, focus() { doc.activeElement = this; } }]));
   nodes.get('statusBadge').textContent = 'WEATHER STATUS UNCHANGED';
   nodes.get('homeSolar').hidden = true;
+  nodes.get('solarChartPlot').getBoundingClientRect = () => ({ left: 0, top: 0, width: 720, height: 190 });
   const listeners = new Map(), windowListeners = new Map(), timers = new Map(), requests = [], redirects = [], timeouts = [], scrolls = [];
   nodes.get('homeSolar').scrollIntoView = options => scrolls.push({ ...options, hidden: nodes.get('homeSolar').hidden });
   const location = { hash: options.hash || '', assign: destination => redirects.push(destination) };
@@ -54,12 +55,12 @@ test('a solar notification waits for the visible card and navigates once without
   const f = fixture(t, payload(), { hash: '#homeSolar' });
   let release;
   f.hold(new Promise(resolve => { release = resolve; }));
-  f.doc.activeElement = f.node('themeToggleBtn');
+  f.doc.activeElement = f.node('stationAlertsBtn');
   await f.start();
   assert.equal(f.scrolls.length, 0, 'do not navigate before the solar response enables the card');
   release(); await f.flush();
   assert.deepEqual(f.scrolls, [{ block: 'start', behavior: 'instant', hidden: false }]);
-  assert.equal(f.doc.activeElement, f.node('themeToggleBtn'));
+  assert.equal(f.doc.activeElement, f.node('stationAlertsBtn'));
   f.hold(null);
   await f.controller.refresh(); f.controller.paint();
   f.setTime(NOW + 60000); f.setBody(payload(NOW + 60000)); await f.controller.refresh();
@@ -231,8 +232,8 @@ test('expired authentication hides private values, redirects once and stops poll
 
 test('solar assets and labels stay separate from existing weather and station measurements', () => {
   assert.equal(html, fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8'));
-  assert.match(html, /src="\/solar\.js\?v=3"/);
-  assert.match(html, /href="\/solar\.css\?v=3"/);
+  assert.match(html, /src="\/solar\.js\?v=4"/);
+  assert.match(html, /href="\/solar\.css\?v=4"/);
   assert.match(html, /PV generation · DC/); assert.match(html, /Solar · AC/);
   assert.match(html, /Generated/);
   assert.match(html, /Solar radiation<\/span><span class="value" id="solarRadVal"/);
@@ -361,4 +362,104 @@ test('compact public copy retains objective readings and full timestamp access',
   const states = [liveView(payload().current, payload().rates, true), liveView(payload().current, payload().rates, false),
     liveView({ ...payload().current, gridPowerW: 1000 }, payload().rates, true)];
   for (const state of states) assert.doesNotMatch(JSON.stringify(state), /\byour\b|\byou\b|Reduce house|clouds and appliances/i);
+});
+
+
+function chartWindow(f) {
+  const attributes = f.node('solarChartPlot').attributes;
+  return { start: Number(attributes['data-window-start']), end: Number(attributes['data-window-end']), span: Number(attributes['data-window-span']) };
+}
+
+test('solar navigation zooms the cached view, pans to bounds and resets without fetching', async t => {
+  const f = fixture(t); await f.start();
+  const initial = chartWindow(f), count = f.requests.length;
+  assert.equal(initial.span, 86400000);
+  assert.equal(f.node('solarZoomReset').disabled, true);
+  f.fire('solarZoomIn', 'click');
+  assert.equal(chartWindow(f).span, 43200000);
+  assert.equal(f.node('solarChartStart').textContent, '06:00');
+  assert.equal(f.node('solarChartEnd').textContent, '18:00');
+  f.fire('solarPanEarlier', 'click');
+  assert.equal(chartWindow(f).start, initial.start);
+  assert.equal(f.node('solarPanEarlier').disabled, true);
+  for (let i = 0; i < 4; i++) f.fire('solarPanLater', 'click');
+  assert.equal(chartWindow(f).end, initial.end);
+  assert.equal(f.node('solarPanLater').disabled, true);
+  for (let i = 0; i < 12; i++) f.fire('solarZoomIn', 'click');
+  assert.equal(chartWindow(f).span, 3600000);
+  assert.equal(f.node('solarZoomIn').disabled, true);
+  assert.equal(f.node('solarChartWindow').textContent, '1h');
+  f.fire('solarZoomReset', 'click');
+  assert.deepEqual(chartWindow(f), initial);
+  assert.equal(f.requests.length, count);
+});
+
+test('pinch follows both contacts and a remaining finger rebases cleanly for pan', async t => {
+  const f = fixture(t); await f.start();
+  const initial = chartWindow(f);
+  const pointer = (type, id, x, y = 80) => f.fire('solarChartPlot', type, { type, pointerId: id, pointerType: 'touch', button: 0, clientX: x, clientY: y });
+  pointer('pointerdown', 1, 240); pointer('pointerdown', 2, 480);
+  pointer('pointermove', 1, 120); pointer('pointermove', 2, 600);
+  assert.equal(chartWindow(f).span, initial.span / 2);
+  assert.equal(chartWindow(f).start, initial.start + initial.span / 4);
+  pointer('pointerup', 2, 600);
+  const beforePan = chartWindow(f);
+  pointer('pointermove', 1, 192);
+  assert.equal(chartWindow(f).start, beforePan.start - beforePan.span / 10);
+  pointer('pointercancel', 1, 192);
+  assert.equal(f.node('solarChartPlot').attributes['data-dragging'], 'false');
+  const stopped = chartWindow(f);
+  pointer('pointermove', 1, 300);
+  assert.deepEqual(chartWindow(f), stopped, 'cancelled contacts cannot continue moving the view');
+  let prevented = 0;
+  f.fire('solarChartPlot', 'touchmove', { touches: [{}], cancelable: true, preventDefault() { prevented++; } });
+  f.fire('solarChartPlot', 'touchstart', { touches: [{}, {}], cancelable: true, preventDefault() { prevented++; } });
+  assert.equal(prevented, 1, 'only the multi-touch gesture blocks native scrolling');
+});
+
+test('a one-finger vertical swipe leaves the chart window alone', async t => {
+  const f = fixture(t); await f.start(); f.fire('solarZoomIn', 'click');
+  const before = chartWindow(f);
+  f.fire('solarChartPlot', 'pointerdown', { pointerId: 1, pointerType: 'touch', button: 0, clientX: 250, clientY: 80 });
+  f.fire('solarChartPlot', 'pointermove', { pointerId: 1, pointerType: 'touch', clientX: 255, clientY: 120 });
+  assert.deepEqual(chartWindow(f), before);
+  f.fire('solarChartPlot', 'pointercancel', { type: 'pointercancel', pointerId: 1, clientX: 255, clientY: 120 });
+});
+
+test('zoom survives fresh data and metric changes but resets on period changes and midnight', async t => {
+  const data = payload();
+  data.energy.days = Array.from({ length: 30 }, (_, index) => ({ date: new Date(NOW - (29 - index) * 86400000).toISOString().slice(0, 10), quality: 'complete', netCost: index / 10 - 1, gridImportWh: 1000, gridExportWh: 2000 }));
+  const f = fixture(t, data); await f.start(); f.fire('solarZoomIn', 'click');
+  const todayZoom = chartWindow(f);
+  f.setTime(NOW + 60000); await f.controller.refresh();
+  assert.deepEqual(chartWindow(f), todayZoom);
+  f.fire('solarRange7', 'click'); assert.equal(chartWindow(f).span, 7 * 86400000);
+  for (let i = 0; i < 5; i++) f.fire('solarZoomIn', 'click');
+  assert.equal(chartWindow(f).span, 3 * 86400000);
+  const dailyZoom = chartWindow(f);
+  f.fire('solarChartMetric', 'change', { target: { value: 'energy' } });
+  assert.deepEqual(chartWindow(f), dailyZoom);
+  f.fire('solarRange30', 'click'); assert.equal(chartWindow(f).span, 30 * 86400000);
+  f.fire('solarZoomIn', 'click'); assert.equal(chartWindow(f).span, 15 * 86400000);
+  f.setTime(Date.parse('2026-11-14T14:00:01Z')); f.controller.paint();
+  assert.equal(chartWindow(f).span, 30 * 86400000);
+});
+
+test('keyboard and scrubber inspection stay within the zoomed period and keep data gaps', async t => {
+  const data = payload(), dayStart = Date.parse('2026-11-13T14:00:00Z');
+  data.history.points = Array.from({ length: 24 }, (_, hour) => ({ observedAt: iso(dayStart + hour * 3600000), inverterPowerW: hour === 11 ? null : 1000, loadPowerW: 500, gridImportPowerW: 0, breakBefore: hour === 12 }));
+  const f = fixture(t, data); await f.start();
+  const key = value => f.fire('solarChartPlot', 'keydown', { key: value, preventDefault() {} });
+  key('+'); key('+');
+  assert.equal(f.node('solarChartStart').textContent, '09:00');
+  assert.equal(f.node('solarChartEnd').textContent, '15:00');
+  assert.equal(f.node('solarChartScrubber').max, '6');
+  key('Home'); assert.match(f.node('solarChartInspect').innerHTML, /09:00 AEST/);
+  key('End'); assert.match(f.node('solarChartInspect').innerHTML, /15:00 AEST/);
+  f.fire('solarChartScrubber', 'input', { target: { value: '1' } });
+  assert.match(f.node('solarChartInspect').innerHTML, /10:00 AEST/);
+  const path = /<path d="([^"]*)" class="solar-chart-series solar-chart-series-generation"/.exec(f.node('solarChart').innerHTML)[1];
+  assert.equal((path.match(/M/g) || []).length, 2, 'zoom never fills a missing-reading break');
+  key('0'); assert.equal(chartWindow(f).span, 86400000);
+  assert.equal(f.requests.length, 1);
 });

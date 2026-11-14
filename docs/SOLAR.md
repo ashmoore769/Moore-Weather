@@ -8,6 +8,8 @@ Version 1.3.0 adds household solar coverage, spare power, live financial estimat
 graphs and a durable daily log. An existing version 1 collector works unchanged.
 Version 1.3.1 condenses the card into a responsive summary and a shared chart,
 daily log and details area, with concise public-facing status labels.
+Version 1.3.7 adds bounded pinch zoom and panning to the existing chart. It uses
+the cached readings and requires no collector, inverter or server configuration.
 New installations still require a real inverter response, an authenticated
 upload and an advancing dashboard timestamp before being considered operational.
 
@@ -78,6 +80,25 @@ the same bounded area rather than extending the page. The log scrolls within its
 panel, and the tabs support arrow keys, Home and End. Live readings and today's
 totals stay visible in every view. Missing dates and partial days remain explicit,
 including the first day of collection.
+
+### Chart navigation
+
+Pinch with two fingers to zoom the time axis, then drag horizontally to pan.
+Mouse users can drag or use the scroll wheel over the plot. The minus, plus,
+earlier, later and Reset buttons provide the same navigation without gestures.
+Normal one-finger vertical swipes continue scrolling the page.
+
+Today opens at 00:00–24:00 AEST and can zoom to one hour. Seven- and thirty-day
+charts can zoom to three days. Navigation stays within the selected period, and
+the vertical scale stays stable so panning does not exaggerate changes. The
+time/date labels and inspection slider follow the visible window. Missing
+readings remain gaps; zoom never interpolates or fabricates observations.
+
+With the plot focused, `+` and `-` zoom, `Shift` with the left/right arrow keys
+pans, and `0` resets. Plain arrows inspect readings; `Home` and `End` select the
+first and last visible reading. Regular polling preserves the chosen window.
+Changing the period or crossing Brisbane midnight resets it. All navigation is
+local to the browser and makes no extra requests to Render or the collector.
 
 ### Dated tariffs
 

@@ -6,6 +6,7 @@
 <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <meta content="noindex, nofollow, noarchive" name="robots"/>
 <meta content="#0d1722" name="theme-color"/>
+<meta content="dark" name="color-scheme"/>
 <meta content="yes" name="apple-mobile-web-app-capable"/>
 <meta content="default" name="apple-mobile-web-app-status-bar-style"/>
 <meta content="Moore Weather" name="apple-mobile-web-app-title"/>
@@ -13,7 +14,7 @@
 <link href="/moore-weather-touch-v2.png" rel="apple-touch-icon" sizes="180x180"/>
 <link href="/moore-weather-favicon-v3.svg" rel="icon" sizes="any" type="image/svg+xml"/>
 <title>Moore Weather · Dashboard</title>
-<script src="/theme.js?v=5"></script>
+<script src="/theme.js?v=6"></script>
   <script defer src="/analytics.js?v=3"></script>
 <style>
 :root {
@@ -1130,8 +1131,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <script defer src="/station-shell.js?v=7"></script>
 <script defer src="/station-alerts.js?v=9"></script>
 <link rel="stylesheet" href="/dashboard.css?v=11">
-<link rel="stylesheet" href="/solar.css?v=3">
-<script defer src="/solar.js?v=3"></script>
+<link rel="stylesheet" href="/solar.css?v=4">
+<script defer src="/solar-chart.js?v=1"></script>
+<script defer src="/solar.js?v=4"></script>
 <link rel="stylesheet" href="/forecast-summary.css?v=1">
 <script defer src="/forecast-summary-model.js?v=1"></script>
 <script defer src="/forecast-summary.js?v=1"></script>
@@ -1155,7 +1157,6 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     <div class="dashboard-tools" aria-label="Dashboard controls">
       <a class="dashboard-tool" href="/help.html" aria-label="Help, installation and usage privacy" title="Help and installation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg><span class="dashboard-tool-label">Help</span></a>
       <button type="button" class="dashboard-tool" id="stationAlertsBtn" aria-label="Weather and river alerts" title="Weather and river alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="dashboard-tool-label">Alerts</span></button>
-      <button type="button" class="dashboard-tool" id="themeToggleBtn" aria-label="Change theme" title="Theme"><span class="theme-icon" id="themeToggleIcon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span></button>
       <div class="desktop-layout-switcher" aria-label="Desktop layout">
         <button id="portraitLayoutBtn" type="button" title="Portrait layout" aria-label="Use portrait layout" onclick="setDesktopLayout('portrait')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2"/></svg></button>
         <button id="landscapeLayoutBtn" type="button" title="Landscape layout" aria-label="Use landscape layout" onclick="setDesktopLayout('landscape')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M11 5v14"/></svg></button>
@@ -1370,12 +1371,19 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
       <div class="solar-panel-stack">
         <section class="solar-panel solar-history" id="solarPanelChart" role="tabpanel" aria-labelledby="solarTabChart" tabindex="0">
           <div class="solar-history-header"><div class="solar-ranges" role="group" aria-label="Chart period"><button type="button" id="solarRangeToday" aria-pressed="true">Today</button><button type="button" id="solarRange7" aria-pressed="false">7 days</button><button type="button" id="solarRange30" aria-pressed="false">30 days</button></div><label id="solarChartMetricLabel" class="solar-chart-metric" hidden><span class="solar-visually-hidden">Chart measure</span><select id="solarChartMetric"><option value="cost">Net cost</option><option value="energy">Bought / sold</option></select></label></div>
-          <div class="solar-chart-toolbar"><div class="solar-chart-legend" id="solarChartLegend"><span><i class="solar-dot-generation"></i>Solar</span><span><i class="solar-dot-home"></i>House</span></div><span id="solarChartSubtitle" class="solar-chart-subtitle">5-min mean</span></div>
-          <div class="solar-chart-frame"><div class="solar-chart-yaxis" aria-hidden="true"><span id="solarChartMax">kW</span><span id="solarChartMid"></span><span id="solarChartMin">0</span></div><div class="solar-chart-plot" id="solarChartPlot"><svg id="solarChart" viewBox="0 0 720 190" preserveAspectRatio="none" role="img" aria-label="Solar history chart"></svg><p id="solarChartEmpty" class="solar-chart-empty">No chart readings yet.</p></div></div>
+          <div class="solar-chart-toolbar"><div class="solar-chart-legend" id="solarChartLegend"><span><i class="solar-dot-generation"></i>Solar</span><span><i class="solar-dot-home"></i>House</span></div><div class="solar-chart-context"><span id="solarChartWindow" class="solar-chart-window">24h</span><span id="solarChartSubtitle" class="solar-chart-subtitle">5-min mean</span></div></div>
+          <div class="solar-chart-frame"><div class="solar-chart-yaxis" aria-hidden="true"><span id="solarChartMax">kW</span><span id="solarChartMid"></span><span id="solarChartMin">0</span></div><div class="solar-chart-plot" id="solarChartPlot" tabindex="0" role="group" aria-label="Solar history. Arrow keys inspect readings. Shift and arrow keys pan. Plus and minus zoom. Zero resets." aria-describedby="solarChartNavigationHint"><svg id="solarChart" viewBox="0 0 720 190" preserveAspectRatio="none" role="img" aria-label="Solar history chart"></svg><p id="solarChartEmpty" class="solar-chart-empty">No chart readings yet.</p></div></div>
           <div class="solar-chart-xaxis" aria-hidden="true"><span id="solarChartStart">00:00</span><span id="solarChartMiddle">12:00</span><span id="solarChartEnd">24:00</span></div>
+          <div class="solar-chart-navigation" role="group" aria-label="Solar chart navigation">
+            <button id="solarPanEarlier" type="button" aria-label="Pan solar chart earlier" title="Earlier" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+            <button id="solarZoomOut" type="button" aria-label="Zoom out solar chart" title="Zoom out" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+            <button id="solarZoomReset" type="button" aria-label="Reset solar chart zoom" disabled>Reset</button>
+            <button id="solarZoomIn" type="button" aria-label="Zoom in solar chart" title="Zoom in" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+            <button id="solarPanLater" type="button" aria-label="Pan solar chart later" title="Later" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+          </div>
           <input id="solarChartScrubber" class="solar-chart-scrubber" type="range" min="0" max="287" value="0" step="1" aria-label="Inspect a time on the solar chart" hidden>
           <div id="solarChartInspect" class="solar-chart-inspect" aria-live="polite">No recorded readings.</div>
-          <p id="solarHistoryNote" class="solar-note">AEST · gaps unfilled</p>
+          <div class="solar-chart-footer"><p id="solarHistoryNote" class="solar-note">AEST · gaps unfilled</p><p id="solarChartNavigationHint" class="solar-note">Pinch or scroll to zoom · drag to pan</p></div>
         </section>
         <section class="solar-panel solar-log-panel" id="solarPanelLog" role="tabpanel" aria-labelledby="solarTabLog" tabindex="0" hidden>
           <div class="solar-log-heading"><p>30 days · AUD estimates</p><button type="button" id="solarDownload" class="solar-download" aria-label="Download daily solar CSV" disabled>CSV ↓</button></div>

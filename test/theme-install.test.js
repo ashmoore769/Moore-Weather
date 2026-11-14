@@ -13,43 +13,83 @@ function element() {
     addEventListener(type, fn) { this.events[type] = fn; } };
 }
 
-function theme(saved = {}, blocked = false) {
-  const root = { dataset: {} }, meta = {}, button = element(), ready = {};
+function theme(saved = {}, { blocked = false, prefersDark = false, hasMeta = true } = {}) {
+  const root = { dataset: {}, style: {} }, meta = {}, ready = {}, windowEvents = {};
+  const media = { matches: prefersDark, events: {}, addEventListener(type, fn) { this.events[type] = fn; } };
   vm.runInNewContext(source('theme.js'), {
     localStorage: {
       getItem(key) { if (blocked) throw Error('Storage blocked'); return saved[key] ?? null; },
       setItem(key, value) { if (blocked) throw Error('Storage blocked'); saved[key] = value; }
     },
-    document: { documentElement: root, querySelector: () => meta,
-      getElementById: id => id === 'themeToggleBtn' ? button : null,
-      addEventListener(type, fn) { ready[type] = fn; } }
+    document: { documentElement: root, querySelector: () => hasMeta ? meta : null,
+      addEventListener(type, fn) { ready[type] = fn; } },
+    window: { matchMedia: () => media, addEventListener(type, fn) { windowEvents[type] = fn; } }
   });
   // Check the theme before DOMContentLoaded too: this avoids a light first paint.
-  const initial = root.dataset.theme;
+  const initial = { theme: root.dataset.theme, scheme: root.style.colorScheme, chrome: meta.content };
   ready.DOMContentLoaded();
-  return { root, meta, button, saved, initial, toggle: () => button.events.click() };
+  return { root, meta, saved, initial,
+    changeSystem(matches) { media.matches = matches; media.events.change?.({ matches }); },
+    changeSavedTheme(value) {
+      saved.mooreWeatherTheme = value;
+      windowEvents.storage?.({ key: 'mooreWeatherTheme', newValue: value });
+    } };
 }
 
-test('new visitors, legacy light defaults and invalid preferences start dark before page content', () => {
+test('all saved preferences and system appearances paint dark before page content', () => {
   for (const saved of [{}, { mooreWeatherThemeVersion: '3', mooreWeatherTheme: 'light' },
+    { mooreWeatherThemeVersion: '4', mooreWeatherTheme: 'light' },
+    { mooreWeatherThemeVersion: '4', mooreWeatherTheme: 'dark' },
+    { mooreWeatherThemeVersion: '5', mooreWeatherTheme: 'light' },
     { mooreWeatherThemeVersion: '4', mooreWeatherTheme: 'invalid' }]) {
-    const ui = theme(saved);
-    assert.equal(ui.initial, 'dark'); assert.equal(ui.root.dataset.theme, 'dark');
-    assert.equal(ui.meta.content, '#0d1722');
-    assert.equal(ui.button.attributes['aria-label'], 'Switch to light theme');
+    for (const prefersDark of [false, true]) {
+      const ui = theme({ ...saved }, { prefersDark });
+      assert.deepEqual(ui.initial, { theme: 'dark', scheme: 'dark', chrome: '#0d1722' });
+      assert.equal(ui.root.dataset.theme, 'dark');
+      assert.equal(ui.root.dataset.themeMode, 'dark');
+      assert.equal(ui.saved.mooreWeatherTheme, 'dark');
+      assert.equal(ui.saved.mooreWeatherThemeVersion, '5');
+    }
   }
 });
 
-test('an explicit light or dark choice survives navigation and reloads', () => {
-  const ui = theme(); ui.toggle();
-  assert.equal(ui.root.dataset.theme, 'light');
-  const nextPage = theme(ui.saved); assert.equal(nextPage.initial, 'light');
-  nextPage.toggle(); assert.equal(theme(ui.saved).initial, 'dark');
+test('system and old-tab preference changes cannot switch the page or next navigation to light', () => {
+  const ui = theme({}, { prefersDark: true });
+  ui.changeSystem(false);
+  ui.changeSavedTheme('light');
+  assert.equal(ui.root.dataset.theme, 'dark');
+  assert.equal(ui.root.style.colorScheme, 'dark');
+  const nextPage = theme(ui.saved);
+  assert.equal(nextPage.initial.theme, 'dark');
+  assert.equal(nextPage.saved.mooreWeatherTheme, 'dark');
 });
 
-test('blocked browser storage still gives a working dark default and theme switch', () => {
-  const ui = theme({}, true); assert.equal(ui.initial, 'dark');
-  ui.toggle(); assert.equal(ui.root.dataset.theme, 'light');
+test('blocked browser storage keeps the dark palette and browser controls without errors', () => {
+  for (const prefersDark of [false, true]) {
+    const ui = theme({ mooreWeatherTheme: 'light' }, { blocked: true, prefersDark });
+    assert.equal(ui.initial.theme, 'dark');
+    assert.equal(ui.root.style.colorScheme, 'dark');
+    assert.equal(ui.meta.content, '#0d1722');
+  }
+});
+
+test('dark mode also initializes in a page without browser theme metadata', () => {
+  const ui = theme({}, { hasMeta: false });
+  assert.equal(ui.root.dataset.theme, 'dark');
+  assert.equal(ui.root.style.colorScheme, 'dark');
+});
+
+test('all Moore Weather pages start dark without a theme switch and use matching release assets', () => {
+  for (const name of ['index', 'daily', 'forecast', 'help', 'login', 'terminal']) {
+    const html = source(name + '.html');
+    assert.ok(/<html\b[^>]*data-theme="dark"/.test(html), name + ' starts dark');
+    assert.ok(/<meta\b(?=[^>]*name="color-scheme")(?=[^>]*content="dark")[^>]*>/.test(html), name + ' declares a dark color scheme');
+    assert.ok(/<meta\b(?=[^>]*name="theme-color")(?=[^>]*content="#0d1722")[^>]*>/.test(html), name + ' preserves browser theme color');
+    assert.ok(/<script src="\/theme\.js\?v=6"><\/script>/.test(html), name + ' uses the current theme bootstrap');
+    assert.ok(!/id="themeToggle(?:Btn|Icon|Label)"/.test(html), name + ' has no theme toggle');
+    assert.equal(html, fs.readFileSync(path.join(__dirname, '..', name + '.html'), 'utf8'), name + ' root mirror');
+  }
+  assert.equal(source('theme.js'), fs.readFileSync(path.join(__dirname, '../theme.js'), 'utf8'));
 });
 
 function help({ ua = '', platform = '', touch = 0, installed = false, clipboard, secure = false } = {}) {

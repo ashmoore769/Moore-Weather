@@ -132,8 +132,16 @@ async function check(context,engine,width) {
   });
   await context.addInitScript(() => {
     Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__terminalCopied=String(value);}}});
+    localStorage.setItem('mooreWeatherTheme', 'light');
+    localStorage.setItem('mooreWeatherThemeVersion', '4');
   });
   await page.goto(origin+'/terminal.html');
+  assert.deepEqual(await page.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    scheme: getComputedStyle(document.documentElement).colorScheme,
+    toggle: Boolean(document.querySelector('#themeToggleBtn')),
+    chrome: document.querySelector('meta[name="theme-color"]').content
+  })), { theme:'dark', scheme:'dark', toggle:false, chrome:'#0d1722' });
   await page.waitForFunction(()=>!document.querySelector('#terminalPassword').disabled);
   assert.equal(await page.locator('#terminalPassword').getAttribute('autocomplete'),'current-password');
   assert.equal(fixture.connections,0,'opening the page must not contact the station');
@@ -297,7 +305,7 @@ async function check(context,engine,width) {
       try {
         for(const width of [393,1280]) {
           reset();
-          const context=await browser.newContext({viewport:{width,height:960},acceptDownloads:true});
+          const context=await browser.newContext({viewport:{width,height:960},acceptDownloads:true,colorScheme:'light'});
           try {await check(context,engine,width);console.log('Passed terminal '+engine.name()+' '+width);}
           finally {await context.close();}
         }

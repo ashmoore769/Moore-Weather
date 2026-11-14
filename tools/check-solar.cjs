@@ -11,8 +11,8 @@ const heightMetrics = [];
 const now = Date.parse('2026-11-14T02:00:00.000Z');
 const iso = value => new Date(value).toISOString();
 const dashboard = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8').replace(/<script\b([^>]*)>[\s\S]*?<\/script>/gi,
-  (tag, attributes) => /\bsrc="\/(?:solar|theme)\.js\b/.test(attributes) ? tag : '');
-let mode = 'fresh';
+  (tag, attributes) => /\bsrc="\/(?:solar(?:-chart)?|theme)\.js\b/.test(attributes) ? tag : '');
+let mode = 'fresh', apiRequests = 0;
 function readings(includeHistory = true) {
   const missing = mode === 'missing', zero = mode === 'zero', stale = mode === 'stale', buying = mode === 'buying';
   const day = { date: '2026-11-14', since: iso(now - 4 * 3600000), through: iso(now), quality: 'partial', sampleCount: 240,
@@ -54,6 +54,7 @@ function readings(includeHistory = true) {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/api/solar') {
+    apiRequests++;
     assert.ok(['', '?history=today'].includes(url.search), 'only bounded today history is requested');
     res.writeHead(mode === 'failure' ? 503 : mode === 'unauthorized' ? 401 : 200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify(mode === 'failure' || mode === 'unauthorized' ? { error: 'Synthetic unavailable response' } : readings(url.searchParams.get('history') === 'today'))); return;
@@ -137,6 +138,155 @@ async function boundedLog(page) {
     'the last daily row must be reachable in the bounded log: ' + JSON.stringify(bounds));
   await region.evaluate(element => { element.scrollTop = 0; });
 }
+
+async function chartWindow(page) {
+  return page.locator('#solarChartPlot').evaluate(element => ({
+    start: Number(element.dataset.windowStart), end: Number(element.dataset.windowEnd),
+    span: Number(element.dataset.windowSpan), zoomed: element.dataset.zoomed
+  }));
+}
+const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 2, message + ': ' + actual + ' vs ' + expected);
+
+async function chartNavigation(page, width, reviewName) {
+  const plot = page.locator('#solarChartPlot');
+  const original = await chartWindow(page), requestsBefore = apiRequests;
+  near(original.span, 86400000, 'Today starts with the full AEST day');
+  assert.equal(await page.locator('#solarZoomReset').isDisabled(), true);
+  const maximum = await page.locator('#solarChartMax').textContent();
+  const originalPath = await page.locator('.solar-chart-series-generation').first().getAttribute('d');
+  assert.ok((originalPath.match(/M/g) || []).length >= 2, 'the known missing reading must split the line');
+  await page.locator('#solarZoomIn').click();
+  const zoomed = await chartWindow(page);
+  assert.ok(zoomed.span < original.span && zoomed.span >= 3600000, 'zoom changes the visible time domain');
+  assert.equal(await page.locator('#solarChartMax').textContent(), maximum, 'the y scale stays stable while zooming');
+  assert.notEqual(await page.locator('#solarChartStart').textContent(), '00:00');
+  assert.equal(await plot.getAttribute('data-zoomed'), 'true');
+  await layout(page, width, reviewName + '-zoomed');
+  await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, reviewName + '-zoomed.png'), animations: 'disabled' });
+
+  await plot.focus();
+  await page.keyboard.press('Shift+ArrowLeft');
+  const earlier = await chartWindow(page);
+  assert.ok(earlier.start < zoomed.start, 'keyboard pans to earlier readings');
+  near(earlier.span, zoomed.span, 'panning preserves scale');
+  await page.locator('#solarPanLater').click();
+  const later = await chartWindow(page);
+  assert.ok(later.start > earlier.start, 'button pans to later readings');
+
+  await plot.scrollIntoViewIfNeeded();
+  const rect = await plot.boundingBox();
+  await page.mouse.move(rect.x + rect.width * .6, rect.y + rect.height * .5);
+  await page.mouse.down();
+  await page.mouse.move(rect.x + rect.width * .8, rect.y + rect.height * .5, { steps: 5 });
+  await page.mouse.up();
+  const dragged = await chartWindow(page);
+  assert.ok(dragged.start < later.start, 'dragging the graph right reveals earlier readings');
+  near(dragged.span, later.span, 'dragging preserves scale');
+
+  await plot.focus();
+  await page.keyboard.press('+');
+  assert.ok((await chartWindow(page)).span < dragged.span, 'keyboard zoom is available without a gesture');
+  for (let attempt = 0; attempt < 12 && !await page.locator('#solarZoomIn').isDisabled(); attempt++) await page.locator('#solarZoomIn').click();
+  near((await chartWindow(page)).span, 3600000, 'today zoom stops at one hour');
+  assert.equal(await page.locator('#solarZoomIn').isDisabled(), true);
+  assert.equal(apiRequests, requestsBefore, 'navigation must use cached readings without extra requests');
+  const beforeRefresh = await chartWindow(page);
+  await refresh(page, 'fresh');
+  const afterRefresh = await chartWindow(page);
+  near(afterRefresh.start, beforeRefresh.start, 'a routine update retains the chosen start');
+  near(afterRefresh.end, beforeRefresh.end, 'a routine update retains the chosen end');
+
+  await plot.focus(); await page.keyboard.press('0');
+  near((await chartWindow(page)).span, original.span, 'zero resets the full view');
+  assert.equal(await page.locator('#solarZoomReset').isDisabled(), true);
+  assert.equal(await page.locator('#solarChartStart').textContent(), '00:00');
+  assert.equal(await page.locator('#solarChartEnd').textContent(), '24:00');
+  assert.equal(await page.locator('.solar-chart-series-generation').first().getAttribute('d'), originalPath,
+    'reset restores the same samples and genuine gaps');
+  if (width >= 900) {
+    await plot.scrollIntoViewIfNeeded();
+    const box = await plot.boundingBox();
+    await page.mouse.move(box.x + box.width * .5, box.y + box.height * .5);
+    await page.mouse.wheel(0, -160);
+    await page.waitForFunction(() => Number(document.querySelector('#solarChartPlot').dataset.windowSpan) < 86400000);
+    await page.locator('#solarZoomReset').click();
+  }
+}
+
+async function dailyNavigation(page) {
+  const before = await chartWindow(page), requestsBefore = apiRequests;
+  near(before.span, 30 * 86400000, 'month chart starts with thirty calendar days');
+  await page.locator('#solarZoomIn').click();
+  assert.ok((await chartWindow(page)).span < before.span, 'daily chart supports zoom');
+  for (let attempt = 0; attempt < 12 && !await page.locator('#solarZoomIn').isDisabled(); attempt++) await page.locator('#solarZoomIn').click();
+  near((await chartWindow(page)).span, 3 * 86400000, 'daily zoom stops at a readable three-day window');
+  await page.locator('#solarZoomReset').click();
+  near((await chartWindow(page)).span, before.span, 'daily reset restores thirty days');
+  assert.equal(await page.locator('#solarChart .solar-chart-bar').count(), 60, 'reset preserves every daily bought/sold bar');
+  assert.equal(apiRequests, requestsBefore, 'daily navigation remains local');
+}
+
+async function touchNavigation(page, context, engine) {
+  const plot = page.locator('#solarChartPlot');
+  await plot.scrollIntoViewIfNeeded();
+  const box = await plot.boundingBox(), x = box.x + box.width / 2, y = box.y + box.height / 2;
+  const initial = await chartWindow(page), requestsBefore = apiRequests;
+  if (engine === chromium) {
+    const session = await context.newCDPSession(page);
+    const points = distance => [{ x: x - distance, y, id: 1 }, { x: x + distance, y, id: 2 }];
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points(box.width * .12) });
+    for (let step = 1; step <= 8; step++) {
+      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: points(box.width * (.12 + .02 * step)) });
+    }
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    assert.ok((await chartWindow(page)).span < initial.span * .8, 'native two-finger touch must zoom the time window');
+    await page.locator('#solarZoomReset').click();
+
+    await plot.scrollIntoViewIfNeeded();
+    const verticalBox = await plot.boundingBox();
+    const verticalPoints = distance => [{ x: verticalBox.x + verticalBox.width / 2, y: verticalBox.y + verticalBox.height / 2 - distance, id: 4 },
+      { x: verticalBox.x + verticalBox.width / 2, y: verticalBox.y + verticalBox.height / 2 + distance, id: 5 }];
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: verticalPoints(verticalBox.height * .12) });
+    for (let step = 1; step <= 8; step++) {
+      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: verticalPoints(verticalBox.height * (.12 + .02 * step)) });
+    }
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    assert.ok((await chartWindow(page)).span < initial.span * .8, 'a vertical two-finger spread must also zoom the time window');
+    await page.locator('#solarZoomReset').click();
+
+    // Native single-finger vertical scrolling still belongs to the page.
+    await plot.scrollIntoViewIfNeeded();
+    const next = await plot.boundingBox(), oldScroll = await page.evaluate(() => window.scrollY);
+    const touch = [{ x: next.x + next.width / 2, y: next.y + next.height * .75, id: 3 }];
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: touch });
+    for (let step = 1; step <= 8; step++) {
+      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...touch[0], y: touch[0].y - step * 12 }] });
+    }
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForFunction(previous => window.scrollY > previous + 10, oldScroll);
+    near((await chartWindow(page)).span, initial.span, 'vertical page scrolling does not zoom the chart');
+    await session.detach();
+  } else {
+    // WebKit automation exposes no native multi-touch input. Exercise its actual
+    // pointer handlers and DOM rendering; native browser gesture arbitration is
+    // verified by the Chromium sequence above.
+    await plot.evaluate((element, geometry) => {
+      const fire = (name, pointerId, distance) => element.dispatchEvent(new PointerEvent(name, {
+        bubbles: true, cancelable: true, pointerType: 'touch', pointerId, button: 0, buttons: name === 'pointerup' ? 0 : 1,
+        clientX: geometry.x + (pointerId === 1 ? -distance : distance), clientY: geometry.y
+      }));
+      fire('pointerdown', 1, geometry.width * .12); fire('pointerdown', 2, geometry.width * .12);
+      for (let step = 1; step <= 8; step++) {
+        fire('pointermove', 1, geometry.width * (.12 + .02 * step));
+        fire('pointermove', 2, geometry.width * (.12 + .02 * step));
+      }
+      fire('pointerup', 1, geometry.width * .28); fire('pointerup', 2, geometry.width * .28);
+    }, { x, y, width: box.width });
+    assert.ok((await chartWindow(page)).span < initial.span * .8, 'WebKit two-finger events must zoom the time window');
+    await page.locator('#solarZoomReset').click();
+  }
+  assert.equal(apiRequests, requestsBefore, 'touch navigation adds no data requests');
+}
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = 'http://127.0.0.1:' + server.address().port;
@@ -150,7 +300,7 @@ async function boundedLog(page) {
       try {
         for (const width of [320, 393, 1440]) for (const theme of ['light', 'dark']) {
           mode = 'fresh';
-          const context = await browser.newContext({ viewport: { width, height: 960 }, colorScheme: theme });
+          const context = await browser.newContext({ viewport: { width, height: 960 }, colorScheme: theme, hasTouch: width < 900 });
           await context.route('**/*', route => route.request().url().startsWith(origin) ? route.continue() : route.abort());
           await context.addInitScript(({ fixtureNow, dark }) => {
             Date.now = () => fixtureNow;
@@ -168,10 +318,12 @@ async function boundedLog(page) {
           try {
             await page.goto(origin + '/index.html');
             await page.waitForFunction(() => document.querySelector('#homeSolar').dataset.state === 'fresh');
-            await page.evaluate(({ wide, selectedTheme }) => {
+            await page.evaluate(({ wide }) => {
               document.body.classList.add(wide ? 'layout-landscape' : 'layout-portrait');
-              document.documentElement.dataset.theme = selectedTheme;
-            }, { wide: width >= 900, selectedTheme: theme });
+            }, { wide: width >= 900 });
+            assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark', 'saved and system light must render dark');
+            assert.equal(await page.locator('html').evaluate(element => getComputedStyle(element).colorScheme), 'dark');
+            assert.equal(await page.locator('#themeToggleBtn').count(), 0);
             assert.equal(await page.locator('#solarPvPower').textContent(), '6.80 kW');
             assert.equal(await page.locator('#solarAcPower').textContent(), '6.50 kW');
             assert.match(await page.locator('#solarEnergyThrough').textContent(), /11:55:00 AEST/);
@@ -180,10 +332,12 @@ async function boundedLog(page) {
             assert.match(await page.locator('#solarLiveMoney').textContent(), /\$0.18\/hr/);
             assert.match(await page.locator('#solarDayNote').textContent(), /85%/);
             assert.equal(await page.locator('#solarChartEmpty').isVisible(), false);
-            const reviewName = `solar-${engine.name()}-${width}-${theme}`;
+            const reviewName = `solar-${engine.name()}-${width}-dark-system-${theme}`;
             await panelState(page, 'chart');
             await layout(page, width, reviewName + '-chart');
-            await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, `solar-${engine.name()}-${width}-${theme}.png`), animations: 'disabled' });
+            await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, reviewName + '.png'), animations: 'disabled' });
+            await chartNavigation(page, width, reviewName);
+            if (width === 393 && theme === 'dark') await touchNavigation(page, context, engine);
             await page.locator('#solarRange7').click();
             assert.equal(await page.locator('#solarRange7').getAttribute('aria-pressed'), 'true');
             assert.equal(await page.locator('#solarChart .solar-chart-bar').count(), 7);
@@ -193,6 +347,7 @@ async function boundedLog(page) {
             assert.match(await page.locator('#solarChartInspect').textContent(), /13 Nov/);
             await page.locator('#solarRange30').click();
             assert.equal(await page.locator('#solarChart .solar-chart-bar').count(), 60, 'all thirty recorded days remain in the energy chart');
+            await dailyNavigation(page);
             await layout(page, width, reviewName + '-chart-30days');
 
             // Keyboard switching replaces the shared work area. A full month of
@@ -277,7 +432,7 @@ async function boundedLog(page) {
         }
       } finally { await browser.close(); }
     }
-    console.log(`Passed ${checked} solar browser viewport/theme combinations: compact layout across chart/log/details, keyboard tabs and inspector, thirty-row bounded log/CSV, solar/import states, null/zero, stale/offline/recovered, disabled and expired-auth states.`);
+    console.log(`Passed ${checked} solar browser viewport/system-appearance combinations: permanent dark, compact chart/log/details, bounded zoom/pan/reset, keyboard and touch navigation, thirty-row log/CSV, solar/import states, null/zero, stale/offline/recovered, disabled and expired-auth states.`);
   } finally {
     fs.writeFileSync(path.join(screenshotRoot, 'solar-height-metrics.json'), JSON.stringify(heightMetrics, null, 2) + '\n');
     console.log('Solar card heights (CSS px): ' + JSON.stringify(heightMetrics.map(({ context, height, limit }) => ({ context, height, limit }))));
