@@ -7,6 +7,7 @@ const fs = require('node:fs'), path = require('node:path'), http = require('node
 const { chromium, webkit } = require('playwright');
 const publicRoot = path.resolve(__dirname, '../public');
 const screenshotRoot = path.resolve(__dirname, '../artifacts/dashboard');
+const heightMetrics = [];
 const now = Date.parse('2026-11-14T02:00:00.000Z');
 const iso = value => new Date(value).toISOString();
 const dashboard = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8').replace(/<script\b([^>]*)>[\s\S]*?<\/script>/gi,
@@ -21,9 +22,10 @@ function readings(includeHistory = true) {
   const days = Array.from({ length: 30 }, (_, index) => {
     if (index === 29) return day;
     const offset = 29 - index, date = new Date(now - offset * 86400000 + 36000000).toISOString().slice(0, 10);
-    if (index < 23) return { date, quality: 'unavailable', coveragePercent: 0 };
     const imported = 5 + index % 4, exported = 22 + index % 7;
-    return { ...day, date, quality: 'complete', coveragePercent: 100, coveredSeconds: 86400, expectedSeconds: 86400,
+    const start = Date.parse(date + 'T00:00:00+10:00');
+    return { ...day, date, since: iso(start), through: iso(start + 86400000),
+      quality: 'complete', coveragePercent: 100, coveredSeconds: 86400, expectedSeconds: 86400,
       gridImportWh: imported * 1000, gridExportWh: exported * 1000, importCost: imported * .288948,
       exportCredit: exported * .06006, netCost: imported * .288948 - exported * .06006 + 1.805078 };
   });
@@ -70,21 +72,70 @@ async function refresh(page, next) {
   mode = next;
   await page.evaluate(async () => { if (!window.__solarPoll) throw Error('Solar polling callback missing'); await window.__solarPoll(); });
 }
-async function layout(page, width) {
+async function layout(page, width, context, { notice = false } = {}) {
   const result = await page.evaluate(() => {
     const card = document.querySelector('#homeSolar'), rect = card.getBoundingClientRect();
-    const children = [...card.querySelectorAll('.solar-header,.solar-main,.solar-reading,.solar-flow,.solar-note,.solar-message,.solar-hero,.solar-day-grid,.solar-history,.solar-history-header,.solar-chart-toolbar,.solar-chart-inspect')]
+    const children = [...card.querySelectorAll('.solar-header,.solar-main,.solar-reading,.solar-flow,.solar-note,.solar-message,.solar-hero,.solar-day-grid,.solar-history,.solar-history-header,.solar-chart-toolbar,.solar-chart-inspect,[role="tablist"],[role="tabpanel"]')]
       .filter(element => element.getBoundingClientRect().height > 0)
       .map(element => ({ name: element.className, left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right,
         width: element.clientWidth, scroll: element.scrollWidth }));
-    return { left: rect.left, right: rect.right, documentWidth: document.documentElement.scrollWidth, children };
+    const panels = [...card.querySelectorAll('[role="tabpanel"]')].map(element => ({ id: element.id,
+      hidden: element.hidden, height: element.getBoundingClientRect().height, contentHeight: element.scrollHeight }));
+    return { left: rect.left, right: rect.right, height: rect.height, documentWidth: document.documentElement.scrollWidth, children, panels };
   });
+  // These generous maximums guard the intended reduction from the previous
+  // 1,200–1,500px card without tying the tests to individual CSS pixel values.
+  const limit = (width >= 900 ? 600 : width >= 361 ? 850 : 920) + (notice ? 100 : 0);
+  heightMetrics.push({ context, width, height: Math.round(result.height * 10) / 10, limit,
+    panels: result.panels.filter(panel => !panel.hidden).map(panel => ({ id: panel.id, height: Math.round(panel.height * 10) / 10 })) });
   assert.ok(result.left >= 0 && result.right <= width + 1, JSON.stringify(result));
   assert.ok(result.documentWidth <= width + 1, 'dashboard must not create horizontal scrolling at ' + width);
   for (const child of result.children) {
     assert.ok(child.left >= result.left - 1 && child.right <= result.right + 1, JSON.stringify(child));
     assert.ok(child.scroll <= child.width + 1, 'solar content overflows: ' + JSON.stringify(child));
   }
+  assert.ok(result.height <= limit, `Solar card is not compact at ${context}: ${result.height.toFixed(1)}px exceeds ${limit}px`);
+  return result;
+}
+
+const panelIds = { chart: ['solarTabChart', 'solarPanelChart'], log: ['solarTabLog', 'solarPanelLog'], details: ['solarTabDetails', 'solarPanelDetails'] };
+async function panelState(page, selected, keyboard = false) {
+  for (const [name, [tabId, panelId]] of Object.entries(panelIds)) {
+    const tab = page.locator('#' + tabId), panel = page.locator('#' + panelId), active = name === selected;
+    assert.equal(await tab.getAttribute('role'), 'tab');
+    assert.equal(await tab.getAttribute('aria-controls'), panelId);
+    assert.equal(await tab.getAttribute('aria-selected'), String(active));
+    assert.equal(await tab.getAttribute('tabindex'), active ? '0' : '-1');
+    assert.equal(await panel.getAttribute('role'), 'tabpanel');
+    assert.equal(await panel.getAttribute('aria-labelledby'), tabId);
+    assert.equal(await panel.isVisible(), active, 'only the selected work area should be visible');
+  }
+  if (keyboard) {
+    const focus = await page.evaluate(() => {
+      const element = document.activeElement, style = getComputedStyle(element);
+      return { id: element.id, outline: style.outlineStyle, outlineWidth: parseFloat(style.outlineWidth) };
+    });
+    assert.equal(focus.id, panelIds[selected][0]);
+    assert.ok(focus.outline !== 'none' && focus.outlineWidth > 0, 'keyboard focus must remain visible');
+  }
+}
+
+async function boundedLog(page) {
+  assert.equal(await page.locator('#solarLogBody tr').count(), 30, 'all 30 days remain accessible');
+  const region = page.locator('#solarPanelLog .solar-table-wrap');
+  assert.equal(await region.getAttribute('tabindex'), '0', 'the scrolling log must be keyboard focusable');
+  const bounds = await region.evaluate(element => {
+    const style = getComputedStyle(element);
+    element.scrollTop = element.scrollHeight;
+    const last = element.querySelector('tbody tr:last-child').getBoundingClientRect(), rect = element.getBoundingClientRect();
+    return { viewport: element.clientHeight, content: element.scrollHeight, overflow: style.overflowY,
+      top: element.scrollTop, lastTop: last.top, lastBottom: last.bottom, regionTop: rect.top, regionBottom: rect.bottom };
+  });
+  assert.ok(bounds.content > bounds.viewport, '30 rows should scroll within the log rather than grow the card');
+  assert.ok(['auto', 'scroll'].includes(bounds.overflow));
+  assert.ok(bounds.top > 0 && bounds.lastTop >= bounds.regionTop && bounds.lastBottom <= bounds.regionBottom + 1,
+    'the last daily row must be reachable in the bounded log: ' + JSON.stringify(bounds));
+  await region.evaluate(element => { element.scrollTop = 0; });
 }
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -126,10 +177,12 @@ async function layout(page, width) {
             assert.match(await page.locator('#solarEnergyThrough').textContent(), /11:55:00 AEST/);
             assert.equal(await page.locator('#solarHero').getAttribute('data-tone'), 'surplus');
             assert.equal(await page.locator('#solarHeadroom').textContent(), '3.00 kW');
-            assert.equal(await page.locator('#solarLiveMoney').textContent(), 'Export earning $0.18/hr');
-            assert.match(await page.locator('#solarDayNote').textContent(), /Solar covered 85% of recorded house use/);
+            assert.match(await page.locator('#solarLiveMoney').textContent(), /\$0.18\/hr/);
+            assert.match(await page.locator('#solarDayNote').textContent(), /85%/);
             assert.equal(await page.locator('#solarChartEmpty').isVisible(), false);
-            await layout(page, width);
+            const reviewName = `solar-${engine.name()}-${width}-${theme}`;
+            await panelState(page, 'chart');
+            await layout(page, width, reviewName + '-chart');
             await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, `solar-${engine.name()}-${width}-${theme}.png`), animations: 'disabled' });
             await page.locator('#solarRange7').click();
             assert.equal(await page.locator('#solarRange7').getAttribute('aria-pressed'), 'true');
@@ -139,10 +192,40 @@ async function layout(page, width) {
             await page.locator('#solarChartScrubber').focus(); await page.keyboard.press('ArrowLeft');
             assert.match(await page.locator('#solarChartInspect').textContent(), /13 Nov/);
             await page.locator('#solarRange30').click();
-            await page.locator('#solarLogDetails summary').click();
-            assert.equal(await page.locator('#solarLogBody tr').count(), 7);
-            await layout(page, width);
-            await page.locator('#solarLogDetails summary').click();
+            assert.equal(await page.locator('#solarChart .solar-chart-bar').count(), 60, 'all thirty recorded days remain in the energy chart');
+            await layout(page, width, reviewName + '-chart-30days');
+
+            // Keyboard switching replaces the shared work area. A full month of
+            // log rows must not turn a compact card back into a long page.
+            await page.locator('#solarTabChart').focus(); await page.keyboard.press('ArrowRight');
+            await panelState(page, 'log', true);
+            await boundedLog(page);
+            await layout(page, width, reviewName + '-log');
+            await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, reviewName + '-log.png'), animations: 'disabled' });
+            const downloadPromise = page.waitForEvent('download');
+            await page.locator('#solarDownload').click();
+            const download = await downloadPromise;
+            const csv = fs.readFileSync(await download.path(), 'utf8').trim().split(/\r?\n/);
+            assert.equal(csv.length, 31, 'CSV preserves the header and all thirty recorded days');
+            assert.match(csv[0], /gridImportWh,gridExportWh/);
+
+            await page.locator('#solarTabLog').focus(); await page.keyboard.press('ArrowRight');
+            await panelState(page, 'details', true);
+            await layout(page, width, reviewName + '-details');
+            for (const id of ['solarPvPower', 'solarRatesNote', 'solarDayDetail', 'solarTodayNote', 'solarEnergyThrough', 'solarObservedDetail']) {
+              assert.equal(await page.locator('#' + id).isVisible(), true, id + ' must remain available in Details');
+            }
+            assert.match(await page.locator('#solarDayDetail').textContent(), /missing usage.*not included.*Full daily supply/);
+            const details = await page.locator('#solarPanelDetails').evaluate(element => ({
+              viewport: element.clientHeight, content: element.scrollHeight, overflow: getComputedStyle(element).overflowY
+            }));
+            if (details.content > details.viewport + 1) assert.ok(['auto', 'scroll'].includes(details.overflow), 'long details must be reachable by scrolling');
+            await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, reviewName + '-details.png'), animations: 'disabled' });
+            await page.keyboard.press('Home'); await panelState(page, 'chart', true);
+            await page.keyboard.press('End'); await panelState(page, 'details', true);
+            await page.keyboard.press('ArrowRight'); await panelState(page, 'chart', true);
+            await page.keyboard.press('ArrowLeft'); await panelState(page, 'details', true);
+            await page.keyboard.press('Home'); await panelState(page, 'chart', true);
             await page.locator('#solarRangeToday').click();
             await refresh(page, 'buying');
             assert.equal(await page.locator('#solarHero').getAttribute('data-tone'), 'import');
@@ -170,10 +253,11 @@ async function layout(page, width) {
             assert.equal(await page.locator('#homeSolar').getAttribute('data-state'), 'stale');
             assert.equal(await page.locator('#solarHeadroom').textContent(), '–');
             assert.equal(await page.locator('#solarCoverageBlock').isVisible(), false);
-            await layout(page, width);
+            await layout(page, width, reviewName + '-stale', { notice: true });
             await refresh(page, 'reset');
             assert.equal(await page.locator('#solarTodayEnergy').textContent(), '–');
-            assert.equal(await page.locator('#solarTodayQuality').textContent(), 'Counter reset');
+            assert.equal(await page.locator('#solarTodayQuality').textContent(), 'Reset');
+            assert.equal(await page.locator('#solarTodayQuality').getAttribute('title'), 'Counter reset');
             mode = 'waiting'; await page.reload();
             await page.waitForFunction(() => document.querySelector('#homeSolar').dataset.state === 'waiting');
             assert.equal(await page.locator('#solarPvPower').textContent(), '–');
@@ -184,10 +268,19 @@ async function layout(page, width) {
             await page.waitForURL(origin + '/login');
             assert.deepEqual(errors, []);
             checked++;
+          } catch (error) {
+            try {
+              await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, `solar-${engine.name()}-${width}-${theme}-failure.png`), animations: 'disabled' });
+            } catch {}
+            throw error;
           } finally { await context.close(); }
         }
       } finally { await browser.close(); }
     }
-    console.log(`Passed ${checked} solar browser viewport/theme combinations: responsive layout, solar/import guidance, history controls, keyboard inspector, daily log, null/zero, stale/offline/recovered, disabled and expired-auth states.`);
-  } finally { await new Promise(resolve => server.close(resolve)); }
+    console.log(`Passed ${checked} solar browser viewport/theme combinations: compact layout across chart/log/details, keyboard tabs and inspector, thirty-row bounded log/CSV, solar/import states, null/zero, stale/offline/recovered, disabled and expired-auth states.`);
+  } finally {
+    fs.writeFileSync(path.join(screenshotRoot, 'solar-height-metrics.json'), JSON.stringify(heightMetrics, null, 2) + '\n');
+    console.log('Solar card heights (CSS px): ' + JSON.stringify(heightMetrics.map(({ context, height, limit }) => ({ context, height, limit }))));
+    await new Promise(resolve => server.close(resolve));
+  }
 })().catch(error => { console.error(error); process.exitCode = 1; });

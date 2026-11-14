@@ -45,10 +45,11 @@ Charts read the SQL archive only and never issue station commands. See [history 
 ## Home solar
 
 The Home solar card prioritises household solar coverage, spare solar and the
-current cost of grid imports. It includes today's power graph, seven- and
-thirty-day energy/cost views, a downloadable daily log, and dated electricity
-rates. Daily estimates retain explicit coverage and missing readings; recorded
-daily summaries survive raw-data retention. See [solar integration notes](docs/SOLAR.md)
+current cost of grid imports. Its compact layout places live readings and today's
+totals beside a tabbed chart, daily log and details area on desktop. It includes
+today's power graph, seven- and thirty-day energy/cost views, a downloadable daily
+log, and dated electricity rates. Daily estimates retain explicit coverage and
+missing readings; recorded daily summaries survive raw-data retention. See [solar integration notes](docs/SOLAR.md)
 for the calculation method, tariffs and collector setup.
 
 ## Forecast and radar

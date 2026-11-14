@@ -46,44 +46,34 @@
   // A fresh grid meter is the authority for spare power. DC panel output is
   // deliberately excluded, and active batteries prevent attribution to solar.
   function liveView(current, rates, fresh) {
-    const result = { tone: 'neutral', title: 'Waiting for live solar', action: 'Fresh readings will show how much solar is available.',
-      label: 'Spare solar', value: null, money: 'Waiting for a fresh reading', coverage: null, homeSource: 'Waiting for readings' };
-    if (!fresh) return { ...result, title: current ? 'Waiting for a fresh reading' : result.title,
-      action: current ? 'Last readings are shown below. Live guidance resumes when the connection returns.' : result.action };
+    const result = { tone: 'neutral', title: 'No data', label: 'Spare solar', value: null,
+      money: EMPTY, coverage: null, homeSource: 'Unavailable' };
+    if (!fresh) return { ...result, title: current ? 'Delayed' : 'Connecting', money: current ? 'Last reading retained' : EMPTY };
     const ac = numeric(current?.inverterPowerW), grid = numeric(current?.gridPowerW), load = numeric(current?.loadPowerW);
     const battery = numeric(current?.batteryPowerW);
-    if (ac === null || grid === null || load === null || load < 0 || current?.meterLocation !== 'grid') {
-      return { ...result, title: 'Some readings are unavailable', action: 'Solar coverage needs a fresh house and grid meter reading.' };
-    }
-    const bought = Math.max(0, grid), sold = Math.max(0, -grid), generation = Math.max(0, ac);
+    const bought = grid === null ? null : Math.max(0, grid), sold = grid === null ? null : Math.max(0, -grid);
     const buyRate = numeric(rates?.importPerKwh), sellRate = numeric(rates?.exportPerKwh);
-    const charge = buyRate === null ? null : bought / 1000 * buyRate;
-    const credit = sellRate === null ? null : sold / 1000 * sellRate;
-    const flowMoney = bought > 0 ? (charge === null ? 'Import rate unavailable' : 'Grid costing ' + hourly(charge)) : sold > 0
-      ? (credit === null ? 'Export rate unavailable' : 'Export earning ' + hourly(credit)) : 'No grid exchange right now';
+    const charge = buyRate === null || bought === null ? null : bought / 1000 * buyRate;
+    const credit = sellRate === null || sold === null ? null : sold / 1000 * sellRate;
+    const flowMoney = bought > 0 ? (charge === null ? 'Import rate unavailable' : 'Grid cost ' + hourly(charge)) : sold > 0
+      ? (credit === null ? 'Export rate unavailable' : 'Export credit ' + hourly(credit)) : grid === 0 ? 'No grid exchange' : EMPTY;
+    if (ac === null || grid === null || load === null || load < 0 || current?.meterLocation !== 'grid') {
+      return { ...result, title: 'Partial data', money: flowMoney };
+    }
+    const generation = Math.max(0, ac);
     if (battery !== null && battery !== 0) {
-      return { ...result, title: 'Battery is part of the flow', action: 'Solar coverage is unavailable while battery power is contributing to the balance.',
-        label: grid >= 0 ? 'Grid draw' : 'Grid export', value: Math.abs(grid), money: flowMoney, homeSource: 'Solar / grid / battery' };
+      return { ...result, title: 'Battery active', label: grid >= 0 ? 'Grid draw' : 'Grid export', value: Math.abs(grid),
+        money: flowMoney, homeSource: 'Solar / grid / battery' };
     }
     const selfUse = Math.min(Math.max(load - bought, 0), load, generation);
     const coverage = load > 10 ? clamp(selfUse / load * 100, 0, 100) : null;
     result.coverage = coverage;
     result.money = flowMoney;
-    result.homeSource = generation <= 25 ? 'Solar is resting' : coverage === null ? 'Very low house use' : number(coverage, 0) + '% covered by solar';
-    if (generation <= 25) {
-      return { ...result, title: 'Solar is resting', action: 'Grid power is covering any house use. Solar will pick up when generation returns.',
-        label: 'Grid draw', value: bought, coverage: null };
-    }
-    if (bought > 50) {
-      return { ...result, tone: 'import', title: 'The grid is helping out', label: 'Grid draw', value: bought,
-        action: 'Reduce house use by about ' + power(bought) + ' to get back within solar.' };
-    }
-    if (sold > 75) {
-      return { ...result, tone: 'surplus', title: load > 10 ? 'Solar covers the house' : 'Solar is ready to use', label: 'Spare solar', value: sold,
-        action: 'This is your headroom for extra use right now. It changes with clouds and appliances.' };
-    }
-    return { ...result, title: 'Close to solar balance', label: bought > 0 ? 'Small grid draw' : 'Spare solar', value: bought > 0 ? bought : sold,
-      action: 'House use is close to solar output, with very little spare headroom.' };
+    result.homeSource = generation <= 25 ? 'Solar inactive' : coverage === null ? 'Low house load' : number(coverage, 0) + '% house solar coverage';
+    if (generation <= 25) return { ...result, title: 'Solar inactive', label: 'Grid draw', value: bought, coverage: null };
+    if (bought > 50) return { ...result, tone: 'import', title: 'Grid import', label: 'Grid draw', value: bought };
+    if (sold > 75) return { ...result, tone: 'surplus', title: 'Solar surplus', label: 'Spare solar', value: sold };
+    return { ...result, title: 'Balanced', label: bought > 0 ? 'Grid draw' : 'Spare solar', value: bought > 0 ? bought : sold };
   }
 
   function createController(options) {
@@ -103,6 +93,8 @@
     let serverStatus = 'waiting', staleAfterMs = 180000, historyAt = -Infinity;
     let pollTimer = null, paintTimer = null, range = 'today', metric = 'cost', selected = null, selectionPinned = false;
     let chartItems = [], chartPositions = [], chartEmpty = true, renderedDay = null;
+    let panel = 'chart';
+    const panels = [['chart', 'solarTabChart', 'solarPanelChart'], ['log', 'solarTabLog', 'solarPanelLog'], ['details', 'solarTabDetails', 'solarPanelDetails']];
     const bindings = [];
 
     function on(id, name, handler) {
@@ -116,7 +108,8 @@
       const total = sameDay ? numeric(today.energyAcWh) : null;
       const usable = ['complete', 'partial'].includes(quality) && total !== null && total >= 0;
       text('solarTodayEnergy', usable ? energyText(total) : EMPTY);
-      text('solarTodayQuality', qualities[quality]);
+      text('solarTodayQuality', { complete: 'From 00:00', partial: 'Partial', unavailable: EMPTY, reset: 'Reset' }[quality]);
+      attr('solarTodayQuality', 'title', qualities[quality]);
       const through = sameDay ? timestamp(today.through) : NaN;
       hide('solarEnergyThrough', !usable || !Number.isFinite(through));
       text('solarEnergyThrough', usable && Number.isFinite(through) ? 'Counter through ' + observationTime.format(through) + ' AEST' : '');
@@ -125,15 +118,16 @@
       const coverage = numeric(day?.coveragePercent);
       const dayQuality = ['complete', 'partial'].includes(day?.quality) ? day.quality : 'unavailable';
       const complete = dayQuality === 'complete';
-      text('solarDayCoverage', dayQuality === 'unavailable' ? 'Waiting for readings' : (complete ? 'From midnight' : 'Partial day') +
+      text('solarDayCoverage', dayQuality === 'unavailable' ? 'No data' : (complete ? 'From midnight' : 'Partial') +
         (coverage === null ? '' : ' · ' + recordedPercent(coverage, dayQuality) + ' recorded'));
       if (node('solarDayCoverage')) node('solarDayCoverage').dataset.quality = dayQuality;
       text('solarTodayImport', energyText(day?.gridImportWh));
       text('solarTodayExport', energyText(day?.gridExportWh));
-      text('solarTodayImportCost', numeric(day?.importCost) === null ? EMPTY : money(day.importCost) + ' grid cost');
-      text('solarTodayCredit', numeric(day?.exportCredit) === null ? EMPTY : money(day.exportCredit) + ' credit');
+      text('solarTodayImportCost', numeric(day?.importCost) === null ? EMPTY : money(day.importCost));
+      text('solarTodayCredit', numeric(day?.exportCredit) === null ? EMPTY : money(day.exportCredit));
       text('solarTodayNet', money(day?.netCost));
-      text('solarTodaySupply', numeric(day?.supplyCost) === null ? 'Includes full daily supply' : 'Includes ' + money(day.supplyCost) + ' daily supply');
+      text('solarTodaySupply', numeric(day?.supplyCost) === null ? 'Full supply included' : 'incl. ' + money(day.supplyCost) + ' supply');
+      attr('solarTodaySupply', 'title', 'Includes the full daily supply charge.');
       const first = timestamp(day?.since), last = timestamp(day?.through);
       let note = 'Totals will build as readings arrive.';
       if (dayQuality !== 'unavailable') {
@@ -145,7 +139,14 @@
           note += ' Solar covered ' + number(clamp(self / home * 100, 0, 100), 0) + '% of recorded house use.';
         }
       }
-      text('solarDayNote', note);
+      text('solarDayDetail', note);
+      let compact = dayQuality === 'unavailable' ? 'Awaiting recorded intervals.' : Number.isFinite(first) && Number.isFinite(last)
+        ? 'Recorded ' + clockTime.format(first) + '–' + clockTime.format(last) : 'Recorded intervals only';
+      const home = numeric(day?.loadWh), self = numeric(day?.solarToHomeWh), homeSeconds = numeric(day?.coverageSeconds?.load), selfSeconds = numeric(day?.coverageSeconds?.solarToHome);
+      if (home !== null && home > 0 && self !== null && homeSeconds > 0 && selfSeconds > 0 && Math.abs(homeSeconds - selfSeconds) < 1) {
+        compact += ' · solar ' + number(clamp(self / home * 100, 0, 100), 0) + '%';
+      }
+      text('solarDayNote', compact); attr('solarDayNote', 'title', note);
     }
     function showReadings(fresh) {
       text('solarPvPower', power(current?.pvPowerW));
@@ -154,7 +155,7 @@
       const battery = numeric(current?.batteryPowerW), rawSoc = numeric(current?.batterySocPercent);
       const soc = rawSoc !== null && rawSoc >= 0 && rawSoc <= 100 ? rawSoc : null;
       hide('solarBatteryMetric', battery === null && soc === null);
-      text('solarGridLabel', grid > 0 ? 'Grid buying' : grid < 0 ? 'Grid exporting' : 'Grid exchange');
+      text('solarGridLabel', grid > 0 ? 'Grid import' : grid < 0 ? 'Grid export' : 'Grid');
       text('solarGridPower', power(grid === null ? null : Math.abs(grid)));
       text('solarLoadPower', load !== null && load >= 0 ? power(load) : EMPTY);
       text('solarBatteryLabel', battery > 0 ? 'Battery discharge' : battery < 0 ? 'Battery charging' : battery === 0 ? 'Battery idle' : 'Battery charge');
@@ -162,8 +163,7 @@
       text('solarBatterySoc', battery !== null && soc !== null ? number(soc, 1) + '% state of charge' : '');
       const view = liveView(current, rates, fresh);
       if (node('solarHero')) node('solarHero').dataset.tone = view.tone;
-      text('solarHeroKicker', fresh ? 'RIGHT NOW' : current ? 'LAST READING' : 'RIGHT NOW');
-      text('solarHeadline', view.title); text('solarAction', view.action);
+      text('solarHeadline', view.title);
       text('solarHeadroomLabel', view.label); text('solarHeadroom', power(view.value));
       text('solarLiveMoney', view.money); text('solarHomeSource', fresh ? view.homeSource : current ? 'Last recorded use' : 'Waiting for readings');
       hide('solarCoverageBlock', view.coverage === null);
@@ -185,24 +185,26 @@
       const times = current ? [observed, timestamp(current.collectedAt), timestamp(current.receivedAt)] : [];
       const age = times.length ? time - Math.min(...times) : NaN;
       let state = enabled === null ? 'connecting' : 'waiting', label = enabled === null ? 'CONNECTING' : 'WAITING';
-      let message = enabled === null ? 'Connecting to saved solar readings.' : 'Waiting for the first reading from the home collector.';
+      let message = enabled === null ? 'Connecting to solar readings.' : 'Awaiting the first reading.';
       if (current) {
         if (times.some(value => value > time + 90000)) {
-          state = 'check'; label = 'CHECK'; message = 'The inverter or collector clock is ahead of the current time.';
+          state = 'check'; label = 'CHECK'; message = 'Source clock ahead of current time.';
         } else if (failed || serverStatus === 'stale' || serverStatus === 'waiting' || age > staleAfterMs) {
           state = 'stale'; label = 'STALE';
-          message = failed ? 'Latest solar update failed. Last reading retained; retrying automatically.' : 'No recent solar reading. Last reading retained.';
+          message = failed ? 'Update failed; last reading retained.' : 'No recent update; last reading retained.';
         } else if (serverStatus === 'unavailable') {
-          state = 'unavailable'; label = 'UNAVAILABLE'; message = 'Solar readings are temporarily unavailable. Last reading retained.';
+          state = 'unavailable'; label = 'UNAVAILABLE'; message = 'Temporarily unavailable; last reading retained.';
         } else if (numeric(current.inverterPowerW) === null || numeric(current.gridPowerW) === null || numeric(current.loadPowerW) === null || current.loadPowerW < 0) {
-          state = 'partial'; label = 'PARTIAL'; message = 'Some solar measurements are unavailable.';
+          state = 'partial'; label = 'PARTIAL'; message = 'Some measurements unavailable.';
         } else { state = 'fresh'; label = 'LIVE'; message = ''; }
       } else if (failed || serverStatus === 'unavailable') {
-        state = 'unavailable'; label = 'UNAVAILABLE'; message = 'Solar readings could not be loaded. Retrying automatically.';
+        state = 'unavailable'; label = 'UNAVAILABLE'; message = 'Solar readings unavailable; retrying.';
       }
       card.dataset.state = state;
       text('solarStatus', label); node('solarStatus').className = 'solar-badge solar-badge-' + state;
-      text('solarObserved', current ? 'Observed ' + observationTime.format(observed) + ' AEST · ' + ageText(time - observed) : 'No reading received yet');
+      const fullObserved = current ? 'Observed ' + observationTime.format(observed) + ' AEST · ' + ageText(time - observed) : 'No reading received yet';
+      text('solarObserved', current ? clockTime.format(observed) + ' · ' + ageText(time - observed) : 'No reading');
+      attr('solarObserved', 'title', fullObserved); text('solarObservedDetail', fullObserved);
       text('solarMessage', message); hide('solarMessage', !message);
       showReadings(state === 'fresh' || state === 'partial'); showToday(time);
       // Once at midnight, expire the old chart instead of displaying yesterday
@@ -216,8 +218,8 @@
       text('solarRateSupply', supply === null ? EMPTY : money(supply) + '/day');
       const effective = dateTime(rates?.effectiveFrom);
       text('solarRatesNote', Number.isFinite(effective)
-        ? 'AUD · rates verified from electricity bills, effective ' + shortDate.format(effective) + ' ' + rates.effectiveFrom.slice(0, 4) + '. Import and supply include GST. Feed-in credit is used as billed.'
-        : 'Tariff rates are unavailable. Financial estimates will resume when they are loaded.');
+        ? 'AUD · bill-verified rates from ' + shortDate.format(effective) + ' ' + rates.effectiveFrom.slice(0, 4) + '. Import and supply include GST; export credit as billed.'
+        : 'Tariff unavailable; financial estimates paused.');
     }
     function dailyItems() {
       const date = dayKey(now());
@@ -287,10 +289,10 @@
           content += '<path d="' + path + '" class="solar-chart-series solar-chart-series-' + name + '"/>';
           if (last) content += '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.5" class="solar-chart-series solar-chart-series-' + name + '"/>';
         }
-        text('solarChartSubtitle', '5-minute averages · solar, house and grid draw');
+        text('solarChartSubtitle', '5-min mean');
         node('solarChartLegend').innerHTML = '<span><i class="solar-dot-generation"></i>Solar</span><span><i class="solar-dot-home"></i>House</span><span><i class="solar-dot-grid"></i>Grid bought</span>';
         text('solarChartStart', '00:00'); text('solarChartMiddle', '12:00'); text('solarChartEnd', '24:00');
-        text('solarHistoryNote', 'Times are AEST. Chart refreshes every 5 minutes; live readings every minute. Gaps are left unfilled.');
+        text('solarHistoryNote', 'AEST · 5-minute averages · gaps unfilled');
       } else {
         const step = 720 / Math.max(chartItems.length, 1), half = Math.min(18, step * .33);
         chartItems.forEach((item, index) => {
@@ -306,12 +308,12 @@
             bar(item.gridExportWh, chartPositions[index] + 1, half - 1, 'solar-chart-bar-export');
           }
         });
-        text('solarChartSubtitle', metric === 'cost' ? 'Daily net cost · full supply charge included' : 'Daily electricity bought and sold');
+        text('solarChartSubtitle', metric === 'cost' ? 'incl. supply' : 'kWh/day');
         node('solarChartLegend').innerHTML = metric === 'cost' ? '<span><i class="solar-dot-grid"></i>Net cost</span><span><i class="solar-dot-generation"></i>Net credit</span>' : '<span><i class="solar-dot-grid"></i>Bought</span><span><i class="solar-dot-export"></i>Sold</span>';
         text('solarChartStart', chartItems.length ? dateLabel(chartItems[0].date) : EMPTY);
         text('solarChartMiddle', chartItems.length > 2 ? dateLabel(chartItems[Math.floor(chartItems.length / 2)].date) : '');
         text('solarChartEnd', chartItems.length > 1 ? dateLabel(chartItems.at(-1).date) : EMPTY);
-        text('solarHistoryNote', 'Lighter bars are partial days. Blank days have no recorded data. Use the daily log for coverage and the full cost breakdown.');
+        text('solarHistoryNote', 'Lighter = partial · blank = no data');
       }
       const isPower = range === 'today' || metric === 'energy';
       const axis = value => isPower ? number(value / 1000, value / 1000 % 1 ? 1 : 0) : money(value);
@@ -321,11 +323,11 @@
       chart.innerHTML = content;
       chartEmpty = available.length === 0;
       hide('solarChartEmpty', !chartEmpty); hide('solarChartScrubber', chartEmpty);
-      text('solarChartEmpty', range === 'today' ? 'Your graph will grow as readings arrive.' : 'Daily history will build from your recorded readings.');
+      text('solarChartEmpty', range === 'today' ? 'No chart readings yet.' : 'No daily readings for this period.');
       attr('solarChart', 'aria-label', range === 'today' ? "Today's solar output, house use and grid draw in kilowatts" : 'Last ' + range + ' days of ' + (metric === 'cost' ? 'net cost in Australian dollars' : 'electricity bought and sold in kilowatt-hours'));
       if (node('solarChartScrubber')) node('solarChartScrubber').max = String(Math.max(0, chartItems.length - 1));
       attr('solarChartScrubber', 'aria-label', range === 'today' ? 'Inspect a time on the solar chart' : 'Inspect a day on the solar chart');
-      if (chartEmpty) text('solarChartInspect', 'No readings available for this period yet.');
+      if (chartEmpty) text('solarChartInspect', 'No recorded readings.');
       else {
         const lastAvailable = chartItems.findLastIndex(item => range === 'today' ? numeric(item.inverterPowerW) !== null || numeric(item.loadPowerW) !== null : numeric(item.netCost) !== null || numeric(item.gridImportWh) !== null);
         inspect(!selectionPinned || selected === null ? Math.max(0, lastAvailable) : selected);
@@ -339,6 +341,22 @@
         ['<th scope="row">' + escape(dateLabel(day.date)) + '</th>', ...[numeric(day.gridImportWh) === null ? EMPTY : number(day.gridImportWh / 1000), numeric(day.gridExportWh) === null ? EMPTY : number(day.gridExportWh / 1000), money(day.importCost), money(day.exportCredit), money(day.supplyCost), money(day.netCost), (day.quality === 'complete' ? 'Complete' : 'Partial') + (numeric(day.coveragePercent) === null ? '' : ' · ' + recordedPercent(day.coveragePercent, day.quality))].map(value => '<td>' + escape(value) + '</td>')].join('') + '</tr>').join('') : '<tr><td colspan="8">No daily readings yet.</td></tr>';
     }
     function renderData() { renderedDay = dayKey(now()); showRates(); renderChart(); renderLog(); }
+    function setPanel(value, focus = false) {
+      if (!panels.some(([name]) => name === value)) return;
+      panel = value;
+      for (const [name, tabId, panelId] of panels) {
+        const active = name === panel;
+        attr(tabId, 'aria-selected', active); attr(tabId, 'tabindex', active ? 0 : -1);
+        hide(panelId, !active);
+        if (active && focus) node(tabId)?.focus?.();
+      }
+    }
+    function panelKey(event) {
+      const index = panels.findIndex(([name]) => name === panel);
+      const next = event.key === 'ArrowRight' ? (index + 1) % panels.length : event.key === 'ArrowLeft' ? (index + panels.length - 1) % panels.length
+        : event.key === 'Home' ? 0 : event.key === 'End' ? panels.length - 1 : -1;
+      if (next >= 0) { event.preventDefault(); setPanel(panels[next][0], true); }
+    }
     function setRange(value) { if (!['today', '7', '30'].includes(value)) return; range = value; selected = null; selectionPinned = false; renderChart(); }
     function chartPointer(event) {
       if (chartEmpty || !chartPositions.length) return;
@@ -403,6 +421,8 @@
     function start() {
       if (started) return;
       started = true; doc.addEventListener('visibilitychange', visibilityChanged);
+      for (const [name, tabId] of panels) { on(tabId, 'click', () => setPanel(name)); on(tabId, 'keydown', panelKey); }
+      setPanel(panel);
       on('solarRangeToday', 'click', () => setRange('today')); on('solarRange7', 'click', () => setRange('7')); on('solarRange30', 'click', () => setRange('30'));
       on('solarChartMetric', 'change', event => { metric = event.target.value === 'energy' ? 'energy' : 'cost'; selected = null; selectionPinned = false; renderChart(); });
       on('solarChartScrubber', 'input', event => inspect(Number(event.target.value), true));
@@ -415,7 +435,7 @@
       started = false; clearTimers(); doc.removeEventListener('visibilitychange', visibilityChanged);
       for (const [element, name, handler] of bindings.splice(0)) element.removeEventListener(name, handler);
     }
-    return { start, stop, refresh, paint, setRange };
+    return { start, stop, refresh, paint, setRange, setPanel };
   }
   return { createController, liveView };
 });

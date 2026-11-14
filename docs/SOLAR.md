@@ -6,6 +6,8 @@ existing No-IP updater as a separate Raspberry Pi service.
 
 Version 1.3.0 adds household solar coverage, spare power, live financial estimates,
 graphs and a durable daily log. An existing version 1 collector works unchanged.
+Version 1.3.1 condenses the card into a responsive summary and a shared chart,
+daily log and details area, with concise public-facing status labels.
 New installations still require a real inverter response, an authenticated
 upload and an advancing dashboard timestamp before being considered operational.
 
@@ -71,8 +73,11 @@ attribution is withheld rather than guessed.
 The Today graph shows recorded power through the Brisbane day. Seven- and
 thirty-day views show daily net cost or imported/exported energy. The graph can
 be inspected with touch, a pointer or its keyboard-accessible slider. The daily
-log can be expanded and downloaded as CSV. Missing dates and partial days remain
-explicit, including the first day of collection.
+log can be selected and downloaded as CSV. Chart, Daily log and Details tabs share
+the same bounded area rather than extending the page. The log scrolls within its
+panel, and the tabs support arrow keys, Home and End. Live readings and today's
+totals stay visible in every view. Missing dates and partial days remain explicit,
+including the first day of collection.
 
 ### Dated tariffs
 
