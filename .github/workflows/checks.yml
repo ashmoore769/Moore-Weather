@@ -44,6 +44,9 @@ jobs:
       - name: Check responsive water cards and rainfall comparison
         if: ${{ hashFiles('tools/check-dashboard.cjs') != '' }}
         run: node tools/check-dashboard.cjs
+      - name: Check radar activation and viewer controls
+        run: node tools/check-radar.cjs
+
       - name: Check the private solar card and connection states
         run: node tools/check-solar.cjs
 

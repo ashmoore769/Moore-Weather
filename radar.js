@@ -4,10 +4,56 @@
   'use strict';
   const $=id=>document.getElementById(id), minute=60000;
   const time=seconds=>new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(seconds*1000);
-  let map, bounds, overlay, baseLayer, baseError=false, data, selected=-1, sequence=0, playing=false, playTimer, inputTimer, busy=false, lastAttempt=0, lastImageRequest=0;
+  let map, bounds, overlay, baseLayer, zoomControl, baseError=false, data, selected=-1, sequence=0, playing=false, playTimer, inputTimer, busy=false, lastAttempt=0, lastImageRequest=0;
+  let interactive=false, tapPointer=null, tapReady=false;
+  const panel=$('radar'), stage=panel.querySelector('.radar-map-stage'), mapElement=$('radarMap'), interaction=$('radarInteraction');
+  // Verified QLD address point. The regional image remains centred on Warwick;
+  // only this unobtrusive station marker sits at the property to its west.
+  const stationLocation=[-28.213713,151.9893045];
   const imageCache=new Map();
   function status(message,kind='') { $('radarStatus').textContent=message; $('radarStatus').dataset.kind=kind; }
   function pause() { playing=false; clearTimeout(playTimer); $('radarPlay').textContent='▶ Play'; $('radarPlay').setAttribute('aria-pressed','false'); }
+  function setInteractive(enabled) {
+    interactive=Boolean(map && enabled); tapPointer=null; tapReady=false;
+    for(const name of ['dragging','touchZoom','doubleClickZoom','scrollWheelZoom','boxZoom','keyboard','tapHold']) map?.[name]?.[interactive?'enable':'disable']();
+    zoomControl?.[interactive?'enable':'disable']();
+    if(!interactive) { map?.stop(); map?.closePopup(); }
+    stage.dataset.interactive=String(interactive);
+    // Explicitly override Leaflet's touch classes while locked. Scrolling past
+    // the tile must move the page, and browser-level pinch remains available.
+    mapElement.style.touchAction=interactive?'none':'pan-y pinch-zoom';
+    mapElement.tabIndex=interactive?0:-1;
+    interaction.disabled=!map;
+    interaction.textContent=interactive?'Done':'Tap to explore';
+    interaction.setAttribute('aria-pressed',String(interactive));
+    interaction.setAttribute('aria-label',interactive?'Lock radar map movement':'Enable radar map movement');
+  }
+  function mapControl(target) { return target.closest?.('.leaflet-control,.leaflet-popup'); }
+  mapElement.addEventListener('pointerdown',event=>{
+    tapReady=false;
+    if(interactive || event.button>0 || event.isPrimary===false || mapControl(event.target)) { tapPointer=null; return; }
+    tapPointer={id:event.pointerId,x:event.clientX,y:event.clientY,at:Date.now(),moved:false};
+  },{passive:true});
+  mapElement.addEventListener('pointermove',event=>{
+    if(tapPointer?.id===event.pointerId && Math.hypot(event.clientX-tapPointer.x,event.clientY-tapPointer.y)>8) tapPointer.moved=true;
+  },{passive:true});
+  mapElement.addEventListener('pointerup',event=>{
+    tapReady=Boolean(tapPointer?.id===event.pointerId && !tapPointer.moved && Date.now()-tapPointer.at<600 && Math.hypot(event.clientX-tapPointer.x,event.clientY-tapPointer.y)<=8);
+    tapPointer=null;
+  },{passive:true});
+  mapElement.addEventListener('pointercancel',()=>{tapPointer=null;tapReady=false;},{passive:true});
+  mapElement.addEventListener('click',event=>{
+    // A completed short tap activates; a scroll, drag, long-press or pinch never
+    // unlocks the map as a side effect of moving down the dashboard.
+    if(!interactive && tapReady && !mapControl(event.target)) setInteractive(true);
+    tapReady=false;
+  });
+  interaction.addEventListener('click',()=>setInteractive(!interactive));
+  document.addEventListener('click',event=>{if(interactive&&!panel.contains(event.target))setInteractive(false);});
+  panel.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&interactive) { setInteractive(false); interaction.focus(); event.preventDefault(); }
+  });
+  setInteractive(false);
   function freshness() {
     if(!data) return;
     if(baseError) { status('Some background map tiles couldn’t load. Radar imagery is still shown; try Refresh.','error'); return; }
@@ -18,7 +64,7 @@
     if(map) return;
     if(!window.L) throw Error('Map library unavailable');
     const centre=[location.latitude,location.longitude];
-    map=L.map('radarMap',{center:centre,zoom:7,minZoom:7,maxZoom:10,zoomSnap:.5,scrollWheelZoom:false,zoomControl:false,attributionControl:true});
+    map=L.map('radarMap',{center:centre,zoom:7,minZoom:7,maxZoom:10,zoomSnap:.5,dragging:false,touchZoom:false,doubleClickZoom:false,scrollWheelZoom:false,boxZoom:false,keyboard:false,tapHold:false,zoomControl:false,attributionControl:true});
     // A centred 512px image at native zoom 7 spans these exact Web Mercator pixels.
     const p=map.project(centre,7);
     bounds=L.latLngBounds(map.unproject([p.x-256,p.y+256],7),map.unproject([p.x+256,p.y-256],7));
@@ -34,9 +80,10 @@
       attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
     }).on('tileerror',()=>{baseError=true;status('The background map couldn’t load. Radar may still be available; try refreshing shortly.','error');}).addTo(map);
     map.attributionControl.setPrefix(false);
-    L.control.zoom({position:'bottomright'}).addTo(map);
-    L.circleMarker(centre,{radius:5,weight:2,color:'#fff',fillColor:'#178a84',fillOpacity:1}).addTo(map).bindTooltip('Warwick',{permanent:true,direction:'right',offset:[8,0]});
+    zoomControl=L.control.zoom({position:'bottomright'}).addTo(map);
+    L.circleMarker(stationLocation,{radius:5,weight:2,color:'#fff',fillColor:'#178a84',fillOpacity:1}).addTo(map).bindPopup('Moore Weather station',{closeButton:false});
     L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
+    setInteractive(false);
     map.on('movestart',pause);
     const resize=new ResizeObserver(()=>{map.invalidateSize({pan:false});fitRegion();}); resize.observe($('radarMap'));
   }
@@ -128,11 +175,11 @@
   $('radarReset').addEventListener('click',()=>{pause();if(map&&data)map.setView([data.location.latitude,data.location.longitude],map.getMinZoom());});
   $('refreshRadar').addEventListener('click',()=>{if(baseError&&baseLayer){baseError=false;baseLayer.redraw();}load();});
   function tick() {
-    if(document.hidden) { pause(); return; }
+    if(document.hidden) { pause(); setInteractive(false); return; }
     if(data && Date.now()-data.frames.at(-1).time*1000>=2*60*minute) { expire(); status('The last radar image is too old to show. Refreshing…','stale'); }
     if(Date.now()-lastAttempt>=(data?5*minute:minute)) load();
     else if(data && $('radarStatus').dataset.kind!=='error') freshness();
   }
-  document.addEventListener('visibilitychange',tick); window.addEventListener('pagehide',pause); setInterval(tick,minute);
+  document.addEventListener('visibilitychange',tick); window.addEventListener('pagehide',()=>{pause();setInteractive(false);}); setInterval(tick,minute);
   load();
 })();

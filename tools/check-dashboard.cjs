@@ -296,6 +296,51 @@ async function visualWindows(page) {
   });
   await page.waitForTimeout(60); await cameraLabels(page);
 }
+async function soilProfileLayout(page) {
+  const geometry = await page.evaluate(() => {
+    const rect = node => { const r=node.getBoundingClientRect(); return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width}; };
+    const soil=document.querySelector('#soilProfile');
+    return { nested:document.querySelector('#weatherData').contains(soil),
+      soil:rect(soil), weather:rect(document.querySelector('#weatherData')),
+      forecast:rect(document.querySelector('#forecastSummary')),
+      rows:[...soil.querySelectorAll('.soil-reading')].map(row => ({box:rect(row),
+        metrics:[...row.querySelectorAll('.soil-reading-value')].map(metric => ({box:rect(metric),
+          contents:[...metric.querySelectorAll('.soil-reading-value-label,.soil-reading-value-number,.history-spark')].map(rect)}))})) };
+  });
+  const {soil,weather,forecast,rows}=geometry;
+  assert.equal(geometry.nested,false,'Soil is an independent dashboard card');
+  assert.ok(Math.abs(soil.x-forecast.x)<1 && Math.abs(soil.width-forecast.width)<1,'Soil spans the same width as the standalone cards');
+  assert.ok(soil.y>=weather.bottom+12 && forecast.y>=soil.bottom+12,'Soil has clear separation from adjacent sections');
+  for(const {box,metrics} of rows) {
+    assert.ok(box.x>=soil.x && box.right<=soil.right,'Soil depth row stays inside its card');
+    for(const {box:metric,contents} of metrics) {
+      assert.ok(metric.x>=box.x && metric.right<=box.right,'Soil metrics stay inside their depth row');
+      for(const child of contents) assert.ok(child.x>=metric.x-1 && child.right<=metric.right+1 && child.y>=box.y-1 && child.bottom<=box.bottom+1,'Soil reading or trend clips: '+JSON.stringify({metric,child,box}));
+    }
+  }
+}
+async function cameraControlLayout(page, engine, width) {
+  for(const state of ['live','history']) {
+    await page.evaluate(state=>showSkyCamHistory(state==='live'?skycamHistory.length-1:0,{manual:true,followLive:state==='live',transitionMs:0}),state);
+    const boxes=await page.evaluate(()=>{
+      const rect=node=>{const r=node.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height,scroll:node.scrollWidth,client:node.clientWidth};};
+      return {stage:rect(document.querySelector('.skycam-container')),
+        parts:[...document.querySelectorAll('.skycam-caption > span,.skycam-actions')].map(rect),
+        buttons:[...document.querySelectorAll('.skycam-action')].filter(n=>getComputedStyle(n).display!=='none').map(rect)};
+    });
+    for(const item of boxes.parts) assert.ok(item.x>=boxes.stage.x && item.right<=boxes.stage.right && item.y>=boxes.stage.y && item.bottom<=boxes.stage.bottom && item.scroll<=item.client+1,'SkyCam caption clips in '+state+': '+JSON.stringify(boxes));
+    for(let i=0;i<boxes.parts.length;i++)for(let j=i+1;j<boxes.parts.length;j++){
+      const a=boxes.parts[i],b=boxes.parts[j];
+      assert.ok(a.right<=b.x+1 || b.right<=a.x+1 || a.bottom<=b.y+1 || b.bottom<=a.y+1,'SkyCam caption overlaps in '+state);
+    }
+    for(const button of boxes.buttons) assert.ok(button.width>=40 && button.height>=40,'SkyCam controls retain usable touch targets');
+    if([320,393,1440].includes(width)) {
+      fs.mkdirSync(screenshotRoot,{recursive:true});
+      await page.locator('.layout-skycam').screenshot({path:path.join(screenshotRoot,`${engine.name()}-${width}-skycam-${state}.png`),animations:'disabled'});
+    }
+  }
+  await page.evaluate(()=>showSkyCamHistory(skycamHistory.length-1,{manual:true,followLive:true,transitionMs:0}));
+}
 async function initialCameraRecovery(page) {
   // A separate context avoids reusing pixels already decoded by the main page,
   // especially WebKit's in-memory resource cache for the exact image URL.
@@ -476,7 +521,10 @@ async function failurePaths(page, browserName) {
             // Two representative viewports per browser, with bounded captures
             // instead of images of every long page in the responsive matrix.
             await reviewScreenshot(page, engine, width, pagePath.includes('index') ? 'current' : 'daily');
-            if (pagePath.includes('index')) await reviewScreenshot(page, engine, width, 'skycam', '.layout-skycam');
+            if (pagePath.includes('index')) {
+              await reviewScreenshot(page, engine, width, 'skycam', '.layout-skycam');
+              await reviewScreenshot(page, engine, width, 'soil', '#soilProfile');
+            }
             await page.locator('.local-water').scrollIntoViewIfNeeded();
             await page.waitForTimeout(80);
             await bounds(page, width);
@@ -494,6 +542,16 @@ async function failurePaths(page, browserName) {
             if (pagePath.includes('index')) {
               if (width === 393) await failurePaths(page, engine.name());
               await visualWindows(page);
+              await cameraControlLayout(page,engine,width);
+              await soilProfileLayout(page);
+              if(width===1440) {
+                await page.evaluate(()=>{document.body.classList.remove('layout-landscape');document.body.classList.add('layout-portrait');});
+                await soilProfileLayout(page);
+                await page.evaluate(()=>{document.body.classList.remove('layout-portrait');document.body.classList.add('layout-landscape');});
+              }
+              await page.locator('#soilTemp10Val').click(); await historyReady(page,'10m',24);
+              assert.equal(requests.at(-1).metric,'soil-temp-10','Detached soil card retains its history navigation');
+              await page.locator('.history-close').click();
               assert.match(await page.locator('#powerTrendLabel').textContent(), /24-hour/);
               assert.match(await page.locator('#tempVal').locator('xpath=ancestor::*[contains(@class,"temp-hero")]').locator('.history-spark-caption').textContent(), /24 hours/);
               for (const [mm, inches] of [['25.4', '(1.00 in)'], ['0.0', '(0.00 in)'], ['--', ''], ['225.0', '(8.86 in)']]) {

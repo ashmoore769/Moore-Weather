@@ -1,6 +1,18 @@
 # Free forecast and radar
 
-The Forecast tab at `/forecast.html` adds a seven-day Warwick outlook, prominent rain probability and daily rainfall estimates, selectable days, the next 24 hours (or the selected day's hours), and hourly rain, temperature and wind. The regional radar animation lives on Dashboard, directly below the SkyCam, with the same embedded presentation. On phones the order is readings, SkyCam, radar, soil, forecast summary, Home solar, local water and station power. Desktop pairs readings and soil with the two visuals; the forecast summary, Home solar, local water and a compact power strip follow. The Forecast header links to Dashboard’s radar, and old `/forecast.html#radar` bookmarks redirect there. Daily Summary and history remain available.
+The Forecast tab at `/forecast.html` adds a seven-day Warwick outlook, prominent rain probability and daily rainfall estimates, selectable days, the next 24 hours (or the selected day's hours), and hourly rain, temperature and wind. The regional radar animation lives on Dashboard, directly below the SkyCam, with the same embedded presentation. On phones the order is readings, SkyCam, radar, soil, forecast summary, Home solar, local water and station power. Desktop pairs readings with the two visuals; independent full-width soil, forecast summary, Home solar, local water and a compact power strip follow. The Forecast header links to Dashboard’s radar, and old `/forecast.html#radar` bookmarks redirect there. Daily Summary and history remain available.
+
+## Viewer controls and station location
+
+SkyCam and radar share translucent pill labels, rounded icon controls, readable light text and clear keyboard focus. Disabled SkyCam Live navigation is hidden while already at the latest capture, then returns when browsing older captures. Soil is a separate card with the same outer width as Home solar; its temperature/moisture history controls still open the existing history viewer. Wider soil cards show trends beside their readings; narrow cards keep the compact depth layout.
+
+The radar starts locked so a vertical finger swipe scrolls the dashboard. A short tap on the map or the **Tap to explore** button enables dragging, pinch, wheel and keyboard zoom. **Done**, Escape, clicking outside the radar or hiding the page locks it again. The centre/reset control restores the default extent without changing the interaction state. Playback and refresh remain available while locked.
+
+Warwick remains the radar image and default map centre at `-28.22, 152.03`. The phone's initial 100 km label is a dynamic Leaflet scale bar, not a radius; wider viewports may use a closer scale to stay within the existing radar image footprint. The permanent Warwick tooltip is removed. The station dot is at `-28.213713, 151.9893045`, an address point verified through the Queensland Government QldLocator on 15 November 2026 (PointAddress, match score 98.89, WGS84). This locates the property rather than surveying the logger itself. Tapping the dot shows **Moore Weather station**, without a permanent address label.
+
+Location source: https://spatial-gis.information.qld.gov.au/arcgis/rest/services/Location/QldLocator/GeocodeServer
+
+`tools/check-radar.cjs` runs production radar code with real Leaflet and synthetic imagery in Chromium and WebKit at phone and desktop widths. It covers locked page scrolling, deliberate activation, pan/zoom/pinch, keyboard controls, relocking, the default centre/scale and marker position. `tools/check-dashboard.cjs` checks the independent soil card's layout and history access, including narrow desktop presentation.
 
 ## Dashboard forecast summary
 
