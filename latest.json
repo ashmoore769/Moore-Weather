@@ -1,14 +1,14 @@
 {
   "schema": 1,
   "repository": "ashmoore769/Moore-Weather",
-  "artifactId": "745636801",
+  "artifactId": "749082796",
   "storageProvider": "github-release",
   "releaseId": "435132100",
-  "runId": "43649226361",
+  "runId": "43650588637",
   "runAttempt": 1,
-  "runUrl": "https://github.com/ashmoore769/Moore-Weather/actions/runs/43649226361/attempts/1",
-  "sha256": "efb15c01aee87a37b46c602c1dd003c9bfe3cb536dc89bb70a3973167d9661d3",
-  "bytes": 201826199,
-  "createdAt": "2026-11-13T23:47:55.053Z",
-  "recordedAt": "2026-11-14T22:41:18.851Z"
+  "runUrl": "https://github.com/ashmoore769/Moore-Weather/actions/runs/43650588637/attempts/1",
+  "sha256": "903d4c06248de4471109d712032782ae6f68aac043146f93982945811285da4f",
+  "bytes": 203559911,
+  "createdAt": "2026-11-14T22:57:01.196Z",
+  "recordedAt": "2026-11-14T23:13:08.356Z"
 }
