@@ -148,16 +148,25 @@
         if (midnightIndex > 0 && midnightIndex <= 24) {
           const midnightX = left + midnightIndex * cell;
           parts.push('<line class="forecast-summary-midnight" x1="' + midnightX.toFixed(2) + '" x2="' + midnightX.toFixed(2) + '" y1="' + top + '" y2="' + (bottom + 4) + '"/>');
-          for (let i = markers.length - 1; i >= 0; i--) {
-            if (Math.abs(markers[i].index - midnightIndex) * cell < 48) markers.splice(i, 1);
-          }
           markers.push({ index: midnightIndex, label: 'Tomorrow', midnight: true });
         }
-        markers.sort((a, b) => a.index - b.index);
-        for (const marker of markers) {
-          const x = left + marker.index * cell;
-          const anchor = x - left < 27 ? 'start' : right - x < 27 ? 'end' : 'middle';
-          parts.push('<text class="forecast-summary-axis' + (marker.midnight ? ' forecast-summary-day-label' : '') + '" x="' + x.toFixed(2) + '" y="102" text-anchor="' + anchor + '">' + escape(marker.label) + '</text>');
+        const positioned = markers.map(marker => {
+          const x = left + marker.index * cell, labelWidth = marker.label.length * 6;
+          const anchor = x - left < labelWidth / 2 + 1 ? 'start' : right - x < labelWidth / 2 + 1 ? 'end' : 'middle';
+          const labelLeft = anchor === 'start' ? x : anchor === 'end' ? x - labelWidth : x - labelWidth / 2;
+          return { ...marker, x, anchor, left: labelLeft - 1, right: labelLeft + labelWidth + 1 };
+        });
+        // Reserve the midnight label first. Bounds include its actual anchor
+        // and a conservative width for the 10px axis font, so an edge-anchored
+        // date label cannot collide with the next ordinary tick on mobile.
+        const labels = [];
+        positioned.sort((a, b) => Number(b.midnight) - Number(a.midnight) || a.index - b.index);
+        for (const marker of positioned) {
+          if (!labels.some(label => marker.left < label.right && marker.right > label.left)) labels.push(marker);
+        }
+        labels.sort((a, b) => a.index - b.index);
+        for (const marker of labels) {
+          parts.push('<text class="forecast-summary-axis' + (marker.midnight ? ' forecast-summary-day-label' : '') + '" x="' + marker.x.toFixed(2) + '" y="102" text-anchor="' + marker.anchor + '">' + escape(marker.label) + '</text>');
         }
       }
       html('forecastSummaryChart', parts.join(''));

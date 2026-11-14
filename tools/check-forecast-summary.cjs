@@ -55,14 +55,22 @@ async function checkLayout(page, width) {
         name: element.className, left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right,
         width: element.clientWidth, scroll: element.scrollWidth
       }));
+    const timeLabels = [...card.querySelectorAll('.forecast-summary-axis[y="102"]')].map(element => {
+      const box = element.getBoundingClientRect();
+      return { text: element.textContent, left: box.left, right: box.right };
+    }).sort((a, b) => a.left - b.left);
     return { left: rect.left, right: rect.right, height: rect.height, width: document.documentElement.scrollWidth,
-      aboveSolar: Boolean(card.compareDocumentPosition(document.querySelector('#homeSolar')) & Node.DOCUMENT_POSITION_FOLLOWING), children };
+      aboveSolar: Boolean(card.compareDocumentPosition(document.querySelector('#homeSolar')) & Node.DOCUMENT_POSITION_FOLLOWING), children, timeLabels };
   });
   assert.equal(layout.aboveSolar, true, 'forecast appears immediately before Home solar in reading order');
   assert.ok(layout.left >= 0 && layout.right <= width + 1 && layout.width <= width + 1, JSON.stringify(layout));
   for (const child of layout.children) {
     assert.ok(child.left >= layout.left - 1 && child.right <= layout.right + 1 && child.scroll <= child.width + 1,
       'forecast content must stay within the card: ' + JSON.stringify(child));
+  }
+  for (let i = 1; i < layout.timeLabels.length; i++) {
+    assert.ok(layout.timeLabels[i].left >= layout.timeLabels[i - 1].right + 2,
+      'hour and midnight labels must remain distinct: ' + JSON.stringify(layout.timeLabels));
   }
   const limit = width >= 900 ? 290 : width >= 361 ? 390 : 420;
   assert.ok(layout.height <= limit, `Forecast summary should stay compact at ${width}px: ${layout.height}px exceeds ${limit}px`);
