@@ -188,9 +188,13 @@ async function touchPinch(page, context, engine) {
             let p = await point(page);
             await drag(page, p, 50, -70); sameView(await locked(page, 'A swipe does not unlock'), initial, 'Locked drag does not move map');
             checkpoint = 'locked wheel page scrolling';
-            await page.mouse.move(p.x, p.y); const beforeScroll = await page.evaluate(() => scrollY);
-            await page.mouse.wheel(0, 180); await page.waitForFunction(previous => scrollY !== previous, beforeScroll);
-            sameView(await locked(page, 'Scroll stays locked'), initial, 'Wheel scroll belongs to page');
+            // Mobile WebKit has no mouse-wheel automation channel. Desktop
+            // WebKit covers wheels; Chromium phones below cover native touch.
+            if(engine!==webkit || width>=900) {
+              await page.mouse.move(p.x, p.y); const beforeScroll = await page.evaluate(() => scrollY);
+              await page.mouse.wheel(0, 180); await page.waitForFunction(previous => scrollY !== previous, beforeScroll);
+              sameView(await locked(page, 'Scroll stays locked'), initial, 'Wheel scroll belongs to page');
+            }
             if (engine === chromium && width < 900) {
               checkpoint = 'locked native finger page scrolling';
               p = await point(page); const scrollBeforeTouch = await page.evaluate(() => scrollY), session = await context.newCDPSession(page);
