@@ -155,6 +155,14 @@ while `energy.days` contains thirty chronological date slots. Without that query
 history and `energy.days` are null. A short snapshot cache is invalidated after
 each committed upload.
 
+Five-minute history points include per-series `seriesGaps` flags for AC
+generation, house consumption and grid imports. A missing house measurement
+does not disconnect valid solar or grid readings. The combined `hasGap` flag
+remains for older clients, and `breakBefore` still marks genuine time gaps.
+Valid means isolated by incomplete data are drawn as points, so the graph and
+reading inspector show the same recorded values. Missing intervals remain
+unfilled, and incomplete daily coverage continues to be reported as partial.
+
 ## Verify local access first
 
 Run the following on the collector's home network, replacing the documentation

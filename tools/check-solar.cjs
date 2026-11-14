@@ -10,6 +10,7 @@ const screenshotRoot = path.resolve(__dirname, '../artifacts/dashboard');
 const heightMetrics = [];
 const failures = [];
 const now = Date.parse('2026-11-14T02:00:00.000Z');
+const partialHouseBin = 108, emptyBin = 120;
 const iso = value => new Date(value).toISOString();
 const dashboard = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8').replace(/<script\b([^>]*)>[\s\S]*?<\/script>/gi,
   (tag, attributes) => /\bsrc="\/(?:solar(?:-chart)?|theme)\.js\b/.test(attributes) ? tag : '');
@@ -31,11 +32,16 @@ function readings(includeHistory = true) {
       exportCredit: exported * .06006, netCost: imported * .288948 - exported * .06006 + 1.805078 };
   });
   const points = Array.from({ length: 145 }, (_, index) => {
-    const recorded = index >= 72 && index !== 120;
+    const recorded = index >= 72 && index !== emptyBin;
     const ac = Math.max(0, Math.sin((index - 72) / 144 * Math.PI) * 6500), load = 1600 + Math.pow(Math.sin(index / 13), 2) * 2000;
     return { observedAt: iso(now - (144 - index) * 300000), inverterPowerW: recorded ? ac : null,
       loadPowerW: recorded ? load : null, gridImportPowerW: recorded ? Math.max(0, load - ac) : null,
-      gridExportPowerW: recorded ? Math.max(0, ac - load) : null, breakBefore: index === 121, hasGap: false, samples: recorded ? 5 : 0 };
+      gridExportPowerW: recorded ? Math.max(0, ac - load) : null, breakBefore: index === emptyBin + 1,
+      hasGap: index === partialHouseBin, samples: recorded ? 5 : 0,
+      // At 09:00 one house measurement is absent; the measured average remains
+      // valid, while solar and grid have uninterrupted coverage. The separate
+      // 10:00 empty bin continues to exercise a genuine gap in every series.
+      seriesGaps: recorded ? { inverterPowerW: false, loadPowerW: index === partialHouseBin, gridImportPowerW: false } : null };
   });
   return { enabled: mode !== 'disabled', status: mode === 'disabled' ? 'disabled' : mode === 'waiting' ? 'waiting' : stale ? 'stale' : 'fresh',
     timezone: 'Australia/Brisbane', staleAfterSeconds: 180,
@@ -158,6 +164,42 @@ async function chartWindow(page) {
 }
 const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 2, message + ': ' + actual + ' vs ' + expected);
 
+async function chartSeriesQuality(page) {
+  const points = readings().history.points;
+  const observed = await page.locator('#solarChart').evaluate((svg, timestamps) => {
+    const plot = document.querySelector('#solarChartPlot'), span = Number(plot.dataset.windowSpan);
+    const x = time => (time - Number(plot.dataset.windowStart)) / span * 720;
+    const partialX = x(timestamps.partial), nextX = x(timestamps.partial + 300000);
+    const emptyX = x(timestamps.empty), recoveredX = x(timestamps.empty + 300000);
+    const bounds = svg.getBoundingClientRect();
+    return ['generation', 'home', 'import'].map(name => {
+      const path = svg.querySelector('path.solar-chart-series-' + name);
+      const commands = [...path.getAttribute('d').matchAll(/([ML])(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g)]
+        .map(match => ({ command: match[1], x: Number(match[2]), y: Number(match[3]) }));
+      const at = position => commands.find(point => Math.abs(point.x - position) < .02);
+      const partial = at(partialX);
+      const markers = [...svg.querySelectorAll('circle.solar-chart-series-' + name)]
+        .filter(circle => partial && Math.abs(Number(circle.getAttribute('cx')) - partial.x) < .02 &&
+          Math.abs(Number(circle.getAttribute('cy')) - partial.y) < .02)
+        .map(circle => {
+          const rect = circle.getBoundingClientRect(), style = getComputedStyle(circle);
+          return { visible: rect.width > 0 && rect.height > 0 && style.visibility === 'visible' &&
+            style.display !== 'none' && Number(style.opacity) > 0 && style.stroke !== 'none' &&
+            rect.left >= bounds.left && rect.right <= bounds.right && rect.top >= bounds.top && rect.bottom <= bounds.bottom };
+        });
+      return { name, partial: partial?.command, afterPartial: at(nextX)?.command,
+        emptyDrawn: Boolean(at(emptyX)), recovered: at(recoveredX)?.command, markers };
+    });
+  }, { partial: Date.parse(points[partialHouseBin].observedAt), empty: Date.parse(points[emptyBin].observedAt) });
+  for (const series of observed) {
+    assert.equal(series.partial, series.name === 'home' ? 'M' : 'L', series.name + ' must use its own field quality');
+    assert.equal(series.afterPartial, series.name === 'home' ? 'M' : 'L', series.name + ' must preserve its known continuity after the partial bin');
+    if (series.name === 'home') assert.deepEqual(series.markers, [{ visible: true }], 'the partial house average needs a visible isolated point at the correct time and power');
+    assert.equal(series.emptyDrawn, false, series.name + ' must not invent a value for the empty bin');
+    assert.equal(series.recovered, 'M', series.name + ' must not connect across the genuine data gap');
+  }
+}
+
 async function chartNavigation(page, width, reviewName) {
   const plot = page.locator('#solarChartPlot');
   const original = await chartWindow(page), requestsBefore = apiRequests;
@@ -166,12 +208,14 @@ async function chartNavigation(page, width, reviewName) {
   const maximum = await page.locator('#solarChartMax').textContent();
   const originalPath = await page.locator('.solar-chart-series-generation').first().getAttribute('d');
   assert.ok((originalPath.match(/M/g) || []).length >= 2, 'the known missing reading must split the line');
+  await chartSeriesQuality(page);
   await page.locator('#solarZoomIn').click();
   const zoomed = await chartWindow(page);
   assert.ok(zoomed.span < original.span && zoomed.span >= 3600000, 'zoom changes the visible time domain');
   assert.equal(await page.locator('#solarChartMax').textContent(), maximum, 'the y scale stays stable while zooming');
   assert.notEqual(await page.locator('#solarChartStart').textContent(), '00:00');
   assert.equal(await plot.getAttribute('data-zoomed'), 'true');
+  await chartSeriesQuality(page);
   await layout(page, width, reviewName + '-zoomed');
   await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, reviewName + '-zoomed.png'), animations: 'disabled' });
 

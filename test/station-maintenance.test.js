@@ -78,3 +78,23 @@ test('disabled policy and missing, future or invalid time evidence cannot suppre
   assert.equal(policy.suppressOffline(), false);
   assert.ok(Object.isFrozen(policy.config));
 });
+
+test('history grace covers only a newly overdue feed within the current modem window', () => {
+  const policy = createStationMaintenance();
+  const overdueSince = time('2026-11-15T05:00:00');
+  const event = { now: time('2026-11-15T05:00:58'), overdueSince };
+  assert.equal(policy.suppressHistory(event), true);
+  assert.equal(policy.suppressHistory({ ...event, now: time('2026-11-15T05:04:59.999') }), true);
+  assert.equal(policy.suppressHistory({ ...event, now: time('2026-11-15T05:05:00') }), false);
+  assert.equal(policy.suppressHistory({ ...event, overdueSince: time('2026-11-15T04:54:59.999') }), false);
+  assert.equal(policy.suppressHistory({ ...event, overdueSince: time('2026-11-14T05:00:00') }), false);
+  assert.equal(policy.suppressHistory({ ...event, alreadyAlerted: true }), false);
+  assert.equal(createStationMaintenance({ WEATHER_PLANNED_MODEM_OUTAGE_ENABLED: 'false' }).suppressHistory(event), false);
+  for (const value of [null, undefined, NaN, Infinity, '2026-11-15T05:00:00+10:00', event.now + 1]) {
+    assert.equal(policy.suppressHistory({ ...event, overdueSince: value }), false);
+  }
+  for (const now of [null, undefined, NaN, Infinity, 1e100]) {
+    assert.equal(policy.suppressHistory({ ...event, now }), false);
+  }
+  assert.equal(policy.suppressHistory(), false);
+});

@@ -4,20 +4,23 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
 const { StationAlerts, mountAlerts } = require('../lib/station-alerts');
 const { historyHealth, expectedDaily, REPEAT_MS, RETRY_MS } = require('../lib/history-alerts');
 const { createPersistence } = require('../lib/weather-persistence');
+const { createStationMaintenance } = require('../lib/station-maintenance');
+const { encodePushTopic } = require('../lib/push-delivery');
 const layout = require('../config/station-layout.json');
 const MINUTE = 60000;
 const sub = (id = 'one') => ({ endpoint: 'https://web.push.apple.com/' + id,
   keys: { auth: Buffer.alloc(16, 1).toString('base64url'), p256dh: Buffer.concat([Buffer.from([4]), Buffer.alloc(64, 2)]).toString('base64url') } });
-function setup(t, sender) {
+function setup(t, sender, overrides = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'history-alerts-'));
   let clock = Date.parse('2026-11-02T00:00:00Z');
   const sent = [], logs = [];
   const options = { filename: path.join(dir, 'alerts.sqlite'), now: () => clock, startupGraceMs: 0,
     logger: { info: s => logs.push(s), warn: s => logs.push(s) },
-    send: async (device, payload, settings) => { if (sender) await sender(device, payload, settings); sent.push({ payload: JSON.parse(payload), settings }); } };
+    send: async (device, payload, settings) => { if (sender) await sender(device, payload, settings); sent.push({ payload: JSON.parse(payload), settings }); }, ...overrides };
   let alerts = new StationAlerts(options);
   t.after(() => { alerts.close(); fs.rmSync(dir, { recursive: true, force: true }); });
   return { get alerts() { return alerts; }, sent, logs, now: () => clock, advance: ms => clock += ms,
+    at: value => clock = Date.parse(value + '+10:00'),
     restart() { alerts.close(); alerts = new StationAlerts(options); } };
 }
 function fresh(now, overrides = {}) {
@@ -33,7 +36,7 @@ test('fresh live readings cannot conceal stalled history; repeating warnings and
   assert.equal(f.sent.length, 1);
   assert.equal(f.sent[0].payload.kind, 'history-missing');
   assert.match(f.sent[0].payload.body, /10-minute: last/);
-  assert.equal(f.sent[0].settings.topic, 'moore-history-status');
+  assert.equal(f.sent[0].settings.topic, encodePushTopic('moore-history-status'));
   for (let i = 0; i < 3; i++) {
     f.advance(REPEAT_MS - 1); f.restart();
     await f.alerts.tick(f.now());
@@ -186,8 +189,11 @@ test('older gaps stay visible while fresh feeds stop recurring notifications acr
   assert.equal(f.sent.length, 0);
   await f.alerts.history.tick(withGap(fresh(f.now(), { mem3: staleTen })));
   assert.equal(f.sent.length, 1);
-  assert.match(f.sent[0].payload.body, /2 missing intervals/);
-  assert.match(f.sent[0].payload.body, /2026-11-01/);
+  assert.match(f.sent[0].payload.body, /10-minute: last/);
+  assert.match(f.sent[0].payload.body, /Recent history collection is overdue/);
+  assert.doesNotMatch(f.sent[0].payload.body, /2 missing intervals|2026-11-01|logger download/);
+  assert.equal(historyHealth(withGap(fresh(f.now())), f.now()).feeds[0].missingIntervals, 2,
+    'archive gaps remain available in Saved history, separately from the current-feed warning');
   assert.equal(f.sent[0].payload.kind, 'history-missing');
   await f.alerts.history.tick(withGap(fresh(f.now()), { missing: 1 }));
   assert.equal(f.sent[1].payload.kind, 'history-recovered');
@@ -217,4 +223,78 @@ test('current-feed recovery during an unfinished coverage audit does not claim c
   await f.alerts.history.tick(withGap(fresh(f.now()), { missing: 0, checked: false }));
   await f.alerts.history.tick(withGap(fresh(f.now()), { missing: 0 }));
   assert.equal(f.sent.length, 2);
+});
+
+test('15 November hourly retry during the planned modem pause creates no warning or recovery push', async t => {
+  const f = setup(t); f.alerts.subscribe(sub());
+  const hourly = '2026-11-14T17:00:00.000Z'; // 03:00 AEST.
+  f.at('2026-11-15T03:56:32');
+  await f.alerts.history.tick(fresh(f.now(), { mem2: hourly }));
+  f.at('2026-11-15T04:56:24'); // The due history download failed while the modem was off.
+  await f.alerts.history.tick(fresh(f.now(), { mem2: hourly }));
+  f.at('2026-11-15T05:00:58');
+  const delayed = fresh(f.now(), { mem2: hourly });
+  assert.equal(historyHealth(delayed, f.now()).delayed, true, 'the dashboard still shows the actual overdue history');
+  await f.alerts.history.tick(delayed);
+  assert.equal(f.sent.length, 0);
+  f.restart();
+  await f.alerts.history.tick(delayed);
+  assert.equal(f.sent.length, 0, 'restart cannot bypass the same bounded grace');
+  f.at('2026-11-15T05:02:58'); // 05:02:32 download had saved records through 05:00.
+  await f.alerts.history.tick(fresh(f.now(), { mem2: '2026-11-14T19:00:00.000Z' }));
+  assert.equal(f.sent.length, 0, 'a suppressed planned interruption needs no recovery push');
+});
+
+test('history still overdue when reconnection grace expires alerts immediately and recovers normally', async t => {
+  const f = setup(t); f.alerts.subscribe(sub());
+  const hourly = '2026-11-14T17:00:00.000Z';
+  f.at('2026-11-15T05:00:58');
+  await f.alerts.history.tick(fresh(f.now(), { mem2: hourly }));
+  f.at('2026-11-15T05:05:00');
+  await f.alerts.history.tick(fresh(f.now(), { mem2: hourly }));
+  assert.equal(f.sent.length, 1);
+  assert.equal(f.sent[0].payload.kind, 'history-missing');
+  f.at('2026-11-15T05:05:58');
+  await f.alerts.history.tick(fresh(f.now()));
+  assert.equal(f.sent.length, 2);
+  assert.equal(f.sent[1].payload.kind, 'history-recovered');
+});
+
+test('maintenance cannot hide an earlier delay, unavailable history, invalid records or an overdue daily feed', async t => {
+  for (const snapshot of [
+    now => fresh(now, { mem2: '2026-11-14T16:00:00.000Z' }),
+    now => fresh(now, { mem2: '2026-11-14T17:00:00.000Z', mem3: '2026-11-14T18:00:00.000Z' }),
+    () => ({ enabled: true, ready: false }),
+    now => fresh(now, { mem2: null }),
+    now => fresh(now, { mem2: '2026-11-14T20:00:00.000Z' }),
+    now => fresh(now, { mem1: '2026-11-12T23:00:00.000Z' })
+  ]) {
+    const f = setup(t); f.alerts.subscribe(sub()); f.at('2026-11-15T05:00:58');
+    await f.alerts.history.tick(snapshot(f.now()));
+    assert.equal(f.sent.length, 1);
+    assert.equal(f.sent[0].payload.kind, 'history-missing');
+  }
+});
+
+test('existing history incidents retain their reminders and recovery during the modem window', async t => {
+  const f = setup(t); f.alerts.subscribe(sub());
+  f.at('2026-11-15T04:40:58');
+  await f.alerts.history.tick(fresh(f.now(), { mem3: '2026-11-14T17:00:00.000Z' }));
+  assert.equal(f.sent.length, 1);
+  f.at('2026-11-15T05:00:58');
+  // MEM3 has recovered, but this incident now includes an overdue hourly feed.
+  await f.alerts.history.tick(fresh(f.now(), { mem2: '2026-11-14T17:00:00.000Z' }));
+  assert.equal(f.sent.length, 2, 'an already-notified genuine incident still receives its due reminder');
+  f.at('2026-11-15T05:02:58');
+  await f.alerts.history.tick(fresh(f.now()));
+  assert.equal(f.sent.length, 3);
+  assert.equal(f.sent[2].payload.kind, 'history-recovered');
+});
+
+test('disabling the planned modem policy also disables saved-history grace', async t => {
+  const f = setup(t, undefined, { maintenance: createStationMaintenance({ WEATHER_PLANNED_MODEM_OUTAGE_ENABLED: 'false' }) });
+  f.alerts.subscribe(sub()); f.at('2026-11-15T05:00:58');
+  await f.alerts.history.tick(fresh(f.now(), { mem2: '2026-11-14T17:00:00.000Z' }));
+  assert.equal(f.sent.length, 1);
+  assert.equal(f.sent[0].payload.kind, 'history-missing');
 });
