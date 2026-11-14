@@ -9,14 +9,14 @@ self.addEventListener('push',event=>{
     icon:'/moore-weather-icon-192-v2.png?v=moore-suite-20261103',tag:data.tag || 'moore-weather-status',
     renotify:data.kind==='history-missing',
     ...(Number.isFinite(data.timestamp)?{timestamp:data.timestamp}:{}),
-    data:{url:['/#localWater','/#historyStatus'].includes(data.url)?data.url:'/'}
+    data:{url:['/#localWater','/#historyStatus','/#homeSolar'].includes(data.url)?data.url:'/'}
   }));
 });
 self.addEventListener('notificationclick',event=>{
   event.notification.close();
   event.waitUntil((async()=>{
     const requested=event.notification.data?.url;
-    const destination=['/#localWater','/#historyStatus'].includes(requested)?requested:'/';
+    const destination=['/#localWater','/#historyStatus','/#homeSolar'].includes(requested)?requested:'/';
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const client of windows) if(new URL(client.url).origin===self.location.origin) {
       if(destination!=='/') {

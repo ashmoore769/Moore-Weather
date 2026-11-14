@@ -15,15 +15,19 @@ function payload(time = NOW) {
     rates: { currency: 'AUD', effectiveFrom: '2026-07-01', importPerKwh: .288948, exportPerKwh: .06006, supplyPerDay: 1.805078 },
     energy: { today: { date: '2026-11-14', quality: 'partial', coveragePercent: 20, gridImportWh: 1000, gridExportWh: 3000, importCost: .288948, exportCredit: .18018, supplyCost: 1.805078, netCost: 1.913846, since: iso(time - 600000), through: iso(time) }, days: [] } };
 }
-function fixture(t, initial = payload()) {
+function fixture(t, initial = payload(), options = {}) {
   const nodes = new Map([...html.matchAll(/\bid="([^"]+)"/g)].map(match => [match[1], { textContent: '', hidden: false, dataset: {}, className: '', style: {}, attributes: {}, listeners: {}, setAttribute(name, value) { this.attributes[name] = String(value); }, addEventListener(name, fn) { this.listeners[name] = fn; }, removeEventListener(name) { delete this.listeners[name]; }, focus() { doc.activeElement = this; } }]));
   nodes.get('statusBadge').textContent = 'WEATHER STATUS UNCHANGED';
-  const listeners = new Map(), timers = new Map(), requests = [], redirects = [], timeouts = [];
+  nodes.get('homeSolar').hidden = true;
+  const listeners = new Map(), windowListeners = new Map(), timers = new Map(), requests = [], redirects = [], timeouts = [], scrolls = [];
+  nodes.get('homeSolar').scrollIntoView = options => scrolls.push({ ...options, hidden: nodes.get('homeSolar').hidden });
+  const location = { hash: options.hash || '', assign: destination => redirects.push(destination) };
+  const window = { addEventListener: (name, handler) => windowListeners.set(name, handler), removeEventListener: name => windowListeners.delete(name) };
   let clock = NOW, nextTimer = 0, body = initial, status = 200, failure = false, gate = null;
   const doc = { hidden: false, getElementById: id => nodes.get(id),
     addEventListener: (name, handler) => listeners.set(name, handler), removeEventListener: name => listeners.delete(name) };
   const controller = createController({ document: doc, now: () => clock,
-    location: { assign: destination => redirects.push(destination) },
+    location, window,
     setTimeout: (callback, milliseconds) => { const id = ++nextTimer; timers.set(id, { callback, milliseconds }); return id; },
     clearTimeout: id => timers.delete(id),
     timeoutSignal: milliseconds => { timeouts.push(milliseconds); return new AbortController().signal; },
@@ -36,14 +40,55 @@ function fixture(t, initial = payload()) {
     },
   });
   t.after(() => controller.stop());
-  return { controller, requests, redirects, timers, timeouts, doc,
+  return { controller, requests, redirects, timers, timeouts, scrolls, doc,
     node: id => nodes.get(id), fire: (id, name, event = {}) => nodes.get(id).listeners[name]?.(event), setBody: value => { body = value; }, setStatus: value => { status = value; },
     fail: value => { failure = value; }, setTime: value => { clock = value; }, hold: promise => { gate = promise; },
     hidden: value => { doc.hidden = value; listeners.get('visibilitychange')?.(); },
+    hash: value => { location.hash = value; windowListeners.get('hashchange')?.(); },
     start: async () => { controller.start(); await new Promise(setImmediate); },
     flush: () => new Promise(setImmediate),
   };
 }
+
+test('a solar notification waits for the visible card and navigates once without stealing focus', async t => {
+  const f = fixture(t, payload(), { hash: '#homeSolar' });
+  let release;
+  f.hold(new Promise(resolve => { release = resolve; }));
+  f.doc.activeElement = f.node('themeToggleBtn');
+  await f.start();
+  assert.equal(f.scrolls.length, 0, 'do not navigate before the solar response enables the card');
+  release(); await f.flush();
+  assert.deepEqual(f.scrolls, [{ block: 'start', behavior: 'instant', hidden: false }]);
+  assert.equal(f.doc.activeElement, f.node('themeToggleBtn'));
+  f.hold(null);
+  await f.controller.refresh(); f.controller.paint();
+  f.setTime(NOW + 60000); f.setBody(payload(NOW + 60000)); await f.controller.refresh();
+  assert.equal(f.scrolls.length, 1, 'normal polling and age paints never jump back to the card');
+});
+
+test('explicit solar fragment navigation works after load and is cancelled when navigating elsewhere', async t => {
+  const f = fixture(t); await f.start();
+  assert.equal(f.scrolls.length, 0);
+  f.hash('#homeSolar'); assert.equal(f.scrolls.length, 1);
+  f.hash('#localWater'); await f.controller.refresh(); assert.equal(f.scrolls.length, 1);
+  f.hash('#homeSolar'); assert.equal(f.scrolls.length, 2);
+  f.controller.stop(); f.hash('#homeSolar'); assert.equal(f.scrolls.length, 2, 'stop removes the fragment listener');
+
+  const waiting = fixture(t, payload(), { hash: '#homeSolar' });
+  let release;
+  waiting.hold(new Promise(resolve => { release = resolve; })); await waiting.start();
+  waiting.hash('#localWater'); release(); await waiting.flush();
+  assert.equal(waiting.scrolls.length, 0, 'a slow response does not undo later navigation');
+});
+
+test('disabled or background solar targets wait until the requested card is visible', async t => {
+  const f = fixture(t, { ...payload(), enabled: false, status: 'disabled', current: null }, { hash: '#homeSolar' });
+  await f.start(); assert.equal(f.scrolls.length, 0);
+  f.setBody(payload()); f.hidden(true);
+  await f.controller.refresh(); assert.equal(f.scrolls.length, 0);
+  f.hidden(false); await f.flush();
+  assert.deepEqual(f.scrolls, [{ block: 'start', behavior: 'instant', hidden: false }]);
+});
 
 test('disabled solar stays hidden; enabled without a reading has an explicit waiting state', async t => {
   const disabled = { ...payload(), enabled: false, status: 'disabled', current: null };

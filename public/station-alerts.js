@@ -1,7 +1,9 @@
 (() => {
   const button=document.getElementById('stationAlertsBtn'); if(!button || document.getElementById('alertTitle'))return;
+  button.setAttribute('aria-label','Weather, solar and river alerts');
+  button.title='Weather, solar and river alerts';
   const dialog=document.createElement('dialog'); dialog.className='alert-dialog'; dialog.setAttribute('aria-labelledby','alertTitle');
-  dialog.innerHTML='<div class="alert-dialog-header"><h2 id="alertTitle">Weather & river alerts</h2><button type="button" id="alertClose" aria-label="Close weather and river alerts">Close</button></div><p>Get a notification if the station goes 15 minutes without a fresh reading, and another when it comes back online.</p><p>Missing saved history also triggers a warning: after <strong>30 minutes</strong> for ten-minute readings, <strong>2 hours</strong> for hourly readings, or <strong>9:30 am AEST</strong> if the daily record has not arrived. Reminders repeat <strong>every 15 minutes</strong> until the current feeds recover, followed by a recovery notice. Older archive gaps stay visible here without repeated notifications.</p><section class="history-alert-detail" aria-labelledby="historyAlertTitle"><h3 id="historyAlertTitle">Saved history</h3><p id="historyAlertSummary" role="status">Checking saved readings…</p><ul id="historyFeedStatus"></ul></section><details class="system-health" id="systemHealth"><summary>System health</summary><p id="systemHealthSummary" role="status">Open alerts to check station storage and backups.</p><ul id="systemHealthChecks"></ul><p class="health-time" id="systemHealthTime"></p></details><p>Warwick river alerts warn at <strong>0.50m below McCahon Bridge’s 7.00m gauge reference</strong>, then again if the river reaches it. Each warning is sent once until the river falls more than 1m below.</p><p id="alertState" role="status">Checking this device…</p><div class="alert-actions"><button type="button" class="alert-primary" id="alertEnable" hidden>Enable on this device</button><button type="button" id="alertTest" hidden>Send test</button><button type="button" id="alertDisable" hidden>Turn off</button></div><p class="alert-note">On iPhone, first add Moore Weather to your Home Screen, then open it from that icon. Notifications must be allowed in your device settings.</p><p class="alert-note">River alerts use recent BOM readings and are a guide, not a road-open or road-closed notice. Delivery depends on our server, your connection and notification settings.</p>';
+  dialog.innerHTML='<div class="alert-dialog-header"><h2 id="alertTitle">Weather, solar &amp; river alerts</h2><button type="button" id="alertClose" aria-label="Close weather, solar and river alerts">Close</button></div><p>Station alerts: more than 15 minutes without a fresh reading, followed by one recovery notice.</p><p id="maintenanceAlertPolicy" class="alert-note" hidden></p><p id="solarAlertPolicy" hidden></p><p>Missing saved history also triggers a warning: after <strong>30 minutes</strong> for ten-minute readings, <strong>2 hours</strong> for hourly readings, or <strong>9:30 am AEST</strong> if the daily record has not arrived. Reminders repeat <strong>every 15 minutes</strong> until the current feeds recover, followed by a recovery notice. Older archive gaps stay visible here without repeated notifications.</p><section class="history-alert-detail" aria-labelledby="historyAlertTitle"><h3 id="historyAlertTitle">Saved history</h3><p id="historyAlertSummary" role="status">Checking saved readings…</p><ul id="historyFeedStatus"></ul></section><details class="system-health" id="systemHealth"><summary>System health</summary><p id="systemHealthSummary" role="status">Open alerts to check station storage and backups.</p><ul id="systemHealthChecks"></ul><p class="health-time" id="systemHealthTime"></p></details><p>Warwick river alerts warn at <strong>0.50m below McCahon Bridge’s 7.00m gauge reference</strong>, then again if the river reaches it. Each warning is sent once until the river falls more than 1m below.</p><p id="alertState" role="status">Checking this device…</p><div class="alert-actions"><button type="button" class="alert-primary" id="alertEnable" hidden>Enable on this device</button><button type="button" id="alertTest" hidden>Send test</button><button type="button" id="alertDisable" hidden>Turn off</button></div><p class="alert-note">On iPhone, first add Moore Weather to your Home Screen, then open it from that icon. Notifications must be allowed in your device settings.</p><p class="alert-note">River alerts use recent BOM readings and are a guide, not a road-open or road-closed notice. Delivery depends on our server, your connection and notification settings.</p>';
   document.body.append(dialog);
   const banner=document.createElement('aside');
   banner.id='historyStatus';banner.className='history-status';banner.hidden=true;
@@ -14,7 +16,7 @@
   const supported=()=>window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   const post=async(action,body)=>{
     const response=await fetch('/api/alerts/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
-    if(response.status===401)throw Error('Sign in again to manage weather and river alerts.');
+    if(response.status===401)throw Error('Sign in again to manage alerts.');
     const data=await response.json(); if(!response.ok)throw Error(data.error || 'Alerts are temporarily unavailable.'); return data;
   };
   const stamp=new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Brisbane',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
@@ -101,6 +103,25 @@
       $('systemHealthTime').textContent = '';
     } finally { systemBusy = false; }
   }
+  const clockMinutes=value=>typeof value==='string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)
+    ? Number(value.slice(0,2))*60+Number(value.slice(3)) : null;
+  const clockLabel=minutes=>String(Math.floor(minutes/60)%24).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0');
+  function updateAlertPolicies() {
+    const solar=config?.solar, maintenance=config?.maintenance;
+    const solarReady=solar?.enabled===true && Number.isFinite(solar.marginW) && solar.marginW>0 &&
+      Number.isFinite(solar.morningDwellMinutes) && solar.morningDwellMinutes>0 &&
+      Number.isFinite(solar.eveningDwellMinutes) && solar.eveningDwellMinutes>0 && clockMinutes(solar.eveningStart)!==null;
+    $('solarAlertPolicy').hidden=!solarReady;
+    $('solarAlertPolicy').textContent=solarReady ? 'Solar: one morning alert after generation covers the house for '+solar.morningDwellMinutes+
+      ' min. After '+solar.eveningStart+' AEST, one grid alert follows '+solar.eveningDwellMinutes+
+      ' min of imports on a solar-covered day. Both use a '+solar.marginW+' W margin.' : '';
+    const end=clockMinutes(maintenance?.end), grace=maintenance?.graceMinutes;
+    const maintenanceReady=maintenance?.enabled===true && clockMinutes(maintenance.start)!==null && end!==null &&
+      Number.isInteger(grace) && grace>=0 && grace<=60;
+    $('maintenanceAlertPolicy').hidden=!maintenanceReady;
+    $('maintenanceAlertPolicy').textContent=maintenanceReady ? 'Planned modem pause: '+maintenance.start+'–'+maintenance.end+
+      ' AEST, with reconnection grace until '+clockLabel(end+grace)+'. Genuine outages still alert.' : '';
+  }
   function controls() {
     $('alertEnable').hidden=!!subscription || !config?.enabled || !supported() || Notification.permission==='denied';
     $('alertTest').hidden=$('alertDisable').hidden=!subscription;
@@ -108,13 +129,13 @@
   }
   async function check() {
     $('alertState').textContent='Checking this device…';
-    config=null; subscription=null; controls();
-    if(!supported()) { $('alertState').textContent='This browser cannot receive push notifications. On iPhone, open the installed Home Screen app on iOS 16.4 or later.';return; }
+    config=null; subscription=null; controls();updateAlertPolicies();
     try {
       const response=await fetch('/api/alerts/config',{cache:'no-store',signal:AbortSignal.timeout(10000)});
       if(!response.ok)throw Error('Sign in again or try again shortly.');
-      config=await response.json();
-      if(!config.enabled)throw Error('Weather & river alerts are temporarily unavailable.');
+      config=await response.json();updateAlertPolicies();
+      if(!config.enabled)throw Error('Alerts are temporarily unavailable.');
+      if(!supported()) { $('alertState').textContent='This browser cannot receive push notifications. On iPhone, open the installed Home Screen app on iOS 16.4 or later.';controls();return; }
       registration=await navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'});
       subscription=await registration.pushManager.getSubscription();
       if(subscription)await post('subscribe',subscription.toJSON());

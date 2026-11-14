@@ -1,4 +1,4 @@
-# Weather and river notifications
+# Weather, solar and river notifications
 
 Open **Alerts** in the station panel, choose **Enable on this device**, allow notifications, then choose **Send test**. Each device subscribes separately. On iPhone/iPad, use the installed Home Screen app on iOS/iPadOS 16.4 or later. Browser delivery and Focus settings can delay or suppress presentation.
 
@@ -11,6 +11,77 @@ Push keys, subscriptions and delivery state live in **station-alerts.sqlite** be
 Authenticated subscription endpoints require a matching Origin and accept only known browser push gateways. Neither subscription keys nor endpoints appear in logs or the public config response. The service worker handles notifications only and never caches weather responses.
 
 References: [Apple/WebKit Home Screen push requirements](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/), [Web Push library](https://github.com/web-push-libs/web-push).
+
+## Daily home solar crossovers
+
+Devices with alerts enabled also receive up to two home solar notifications per
+**Australia/Brisbane calendar day**. Existing subscriptions and permissions are
+reused. There is no Pi update, additional inverter request or separate scheduled
+cloud job: the minute monitor reads the latest saved Fronius sample.
+
+| Notification | Confirmation rule |
+| --- | --- |
+| **House is now running on solar** | Between **05:00 and 15:00 AEST**, AC generation exceeds house use by at least **100 W** for at least **two minutes**, with at least three distinct fresh samples. |
+| **House is now using grid power** | From **15:00 AEST**, grid import and the AC generation shortfall are at least **100 W** for at least **ten minutes**, with at least eleven distinct fresh samples. Solar coverage must have been confirmed earlier that day. |
+
+The morning event stays latched for the day, so later cloud cover or appliance
+loads cannot generate another morning notice. The evening notice is the first
+sustained qualifying afternoon/evening deficit; it cannot predict whether solar
+will cover the house again later. Each device receives at most one accepted
+notification in each direction that day. A day without confirmed solar coverage
+does not produce a misleading evening crossover.
+
+If monitoring first starts after 15:00, a fresh, sustained solar surplus can arm
+the evening detection without sending a late morning notification. State and
+per-device accepted deliveries survive server restarts. Delivery retries remain
+bounded and require a fresh condition that still warrants the notice; old events
+are not replayed as current crossovers.
+
+The monitor uses AC inverter output, house consumption and the grid meter.
+Repeated timestamps cannot satisfy the confirmation period, and missing, stale or
+invalid readings reset an unconfirmed candidate. It withholds source-attribution
+alerts while an active battery makes the simple solar/grid interpretation
+ambiguous. Ordinary grid imports during the middle of the day do not send an
+evening notification.
+
+Solar uses its own Web Push topic and a daily event tag, independently of station,
+history and river notifications. Tapping opens **Home solar**. Opening the updated
+app refreshes the notification worker; an existing subscription needs no new
+permission prompt. Provider acceptance does not establish that iOS displayed the
+notification.
+
+Set `SOLAR_ALERTS_ENABLED=false` to disable only solar crossover notifications.
+The feature also stays inactive when solar collection is disabled or unavailable.
+
+## Planned nightly modem pause
+
+The station's owner-confirmed setting is `MODEMTIME HOUR 5 1435 1`: the Elfin's
+switched supply is scheduled on at **05:00 AEST** for **1,435 minutes**, leaving a
+five-minute pause from **04:55 to 05:00** each day. Station freshness notifications
+allow a further **five minutes for reconnection**, through **05:05 AEST**.
+
+That planned pause and grace are ordinarily shorter than the existing
+fifteen-minute stale threshold, so a normal five-minute restart was already
+expected to stay quiet. Nightly notifications can indicate a longer interruption;
+this allowance does not conceal those overruns.
+
+Only an outage attributable to that planned pause is suppressed. A genuine
+incident that began before the window retains its alert and recovery handling.
+The policy does not change the last good observation, fabricate fresh readings,
+or hide the dashboard's actual age/stale status. River, solar and saved-history
+monitoring remain independent.
+
+If the station remains offline beyond the allowance, the normal **more than
+15 minutes since the last fresh observation** rule applies. The end of the grace
+period does not start a new fifteen-minute timer. A recovery notice is sent only
+to a device that received the corresponding genuine outage warning, so the normal
+scheduled pause does not create a needless back-online notification.
+
+The authenticated alert configuration exposes the active schedule and grace
+period for the Alerts panel, without exposing subscriptions or private keys.
+Set `WEATHER_PLANNED_MODEM_OUTAGE_ENABLED=false` if this station schedule is
+removed. Changing the logger's actual MODEMTIME setting requires updating the
+notification policy separately; this release sends no logger commands.
 
 
 ## Warwick bridge references
