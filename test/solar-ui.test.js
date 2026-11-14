@@ -3,18 +3,20 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createController } = require('../public/solar');
+const { createController, liveView } = require('../public/solar');
 const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 const NOW = Date.parse('2026-11-14T02:00:00.000Z');
 const iso = time => new Date(time).toISOString();
 function payload(time = NOW) {
   return { enabled: true, status: 'fresh', timezone: 'Australia/Brisbane', staleAfterSeconds: 180,
     current: { observedAt: iso(time), collectedAt: iso(time), receivedAt: iso(time), pvPowerW: 6000, inverterPowerW: 5700,
-      gridPowerW: -2200, loadPowerW: 3500, batteryPowerW: null, batterySocPercent: null, totalAcEnergyWh: 25000000 },
-    today: { date: '2026-11-14', energyAcWh: 12340, quality: 'partial', through: iso(time - 5 * 60000), label: 'AC energy recorded since collection began; earlier energy is unavailable.' }, history: null };
+      gridPowerW: -2200, loadPowerW: 3500, batteryPowerW: null, batterySocPercent: null, totalAcEnergyWh: 25000000, meterLocation: 'grid' },
+    today: { date: '2026-11-14', energyAcWh: 12340, quality: 'partial', through: iso(time - 5 * 60000), label: 'AC energy recorded since collection began; earlier energy is unavailable.' }, history: { points: [{ observedAt: iso(time), inverterPowerW: 5700, loadPowerW: 3500, gridImportPowerW: 0, gridExportPowerW: 2200 }] },
+    rates: { currency: 'AUD', effectiveFrom: '2026-07-01', importPerKwh: .288948, exportPerKwh: .06006, supplyPerDay: 1.805078 },
+    energy: { today: { date: '2026-11-14', quality: 'partial', coveragePercent: 20, gridImportWh: 1000, gridExportWh: 3000, importCost: .288948, exportCredit: .18018, supplyCost: 1.805078, netCost: 1.913846, since: iso(time - 600000), through: iso(time) }, days: [] } };
 }
 function fixture(t, initial = payload()) {
-  const nodes = new Map([...html.matchAll(/\bid="([^"]+)"/g)].map(match => [match[1], { textContent: '', hidden: false, dataset: {}, className: '' }]));
+  const nodes = new Map([...html.matchAll(/\bid="([^"]+)"/g)].map(match => [match[1], { textContent: '', hidden: false, dataset: {}, className: '', style: {}, attributes: {}, listeners: {}, setAttribute(name, value) { this.attributes[name] = String(value); }, addEventListener(name, fn) { this.listeners[name] = fn; }, removeEventListener(name) { delete this.listeners[name]; } }]));
   nodes.get('statusBadge').textContent = 'WEATHER STATUS UNCHANGED';
   const listeners = new Map(), timers = new Map(), requests = [], redirects = [], timeouts = [];
   let clock = NOW, nextTimer = 0, body = initial, status = 200, failure = false, gate = null;
@@ -51,8 +53,8 @@ test('disabled solar stays hidden; enabled without a reading has an explicit wai
   await f.controller.refresh();
   assert.equal(f.node('homeSolar').hidden, false);
   assert.equal(f.node('homeSolar').dataset.state, 'waiting');
-  assert.equal(f.node('solarPvPower').textContent, '—');
-  assert.equal(f.node('solarTodayEnergy').textContent, '—');
+  assert.equal(f.node('solarPvPower').textContent, '–');
+  assert.equal(f.node('solarTodayEnergy').textContent, '–');
   assert.match(f.node('solarMessage').textContent, /first reading/);
   assert.equal(f.node('statusBadge').textContent, 'WEATHER STATUS UNCHANGED');
 });
@@ -65,15 +67,15 @@ test('valid night-time zero is shown while null and nonnumeric measurements neve
   assert.equal(f.node('solarAcPower').textContent, '0.00 kW');
   assert.equal(f.node('solarGridPower').textContent, '0.00 kW');
   assert.equal(f.node('solarGridMetric').hidden, false);
-  assert.equal(f.node('solarLoadMetric').hidden, true);
+  assert.equal(f.node('solarLoadPower').textContent, '–');
   assert.equal(f.node('solarBatteryMetric').hidden, true);
   assert.equal(f.node('solarTodayEnergy').textContent, '0.00 kWh');
   assert.equal(f.node('solarTodayQuality').textContent, 'Partial day');
   data.current.pvPowerW = null; data.current.inverterPowerW = '0'; data.today.energyAcWh = null;
   f.setBody(data); await f.controller.refresh();
-  assert.equal(f.node('solarPvPower').textContent, '—');
-  assert.equal(f.node('solarAcPower').textContent, '—');
-  assert.equal(f.node('solarTodayEnergy').textContent, '—');
+  assert.equal(f.node('solarPvPower').textContent, '–');
+  assert.equal(f.node('solarAcPower').textContent, '–');
+  assert.equal(f.node('solarTodayEnergy').textContent, '–');
   assert.equal(f.node('homeSolar').dataset.state, 'partial');
 });
 
@@ -82,14 +84,14 @@ test('DC and AC remain distinct and directional flows use the normalized signs',
   const f = fixture(t, data); await f.start();
   assert.equal(f.node('solarPvPower').textContent, '6.00 kW');
   assert.equal(f.node('solarAcPower').textContent, '5.70 kW');
-  assert.equal(f.node('solarGridLabel').textContent, 'Grid export');
+  assert.equal(f.node('solarGridLabel').textContent, 'Grid exporting');
   assert.equal(f.node('solarGridPower').textContent, '2.20 kW');
   assert.equal(f.node('solarBatteryLabel').textContent, 'Battery charging');
   assert.equal(f.node('solarBatteryPower').textContent, '0.50 kW');
   assert.equal(f.node('solarBatterySoc').textContent, '63.5% state of charge');
   data.current.gridPowerW = 100; data.current.batteryPowerW = 10;
   f.setBody(data); await f.controller.refresh();
-  assert.equal(f.node('solarGridLabel').textContent, 'Grid import');
+  assert.equal(f.node('solarGridLabel').textContent, 'Grid buying');
   assert.equal(f.node('solarBatteryLabel').textContent, 'Battery discharge');
   assert.equal(f.node('solarBatteryPower').textContent, '10 W');
 });
@@ -145,14 +147,14 @@ test('daily energy remains qualified, suppresses reset totals and expires at Bri
   assert.match(f.node('solarObserved').textContent, /12:00:00 AEST/);
   data.today.quality = 'reset'; data.today.label = 'Counter reset; daily energy unavailable.';
   f.setBody(data); await f.controller.refresh();
-  assert.equal(f.node('solarTodayEnergy').textContent, '—');
+  assert.equal(f.node('solarTodayEnergy').textContent, '–');
   assert.equal(f.node('solarTodayQuality').textContent, 'Counter reset');
   data.today.quality = 'partial'; data.today.label = '<img src=x onerror=alert(1)>Partial coverage';
   f.setBody(data); await f.controller.refresh();
   assert.equal(f.node('solarTodayNote').textContent, data.today.label, 'server labels are plain text');
   assert.equal(f.node('solarTodayNote').innerHTML, undefined);
   f.setTime(Date.parse('2026-11-14T14:00:01.000Z')); f.controller.paint();
-  assert.equal(f.node('solarTodayEnergy').textContent, '—');
+  assert.equal(f.node('solarTodayEnergy').textContent, '–');
   assert.equal(f.node('solarTodayQuality').textContent, 'Unavailable');
   assert.match(f.node('solarTodayNote').textContent, /Waiting for today's readings/);
 });
@@ -163,7 +165,7 @@ test('polling is bounded, single-flight, local to Render and paused while the ta
   await f.controller.refresh(); await f.controller.refresh();
   assert.equal(f.requests.length, 1);
   assert.deepEqual(f.timeouts, [10000]);
-  assert.equal(f.requests[0].url, '/api/solar');
+  assert.equal(f.requests[0].url, '/api/solar?history=today');
   assert.equal(f.requests[0].options.cache, 'no-store');
   assert.ok(f.requests[0].options.signal instanceof AbortSignal);
   f.hidden(true); release(); await f.flush();
@@ -184,11 +186,96 @@ test('expired authentication hides private values, redirects once and stops poll
 
 test('solar assets and labels stay separate from existing weather and station measurements', () => {
   assert.equal(html, fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8'));
-  assert.match(html, /src="\/solar\.js\?v=1"/);
-  assert.match(html, /href="\/solar\.css\?v=1"/);
-  assert.match(html, /PV generation · DC/); assert.match(html, /Inverter output · AC/);
-  assert.match(html, /AC energy recorded today/);
+  assert.match(html, /src="\/solar\.js\?v=2"/);
+  assert.match(html, /href="\/solar\.css\?v=2"/);
+  assert.match(html, /PV generation · DC/); assert.match(html, /Usable AC power/);
+  assert.match(html, /Solar generated/);
   assert.match(html, /Solar radiation<\/span><span class="value" id="solarRadVal"/);
   assert.match(html, /Solar panel<\/span><span class="metric-value" id="solarPanelVal"/);
   assert.ok(html.indexOf('id="homeSolar"') < html.indexOf('aria-label="Station power and maintenance"'));
+});
+
+
+test('live guidance uses measured grid flow and AC output, with correct directional dollars', () => {
+  const data = payload();
+  const good = liveView(data.current, data.rates, true);
+  assert.equal(good.tone, 'surplus'); assert.equal(good.value, 2200);
+  assert.equal(good.coverage, 100); assert.match(good.money, /\$0.13\/hr/);
+  data.current.gridPowerW = 1000; data.current.loadPowerW = 6700;
+  const bought = liveView(data.current, data.rates, true);
+  assert.equal(bought.tone, 'import'); assert.equal(bought.value, 1000);
+  assert.ok(Math.abs(bought.coverage - 5700 / 6700 * 100) < 1e-9);
+  assert.match(bought.money, /\$0.29\/hr/);
+  data.current.pvPowerW = 9000;
+  assert.deepEqual(liveView(data.current, data.rates, true), bought, 'DC is not usable home power');
+});
+
+test('stale, missing meters, active batteries and resting solar do not claim spare solar', () => {
+  const data = payload();
+  const old = liveView(data.current, data.rates, false);
+  assert.equal(old.value, null); assert.equal(old.coverage, null); assert.equal(old.tone, 'neutral');
+  for (const patch of [{ gridPowerW: null }, { meterLocation: 'load' }, { loadPowerW: -10 }]) {
+    const view = liveView({ ...data.current, ...patch }, data.rates, true);
+    assert.equal(view.coverage, null); assert.equal(view.value, null);
+  }
+  const battery = liveView({ ...data.current, batteryPowerW: 2000 }, data.rates, true);
+  assert.equal(battery.coverage, null); assert.notEqual(battery.label, 'Spare solar');
+  const night = liveView({ ...data.current, inverterPowerW: 0, pvPowerW: 0, gridPowerW: 500, loadPowerW: 500 }, data.rates, true);
+  assert.equal(night.tone, 'neutral'); assert.equal(night.coverage, null); assert.match(night.title, /resting/);
+  const balanced = liveView({ ...data.current, gridPowerW: 15, loadPowerW: 5715 }, data.rates, true);
+  assert.equal(balanced.tone, 'neutral'); assert.match(balanced.title, /balance/); assert.equal(balanced.value, 15);
+});
+
+test('today finance clearly qualifies partial coverage and uses the full supply fee once', async t => {
+  const f = fixture(t); await f.start();
+  assert.equal(f.node('solarTodayImport').textContent, '1.00 kWh');
+  assert.equal(f.node('solarTodayImportCost').textContent, '$0.29 grid cost');
+  assert.equal(f.node('solarTodayCredit').textContent, '$0.18 credit');
+  assert.equal(f.node('solarTodayNet').textContent, '$1.91');
+  assert.match(f.node('solarTodaySupply').textContent, /\$1.81 daily supply/);
+  assert.match(f.node('solarDayCoverage').textContent, /Partial day.*20% recorded/);
+  assert.match(f.node('solarDayNote').textContent, /missing usage.*not included.*Full daily supply/);
+  assert.equal(f.node('solarRateImport').textContent, '28.8948c/kWh');
+  f.setTime(Date.parse('2026-11-14T14:00:01Z')); f.controller.paint();
+  assert.equal(f.node('solarTodayNet').textContent, '–');
+  assert.equal(f.node('solarTodayImport').textContent, '–');
+  assert.equal(f.node('solarChartEmpty').hidden, false);
+});
+
+test('chart data is cached between five-minute requests while current data refreshes each minute', async t => {
+  const f = fixture(t); await f.start();
+  const initial = f.node('solarChart').innerHTML;
+  for (let minute = 1; minute <= 4; minute++) {
+    f.setTime(NOW + minute * 60000);
+    const data = payload(NOW + minute * 60000); data.history = null; data.energy.days = null;
+    f.setBody(data); await f.controller.refresh();
+    assert.equal(f.requests.at(-1).url, '/api/solar');
+    assert.equal(f.node('solarChart').innerHTML, initial);
+  }
+  f.setTime(NOW + 5 * 60000); f.setBody(payload(NOW + 5 * 60000)); await f.controller.refresh();
+  assert.equal(f.requests.at(-1).url, '/api/solar?history=today');
+  assert.notEqual(f.node('solarChart').innerHTML, initial);
+});
+
+test('history lines break at missing data and reported raw gaps instead of joining them', async t => {
+  const data = payload();
+  data.history.points = [0, 1, 2].map(index => ({ observedAt: iso(NOW - (2 - index) * 300000), inverterPowerW: 1000 + index * 100,
+    loadPowerW: 500, gridImportPowerW: 0, gridExportPowerW: 500, breakBefore: index === 1, hasGap: index === 1 }));
+  const f = fixture(t, data); await f.start();
+  const chart = f.node('solarChart').innerHTML;
+  const solarPath = /<path d="([^"]*)" class="solar-chart-series solar-chart-series-generation"/.exec(chart)[1];
+  assert.equal((solarPath.match(/M/g) || []).length, 3);
+  assert.ok(!solarPath.includes('L'));
+});
+
+
+test('fresh grid cost remains available when another meter reading is missing', async t => {
+  const data = payload(); data.current.inverterPowerW = null; data.current.gridPowerW = 1000;
+  const f = fixture(t, data); await f.start();
+  assert.equal(f.node('homeSolar').dataset.state, 'partial');
+  assert.equal(f.node('solarGridMoney').textContent, 'Cost $0.29/hr');
+  assert.equal(f.node('solarHeadroom').textContent, '–');
+  assert.equal(f.node('solarCoverageBlock').hidden, true);
+  f.setTime(NOW + 181000); f.controller.paint();
+  assert.equal(f.node('solarGridMoney').textContent, 'Last recorded exchange');
 });
