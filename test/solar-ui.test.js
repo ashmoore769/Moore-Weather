@@ -232,7 +232,7 @@ test('expired authentication hides private values, redirects once and stops poll
 
 test('solar assets and labels stay separate from existing weather and station measurements', () => {
   assert.equal(html, fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8'));
-  assert.match(html, /src="\/solar\.js\?v=4"/);
+  assert.match(html, /src="\/solar\.js\?v=5"/);
   assert.match(html, /href="\/solar\.css\?v=4"/);
   assert.match(html, /PV generation · DC/); assert.match(html, /Solar · AC/);
   assert.match(html, /Generated/);
@@ -312,6 +312,66 @@ test('history lines break at missing data and reported raw gaps instead of joini
   const solarPath = /<path d="([^"]*)" class="solar-chart-series solar-chart-series-generation"/.exec(chart)[1];
   assert.equal((solarPath.match(/M/g) || []).length, 3);
   assert.ok(!solarPath.includes('L'));
+  for (const series of ['generation', 'home', 'import']) {
+    const markers = [...chart.matchAll(new RegExp('<circle cx="([^"]+)" cy="([^"]+)" r="2.5" class="solar-chart-series solar-chart-series-' + series + '"', 'g'))];
+    assert.equal(markers.length, 3, 'each isolated ' + series + ' value remains visible without joining a real gap');
+    assert.equal(new Set(markers.map(marker => marker[1])).size, 3, 'the final reading is not duplicated');
+  }
+});
+
+test('isolated valid history points remain visible between missing bins and while zoomed', async t => {
+  const data = payload();
+  data.history.points = [0, 1, 2, 3, 4].map(index => ({ observedAt: iso(NOW - (4 - index) * 300000),
+    inverterPowerW: index % 2 ? null : 3000 + index * 500,
+    loadPowerW: index % 2 ? null : 500,
+    gridImportPowerW: index % 2 ? null : 0,
+    gridExportPowerW: index % 2 ? null : 2500 + index * 500 }));
+  const f = fixture(t, data); await f.start();
+  const check = () => {
+    const chart = f.node('solarChart').innerHTML;
+    const path = /<path d="([^"]*)" class="solar-chart-series solar-chart-series-generation"/.exec(chart)[1];
+    assert.equal((path.match(/M/g) || []).length, 3);
+    assert.ok(!path.includes('L'), 'missing five-minute bins must stay unfilled');
+    const markers = [...chart.matchAll(/<circle cx="([^"]+)" cy="([^"]+)" r="2.5" class="solar-chart-series solar-chart-series-generation"/g)];
+    assert.equal(markers.length, 3, 'all real points have a visible SVG marker');
+    for (const [index, expectedY] of [77.6, 42.8, 8].entries()) {
+      assert.ok(Math.abs(Number(markers[index][2]) - expectedY) < 1e-6, 'marker height must match the recorded power');
+    }
+    return markers.map(marker => Number(marker[1]));
+  };
+  const before = check();
+  f.fire('solarZoomIn', 'click'); f.fire('solarZoomIn', 'click');
+  const after = check();
+  assert.ok(after[2] - after[0] > before[2] - before[0], 'markers use the zoomed time positions');
+  f.fire('solarChartScrubber', 'input', { target: { value: '2' } });
+  assert.match(f.node('solarChartInspect').innerHTML, /Solar 4.00 kW/);
+  assert.equal(f.requests.length, 1);
+});
+
+test('a missing house measurement only breaks the house line while complete solar and grid lines stay connected', async t => {
+  const data = payload();
+  data.history.points = [0, 1, 2].map(index => ({ observedAt: iso(NOW - (2 - index) * 300000),
+    inverterPowerW: 4000, loadPowerW: 1000, gridImportPowerW: 0, gridExportPowerW: 3000,
+    hasGap: index === 1, breakBefore: false,
+    seriesGaps: { inverterPowerW: false, loadPowerW: index === 1, gridImportPowerW: false } }));
+  const f = fixture(t, data); await f.start();
+  const chart = f.node('solarChart').innerHTML;
+  for (const series of ['generation', 'home', 'import']) {
+    const path = new RegExp('<path d="([^"]*)" class="solar-chart-series solar-chart-series-' + series + '"').exec(chart)[1];
+    const markers = [...chart.matchAll(new RegExp('<circle [^>]*class="solar-chart-series solar-chart-series-' + series + '"', 'g'))];
+    assert.equal((path.match(/M/g) || []).length, series === 'home' ? 3 : 1);
+    assert.equal((path.match(/L/g) || []).length, series === 'home' ? 0 : 2);
+    assert.equal(markers.length, series === 'home' ? 3 : 1);
+  }
+  f.fire('solarChartScrubber', 'input', { target: { value: '1' } });
+  assert.match(f.node('solarChartInspect').innerHTML, /Solar 4.00 kW/);
+  assert.match(f.node('solarChartInspect').innerHTML, /House 1.00 kW/);
+
+  // A timestamp gap still splits every series regardless of its field quality.
+  data.history.points[1].breakBefore = true;
+  f.setBody(data); f.setTime(NOW + 5 * 60000); await f.controller.refresh();
+  const solarPath = /<path d="([^"]*)" class="solar-chart-series solar-chart-series-generation"/.exec(f.node('solarChart').innerHTML)[1];
+  assert.equal((solarPath.match(/M/g) || []).length, 2);
 });
 
 

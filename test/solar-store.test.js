@@ -103,7 +103,8 @@ test('solar freshness uses the displayed observation and optional history preser
   assert.deepEqual(points[0], { observedAt: new Date(start).toISOString(), pvPowerW: 500, inverterPowerW: 900,
     loadPowerW: null, gridPowerW: null, gridImportPowerW: null, gridExportPowerW: null, solarToHomeW: null, samples: 2,
     firstObservedAt: new Date(start + MINUTE).toISOString(), lastObservedAt: new Date(start + 2 * MINUTE).toISOString(),
-    breakBefore: false, hasGap: true });
+    breakBefore: false, hasGap: true,
+    seriesGaps: { inverterPowerW: true, loadPowerW: true, gridImportPowerW: true } });
   assert.equal(points[1].pvPowerW, null);
   assert.equal(points[1].inverterPowerW, null);
   assert.equal(points[1].samples, 0);
@@ -208,6 +209,41 @@ test('graph bins keep purchase/export directions separate and expose gaps betwee
   assert.equal(points[2].gridPowerW, 0);
   assert.equal(points[2].gridImportPowerW, 500); assert.equal(points[2].gridExportPowerW, 500);
   assert.equal(points[2].hasGap, true, 'a missing meter measurement must break a line too');
+  assert.deepEqual(points[2].seriesGaps, { inverterPowerW: false, loadPowerW: false, gridImportPowerW: true },
+    'a missing grid measurement must not disconnect valid solar and house readings');
+});
+
+test('continuous samples with one missing house reading retain complete solar and grid chart series', t => {
+  const { store } = fixture(t), { start } = localDay(NOW);
+  const samples = Array.from({ length: 15 }, (_, minute) => sample(start + minute * MINUTE,
+    { inverterPowerW: 4000, loadPowerW: minute === 7 ? null : 1000, gridPowerW: -3000 }));
+  const now = start + 15 * MINUTE;
+  store.save(samples, now);
+  const snapshot = store.snapshot(now, { history: true }), points = snapshot.history.points;
+  assert.equal(snapshot.energy.today.gapCount, 0, 'there was no interruption in collection');
+  assert.equal(snapshot.energy.today.missingIntervalCount, 2, 'only the two intervals beside the absent house reading are incomplete');
+  assert.equal(snapshot.energy.today.coverageSeconds.generation, 14 * 60);
+  assert.equal(snapshot.energy.today.coverageSeconds.grid, 14 * 60);
+  assert.equal(snapshot.energy.today.coverageSeconds.load, 12 * 60);
+  assert.equal(points[1].samples, 5);
+  assert.equal(points[1].breakBefore, false);
+  assert.equal(points[1].hasGap, true, 'older clients retain the conservative aggregate quality flag');
+  assert.deepEqual(points[1].seriesGaps, { inverterPowerW: false, loadPowerW: true, gridImportPowerW: false });
+  assert.equal(points[1].inverterPowerW, 4000);
+  assert.equal(points[1].loadPowerW, 1000, 'the measured house mean excludes the missing value instead of treating it as zero');
+  assert.equal(points[1].gridImportPowerW, 0);
+  assert.deepEqual(points[2].seriesGaps, { inverterPowerW: false, loadPowerW: false, gridImportPowerW: false });
+  assert.equal(points[3].seriesGaps, null, 'an empty bin carries no measurement quality');
+});
+
+test('a genuine time gap within a chart bin marks every series incomplete', t => {
+  const { store } = fixture(t), { start } = localDay(NOW);
+  const flow = at => sample(at, { inverterPowerW: 4000, loadPowerW: 1000, gridPowerW: -3000 });
+  store.save([flow(start), flow(start + 4 * MINUTE), flow(start + 5 * MINUTE)], NOW);
+  const points = store.snapshot(NOW, { history: true }).history.points;
+  assert.deepEqual(points[0].seriesGaps, { inverterPowerW: true, loadPowerW: true, gridImportPowerW: true });
+  assert.equal(points[0].inverterPowerW, 4000, 'real averages remain available despite the interruption');
+  assert.deepEqual(points[1].seriesGaps, { inverterPowerW: false, loadPowerW: false, gridImportPowerW: false });
 });
 
 test('snapshot cache is invalidated on committed uploads and does not share mutable results', t => {

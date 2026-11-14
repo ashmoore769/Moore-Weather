@@ -52,3 +52,32 @@ test('station time is parsed in AEST and impossible calendar dates rejected',()=
  assert.equal(observationTime('2026/02/30,00:30:00,1'),null);
  assert.equal(observationTime('junk'),null);
 });
+
+test('shared delivery encodes override topics before the provider and retains timing options',async t=>{
+ const attempts=[];
+ const f=setup(t,async(_subscription,_payload,options)=>attempts.push(options));
+ f.alerts.subscribe(sub());
+ const row=f.alerts.find(sub());
+ for(const topic of ['moore-solar-solar','moore-solar-grid','moore-river-cross','moore-history-status']) {
+  assert.equal(await f.alerts.deliver(row,{kind:'solar-solar'},{topic,TTL:123,urgency:'normal'}),true);
+ }
+ assert.equal(new Set(attempts.map(options=>options.topic)).size,4);
+ for(const options of attempts) {
+  assert.equal(Buffer.from(options.topic,'base64url').toString('base64url'),options.topic);
+  assert.equal(options.topic.length,32);
+  assert.equal(options.TTL,123);
+  assert.equal(options.urgency,'normal');
+  assert.equal(options.timeout,10000);
+ }
+});
+
+test('provider rejection logs identify the alert and allowlisted reason without leaking response data',async t=>{
+ const logs=[];
+ const f=setup(t,async()=>{const e=Error('private endpoint');e.statusCode=400;e.body=JSON.stringify({reason:'BadWebPushTopic',endpoint:'private endpoint',secret:'private key'});throw e;});
+ f.alerts.logger={warn:message=>logs.push(message)};
+ f.alerts.subscribe(sub());
+ assert.equal(await f.alerts.deliver(f.alerts.find(sub()),{kind:'solar-solar'}),false);
+ assert.equal(logs.length,1);
+ assert.match(logs[0],/solar-solar.*HTTP 400.*BadWebPushTopic/);
+ assert.doesNotMatch(logs[0],/private|endpoint|key/);
+});

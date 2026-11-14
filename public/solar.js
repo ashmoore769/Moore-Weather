@@ -307,16 +307,32 @@
       for (const value of [min, (max + min) / 2, max]) content += '<line x1="0" x2="720" y1="' + y(value) + '" y2="' + y(value) + '" class="solar-chart-grid"/>';
       if (range === 'today') {
         for (const [key, name] of [['inverterPowerW', 'generation'], ['loadPowerW', 'home'], ['gridImportPowerW', 'import']]) {
-          let path = '', drawing = false, last = null;
+          let path = '', runLength = 0, runStart = null, last = null;
+          const markers = new Map();
+          const endRun = () => {
+            // A one-point SVG subpath has no visible line. Keep its measured
+            // value visible even when missing intervals isolate it on both sides.
+            if (runLength === 1) markers.set(runStart.index, runStart);
+            runLength = 0; runStart = null;
+          };
           chartItems.forEach((item, index) => {
             const value = numeric(item[key]);
-            if (value === null || value < 0) { drawing = false; return; }
-            if (item.breakBefore || item.hasGap) drawing = false;
+            if (value === null || value < 0) { endRun(); return; }
+            // Older cached responses have only a combined gap flag. A newer
+            // response must not hide healthy series when another meter is missing.
+            const hasGap = typeof item.seriesGaps?.[key] === 'boolean' ? item.seriesGaps[key] : item.hasGap;
+            if (item.breakBefore || hasGap) endRun();
             const x = chartPositions[index], py = y(value);
-            path += (drawing ? 'L' : 'M') + x.toFixed(2) + ' ' + py.toFixed(2); drawing = !item.hasGap; last = [x, py];
+            path += (runLength ? 'L' : 'M') + x.toFixed(2) + ' ' + py.toFixed(2);
+            last = { index, x, y: py };
+            if (!runLength) runStart = last;
+            runLength++;
+            if (hasGap) endRun();
           });
+          endRun();
+          if (last) markers.set(last.index, last);
           content += '<path d="' + path + '" class="solar-chart-series solar-chart-series-' + name + '"/>';
-          if (last) content += '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2.5" class="solar-chart-series solar-chart-series-' + name + '"/>';
+          for (const point of markers.values()) content += '<circle cx="' + point.x + '" cy="' + point.y + '" r="2.5" class="solar-chart-series solar-chart-series-' + name + '"/>';
         }
         text('solarChartSubtitle', '5-min mean');
         node('solarChartLegend').innerHTML = '<span><i class="solar-dot-generation"></i>Solar</span><span><i class="solar-dot-home"></i>House</span><span><i class="solar-dot-grid"></i>Grid bought</span>';

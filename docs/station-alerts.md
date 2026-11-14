@@ -50,6 +50,13 @@ app refreshes the notification worker; an existing subscription needs no new
 permission prompt. Provider acceptance does not establish that iOS displayed the
 notification.
 
+All transport topics are encoded as stable, canonical 32-character Base64url
+values before sending. This includes solar and river topics, so provider topic
+validation cannot reject a logical label because of its encoding. A failed
+delivery log identifies the notification type, HTTP status and a recognised
+provider reason when available; it never includes raw responses, subscription
+endpoints or keys. Daily accepted-delivery state and retry limits are unchanged.
+
 Set `SOLAR_ALERTS_ENABLED=false` to disable only solar crossover notifications.
 The feature also stays inactive when solar collection is disabled or unavailable.
 
@@ -68,8 +75,16 @@ this allowance does not conceal those overruns.
 Only an outage attributable to that planned pause is suppressed. A genuine
 incident that began before the window retains its alert and recovery handling.
 The policy does not change the last good observation, fabricate fresh readings,
-or hide the dashboard's actual age/stale status. River, solar and saved-history
-monitoring remain independent.
+or hide the dashboard's actual age/stale status. River and solar monitoring remain
+independent.
+
+Saved-history warnings share the same **04:55–05:05 AEST** allowance when every
+affected periodic feed first became overdue during that window. For example, a
+03:00 hourly record can briefly cross its two-hour threshold at 05:00 after the
+04:56 download was blocked by the modem pause. If the retry catches up before
+05:05, no warning or recovery notification is sent. If it remains overdue at
+05:05, the warning is eligible immediately. Earlier incidents, missing or invalid
+record times, unavailable storage and overdue daily records remain alertable.
 
 If the station remains offline beyond the allowance, the normal **more than
 15 minutes since the last fresh observation** rule applies. The end of the grace
@@ -124,6 +139,10 @@ retry delays persist in station-alerts.sqlite. A restart does not create a new
 incident or reset its reminder interval. A new subscription during an incident
 gets the current warning. Unsubscribing removes all weather, river and history
 deliveries for that device.
+
+The warning identifies the currently overdue feed and its last saved AEST time.
+Older archive gaps remain visible in Saved history and are not included as newly
+missing records in the push text.
 
 History uses a separate Web Push topic from live station and river alerts. Its
 stable incident tag and renotify option request renewed notification presentation
