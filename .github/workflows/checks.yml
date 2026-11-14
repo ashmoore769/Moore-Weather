@@ -41,11 +41,11 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.56.1
       - name: Check protected station terminal
         run: node tools/check-terminal.cjs
+      - name: Check radar activation and viewer controls
+        run: node tools/check-radar.cjs
       - name: Check responsive water cards and rainfall comparison
         if: ${{ hashFiles('tools/check-dashboard.cjs') != '' }}
         run: node tools/check-dashboard.cjs
-      - name: Check radar activation and viewer controls
-        run: node tools/check-radar.cjs
 
       - name: Check the private solar card and connection states
         run: node tools/check-solar.cjs

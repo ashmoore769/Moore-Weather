@@ -79,3 +79,7 @@ html[data-theme="dark"] .radar-base-tiles { filter:invert(.93) hue-rotate(180deg
   .radar-legend-colours { width:48px; }
   .radar-frame-badge,.radar-tools { right:10px; }
 }
+/* Short phone maps need a horizontal zoom pair below the top-right tools. */
+@media(max-width:359px) {
+  .radar-map .leaflet-control-zoom { flex-direction:row; }
+}

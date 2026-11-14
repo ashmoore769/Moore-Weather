@@ -7,6 +7,19 @@ const { chromium, webkit } = require('playwright');
 const publicRoot = path.resolve(__dirname, '../public');
 const screenshotRoot = path.resolve(__dirname, '../artifacts/dashboard');
 const centre = [-28.22, 152.03], station = [-28.213713, 151.9893045];
+const centreTolerancePx = 1;
+function pixelDistance(first, second) { return Math.hypot(first.x - second.x, first.y - second.y); }
+function readMapStateInPage(target) {
+  const m = window.__radarReviewMap, p = m.getCenter(), element = document.getElementById('radarMap');
+  const projected = m.project(p, m.getZoom()), destination = m.project(target, m.getZoom());
+  const size = m.getSize();
+  return { lat: p.lat, lng: p.lng, zoom: m.getZoom(), minimum: m.getMinZoom(),
+    projectedCentre: { x: projected.x, y: projected.y }, targetCentreErrorPx: pixelDistance(projected, destination),
+    mapSize: { x: size.x, y: size.y }, containerSize: { x: element.clientWidth, y: element.clientHeight },
+    enabled: Object.fromEntries(['dragging', 'touchZoom', 'doubleClickZoom', 'scrollWheelZoom', 'boxZoom', 'keyboard'].map(name => [name, m[name].enabled()])),
+    active: document.querySelector('.radar-map-stage').dataset.interactive,
+    touch: getComputedStyle(element).touchAction };
+}
 const now = Math.floor(Date.now() / 600000) * 600;
 const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNU8Y5iYGBgYmBgYGBgAAAJYADNjl9iMQAAAABJRU5ErkJggg==', 'base64');
 const radarImage = '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><path d="M0 180Q180 40 512 220L512 280Q180 100 0 250Z" fill="#13964f" opacity=".42"/><path d="M50 100Q220 150 420 60" fill="none" stroke="#6ed7f3" stroke-width="15" opacity=".7"/></svg>';
@@ -27,7 +40,11 @@ const server = http.createServer((req, res) => {
     // The unrelated dashboard initializer is excluded from this fixture. Apply
     // its responsive layout before radar.js constructs Leaflet so the desktop
     // case exercises the real wide map and its native-image coverage limits.
-    return res.end('document.body.classList.add(innerWidth>=900?"layout-landscape":"layout-portrait"); const originalRadarMapFactory=L.map; L.map=(...args)=>{const map=originalRadarMapFactory(...args); window.__radarReviewMap=map; return map;};');
+    return res.end(`${pixelDistance.toString()}; ${readMapStateInPage.toString()};
+      window.__radarReviewReadState=readMapStateInPage;
+      document.body.classList.add(innerWidth>=900?"layout-landscape":"layout-portrait");
+      const originalRadarMapFactory=L.map;
+      L.map=(...args)=>{const map=originalRadarMapFactory(...args); window.__radarReviewMap=map; return map;};`);
   }
   if (url.pathname === '/') { res.setHeader('Content-Type', 'text/html'); return res.end(html); }
   const file = path.resolve(publicRoot, '.' + decodeURIComponent(url.pathname));
@@ -39,16 +56,11 @@ const server = http.createServer((req, res) => {
   } catch { res.statusCode = 404; return res.end(); }
 });
 async function mapState(page) {
-  return page.evaluate(() => {
-    const m = window.__radarReviewMap, p = m.getCenter();
-    return { lat: p.lat, lng: p.lng, zoom: m.getZoom(), minimum: m.getMinZoom(),
-      enabled: Object.fromEntries(['dragging', 'touchZoom', 'doubleClickZoom', 'scrollWheelZoom', 'boxZoom', 'keyboard'].map(name => [name, m[name].enabled()])),
-      active: document.querySelector('.radar-map-stage').dataset.interactive,
-      touch: getComputedStyle(document.getElementById('radarMap')).touchAction };
-  });
+  return page.evaluate(target => window.__radarReviewReadState(target), centre);
 }
 function sameView(actual, expected, label) {
-  assert.ok(Math.abs(actual.lat - expected.lat) < .00001 && Math.abs(actual.lng - expected.lng) < .00001 && actual.zoom === expected.zoom, label + ': ' + JSON.stringify({ actual, expected }));
+  const displacementPx = pixelDistance(actual.projectedCentre, expected.projectedCentre);
+  assert.ok(actual.zoom === expected.zoom && displacementPx <= centreTolerancePx, label + ': ' + JSON.stringify({ displacementPx, actual, expected }));
 }
 async function locked(page, label) {
   const s = await mapState(page);
@@ -144,32 +156,43 @@ async function touchPinch(page, context, engine) {
             outsideRequests.push(url.origin); return route.abort();
           });
           const name = `radar-${engine.name()}-${width}`;
+          let checkpoint = 'navigation and map initialization';
           try {
             await page.goto(origin); await page.waitForFunction(() => window.__radarReviewMap && !document.getElementById('radarInteraction').disabled);
+            checkpoint = 'synthetic radar image ready';
             await page.waitForFunction(() => /AEST/.test(document.getElementById('radarFrameTime').textContent) && !/—/.test(document.getElementById('radarFrameTime').textContent));
-            await page.waitForFunction(expectedCentre => {
-              const map = window.__radarReviewMap, container = document.getElementById('radarMap'), size = map.getSize(), position = map.getCenter();
-              return size.x === container.clientWidth && size.y === container.clientHeight && Math.abs(position.lat - expectedCentre[0]) < .00001 && Math.abs(position.lng - expectedCentre[1]) < .00001;
-            }, centre);
+            checkpoint = 'responsive map size and Warwick centring';
+            // Leaflet rounds its pixel origin and reconstructs the geographic
+            // centre after invalidateSize. A subpixel difference is expected;
+            // compare at the displayed zoom rather than requiring metre-level
+            // geographic equality on a regional map.
+            await page.waitForFunction(({ target, tolerance }) => {
+              const state = window.__radarReviewReadState(target);
+              return state.mapSize.x === state.containerSize.x && state.mapSize.y === state.containerSize.y && state.targetCentreErrorPx <= tolerance;
+            }, { target: centre, tolerance: centreTolerancePx });
             await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
             if (width >= 900) {
               assert.equal(await page.locator('body').evaluate(element => element.classList.contains('layout-landscape')), true, 'desktop uses the production landscape layout');
               assert.ok((await page.locator('.main-container').boundingBox()).width > 1000 && (await page.locator('#radarMap').boundingBox()).width > 500, 'desktop checks a genuinely wide radar, not the portrait fallback');
             }
             const initial = await locked(page, 'Initial view');
-            assert.ok(Math.abs(initial.lat - centre[0]) < .00001 && Math.abs(initial.lng - centre[1]) < .00001, 'Warwick is centred');
+            assert.ok(initial.targetCentreErrorPx <= centreTolerancePx, 'Warwick is centred within one displayed pixel: ' + initial.targetCentreErrorPx);
             if (width < 900) assert.equal((await page.locator('.leaflet-control-scale-line').innerText()).trim(), '100 km', 'phone default scale');
             const markers = await page.evaluate(() => { const found = []; window.__radarReviewMap.eachLayer(layer => { if (layer instanceof L.CircleMarker) { const p = layer.getLatLng(); found.push([p.lat, p.lng]); } }); return found; });
             assert.deepEqual(markers, [station], 'station dot is west of town at verified point');
             assert.equal(await page.locator('.leaflet-tooltip').count(), 0, 'no forced Warwick label');
+            checkpoint = 'initial locked screenshot';
             await page.locator('#radar').screenshot({ path: path.join(screenshotRoot, name + '-locked.png'), animations: 'disabled' });
 
+            checkpoint = 'locked mouse drag';
             let p = await point(page);
             await drag(page, p, 50, -70); sameView(await locked(page, 'A swipe does not unlock'), initial, 'Locked drag does not move map');
+            checkpoint = 'locked wheel page scrolling';
             await page.mouse.move(p.x, p.y); const beforeScroll = await page.evaluate(() => scrollY);
             await page.mouse.wheel(0, 180); await page.waitForFunction(previous => scrollY !== previous, beforeScroll);
             sameView(await locked(page, 'Scroll stays locked'), initial, 'Wheel scroll belongs to page');
             if (engine === chromium && width < 900) {
+              checkpoint = 'locked native finger page scrolling';
               p = await point(page); const scrollBeforeTouch = await page.evaluate(() => scrollY), session = await context.newCDPSession(page);
               await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: p.x, y: p.y + 45, id: 3 }] });
               for (let step = 1; step <= 8; step++) await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: p.x, y: p.y + 45 - step * 10, id: 3 }] });
@@ -178,31 +201,41 @@ async function touchPinch(page, context, engine) {
               sameView(await locked(page, 'Native finger scroll stays locked'), initial, 'Single finger belongs to page');
               await session.detach();
             }
+            checkpoint = 'deliberate map tap and overlay geometry';
             p = await point(page); await page.mouse.click(p.x, p.y); await unlocked(page, 'A short map tap enables exploration');
             await clearOverlayControls(page);
+            checkpoint = 'active zoom control';
             await page.locator('.leaflet-control-zoom-in').click(); await page.waitForFunction(z => window.__radarReviewMap.getZoom() > z, initial.zoom);
             await page.waitForTimeout(300); const zoomed = await mapState(page);
+            checkpoint = 'active map drag';
             p = await point(page); await drag(page, p, 35, 15);
             const moved = await mapState(page);
-            assert.ok(Math.abs(moved.lat - zoomed.lat) > .00001 || Math.abs(moved.lng - zoomed.lng) > .00001, 'Active map drags');
+            assert.ok(pixelDistance(moved.projectedCentre, zoomed.projectedCentre) > centreTolerancePx, 'Active map drags by more than one displayed pixel');
+            checkpoint = 'active reset';
             await page.locator('#radarReset').click(); await page.waitForTimeout(300);
             sameView(await unlocked(page, 'Reset preserves active state'), initial, 'Reset recentres default view');
+            checkpoint = 'active pinch';
             await touchPinch(page, context, engine); assert.ok((await mapState(page)).zoom > initial.zoom, 'Active pinch zooms the map');
+            checkpoint = 'active screenshot';
             await page.locator('#radar').screenshot({ path: path.join(screenshotRoot, name + '-active.png'), animations: 'disabled' });
+            checkpoint = 'Done and keyboard activation';
             await page.locator('#radarInteraction').click(); await locked(page, 'Done locks');
             await page.locator('#radarInteraction').focus(); await page.keyboard.press('Enter'); await unlocked(page, 'Keyboard Enter activates');
             await page.keyboard.press('Escape'); await locked(page, 'Escape locks');
             assert.equal(await page.locator('#radarInteraction').evaluate(el => el === document.activeElement), true, 'Escape returns focus to activation control');
             await page.keyboard.press('Space'); await unlocked(page, 'Keyboard Space activates');
+            checkpoint = 'outside click and locked reset';
             await page.getByRole('heading', { name: 'Moore Weather', exact: true }).click(); await locked(page, 'Outside click locks');
             await page.locator('#radarReset').click(); await page.waitForTimeout(300);
             sameView(await locked(page, 'Reset remains locked'), initial, 'Locked reset recentres default view');
+            checkpoint = 'playback and browser errors';
             await page.locator('#radarLatest').click(); await locked(page, 'Playback controls do not unlock');
             assert.deepEqual(errors, [], 'No browser errors'); assert.deepEqual(outsideRequests, [], 'Every external image is replaced locally');
             checked++;
           } catch (error) {
+            const state = await mapState(page).catch(stateError => ({ unavailable: stateError.message }));
             try { await page.locator('#radar').screenshot({ path: path.join(screenshotRoot, name + '-failure.png'), animations: 'disabled' }); } catch {}
-            failures.push({ engine: engine.name(), width, message: error.message }); console.error(JSON.stringify(failures.at(-1)));
+            failures.push({ engine: engine.name(), width, checkpoint, message: error.message, state, browserErrors: errors, stack: error.stack }); console.error(JSON.stringify(failures.at(-1)));
           } finally { await context.close(); }
         }
       } finally { await browser.close(); }
