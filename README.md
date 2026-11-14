@@ -42,6 +42,15 @@ The Current page has five-hour trends on weather, soil and power readings. Selec
 
 Charts read the SQL archive only and never issue station commands. See [history chart notes](docs/HISTORY.md) for native intervals, measurement conventions, query limits and verification.
 
+## Home solar
+
+The Home solar card prioritises household solar coverage, spare solar and the
+current cost of grid imports. It includes today's power graph, seven- and
+thirty-day energy/cost views, a downloadable daily log, and dated electricity
+rates. Daily estimates retain explicit coverage and missing readings; recorded
+daily summaries survive raw-data retention. See [solar integration notes](docs/SOLAR.md)
+for the calculation method, tariffs and collector setup.
+
 ## Forecast and radar
 
 The Forecast tab adds a free Open-Meteo seven-day forecast. RainViewer regional radar sits directly below the SkyCam on Current. There are no API keys or new paid services. See [forecast and radar notes](docs/FORECAST-RADAR.md) for provider terms, caching, AEST reporting and verification.

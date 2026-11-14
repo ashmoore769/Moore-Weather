@@ -1125,8 +1125,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <script defer src="/station-shell.js?v=7"></script>
 <script defer src="/station-alerts.js?v=9"></script>
 <link rel="stylesheet" href="/dashboard.css?v=10">
-<link rel="stylesheet" href="/solar.css?v=1">
-<script defer src="/solar.js?v=1"></script>
+<link rel="stylesheet" href="/solar.css?v=2">
+<script defer src="/solar.js?v=2"></script>
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/radar.css?v=2">
 <link rel="stylesheet" href="/soil.css?v=1">
@@ -1359,21 +1359,41 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 </section>
 <section id="homeSolar" class="panel-card section-card solar-card" aria-labelledby="solarTitle" hidden>
   <header class="solar-header">
-    <div><p class="eyebrow">Fronius</p><h2 class="section-title" id="solarTitle">Home solar</h2></div>
+    <div><p class="eyebrow">Your home energy</p><h2 class="section-title" id="solarTitle">Home solar</h2></div>
     <div class="solar-state"><span id="solarStatus" class="solar-badge" role="status">CONNECTING</span><span id="solarObserved" class="solar-observed">No reading received yet</span></div>
   </header>
-  <div class="solar-main">
-    <div class="solar-reading"><span class="solar-label">PV generation · DC</span><strong id="solarPvPower">—</strong></div>
-    <div class="solar-reading"><span class="solar-label">Inverter output · AC</span><strong id="solarAcPower">—</strong></div>
-    <div class="solar-reading"><span class="solar-label">AC energy recorded today</span><strong id="solarTodayEnergy">—</strong><small id="solarTodayQuality">Unavailable</small><small id="solarEnergyThrough" hidden></small></div>
+  <div class="solar-hero" id="solarHero" data-tone="neutral">
+    <div class="solar-hero-copy"><p class="solar-hero-kicker" id="solarHeroKicker">RIGHT NOW</p><h3 id="solarHeadline">Connecting to your solar</h3><p id="solarAction">Your home energy, at a glance.</p></div>
+    <div class="solar-headroom"><span id="solarHeadroomLabel">Spare solar</span><strong id="solarHeadroom">–</strong><span id="solarLiveMoney">Waiting for a fresh reading</span></div>
+    <div class="solar-coverage" id="solarCoverageBlock" hidden><div class="solar-coverage-label"><span>House covered by solar</span><strong id="solarCoverageText">–</strong></div><div class="solar-coverage-track" id="solarCoverageTrack" role="meter" aria-label="House covered by solar" aria-valuemin="0" aria-valuemax="100"><span id="solarCoverageFill"></span></div></div>
   </div>
-  <div id="solarFlows" class="solar-flows" hidden>
-    <div id="solarGridMetric" class="solar-flow" hidden><span id="solarGridLabel" class="solar-label">Grid exchange</span><strong id="solarGridPower">—</strong></div>
-    <div id="solarLoadMetric" class="solar-flow" hidden><span class="solar-label">Household use</span><strong id="solarLoadPower">—</strong></div>
-    <div id="solarBatteryMetric" class="solar-flow" hidden><span id="solarBatteryLabel" class="solar-label">Battery charge</span><strong id="solarBatteryPower">—</strong><small id="solarBatterySoc"></small></div>
-  </div>
-  <p id="solarTodayNote" class="solar-note">Waiting for today's readings.</p>
   <p id="solarMessage" class="solar-message" role="status">Connecting to saved solar readings.</p>
+  <div id="solarFlows" class="solar-main">
+    <div class="solar-reading solar-production"><span class="solar-label"><span class="solar-dot solar-dot-generation" aria-hidden="true"></span>Solar producing</span><strong id="solarAcPower">–</strong><small>Usable AC power</small></div>
+    <div id="solarLoadMetric" class="solar-reading"><span class="solar-label"><span class="solar-dot solar-dot-home" aria-hidden="true"></span>House using</span><strong id="solarLoadPower">–</strong><small id="solarHomeSource">Waiting for readings</small></div>
+    <div id="solarGridMetric" class="solar-reading"><span class="solar-label"><span class="solar-dot solar-dot-grid" aria-hidden="true"></span><span id="solarGridLabel">Grid exchange</span></span><strong id="solarGridPower">–</strong><small id="solarGridMoney">–</small></div>
+  </div>
+  <section class="solar-today" aria-labelledby="solarTodayTitle">
+    <div class="solar-subheading"><h3 id="solarTodayTitle">Today so far</h3><span class="solar-quality" id="solarDayCoverage">Waiting for readings</span></div>
+    <div class="solar-day-grid">
+      <div class="solar-day-metric"><span>Solar generated</span><strong id="solarTodayEnergy">–</strong><small id="solarTodayQuality">Unavailable</small></div>
+      <div class="solar-day-metric"><span>Grid bought</span><strong id="solarTodayImport">–</strong><small id="solarTodayImportCost">–</small></div>
+      <div class="solar-day-metric"><span>Solar sold</span><strong id="solarTodayExport">–</strong><small id="solarTodayCredit">–</small></div>
+      <div class="solar-day-metric solar-net"><span>Est. day cost</span><strong id="solarTodayNet">–</strong><small id="solarTodaySupply">Includes full daily supply</small></div>
+    </div>
+    <p id="solarDayNote" class="solar-note">Totals will build as readings arrive.</p>
+  </section>
+  <section class="solar-history" aria-labelledby="solarHistoryTitle">
+    <div class="solar-history-header"><div><h3 id="solarHistoryTitle">Energy story</h3><p id="solarChartSubtitle">Solar output and house use today</p></div><div class="solar-ranges" role="group" aria-label="Chart period"><button type="button" id="solarRangeToday" aria-pressed="true">Today</button><button type="button" id="solarRange7" aria-pressed="false">7 days</button><button type="button" id="solarRange30" aria-pressed="false">30 days</button></div></div>
+    <div class="solar-chart-toolbar"><div class="solar-chart-legend" id="solarChartLegend"><span><i class="solar-dot-generation"></i>Solar</span><span><i class="solar-dot-home"></i>House</span></div><label id="solarChartMetricLabel" class="solar-chart-metric" hidden>Show<select id="solarChartMetric"><option value="cost">Net cost</option><option value="energy">Bought / sold</option></select></label></div>
+    <div class="solar-chart-frame"><div class="solar-chart-yaxis" aria-hidden="true"><span id="solarChartMax">kW</span><span id="solarChartMid"></span><span id="solarChartMin">0</span></div><div class="solar-chart-plot" id="solarChartPlot"><svg id="solarChart" viewBox="0 0 720 190" preserveAspectRatio="none" role="img" aria-label="Solar history chart"></svg><p id="solarChartEmpty" class="solar-chart-empty">Your graph will grow as readings arrive.</p></div></div>
+    <div class="solar-chart-xaxis" aria-hidden="true"><span id="solarChartStart">00:00</span><span id="solarChartMiddle">12:00</span><span id="solarChartEnd">24:00</span></div>
+    <input id="solarChartScrubber" class="solar-chart-scrubber" type="range" min="0" max="287" value="0" step="1" aria-label="Inspect a time on the solar chart" hidden>
+    <div id="solarChartInspect" class="solar-chart-inspect" aria-live="polite">Tap the graph or use the slider to inspect a reading.</div>
+    <p id="solarHistoryNote" class="solar-note">Times are AEST. Gaps mean readings were unavailable.</p>
+  </section>
+  <details class="solar-details" id="solarLogDetails"><summary>Daily energy and cost log</summary><div class="solar-log-heading"><p>Last 30 days · estimates from recorded readings</p><button type="button" id="solarDownload" class="solar-download" disabled>Download CSV</button></div><div class="solar-table-wrap" role="region" aria-label="Daily solar log, scroll horizontally for all columns" tabindex="0"><table class="solar-table"><thead><tr><th scope="col">Date</th><th scope="col">Bought kWh</th><th scope="col">Sold kWh</th><th scope="col">Grid cost</th><th scope="col">Export credit</th><th scope="col">Supply</th><th scope="col">Net cost</th><th scope="col">Coverage</th></tr></thead><tbody id="solarLogBody"><tr><td colspan="8">No daily readings yet.</td></tr></tbody></table></div><p class="solar-note">Supply is the full daily charge. Partial days exclude missing usage and export. Recorded history continues across restarts.</p></details>
+  <details class="solar-details solar-about"><summary>Rates, totals and inverter details</summary><div class="solar-rate-grid"><div><span>Buy from grid</span><strong id="solarRateImport">–</strong></div><div><span>Sell to grid</span><strong id="solarRateExport">–</strong></div><div><span>Daily supply</span><strong id="solarRateSupply">–</strong></div></div><p class="solar-note" id="solarRatesNote">Rates are loaded from the server.</p><p class="solar-note">Est. day cost = recorded grid cost − export credit + full daily supply. Live $/hour shows the current pace, not a forecast. Energy and costs are estimates from power readings, with gaps left unfilled; your retailer's meter determines the bill.</p><div class="solar-technical"><div class="solar-flow"><span class="solar-label">PV generation · DC</span><strong id="solarPvPower">–</strong><small>Before conversion to usable AC power</small></div><div id="solarBatteryMetric" class="solar-flow" hidden><span id="solarBatteryLabel" class="solar-label">Battery charge</span><strong id="solarBatteryPower">–</strong><small id="solarBatterySoc"></small></div></div><p id="solarTodayNote" class="solar-note">Waiting for today's readings.</p><p id="solarEnergyThrough" class="solar-note" hidden></p></details>
 </section>
 <section aria-label="Station power and maintenance" class="panel-card section-card maintenance-card layout-power current-power">
 <div class="section-header"><h2 class="section-title">Station power</h2><span class="power-trend-label" id="powerTrendLabel">24-hour trends</span></div>

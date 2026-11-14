@@ -4,9 +4,10 @@ This optional integration reads a Fronius GEN24 on its local network and sends
 selected measurements to Moore Weather over outbound HTTPS. It runs alongside an
 existing No-IP updater as a separate Raspberry Pi service.
 
-The first release is a candidate until a real inverter response, the collector's
-installed service and the private dashboard have been verified together. Preparing
-or checking this code does not enable the integration on a live service.
+Version 1.3.0 adds household solar coverage, spare power, live financial estimates,
+graphs and a durable daily log. An existing version 1 collector works unchanged.
+New installations still require a real inverter response, an authenticated
+upload and an advancing dashboard timestamp before being considered operational.
 
 ## Data flow and access
 
@@ -19,8 +20,10 @@ does not create another observation.
 `GET /api/solar` serves saved readings behind the portal's existing shared-password
 login. Solar readings therefore have the same audience as the other private
 Moore Weather readings. The browser never receives the collector token or contacts
-the inverter. An optional `?history=today` query adds a bounded five-minute series;
-normal status polling omits that series to reduce bandwidth.
+the inverter. An optional `?history=today` query adds a bounded five-minute series
+and thirty daily summaries. The live card refreshes readings once a minute while
+visible and requests history at most once every five minutes. Normal polling
+omits the history payload to reduce bandwidth.
 
 The integration uses outbound connections. It does not require an inbound router
 port forward, an inbound SSH service exposed to the internet, or a Solar.web cloud
@@ -54,6 +57,77 @@ missing midnight baseline produces a partial figure with a start time. A counter
 decrease marks a reset and withholds the daily total. The first partial day and
 data gaps are not presented as complete history. Reporting days use Brisbane
 midnight, independently of the weather station's 9 am reporting day.
+
+## Dashboard and financial estimates
+
+The top of the card answers three immediate questions: whether solar covers the
+house, how much solar is being exported, and the current cost of grid imports.
+It compares AC output with household and grid measurements. Panel DC power stays
+available under inverter details and is not treated as usable household power.
+Missing, old or future-dated observations cannot present an actionable spare-solar
+claim. An active battery makes direct solar attribution ambiguous, so that
+attribution is withheld rather than guessed.
+
+The Today graph shows recorded power through the Brisbane day. Seven- and
+thirty-day views show daily net cost or imported/exported energy. The graph can
+be inspected with touch, a pointer or its keyboard-accessible slider. The daily
+log can be expanded and downloaded as CSV. Missing dates and partial days remain
+explicit, including the first day of collection.
+
+### Dated tariffs
+
+Rates are manual, dated inputs verified against the owner's supplied electricity
+statements on 14 November 2026. They are stored in `lib/solar-energy.js`, with no
+bill documents, account identifiers or addresses. They do not update automatically
+when the retailer changes its prices.
+
+| Effective period | Grid import, AUD/kWh | Feed-in credit, AUD/kWh | Supply, AUD/day |
+| --- | ---: | ---: | ---: |
+| 1 July 2025 to 30 June 2026 | 0.329725 | 0.0866 | 1.688423 |
+| From 1 July 2026 | 0.288948 | 0.06006 | 1.805078 |
+
+Import and supply rates include GST. No extra GST is added to the feed-in credit.
+Dates before the first verified tariff have no financial estimate.
+
+- Current grid cost per hour = positive grid kW multiplied by the import rate.
+- Current export credit per hour = exported kW multiplied by the feed-in rate.
+- Estimated day cost = recorded import cost minus recorded export credit plus
+  the **whole daily supply charge**. A partial day omits unknown usage and export;
+  it is not a projection of the finished day or an amount currently owed.
+- Solar used at home can be valued as an avoided grid purchase. It is not an
+  additional deduction from estimated day cost. Moving 1 kWh of grid use into
+  otherwise-exported solar has a marginal benefit of import price minus feed-in
+  price, rather than the full import price.
+
+Amounts are calculated at full precision and rounded for display. Actual
+statements round individual charge and GST lines, and the retailer's meter is
+the billing authority. The dashboard's values are estimates, not a replacement
+for that meter or a reconstruction of pre-collection history.
+
+### Energy integration and coverage
+
+The installed collector supplies instantaneous power rather than cumulative
+import/export meter counters. The server integrates adjacent observations using
+their actual timestamps, allowing no more than 180 seconds between them. It
+splits signed grid intervals at zero so imports and exports are priced separately,
+and clips intervals at Brisbane midnight. It never extends the final sample
+forward or bridges a longer gap. Generation and household-use estimates follow
+the same time basis. Counter-derived AC generation remains separately identified.
+
+Each daily summary contains per-measurement coverage as well as the shared
+coverage percentage. Missing fields do not become zero. A complete-coverage label
+requires at least 98% shared coverage, no long gaps or missing essential channels,
+and observations within three minutes of both reporting boundaries; today's
+denominator is elapsed time since midnight.
+The percentage and partial-day label describe the measurements actually captured,
+not confidence that an estimate matches a bill to the cent.
+
+`GET /api/solar` retains the original `current` and counter-derived `today`
+objects. Additive `rates` and `energy.today` objects provide the new calculations.
+With `history=today`, `history.points` includes AC, DC, house and grid power,
+while `energy.days` contains thirty chronological date slots. Without that query,
+history and `energy.days` are null. A short snapshot cache is invalidated after
+each committed upload.
 
 ## Verify local access first
 
@@ -130,6 +204,16 @@ more than five minutes in the future, and does not let an older observation
 replace the latest one. It keeps raw solar observations for ninety days. Its
 tables are namespaced within `weather.sqlite`, preserving the weather schema
 version and the existing three-database encrypted backup format.
+
+The additive `solar_daily` table retains daily energy, financial estimates and
+coverage without an automatic expiry. It is included in the existing database
+backup. A late upload recomputes affected days and boundary neighbours in the
+same transaction as raw insertion, so replay or backfill cannot add the same
+energy twice. Existing raw observations populate missing summaries on first
+startup. Raw pruning occurs only after summary creation; reopening the database
+does not overwrite an archived full day with the fragment left at the retention
+boundary. A code rollback to the previous solar release can ignore the additive
+table without changing the existing observation schema.
 
 A limit of 6,000 unique observations per Brisbane day bounds growth if a producer
 is misconfigured. Identical-timestamp retries remain idempotent and keep the
