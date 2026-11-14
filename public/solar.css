@@ -129,7 +129,7 @@
 .solar-card:is([data-state="stale"],[data-state="unavailable"],[data-state="check"]) .solar-reading strong { color:var(--muted); }
 .solar-visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 @media(max-width:900px) {
- .solar-card { padding:14px; --solar-panel-height:380px; }
+ .solar-card { padding:14px; --solar-panel-height:360px; }
  .solar-header { margin-bottom:12px; }
  .solar-header .section-title { font-size:16px; }
  .solar-title-icon { width:19px; height:19px; }

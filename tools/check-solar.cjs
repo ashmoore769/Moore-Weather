@@ -8,6 +8,7 @@ const { chromium, webkit } = require('playwright');
 const publicRoot = path.resolve(__dirname, '../public');
 const screenshotRoot = path.resolve(__dirname, '../artifacts/dashboard');
 const heightMetrics = [];
+const failures = [];
 const now = Date.parse('2026-11-14T02:00:00.000Z');
 const iso = value => new Date(value).toISOString();
 const dashboard = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8').replace(/<script\b([^>]*)>[\s\S]*?<\/script>/gi,
@@ -429,11 +430,13 @@ async function touchNavigation(page, context, engine) {
             try {
               await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, `solar-${engine.name()}-${width}-${theme}-failure.png`), animations: 'disabled' });
             } catch {}
-            throw error;
+            failures.push({ engine: engine.name(), width, systemAppearance: theme, message: error.message });
+            console.error('Solar browser case failed: ' + JSON.stringify(failures.at(-1)));
           } finally { await context.close(); }
         }
       } finally { await browser.close(); }
     }
+    assert.deepEqual(failures, [], 'Every solar browser case must pass: ' + JSON.stringify(failures));
     console.log(`Passed ${checked} solar browser viewport/system-appearance combinations: permanent dark, compact chart/log/details, bounded zoom/pan/reset, keyboard and touch navigation, thirty-row log/CSV, solar/import states, null/zero, stale/offline/recovered, disabled and expired-auth states.`);
   } finally {
     fs.writeFileSync(path.join(screenshotRoot, 'solar-height-metrics.json'), JSON.stringify(heightMetrics, null, 2) + '\n');
