@@ -80,6 +80,7 @@
     const doc = options.document, card = doc.getElementById('homeSolar');
     if (!card) return null;
     const request = options.fetch, location = options.location;
+    const view = options.window || doc.defaultView;
     const now = options.now || Date.now;
     const schedule = options.setTimeout || globalThis.setTimeout.bind(globalThis);
     const cancel = options.clearTimeout || globalThis.clearTimeout.bind(globalThis);
@@ -93,7 +94,7 @@
     let serverStatus = 'waiting', staleAfterMs = 180000, historyAt = -Infinity;
     let pollTimer = null, paintTimer = null, range = 'today', metric = 'cost', selected = null, selectionPinned = false;
     let chartItems = [], chartPositions = [], chartEmpty = true, renderedDay = null;
-    let panel = 'chart';
+    let panel = 'chart', targetPending = false;
     const panels = [['chart', 'solarTabChart', 'solarPanelChart'], ['log', 'solarTabLog', 'solarPanelLog'], ['details', 'solarTabDetails', 'solarPanelDetails']];
     const bindings = [];
 
@@ -102,6 +103,20 @@
       if (element?.addEventListener) { element.addEventListener(name, handler); bindings.push([element, name, handler]); }
     }
     function clearTimers() { cancel(pollTimer); cancel(paintTimer); pollTimer = null; paintTimer = null; }
+    function revealTarget() {
+      if (!started || !targetPending || doc.hidden || card.hidden || enabled !== true) return;
+      targetPending = false;
+      if (location?.hash === '#homeSolar') {
+        // The card begins hidden, so native fragment navigation may run before
+        // it has a layout box. Complete that navigation once data reveals it.
+        // An instant scroll respects reduced motion and never moves focus.
+        card.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+      }
+    }
+    function hashChanged() {
+      targetPending = location?.hash === '#homeSolar';
+      revealTarget();
+    }
     function showToday(time) {
       const sameDay = today && today.date === dayKey(time);
       const quality = sameDay && Object.hasOwn(qualities, today.quality) ? today.quality : 'unavailable';
@@ -210,6 +225,7 @@
       // Once at midnight, expire the old chart instead of displaying yesterday
       // under Today's label. Routine age paints never redraw the history graph.
       if (renderedDay && renderedDay !== dayKey(time)) renderData();
+      revealTarget();
     }
     function showRates() {
       const imported = numeric(rates?.importPerKwh), exported = numeric(rates?.exportPerKwh), supply = numeric(rates?.supplyPerDay);
@@ -421,6 +437,8 @@
     function start() {
       if (started) return;
       started = true; doc.addEventListener('visibilitychange', visibilityChanged);
+      targetPending = location?.hash === '#homeSolar';
+      view?.addEventListener?.('hashchange', hashChanged);
       for (const [name, tabId] of panels) { on(tabId, 'click', () => setPanel(name)); on(tabId, 'keydown', panelKey); }
       setPanel(panel);
       on('solarRangeToday', 'click', () => setRange('today')); on('solarRange7', 'click', () => setRange('7')); on('solarRange30', 'click', () => setRange('30'));
@@ -433,6 +451,7 @@
     }
     function stop() {
       started = false; clearTimers(); doc.removeEventListener('visibilitychange', visibilityChanged);
+      targetPending = false; view?.removeEventListener?.('hashchange', hashChanged);
       for (const [element, name, handler] of bindings.splice(0)) element.removeEventListener(name, handler);
     }
     return { start, stop, refresh, paint, setRange, setPanel };

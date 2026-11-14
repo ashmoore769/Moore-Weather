@@ -8,7 +8,7 @@ function fixture(windows=[]) {
   vm.runInNewContext(fs.readFileSync(require.resolve('../public/sw.js'),'utf8'),{self,URL,Number});
   return {events,shown,opened};
 }
-test('bridge notifications retain observation timestamp and stable tag; only the local water destination is allowed',async()=>{
+test('bridge notifications retain observation timestamp and stable tag; only approved local destinations are allowed',async()=>{
   const f=fixture();let pending;
   f.events.push({data:{json:()=>({title:'River warning',body:'Recorded reading',tag:'moore-river-near-1',url:'/#localWater',timestamp:123456})},waitUntil:p=>pending=p});
   await pending;assert.equal(f.shown[0].options.data.url,'/#localWater');
@@ -40,4 +40,40 @@ test('history reminders re-notify while recovery remains quiet and opens history
   const existing=fixture([client]);
   existing.events.notificationclick({notification:{data:{url:'/#historyStatus'},close(){}},waitUntil:p=>pending=p});
   await pending;assert.deepEqual(navigated,['/#historyStatus']);
+});
+
+
+test('solar crossover notifications retain their daily tag and open the solar card',async()=>{
+  const f=fixture();let pending;
+  f.events.push({data:{json:()=>({kind:'solar-covered',title:'House is now running on solar',
+    tag:'moore-solar-covered-2026-11-15',url:'/#homeSolar',timestamp:1794686400000})},waitUntil:p=>pending=p});
+  await pending;
+  assert.equal(f.shown[0].options.data.url,'/#homeSolar');
+  assert.equal(f.shown[0].options.tag,'moore-solar-covered-2026-11-15');
+  assert.equal(f.shown[0].options.timestamp,1794686400000);
+  assert.equal(f.shown[0].options.renotify,false);
+  const event={notification:{data:f.shown[0].options.data,close(){}},waitUntil:p=>pending=p};
+  f.events.notificationclick(event);await pending;
+  assert.deepEqual(f.opened,['/#homeSolar']);
+
+  const navigated=[],focused=[];
+  const client={url:'https://moore-weather.onrender.com/forecast.html',
+    focus:async()=>focused.push(true),navigate:async url=>{navigated.push(url);return client;}};
+  const existing=fixture([client]);
+  existing.events.notificationclick(event);await pending;
+  assert.deepEqual(navigated,['/#homeSolar']);
+  assert.equal(focused.length,1);
+  assert.equal(existing.opened.length,0);
+});
+
+test('notification clicks cannot navigate to an unapproved solar-like or external destination',async()=>{
+  for(const url of ['https://other.example/#homeSolar','//other.example/#homeSolar','javascript:alert(1)',
+    '/#homeSolar?redirect=https://other.example/','/solar.html','/#homeSolar%0a']) {
+    const f=fixture();let pending;
+    f.events.push({data:{json:()=>({url})},waitUntil:p=>pending=p});await pending;
+    assert.equal(f.shown[0].options.data.url,'/');
+    // Revalidate on click too, including notifications created by an older worker.
+    f.events.notificationclick({notification:{data:{url},close(){}},waitUntil:p=>pending=p});
+    await pending;assert.deepEqual(f.opened,['/']);
+  }
 });

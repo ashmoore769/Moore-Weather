@@ -122,6 +122,26 @@ test('authenticated uploads are rate limited with a retry hint', async t => {
   assert.equal(limited.headers.get('retry-after'), '60');
 });
 
+test('alert monitoring reads only the latest committed sample and fails closed on storage errors', async t => {
+  let latestCalls = 0, fail = false;
+  const latest = { ...reading(), receivedAt: new Date(NOW).toISOString() };
+  const f = await fixture(t, { openStore: () => ({
+    latest() { latestCalls++; if (fail) throw Error('private disk detail'); return latest; },
+    snapshot() { throw Error('Alert monitoring must not aggregate chart history'); },
+    close() {}
+  }) });
+  assert.deepEqual(f.service.alertSnapshot(), { enabled: true, ready: true, current: latest });
+  assert.equal(latestCalls, 1);
+  fail = true;
+  assert.deepEqual(f.service.alertSnapshot(), { enabled: true, ready: false, current: null });
+  fail = false;
+  assert.equal(f.service.alertSnapshot().ready, true);
+  const unavailable = await fixture(t, { isReady: () => false });
+  assert.deepEqual(unavailable.service.alertSnapshot(), { enabled: true, ready: false, current: null });
+  const disabled = await fixture(t, { env: { SOLAR_INGEST_TOKEN: '' } });
+  assert.deepEqual(disabled.service.alertSnapshot(), { enabled: false, ready: false, current: null });
+});
+
 test('daily storage capacity returns a retryable failure while reads and duplicate acknowledgements remain available', async t => {
   const { SolarStore } = require('../lib/solar-store');
   const f = await fixture(t, { openStore: filename => new SolarStore(filename, { dailySampleLimit: 1 }) });
