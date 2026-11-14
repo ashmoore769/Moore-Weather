@@ -1,12 +1,13 @@
 (function (root, factory) {
   'use strict';
-  const api = factory();
+  const navigation = typeof module === 'object' && module.exports ? require('./solar-chart') : root.SolarChart;
+  const api = factory(navigation);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root.document) {
     const controller = api.createController({ document: root.document, fetch: root.fetch.bind(root), location: root.location });
     if (controller) controller.start();
   }
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+})(typeof globalThis === 'object' ? globalThis : this, function (SolarChart) {
   'use strict';
   const POLL_MS = 60000, HISTORY_MS = 300000, PAINT_MS = 15000, REQUEST_TIMEOUT_MS = 10000;
   const DAY_MS = 86400000, OFFSET_MS = 36000000, EMPTY = '–';
@@ -93,14 +94,17 @@
     let current = null, today = null, energy = null, rates = null, history = null, historyDate = null;
     let serverStatus = 'waiting', staleAfterMs = 180000, historyAt = -Infinity;
     let pollTimer = null, paintTimer = null, range = 'today', metric = 'cost', selected = null, selectionPinned = false;
-    let chartItems = [], chartPositions = [], chartEmpty = true, renderedDay = null;
+    let chartItems = [], chartPositions = [], visibleIndices = [], chartEmpty = true, renderedDay = null;
+    let chartWindow = null, chartBounds = null, chartDomainKey = null, minChartSpan = 3600000;
+    let gesture = null;
+    const pointers = new Map();
     let panel = 'chart', targetPending = false;
     const panels = [['chart', 'solarTabChart', 'solarPanelChart'], ['log', 'solarTabLog', 'solarPanelLog'], ['details', 'solarTabDetails', 'solarPanelDetails']];
     const bindings = [];
 
-    function on(id, name, handler) {
+    function on(id, name, handler, options) {
       const element = node(id);
-      if (element?.addEventListener) { element.addEventListener(name, handler); bindings.push([element, name, handler]); }
+      if (element?.addEventListener) { element.addEventListener(name, handler, options); bindings.push([element, name, handler, options]); }
     }
     function clearTimers() { cancel(pollTimer); cancel(paintTimer); pollTimer = null; paintTimer = null; }
     function revealTarget() {
@@ -244,10 +248,11 @@
         .slice(-30).map(day => day.date === energy?.today?.date && day.date === date ? energy.today : day);
     }
     function inspect(index, pin = false) {
-      if (!chartItems.length || chartEmpty) return;
-      selected = clamp(Math.round(index), 0, chartItems.length - 1);
+      if (!chartItems.length || chartEmpty || !visibleIndices.length) return;
+      const candidate = clamp(Math.round(Number.isFinite(index) ? index : 0), 0, chartItems.length - 1);
+      selected = visibleIndices.reduce((best, value) => Math.abs(value - candidate) < Math.abs(best - candidate) ? value : best, visibleIndices[0]);
       if (pin) selectionPinned = true;
-      if (node('solarChartScrubber')) node('solarChartScrubber').value = String(selected);
+      if (node('solarChartScrubber')) node('solarChartScrubber').value = String(visibleIndices.indexOf(selected));
       const item = chartItems[selected];
       let description;
       if (range === 'today') {
@@ -276,9 +281,16 @@
       if (!chart) return;
       for (const [id, value] of [['solarRangeToday', 'today'], ['solarRange7', '7'], ['solarRange30', '30']]) attr(id, 'aria-pressed', range === value);
       hide('solarChartMetricLabel', range === 'today');
-      chartItems = range === 'today' ? (historyDate === date && Array.isArray(history?.points) ? history.points.slice(0, 288).filter(p => Number.isFinite(timestamp(p?.observedAt)) && timestamp(p.observedAt) >= dayStart && timestamp(p.observedAt) < dayStart + DAY_MS) : []) : dailyItems().slice(-Number(range));
-      chartPositions = chartItems.map((item, index) => range === 'today'
-        ? clamp((timestamp(item.observedAt) - dayStart) / DAY_MS * 720, 0, 720) : (index + .5) / Math.max(1, chartItems.length) * 720);
+      const domainKey = date + ':' + range;
+      chartBounds = { start: range === 'today' ? dayStart : dayStart - (Number(range) - 1) * DAY_MS, end: dayStart + DAY_MS };
+      minChartSpan = range === 'today' ? 3600000 : Math.min(Number(range), 3) * DAY_MS;
+      if (chartDomainKey !== domainKey) { chartWindow = { ...chartBounds }; chartDomainKey = domainKey; selected = null; selectionPinned = false; cancelGesture(); }
+      chartWindow = SolarChart.navigationWindow(chartWindow?.start, chartWindow?.end, chartBounds, minChartSpan);
+      const span = chartWindow.end - chartWindow.start;
+      const itemTime = item => range === 'today' ? timestamp(item.observedAt) : dateTime(item.date);
+      chartItems = range === 'today' ? (historyDate === date && Array.isArray(history?.points) ? history.points.slice(0, 288).filter(p => Number.isFinite(timestamp(p?.observedAt)) && timestamp(p.observedAt) >= dayStart && timestamp(p.observedAt) < dayStart + DAY_MS) : []) : dailyItems().filter(item => itemTime(item) >= chartBounds.start && itemTime(item) < chartBounds.end);
+      chartPositions = chartItems.map(item => (itemTime(item) - chartWindow.start) / span * 720);
+      visibleIndices = chartPositions.flatMap((x, index) => x >= -1e-6 && x <= 720 + 1e-6 ? [index] : []);
       let max = 1, min = 0, content = '', available = [];
       if (range === 'today') {
         available = chartItems.flatMap(p => [numeric(p.inverterPowerW), numeric(p.loadPowerW), numeric(p.gridImportPowerW)]).filter(v => v !== null && v >= 0);
@@ -308,10 +320,11 @@
         }
         text('solarChartSubtitle', '5-min mean');
         node('solarChartLegend').innerHTML = '<span><i class="solar-dot-generation"></i>Solar</span><span><i class="solar-dot-home"></i>House</span><span><i class="solar-dot-grid"></i>Grid bought</span>';
-        text('solarChartStart', '00:00'); text('solarChartMiddle', '12:00'); text('solarChartEnd', '24:00');
+        const clockLabel = value => Math.abs(value - chartBounds.end) < 1 ? '24:00' : clockTime.format(value);
+        text('solarChartStart', clockLabel(chartWindow.start)); text('solarChartMiddle', clockLabel(chartWindow.start + span / 2)); text('solarChartEnd', clockLabel(chartWindow.end));
         text('solarHistoryNote', 'AEST · 5-minute averages · gaps unfilled');
       } else {
-        const step = 720 / Math.max(chartItems.length, 1), half = Math.min(18, step * .33);
+        const step = 720 / (span / DAY_MS), half = Math.min(42, step * .33);
         chartItems.forEach((item, index) => {
           const alpha = item.quality === 'complete' ? 1 : .55;
           const bar = (value, x, width, cls) => {
@@ -327,9 +340,9 @@
         });
         text('solarChartSubtitle', metric === 'cost' ? 'incl. supply' : 'kWh/day');
         node('solarChartLegend').innerHTML = metric === 'cost' ? '<span><i class="solar-dot-grid"></i>Net cost</span><span><i class="solar-dot-generation"></i>Net credit</span>' : '<span><i class="solar-dot-grid"></i>Bought</span><span><i class="solar-dot-export"></i>Sold</span>';
-        text('solarChartStart', chartItems.length ? dateLabel(chartItems[0].date) : EMPTY);
-        text('solarChartMiddle', chartItems.length > 2 ? dateLabel(chartItems[Math.floor(chartItems.length / 2)].date) : '');
-        text('solarChartEnd', chartItems.length > 1 ? dateLabel(chartItems.at(-1).date) : EMPTY);
+        text('solarChartStart', dateLabel(dayKey(chartWindow.start)));
+        text('solarChartMiddle', dateLabel(dayKey(chartWindow.start + span / 2)));
+        text('solarChartEnd', dateLabel(dayKey(chartWindow.end - 1)));
         text('solarHistoryNote', 'Lighter = partial · blank = no data');
       }
       const isPower = range === 'today' || metric === 'energy';
@@ -339,14 +352,22 @@
       content += '<line id="solarChartCursor" x1="0" x2="0" y1="5" y2="185" class="solar-chart-selection" visibility="hidden"/>';
       chart.innerHTML = content;
       chartEmpty = available.length === 0;
-      hide('solarChartEmpty', !chartEmpty); hide('solarChartScrubber', chartEmpty);
-      text('solarChartEmpty', range === 'today' ? 'No chart readings yet.' : 'No daily readings for this period.');
+      const hasVisibleData = visibleIndices.some(index => range === 'today'
+        ? [chartItems[index].inverterPowerW, chartItems[index].loadPowerW, chartItems[index].gridImportPowerW].some(value => numeric(value) !== null && value >= 0)
+        : (metric === 'cost' ? numeric(chartItems[index].netCost) !== null : [chartItems[index].gridImportWh, chartItems[index].gridExportWh].some(value => numeric(value) !== null && value >= 0)));
+      hide('solarChartEmpty', hasVisibleData); hide('solarChartScrubber', !hasVisibleData);
+      text('solarChartEmpty', chartEmpty ? (range === 'today' ? 'No chart readings yet.' : 'No daily readings for this period.') : 'No recorded readings in this view.');
       attr('solarChart', 'aria-label', range === 'today' ? "Today's solar output, house use and grid draw in kilowatts" : 'Last ' + range + ' days of ' + (metric === 'cost' ? 'net cost in Australian dollars' : 'electricity bought and sold in kilowatt-hours'));
-      if (node('solarChartScrubber')) node('solarChartScrubber').max = String(Math.max(0, chartItems.length - 1));
+      if (node('solarChartScrubber')) node('solarChartScrubber').max = String(Math.max(0, visibleIndices.length - 1));
       attr('solarChartScrubber', 'aria-label', range === 'today' ? 'Inspect a time on the solar chart' : 'Inspect a day on the solar chart');
-      if (chartEmpty) text('solarChartInspect', 'No recorded readings.');
+      updateNavigation();
+      if (!hasVisibleData) text('solarChartInspect', chartEmpty ? 'No recorded readings.' : 'No recorded readings in this view.');
       else {
-        const lastAvailable = chartItems.findLastIndex(item => range === 'today' ? numeric(item.inverterPowerW) !== null || numeric(item.loadPowerW) !== null : numeric(item.netCost) !== null || numeric(item.gridImportWh) !== null);
+        const lastAvailable = visibleIndices.findLast(index => {
+          const item = chartItems[index];
+          return range === 'today' ? [item.inverterPowerW, item.loadPowerW, item.gridImportPowerW].some(value => numeric(value) !== null && value >= 0)
+            : metric === 'cost' ? numeric(item.netCost) !== null : [item.gridImportWh, item.gridExportWh].some(value => numeric(value) !== null && value >= 0);
+        }) ?? 0;
         inspect(!selectionPinned || selected === null ? Math.max(0, lastAvailable) : selected);
       }
     }
@@ -361,6 +382,7 @@
     function setPanel(value, focus = false) {
       if (!panels.some(([name]) => name === value)) return;
       panel = value;
+      if (panel !== 'chart') cancelGesture();
       for (const [name, tabId, panelId] of panels) {
         const active = name === panel;
         attr(tabId, 'aria-selected', active); attr(tabId, 'tabindex', active ? 0 : -1);
@@ -374,15 +396,137 @@
         : event.key === 'Home' ? 0 : event.key === 'End' ? panels.length - 1 : -1;
       if (next >= 0) { event.preventDefault(); setPanel(panels[next][0], true); }
     }
-    function setRange(value) { if (!['today', '7', '30'].includes(value)) return; range = value; selected = null; selectionPinned = false; renderChart(); }
+    function updateNavigation() {
+      if (!chartBounds || !chartWindow) return;
+      const span = chartWindow.end - chartWindow.start, fullSpan = chartBounds.end - chartBounds.start;
+      const zoomed = span < fullSpan - 1;
+      attr('solarChartPlot', 'data-window-start', chartWindow.start);
+      attr('solarChartPlot', 'data-window-end', chartWindow.end);
+      attr('solarChartPlot', 'data-window-span', span);
+      attr('solarChartPlot', 'data-zoomed', zoomed);
+      const duration = range === 'today' ? span / 3600000 : span / DAY_MS;
+      text('solarChartWindow', number(duration, duration % 1 ? 1 : 0) + (range === 'today' ? 'h' : ' days'));
+      const disabled = {
+        solarZoomIn: chartEmpty || span <= minChartSpan + 1,
+        solarZoomOut: chartEmpty || !zoomed,
+        solarZoomReset: !zoomed,
+        solarPanEarlier: chartEmpty || chartWindow.start <= chartBounds.start + 1,
+        solarPanLater: chartEmpty || chartWindow.end >= chartBounds.end - 1,
+      };
+      for (const [id, value] of Object.entries(disabled)) if (node(id)) node(id).disabled = value;
+    }
+    function navigateChart(next) {
+      if (!next || !chartWindow) return;
+      if (Math.abs(next.start - chartWindow.start) < .01 && Math.abs(next.end - chartWindow.end) < .01) return;
+      chartWindow = next;
+      renderChart();
+    }
+    function zoomChart(factor, fraction = .5) {
+      if (chartEmpty || !chartWindow) return;
+      navigateChart(SolarChart.zoomWindow(chartWindow, factor, fraction, chartBounds, minChartSpan));
+    }
+    function panChart(fraction) {
+      if (chartEmpty || !chartWindow) return;
+      navigateChart(SolarChart.panWindow(chartWindow, (chartWindow.end - chartWindow.start) * fraction, chartBounds, minChartSpan));
+    }
+    function resetChart() {
+      cancelGesture();
+      if (chartBounds) navigateChart({ ...chartBounds });
+    }
+    function setRange(value) {
+      if (!['today', '7', '30'].includes(value)) return;
+      cancelGesture(); range = value; chartDomainKey = null; selected = null; selectionPinned = false; renderChart();
+    }
+    function plotFraction(clientX) {
+      const rect = node('solarChartPlot')?.getBoundingClientRect?.();
+      return rect?.width > 0 ? clamp((clientX - rect.left) / rect.width, 0, 1) : .5;
+    }
     function chartPointer(event) {
-      if (chartEmpty || !chartPositions.length) return;
+      if (chartEmpty || !visibleIndices.length) return;
       const rect = node('solarChartPlot')?.getBoundingClientRect?.();
       if (!rect || !rect.width) return;
-      const x = clamp((event.clientX - rect.left) / rect.width, 0, 1) * 720;
-      let nearest = 0;
-      for (let index = 1; index < chartPositions.length; index++) if (Math.abs(chartPositions[index] - x) < Math.abs(chartPositions[nearest] - x)) nearest = index;
-      if (nearest !== selected) inspect(nearest, true);
+      const x = plotFraction(event.clientX) * 720;
+      const nearest = visibleIndices.reduce((best, index) => Math.abs(chartPositions[index] - x) < Math.abs(chartPositions[best] - x) ? index : best, visibleIndices[0]);
+      if (nearest !== selected || !selectionPinned) inspect(nearest, true);
+    }
+    function startGesture(moved = false) {
+      const contacts = [...pointers.values()].slice(0, 2), rect = node('solarChartPlot')?.getBoundingClientRect?.();
+      if (!chartWindow || !contacts.length || !rect?.width) { gesture = null; return; }
+      gesture = { window: { ...chartWindow }, x: contacts[0].x, y: contacts[0].y, width: rect.width, moved, axis: null,
+        distance: contacts.length > 1 ? Math.hypot(contacts[1].x - contacts[0].x, contacts[1].y - contacts[0].y) : null,
+        fraction: plotFraction(contacts.length > 1 ? (contacts[0].x + contacts[1].x) / 2 : contacts[0].x) };
+    }
+    function pointerDown(event) {
+      if (chartEmpty || !chartWindow || (event.button !== undefined && event.button !== 0)) return;
+      const plot = node('solarChartPlot');
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, type: event.pointerType });
+      try { plot?.setPointerCapture?.(event.pointerId); } catch { /* A cancelled contact cannot be captured. */ }
+      if (event.pointerType === 'mouse') plot?.focus?.({ preventScroll: true });
+      startGesture(pointers.size > 1);
+    }
+    function pointerMove(event) {
+      if (!pointers.has(event.pointerId) || !gesture) {
+        if (!pointers.size && event.pointerType === 'mouse') chartPointer(event);
+        return;
+      }
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, type: event.pointerType });
+      const contacts = [...pointers.values()].slice(0, 2);
+      if (contacts.length > 1 && gesture.distance > 0) {
+        const distance = Math.hypot(contacts[1].x - contacts[0].x, contacts[1].y - contacts[0].y);
+        gesture.moved = true;
+        navigateChart(SolarChart.pinchWindow(gesture.window, {
+          initialDistance: gesture.distance, distance,
+          initialMidpointFraction: gesture.fraction,
+          midpointFraction: plotFraction((contacts[0].x + contacts[1].x) / 2),
+        }, chartBounds, minChartSpan));
+      } else {
+        const dx = event.clientX - gesture.x, dy = event.clientY - gesture.y;
+        if (!gesture.axis && Math.max(Math.abs(dx), Math.abs(dy)) < 6) return;
+        if (!gesture.axis) gesture.axis = event.pointerType === 'touch' && Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
+        if (gesture.axis === 'y') return; // Let a one-finger vertical swipe scroll the page.
+        gesture.moved = true;
+        navigateChart(SolarChart.panWindow(gesture.window, -dx / gesture.width * (gesture.window.end - gesture.window.start), chartBounds, minChartSpan));
+      }
+      attr('solarChartPlot', 'data-dragging', true);
+    }
+    function finishPointer(event) {
+      if (!pointers.has(event.pointerId)) return;
+      const moved = gesture?.moved;
+      pointers.delete(event.pointerId);
+      try { node('solarChartPlot')?.releasePointerCapture?.(event.pointerId); } catch { /* Native scroll can already release it. */ }
+      if (pointers.size) { startGesture(true); return; }
+      gesture = null; attr('solarChartPlot', 'data-dragging', false);
+      if (!moved && event.type !== 'pointercancel' && event.type !== 'lostpointercapture') chartPointer(event);
+    }
+    function cancelGesture() {
+      const contacts = [...pointers.keys()]; pointers.clear(); gesture = null;
+      for (const pointerId of contacts) { try { node('solarChartPlot')?.releasePointerCapture?.(pointerId); } catch { /* Already released. */ } }
+      attr('solarChartPlot', 'data-dragging', false);
+    }
+    function touchPinch(event) {
+      // Native vertical scrolling remains available for one finger. Preventing
+      // default only for two contacts lets Pointer Events handle pinch without
+      // the browser taking over the page gesture. The listener is non-passive.
+      if (!chartEmpty && event.touches?.length > 1 && event.cancelable !== false) event.preventDefault();
+    }
+    function chartWheel(event) {
+      if (chartEmpty || !chartWindow || pointers.size || !event.deltaY) return;
+      event.preventDefault();
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 190 : 1);
+      zoomChart(Math.exp(clamp(delta * .004, -.7, .7)), plotFraction(event.clientX));
+    }
+    function chartKey(event) {
+      if (event.altKey || event.metaKey || event.ctrlKey) return;
+      if (event.key === '0') { event.preventDefault(); resetChart(); return; }
+      if (['+', '=', '-'].includes(event.key)) { event.preventDefault(); zoomChart(event.key === '-' ? 2 : .5); return; }
+      if (event.shiftKey && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        event.preventDefault(); panChart(event.key === 'ArrowLeft' ? -.5 : .5); return;
+      }
+      if (!visibleIndices.length || chartEmpty || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const currentPosition = Math.max(0, visibleIndices.indexOf(selected)), last = visibleIndices.length - 1;
+      const position = event.key === 'Home' ? 0 : event.key === 'End' ? last : clamp(currentPosition + (event.key === 'ArrowLeft' ? -1 : 1), 0, last);
+      inspect(visibleIndices[position], true);
     }
     function downloadCsv() {
       const days = dailyItems().filter(day => day.quality !== 'unavailable');
@@ -434,7 +578,7 @@
       } catch { if (started) { failed = true; paint(); } }
       finally { inFlight = false; if (started && !doc.hidden) pollTimer = schedule(refresh, POLL_MS); }
     }
-    function visibilityChanged() { clearTimers(); if (!doc.hidden && started) { paint(); schedulePaint(); refresh(); } }
+    function visibilityChanged() { clearTimers(); if (doc.hidden) cancelGesture(); if (!doc.hidden && started) { paint(); schedulePaint(); refresh(); } }
     function start() {
       if (started) return;
       started = true; doc.addEventListener('visibilitychange', visibilityChanged);
@@ -444,16 +588,21 @@
       setPanel(panel);
       on('solarRangeToday', 'click', () => setRange('today')); on('solarRange7', 'click', () => setRange('7')); on('solarRange30', 'click', () => setRange('30'));
       on('solarChartMetric', 'change', event => { metric = event.target.value === 'energy' ? 'energy' : 'cost'; selected = null; selectionPinned = false; renderChart(); });
-      on('solarChartScrubber', 'input', event => inspect(Number(event.target.value), true));
-      on('solarChartPlot', 'pointerdown', chartPointer);
-      on('solarChartPlot', 'pointermove', event => { if (event.pointerType === 'mouse' || event.buttons === 1) chartPointer(event); });
+      on('solarChartScrubber', 'input', event => inspect(visibleIndices[Number(event.target.value)], true));
+      on('solarZoomIn', 'click', () => zoomChart(.5)); on('solarZoomOut', 'click', () => zoomChart(2));
+      on('solarZoomReset', 'click', resetChart);
+      on('solarPanEarlier', 'click', () => panChart(-.5)); on('solarPanLater', 'click', () => panChart(.5));
+      on('solarChartPlot', 'pointerdown', pointerDown); on('solarChartPlot', 'pointermove', pointerMove);
+      for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) on('solarChartPlot', name, finishPointer);
+      on('solarChartPlot', 'touchstart', touchPinch, { passive: false }); on('solarChartPlot', 'touchmove', touchPinch, { passive: false });
+      on('solarChartPlot', 'wheel', chartWheel, { passive: false }); on('solarChartPlot', 'keydown', chartKey);
       on('solarDownload', 'click', downloadCsv);
       paint(); renderData(); schedulePaint(); refresh();
     }
     function stop() {
-      started = false; clearTimers(); doc.removeEventListener('visibilitychange', visibilityChanged);
+      started = false; clearTimers(); cancelGesture(); doc.removeEventListener('visibilitychange', visibilityChanged);
       targetPending = false; view?.removeEventListener?.('hashchange', hashChanged);
-      for (const [element, name, handler] of bindings.splice(0)) element.removeEventListener(name, handler);
+      for (const [element, name, handler, options] of bindings.splice(0)) element.removeEventListener(name, handler, options);
     }
     return { start, stop, refresh, paint, setRange, setPanel };
   }

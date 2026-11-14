@@ -79,6 +79,14 @@ async function checkLayout(page, width) {
 async function waitState(page, state) {
   await page.waitForFunction(expected => document.querySelector('#forecastSummary')?.dataset.state === expected, state);
 }
+async function assertDark(page) {
+  assert.deepEqual(await page.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    scheme: getComputedStyle(document.documentElement).colorScheme,
+    toggle: Boolean(document.querySelector('#themeToggleBtn')),
+    chrome: document.querySelector('meta[name="theme-color"]').content
+  })), { theme:'dark', scheme:'dark', toggle:false, chrome:'#0d1722' });
+}
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = 'http://127.0.0.1:' + server.address().port;
@@ -111,10 +119,10 @@ async function waitState(page, state) {
           try {
             await page.goto(origin + '/index.html');
             await waitState(page, 'fresh');
-            await page.evaluate(({ wide, selectedTheme }) => {
+            await page.evaluate(wide => {
               document.body.classList.add(wide ? 'layout-landscape' : 'layout-portrait');
-              document.documentElement.dataset.theme = selectedTheme;
-            }, { wide: width >= 900, selectedTheme: theme });
+            }, width >= 900);
+            await assertDark(page);
             assert.equal(await page.title(), 'Moore Weather · Dashboard');
             assert.equal((await page.locator('#fetchBtn').innerText()).trim(), 'Dashboard');
             assert.equal(await page.locator('.forecast-summary-bar').count(), 24);
@@ -155,7 +163,7 @@ async function waitState(page, state) {
             const selected = Number(await plot.getAttribute('aria-valuenow'));
             assert.ok(selected >= 16 && selected <= 19, 'touch or drag selects the corresponding hour');
             await plot.focus(); await page.keyboard.press('Home');
-            const name = `forecast-${engine.name()}-${width}-${theme}`;
+            const name = `forecast-${engine.name()}-${width}-dark-system-${theme}`;
             metrics.push({ name, height: await checkLayout(page, width) });
             await page.locator('#forecastSummary').screenshot({ path: path.join(artifacts, name + '.png'), animations: 'disabled' });
             assert.equal(requests, 1, 'interactions reuse the existing response without refetching');

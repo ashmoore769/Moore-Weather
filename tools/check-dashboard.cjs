@@ -159,6 +159,14 @@ async function ready(page) {
   await page.waitForFunction(() => document.querySelector('#warwickBridge')?.dataset.state);
   await page.waitForFunction(() => document.querySelectorAll('.water-reference-line').length === 3);
 }
+async function assertDark(page) {
+  assert.deepEqual(await page.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    scheme: getComputedStyle(document.documentElement).colorScheme,
+    toggle: Boolean(document.querySelector('#themeToggleBtn')),
+    chrome: document.querySelector('meta[name="theme-color"]').content
+  })), { theme:'dark', scheme:'dark', toggle:false, chrome:'#0d1722' });
+}
 async function historyReady(page, resolution, hours) {
   await page.waitForFunction(({ resolution, hours }) => document.querySelector('.history-body')?.dataset.state === 'ready' &&
     document.querySelector('[data-resolution="' + resolution + '"]')?.getAttribute('aria-pressed') === 'true' &&
@@ -429,11 +437,13 @@ async function failurePaths(page, browserName) {
       const browser = await engine.launch(engine === chromium && process.env.CHROMIUM_EXECUTABLE ? {executablePath:process.env.CHROMIUM_EXECUTABLE} : {});
       try {
         for (const width of process.env.DASHBOARD_SKYCAM_ONLY ? [393] : [320, 393, 768, 1024, 1440]) {
-          const context = await browser.newContext({ viewport: { width, height: 960 } });
+          const context = await browser.newContext({ viewport: { width, height: 960 }, colorScheme: 'dark' });
           await context.route('**/*', route => route.request().url().startsWith(origin) ? route.continue() : route.abort());
           await context.addInitScript(fixtureNow => {
             // Keep browser requests on the same clock as the fixed API fixtures, even across an hour boundary.
             Date.now = () => fixtureNow;
+            localStorage.setItem('mooreWeatherTheme', 'light');
+            localStorage.setItem('mooreWeatherThemeVersion', '4');
             window.__refreshCallbacks = [];
             window.__historyUsage = [];
             const original = window.setInterval;
@@ -447,6 +457,7 @@ async function failurePaths(page, browserName) {
           for (const pagePath of process.env.DASHBOARD_SKYCAM_ONLY ? ['/index.html'] : ['/index.html', '/daily.html']) {
             mode = 'fresh'; historyMode = 'fresh'; currentMode='fresh'; weatherOffset=0;skycamFailNewest=false;
             await page.goto(origin + pagePath); await ready(page);
+            await assertDark(page);
             await page.evaluate(() => {
               const track = window.mooreAnalytics?.track;
               window.mooreAnalytics = {track: (name,data) => {window.__historyUsage.push({name,data});track?.(name,data);}};
@@ -530,7 +541,15 @@ async function failurePaths(page, browserName) {
             if (width === 1440) {
               await page.evaluate(() => { document.body.classList.remove('layout-landscape'); document.body.classList.add('layout-portrait'); });
               await page.waitForTimeout(80); await bounds(page, width);
-              await page.evaluate(() => document.documentElement.dataset.theme = 'light');
+              await page.emulateMedia({ colorScheme: 'light' });
+              await page.evaluate(() => {
+                // An older open tab can still write its obsolete preference.
+                localStorage.setItem('mooreWeatherTheme', 'light');
+                window.dispatchEvent(new StorageEvent('storage', {
+                  key:'mooreWeatherTheme', oldValue:'dark', newValue:'light', storageArea:localStorage
+                }));
+              });
+              await assertDark(page);
               await bounds(page, width);
             }
             await page.locator('#stationAlertsBtn').click();
