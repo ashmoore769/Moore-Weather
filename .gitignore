@@ -2,6 +2,9 @@
 ._*
 __MACOSX/
 node_modules/
+__pycache__/
+*.py[cod]
+integrations/fronius/collector.env
 *.log
 .env
 .env.*
