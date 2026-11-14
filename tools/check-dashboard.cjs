@@ -43,6 +43,7 @@ function series(id, resolution, hours, finish = end) {
 }
 let mode = 'fresh', historyMode = 'fresh', requests = [];
 let currentMode = 'fresh', weatherOffset = 0, skycamFailNewest = false, skycamAttempts = 0;
+let skycamEmptyNewest = false;
 let skycamIncomingSequence = 0;
 const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNU8Y5iYGBgYmBgYGBgAAAJYADNjl9iMQAAAABJRU5ErkJggg==', 'base64');
 const cameraFrames = [
@@ -97,7 +98,11 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/skycam/history') { res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify({images:cameraFrames})); }
   if (url.pathname.startsWith('/skycam/')) {
     res.setHeader('Cache-Control','no-store');
-    if (url.pathname.includes('fixture-new')) { skycamAttempts++; if(skycamFailNewest) {res.statusCode=503;return res.end();} }
+    if (url.pathname.includes('fixture-new')) {
+      skycamAttempts++;
+      if (skycamEmptyNewest) { res.setHeader('Content-Type','image/jpeg'); return res.end(); }
+      if (skycamFailNewest) {res.statusCode=503;return res.end();}
+    }
     res.setHeader('Content-Type','image/png'); return res.end(pixel);
   }
   if (url.pathname.startsWith('/api/')) {
@@ -283,7 +288,51 @@ async function visualWindows(page) {
   });
   await page.waitForTimeout(60); await cameraLabels(page);
 }
+async function initialCameraRecovery(page) {
+  // A separate context avoids reusing pixels already decoded by the main page,
+  // especially WebKit's in-memory resource cache for the exact image URL.
+  const context = await page.context().browser().newContext({ viewport: page.viewportSize() });
+  const origin = new URL(page.url()).origin;
+  await context.route('**/*', route => route.request().url().startsWith(origin) ? route.continue() : route.abort());
+  await context.addInitScript(fixtureNow => { Date.now = () => fixtureNow; }, now);
+  const startup = await context.newPage(), errors = [], imageRequests = [];
+  startup.on('pageerror', error => errors.push(error.message));
+  startup.on('request', request => {
+    if (new URL(request.url()).pathname === '/skycam/fixture-new.jpg') imageRequests.push(request.url());
+  });
+  try {
+    skycamEmptyNewest = true;
+    const emptyResponse = startup.waitForResponse(response => new URL(response.url()).pathname === '/skycam/fixture-new.jpg');
+    await startup.goto(page.url());
+    const response = await emptyResponse;
+    assert.equal(response.status(), 200);
+    assert.equal((await response.body()).length, 0, 'Reproduce the HTTP200 zero-byte archive incident');
+    await startup.waitForFunction(() => skycamDisplayedEntry?.id === 'fixture-old' && !skycamImageLoading);
+    const oldTimestamp = await startup.locator('#skycamTime').textContent();
+    assert.equal(oldTimestamp, await startup.evaluate(entry => formatSkyCamTime(entry.capturedAt), cameraFrames[0]));
+    assert.equal(await startup.evaluate(() => skycamFollowLive), true);
+    assert.equal(await startup.locator('#skycamBadge').getAttribute('data-state'), 'stale');
+    assert.equal(await startup.locator('#skycamBadge').evaluate(node => getComputedStyle(node, '::before').backgroundColor), 'rgb(255, 205, 95)');
+    assert.match(await startup.locator('#skycamPosition').textContent(), /latest image unavailable; retrying/);
+    await startup.evaluate(() => refreshSkyCam());
+    assert.equal(await startup.locator('#skycamTime').textContent(), oldTimestamp);
+    assert.equal(imageRequests.length, 2);
+    assert.equal(new Set(imageRequests).size, 2, 'A failed newest image must be retried at a fresh URL');
+    skycamEmptyNewest = false;
+    await startup.evaluate(() => refreshSkyCam());
+    assert.equal(await startup.evaluate(() => skycamDisplayedEntry.id), 'fixture-new');
+    assert.equal(await startup.locator('#skycamTime').textContent(), await startup.evaluate(entry => formatSkyCamTime(entry.capturedAt), cameraFrames[1]));
+    assert.equal(await startup.locator('#skycamBadge').getAttribute('data-state'), 'live');
+    assert.equal(await startup.locator('#skycamBadge').evaluate(node => getComputedStyle(node, '::before').backgroundColor), 'rgb(70, 212, 126)');
+    assert.deepEqual(errors, []);
+  } finally {
+    skycamEmptyNewest = false;
+    await context.close();
+  }
+}
+
 async function failurePaths(page, browserName) {
+  await initialCameraRecovery(page);
   // A healthy ping must not relabel the last displayed observation after failure.
   weatherOffset = -HOUR;
   await page.evaluate(() => fetchWeather());
@@ -379,7 +428,7 @@ async function failurePaths(page, browserName) {
     for (const engine of engines) {
       const browser = await engine.launch(engine === chromium && process.env.CHROMIUM_EXECUTABLE ? {executablePath:process.env.CHROMIUM_EXECUTABLE} : {});
       try {
-        for (const width of [320, 393, 768, 1024, 1440]) {
+        for (const width of process.env.DASHBOARD_SKYCAM_ONLY ? [393] : [320, 393, 768, 1024, 1440]) {
           const context = await browser.newContext({ viewport: { width, height: 960 } });
           await context.route('**/*', route => route.request().url().startsWith(origin) ? route.continue() : route.abort());
           await context.addInitScript(fixtureNow => {
@@ -395,7 +444,7 @@ async function failurePaths(page, browserName) {
           }, now);
           const page = await context.newPage(), errors = [];
           page.on('pageerror', error => errors.push(error.message));
-          for (const pagePath of ['/index.html', '/daily.html']) {
+          for (const pagePath of process.env.DASHBOARD_SKYCAM_ONLY ? ['/index.html'] : ['/index.html', '/daily.html']) {
             mode = 'fresh'; historyMode = 'fresh'; currentMode='fresh'; weatherOffset=0;skycamFailNewest=false;
             await page.goto(origin + pagePath); await ready(page);
             await page.evaluate(() => {
@@ -404,6 +453,13 @@ async function failurePaths(page, browserName) {
             });
             if (pagePath.includes('index')) await page.waitForFunction(() => document.querySelector('[data-current-readings]').dataset.observedAt && document.querySelector('#skycamBadge').textContent.includes('LIVE'));
             else await page.waitForFunction(() => document.querySelector('#dailyStatusBadge').textContent.includes('CURRENT'));
+            if (process.env.DASHBOARD_SKYCAM_ONLY) {
+              await failurePaths(page, engine.name());
+              await reviewScreenshot(page, engine, width, 'skycam-recovery', '.layout-skycam');
+              assert.deepEqual(errors, []);
+              checked++;
+              continue;
+            }
             // Desktop uses the app's existing landscape layout class.
             if (width >= 900) await page.evaluate(() => document.body.classList.add('layout-landscape'));
             // Two representative viewports per browser, with bounded captures
@@ -565,7 +621,9 @@ async function failurePaths(page, browserName) {
         }
       } finally { await browser.close(); }
     }
-    console.log('PASS: complete production scripts, failed-reading and failed-image recovery, truthful timestamps, partial sensor faults, bounded requests, health details; ' + checked + ' page/browser/width combinations; four water cards, Connolly history, single-line navigation, matched camera/radar, twenty-four-hour previews, persistent references, bridge states and rainfall inches/peak dates, warning colours, history outage/recovery banners without push permission, and exact 30-day rain comparisons.');
+    console.log(process.env.DASHBOARD_SKYCAM_ONLY
+      ? 'PASS: zero-byte newest camera fallback, truthful older timestamps, automatic newest recovery, status colours, and existing failure recovery; ' + checked + ' browser/phone combinations.'
+      : 'PASS: complete production scripts, failed-reading and failed-image recovery, truthful timestamps, partial sensor faults, bounded requests, health details; ' + checked + ' page/browser/width combinations; four water cards, Connolly history, single-line navigation, matched camera/radar, twenty-four-hour previews, persistent references, bridge states and rainfall inches/peak dates, warning colours, history outage/recovery banners without push permission, and exact 30-day rain comparisons.');
     console.log('Review screenshots: ' + screenshotRoot + ' (Current, SkyCam, Daily and Alerts health at phone and desktop widths).');
   } finally { server.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
