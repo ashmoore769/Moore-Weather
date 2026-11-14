@@ -85,7 +85,11 @@ async function layout(page, width, context, { notice = false } = {}) {
         width: element.clientWidth, scroll: element.scrollWidth }));
     const panels = [...card.querySelectorAll('[role="tabpanel"]')].map(element => ({ id: element.id,
       hidden: element.hidden, height: element.getBoundingClientRect().height, contentHeight: element.scrollHeight }));
-    return { left: rect.left, right: rect.right, height: rect.height, documentWidth: document.documentElement.scrollWidth, children, panels };
+    const chart = card.querySelector('#solarChart').getBoundingClientRect();
+    const plot = card.querySelector('#solarChartPlot').getBoundingClientRect();
+    const axis = card.querySelector('.solar-chart-xaxis').getBoundingClientRect();
+    return { left: rect.left, right: rect.right, height: rect.height, documentWidth: document.documentElement.scrollWidth, children, panels,
+      chart: { height: chart.height, bottom: chart.bottom, plotBottom: plot.bottom, axisTop: axis.top } };
   });
   // These generous maximums guard the intended reduction from the previous
   // 1,200–1,500px card without tying the tests to individual CSS pixel values.
@@ -99,6 +103,10 @@ async function layout(page, width, context, { notice = false } = {}) {
     assert.ok(child.scroll <= child.width + 1, 'solar content overflows: ' + JSON.stringify(child));
   }
   assert.ok(result.height <= limit, `Solar card is not compact at ${context}: ${result.height.toFixed(1)}px exceeds ${limit}px`);
+  if (result.chart.height > 0) {
+    assert.ok(result.chart.bottom <= result.chart.plotBottom + 1, 'SVG must stay within its allocated plot: ' + JSON.stringify(result.chart));
+    assert.ok(result.chart.plotBottom <= result.chart.axisTop + 1, 'time labels must remain below the plot: ' + JSON.stringify(result.chart));
+  }
   return result;
 }
 
