@@ -266,7 +266,7 @@ test('stale, missing meters, active batteries and resting solar do not claim spa
   const battery = liveView({ ...data.current, batteryPowerW: 2000 }, data.rates, true);
   assert.equal(battery.coverage, null); assert.notEqual(battery.label, 'Spare solar');
   const night = liveView({ ...data.current, inverterPowerW: 0, pvPowerW: 0, gridPowerW: 500, loadPowerW: 500 }, data.rates, true);
-  assert.equal(night.tone, 'neutral'); assert.equal(night.coverage, null); assert.equal(night.title, 'Solar inactive');
+  assert.equal(night.tone, 'import'); assert.equal(night.coverage, null); assert.equal(night.title, 'Solar inactive');
   const balanced = liveView({ ...data.current, gridPowerW: 15, loadPowerW: 5715 }, data.rates, true);
   assert.equal(balanced.tone, 'neutral'); assert.equal(balanced.title, 'Balanced'); assert.equal(balanced.value, 15);
 });
