@@ -64,6 +64,12 @@ test('production pages use one tracker and strip all private URL and payload fie
     hostname: 'moore-weather.onrender.com', url: '/login', title: 'Moore Weather · Sign in',
     referrer: 'https://example.org', screen: '393x852', language: 'en-AU' });
   assert.equal(a.context.mooreAnalyticsBeforeSend('identify', { id: 'secret' }), false);
+  for (const pathname of ['/', '/index.html']) {
+    const dashboard = boot({ url: 'https://moore-weather.onrender.com' + pathname });
+    dashboard.load();
+    assert.equal(dashboard.calls[0].url, '/');
+    assert.equal(dashboard.calls[0].title, 'Moore Weather · Dashboard');
+  }
 });
 test('local, staging, unknown pages, excluded devices and privacy signals never load the provider', () => {
   for (const options of [{ url: 'http://localhost/' }, { url: 'https://preview.onrender.com/' },

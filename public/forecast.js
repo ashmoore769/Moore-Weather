@@ -30,7 +30,7 @@
     if ([61,63,65].includes(code)) return [code===65?'Heavy rain':'Rain','rain'];
     if ([80,81,82].includes(code)) return [code===82?'Heavy showers':'Showers','rain'];
     if ([71,73,75,77,85,86].includes(code)) return ['Snow','snow'];
-    if ([95,96,99].includes(code)) return ['Thunderstorms','storm'];
+    if ([95,96,97,99].includes(code)) return ['Thunderstorms','storm'];
     return ['Conditions unavailable','cloud'];
   }
   const icon = code => `<svg class="weather-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[weather(code)[1]]}</svg>`;

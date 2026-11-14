@@ -5,8 +5,8 @@
   const WEBSITE = 'cc26784e-27b2-48ef-80d6-a6da05212489';
   const DISABLED = 'umami.disabled';
   const pages = {
-    '/': ['/', 'Moore Weather · Current'],
-    '/index.html': ['/', 'Moore Weather · Current'],
+    '/': ['/', 'Moore Weather · Dashboard'],
+    '/index.html': ['/', 'Moore Weather · Dashboard'],
     '/daily.html': ['/daily.html', 'Moore Weather · Daily Summary'],
     '/forecast.html': ['/forecast.html', 'Moore Weather · Forecast'],
     '/login': ['/login', 'Moore Weather · Sign in'],

@@ -1,6 +1,22 @@
 # Free forecast and radar
 
-The Forecast tab at `/forecast.html` adds a seven-day Warwick outlook, prominent rain probability and daily rainfall estimates, selectable days, the next 24 hours (or the selected day's hours), and hourly rain, temperature and wind. The regional radar animation lives on Current, directly below the SkyCam, with the same embedded presentation. On phones the order is readings, SkyCam, radar, soil, local water and station power. Desktop pairs readings and soil with the two visuals; local water and a compact power strip follow. The Forecast header links to Current’s radar, and old `/forecast.html#radar` bookmarks redirect there. Daily Summary and history remain available.
+The Forecast tab at `/forecast.html` adds a seven-day Warwick outlook, prominent rain probability and daily rainfall estimates, selectable days, the next 24 hours (or the selected day's hours), and hourly rain, temperature and wind. The regional radar animation lives on Dashboard, directly below the SkyCam, with the same embedded presentation. On phones the order is readings, SkyCam, radar, soil, forecast summary, Home solar, local water and station power. Desktop pairs readings and soil with the two visuals; the forecast summary, Home solar, local water and a compact power strip follow. The Forecast header links to Dashboard’s radar, and old `/forecast.html#radar` bookmarks redirect there. Daily Summary and history remain available.
+
+## Dashboard forecast summary
+
+The compact card immediately above Home solar uses the same `/api/forecast` response and shared server cache as the full Forecast page. It adds no provider, station request, database table or deployment setting.
+
+The summary covers 24 hourly intervals beginning at the start of the current AEST hour. This includes the ongoing hour rather than pretending the provider supplies minute-level rainfall predictions. Blue bars show hourly rain amounts, with visible scale and midnight labels. Tap or drag horizontally to inspect an interval; keyboard users can use arrows, Home and End. Vertical page scrolling remains available over the chart.
+
+The three headline statistics use that same window: total expected rain, the highest hourly rain probability, and the high/low of the hourly temperatures. Missing hours remain gaps; incomplete aggregates are unavailable rather than silently treating missing data as zero. The selected-hour readout distinguishes rainfall during an interval from temperature at its end. Null values, genuine zero and small positive traces are separate states.
+
+Open-Meteo documents precipitation and precipitation probability for the **preceding hour**. A record timestamped 20:00 therefore supplies the 19:00–20:00 rain bar. Temperature and weather code are instantaneous at the supplied timestamp. These semantics, including midnight, are tested in `test/forecast-summary-model.test.js`.
+
+Thunderstorm signals come only from the hourly weather codes 95, 96, 97 and 99. The card highlights the model's first continuous storm window and preserves separate windows instead of implying uninterrupted storms. Rain chance alone never implies a storm, and an absent storm signal is not an all-clear. A direct Queensland BOM warnings link remains visible. The card does not claim to ingest or verify official warnings, nor invent local hail/severity probabilities. Provider code definitions and interval semantics were checked against https://open-meteo.com/en/docs on 14 November 2026.
+
+The browser refreshes at the existing 20-minute forecast cadence while visible, coalesces its requests and backs off on errors. It reevaluates timestamps locally, keeps delayed data visibly marked, and removes usable forecast values at six hours even if the page remains open. Hidden pages stop automatic work and returning pages reevaluate their current hour. Authentication expiry follows the portal's existing sign-in flow.
+
+`tools/check-forecast-summary.cjs` exercises the actual card in synthetic Chromium and WebKit fixtures at 320, 393 and 1440 pixels in both themes. It checks compact geometry, keyboard/touch selection, AEST midnight, storm code 97, complete/dry/partial data, stale retention, expiry and authentication. Screenshots contain only generated fixture data.
 
 ## Providers and cost
 
