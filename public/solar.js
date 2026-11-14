@@ -70,7 +70,7 @@
     result.coverage = coverage;
     result.money = flowMoney;
     result.homeSource = generation <= 25 ? 'Solar inactive' : coverage === null ? 'Low house load' : number(coverage, 0) + '% house solar coverage';
-    if (generation <= 25) return { ...result, title: 'Solar inactive', label: 'Grid draw', value: bought, coverage: null };
+    if (generation <= 25) return { ...result, tone: bought > 50 ? 'import' : 'neutral', title: 'Solar inactive', label: 'Grid draw', value: bought, coverage: null };
     if (bought > 50) return { ...result, tone: 'import', title: 'Grid import', label: 'Grid draw', value: bought };
     if (sold > 75) return { ...result, tone: 'surplus', title: 'Solar surplus', label: 'Spare solar', value: sold };
     return { ...result, title: 'Balanced', label: bought > 0 ? 'Grid draw' : 'Spare solar', value: bought > 0 ? bought : sold };
@@ -177,6 +177,7 @@
       text('solarBatteryPower', battery === null ? (soc === null ? EMPTY : number(soc, 1) + '%') : power(Math.abs(battery)));
       text('solarBatterySoc', battery !== null && soc !== null ? number(soc, 1) + '% state of charge' : '');
       const view = liveView(current, rates, fresh);
+      card.dataset.tone = view.tone;
       if (node('solarHero')) node('solarHero').dataset.tone = view.tone;
       text('solarHeadline', view.title);
       text('solarHeadroomLabel', view.label); text('solarHeadroom', power(view.value));
