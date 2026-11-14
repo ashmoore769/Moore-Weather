@@ -310,7 +310,7 @@ test('compact public copy retains objective readings and full timestamp access',
   assert.equal(f.node('solarObserved').textContent, '12:00 · just now');
   assert.match(f.node('solarObserved').attributes.title, /14 Nov.*12:00:00 AEST/);
   assert.equal(f.node('solarObserved').attributes.title, f.node('solarObservedDetail').textContent);
-  const card = html.slice(html.indexOf('<section id="homeSolar"'), html.indexOf('<section aria-label="Station power and maintenance"'));
+  const card = html.slice(html.indexOf('<section id="homeSolar"'), html.indexOf('<section class="local-water"'));
   assert.doesNotMatch(card, /\byour\b|\byou\b|<details|<summary/i);
   assert.match(card, /aria-label="Download daily solar CSV"/);
   const states = [liveView(payload().current, payload().rates, true), liveView(payload().current, payload().rates, false),
