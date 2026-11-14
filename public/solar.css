@@ -60,6 +60,8 @@
 .solar-ranges button { min-width:54px; min-height:44px; padding:7px 9px; margin:0; border:0; border-radius:6px; box-shadow:none; color:var(--muted); background:transparent; font:600 11px var(--app-font,system-ui,sans-serif); cursor:pointer; }
 .solar-ranges button[aria-pressed="true"] { background:var(--surface-raised); color:var(--text); box-shadow:inset 0 0 0 1px var(--border); }
 .solar-card button:focus-visible,.solar-card input:focus-visible,.solar-card select:focus-visible,.solar-panel:focus-visible,.solar-table-wrap:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+/* Roving tab focus is programmatic; WebKit may not match :focus-visible. */
+.solar-view-tabs button:focus { outline:2px solid var(--accent); outline-offset:2px; }
 .solar-chart-toolbar { display:flex; justify-content:space-between; align-items:center; gap:7px; min-width:0; }
 .solar-chart-legend { display:flex; flex-wrap:wrap; gap:5px 11px; color:var(--muted); font-size:11px; }
 .solar-chart-legend i { width:13px; height:3px; border-radius:2px; vertical-align:3px; }
