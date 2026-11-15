@@ -1,0 +1,13 @@
+[Unit]
+Description=Weather Pi network self-healing check
+After=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/network-healthcheck
+TimeoutStartSec=150
+TimeoutStopSec=10
+UMask=0077
+SyslogIdentifier=network-healthcheck
+StandardOutput=journal
+StandardError=journal

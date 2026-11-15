@@ -101,6 +101,11 @@ These semantics follow the
 The GEN24 local API does not provide Solar.web's daily/yearly energy totals or
 its archive endpoint. The server labels derived energy totals and partial days.
 
+If the Pi stays running but its Wi-Fi device disappears after a firmware crash,
+the separate [Pi network recovery integration](../pi/README.md) provides bounded
+recovery for that condition. It has its own installer and does not change this
+collector, its credentials, or the No-IP configuration.
+
 ## Offline checks
 
 ```sh
