@@ -31,6 +31,10 @@ jobs:
           python-version: '3.13'
       - name: Check the Fronius collector offline
         run: python3 -m unittest discover -s integrations/fronius -p 'test_*.py' -v
+      - name: Check Pi network recovery safeguards offline
+        run: |
+          python3 -m unittest discover -s integrations/pi -p 'test_*.py' -v
+          bash -n integrations/pi/install.sh
       - name: Verify current Connolly council source
         if: startsWith(github.ref, 'refs/heads/update/dashboard-')
         run: node tools/verify-connolly.cjs

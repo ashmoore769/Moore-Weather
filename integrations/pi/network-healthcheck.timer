@@ -1,0 +1,10 @@
+[Unit]
+Description=Weather Pi network self-healing timer
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
