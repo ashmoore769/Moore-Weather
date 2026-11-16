@@ -1130,7 +1130,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <link rel="stylesheet" href="/station-shell.css?v=7">
 <script defer src="/station-shell.js?v=7"></script>
 <script defer src="/station-alerts.js?v=9"></script>
-<link rel="stylesheet" href="/dashboard.css?v=12">
+<link rel="stylesheet" href="/dashboard.css?v=13">
 <link rel="stylesheet" href="/solar.css?v=4">
 <script defer src="/solar-chart.js?v=1"></script>
 <script defer src="/solar.js?v=5"></script>
@@ -2354,6 +2354,18 @@ document.addEventListener('visibilitychange', () => {
 
         document.body.classList.toggle("layout-landscape", layout === "landscape");
         document.body.classList.toggle("layout-portrait", layout === "portrait");
+        // Reuse the live card so its readings and history controls survive layout changes.
+        const soil = document.getElementById("soilProfile");
+        const weather = document.getElementById("weatherData");
+        const content = weather?.querySelector(".content-layout");
+        const primary = content?.querySelector(".layout-primary");
+        if (soil && weather && content && primary) {
+          if (layout === "landscape" && soil.parentElement !== content) {
+            primary.after(soil);
+          } else if (layout === "portrait" && weather.nextElementSibling !== soil) {
+            weather.after(soil);
+          }
+        }
         updateButtons(layout);
 
         if (persist) {

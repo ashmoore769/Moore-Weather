@@ -196,17 +196,18 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 }
 @media(max-width:370px) { .dashboard-tabs { gap:10px; } .dashboard-tab { font-size:11px; } }
 
-/* Current keeps its reading order on phones; the two visuals share a column on desktop. */
+/* Phones keep the separate soil card; desktop puts soil below readings beside the visuals. */
 .current-page .content-layout { grid-template-areas:"primary" "skycam" "radar"; gap:18px; }
 .current-page .layout-soil { min-width:0; }
 .current-page .current-power { margin:24px 0 0; }
 @media(min-width:900px) {
   body.current-page.layout-landscape .content-layout {
     grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);
-    grid-template-areas:"primary visuals";
-    grid-template-rows:auto;
+    grid-template-areas:"primary visuals" "soil visuals";
+    grid-template-rows:auto 1fr;
     gap:20px; align-items:start;
   }
+  body.current-page.layout-landscape .current-soil { grid-area:soil; margin:0; }
   body.current-page.layout-landscape .current-visuals { grid-area:visuals; display:flex; flex-direction:column; gap:20px; min-width:0; align-self:start; }
   body.current-page.layout-landscape .layout-radar { display:flex; flex-direction:column; }
   body.current-page.layout-landscape .radar-map-stage { aspect-ratio:4 / 3; height:auto; min-height:0; }

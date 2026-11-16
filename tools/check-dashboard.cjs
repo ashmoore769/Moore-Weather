@@ -300,17 +300,29 @@ async function soilProfileLayout(page) {
   const geometry = await page.evaluate(() => {
     const rect = node => { const r=node.getBoundingClientRect(); return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width}; };
     const soil=document.querySelector('#soilProfile');
-    return { nested:document.querySelector('#weatherData').contains(soil),
+    return { landscape:innerWidth>=900 && document.body.classList.contains('layout-landscape'),
+      nested:document.querySelector('#weatherData').contains(soil),
+      count:document.querySelectorAll('#soilProfile').length,
       soil:rect(soil), weather:rect(document.querySelector('#weatherData')),
+      primary:rect(document.querySelector('.layout-primary')),
       forecast:rect(document.querySelector('#forecastSummary')),
       rows:[...soil.querySelectorAll('.soil-reading')].map(row => ({box:rect(row),
         metrics:[...row.querySelectorAll('.soil-reading-value')].map(metric => ({box:rect(metric),
           contents:[...metric.querySelectorAll('.soil-reading-value-label,.soil-reading-value-number,.history-spark')].map(rect)}))})) };
   });
-  const {soil,weather,forecast,rows}=geometry;
-  assert.equal(geometry.nested,false,'Soil is an independent dashboard card');
-  assert.ok(Math.abs(soil.x-forecast.x)<1 && Math.abs(soil.width-forecast.width)<1,'Soil spans the same width as the standalone cards');
-  assert.ok(soil.y>=weather.bottom+12 && forecast.y>=soil.bottom+12,'Soil has clear separation from adjacent sections');
+  const {soil,weather,primary,forecast,rows}=geometry;
+  assert.equal(geometry.count,1,'One soil card serves every layout');
+  if(geometry.landscape) {
+    assert.equal(geometry.nested,true,'Desktop soil sits within the current readings section');
+    assert.ok(Math.abs(soil.x-primary.x)<1 && Math.abs(soil.width-primary.width)<1,'Desktop soil aligns with the readings column');
+    assert.ok(Math.abs(soil.y-primary.bottom-20)<1,'Desktop soil follows the readings with the normal grid gap');
+    assert.ok(soil.bottom<=weather.bottom,'Desktop soil stays inside the current readings section');
+    assert.ok(forecast.y>=weather.bottom+12 && forecast.y<=weather.bottom+40,'Forecast follows the main section without a vacated soil-card gap');
+  } else {
+    assert.equal(geometry.nested,false,'Mobile and portrait soil remain an independent dashboard card');
+    assert.ok(Math.abs(soil.x-forecast.x)<1 && Math.abs(soil.width-forecast.width)<1,'Soil spans the same width as the standalone cards');
+    assert.ok(soil.y>=weather.bottom+12 && forecast.y>=soil.bottom+12,'Soil has clear separation from adjacent sections');
+  }
   for(const {box,metrics} of rows) {
     assert.ok(box.x>=soil.x && box.right<=soil.right,'Soil depth row stays inside its card');
     for(const {box:metric,contents} of metrics) {
@@ -516,8 +528,11 @@ async function failurePaths(page, browserName) {
               checked++;
               continue;
             }
-            // Desktop uses the app's existing landscape layout class.
-            if (width >= 900) await page.evaluate(() => document.body.classList.add('layout-landscape'));
+            // Current uses the real layout control so responsive card placement runs too.
+            if (width >= 900) {
+              if (pagePath.includes('index')) await page.evaluate(() => setDesktopLayout('landscape'));
+              else await page.evaluate(() => document.body.classList.add('layout-landscape'));
+            }
             // Two representative viewports per browser, with bounded captures
             // instead of images of every long page in the responsive matrix.
             await reviewScreenshot(page, engine, width, pagePath.includes('index') ? 'current' : 'daily');
@@ -545,12 +560,23 @@ async function failurePaths(page, browserName) {
               await cameraControlLayout(page,engine,width);
               await soilProfileLayout(page);
               if(width===1440) {
-                await page.evaluate(()=>{document.body.classList.remove('layout-landscape');document.body.classList.add('layout-portrait');});
+                await page.evaluate(()=>{
+                  window.__soilBeforeLayout={card:document.querySelector('#soilProfile'),spark:document.querySelector('#soilProfile .history-spark')};
+                  setDesktopLayout('portrait');
+                });
                 await soilProfileLayout(page);
-                await page.evaluate(()=>{document.body.classList.remove('layout-portrait');document.body.classList.add('layout-landscape');});
+                await page.evaluate(()=>setDesktopLayout('landscape'));
+                await soilProfileLayout(page);
+                await page.setViewportSize({width:393,height:960});
+                await page.waitForFunction(()=>document.body.classList.contains('layout-portrait') && !document.querySelector('#weatherData').contains(document.querySelector('#soilProfile')));
+                await soilProfileLayout(page);
+                await page.setViewportSize({width,height:960});
+                await page.waitForFunction(()=>document.body.classList.contains('layout-landscape') && document.querySelector('#weatherData').contains(document.querySelector('#soilProfile')));
+                await soilProfileLayout(page);
+                assert.equal(await page.evaluate(()=>window.__soilBeforeLayout.card===document.querySelector('#soilProfile') && window.__soilBeforeLayout.spark===document.querySelector('#soilProfile .history-spark')),true,'Layout changes retain the soil card and its existing sparkline nodes');
               }
               await page.locator('#soilTemp10Val').click(); await historyReady(page,'10m',24);
-              assert.equal(requests.at(-1).metric,'soil-temp-10','Detached soil card retains its history navigation');
+              assert.equal(requests.at(-1).metric,'soil-temp-10','Soil card retains history navigation in every layout');
               await page.locator('.history-close').click();
               assert.match(await page.locator('#powerTrendLabel').textContent(), /24-hour/);
               assert.match(await page.locator('#tempVal').locator('xpath=ancestor::*[contains(@class,"temp-hero")]').locator('.history-spark-caption').textContent(), /24 hours/);
@@ -597,7 +623,8 @@ async function failurePaths(page, browserName) {
             assert.equal(requests.at(-1).end, first.end);
             await page.locator('.history-close').click();
             if (width === 1440) {
-              await page.evaluate(() => { document.body.classList.remove('layout-landscape'); document.body.classList.add('layout-portrait'); });
+              if (pagePath.includes('index')) await page.evaluate(() => setDesktopLayout('portrait'));
+              else await page.evaluate(() => { document.body.classList.remove('layout-landscape'); document.body.classList.add('layout-portrait'); });
               await page.waitForTimeout(80); await bounds(page, width);
               await page.emulateMedia({ colorScheme: 'light' });
               await page.evaluate(() => {
