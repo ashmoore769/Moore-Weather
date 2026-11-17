@@ -236,7 +236,8 @@ test('solar assets and labels stay separate from existing weather and station me
   assert.match(html, /href="\/solar\.css\?v=4"/);
   assert.match(html, /PV generation · DC/); assert.match(html, /Solar · AC/);
   assert.match(html, /Generated/);
-  assert.match(html, /Solar radiation<\/span><span class="value" id="solarRadVal"/);
+  assert.match(html, /Solar radiation<\/span>[\s\S]*?id="solarRadVal"/);
+  assert.match(html, /id="solarRadValUnit"[^>]*>\s*W\/m²<\//);
   assert.match(html, /Solar panel<\/span><span class="metric-value" id="solarPanelVal"/);
   const cards = ['localWater', 'homeSolar', 'stationPower', 'yardPower'].map(id => html.indexOf('id="' + id + '"'));
   assert.ok(cards.every((position, i) => position >= 0 && (!i || position > cards[i - 1])), 'power cards follow local water in reading order');

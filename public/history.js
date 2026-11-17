@@ -52,7 +52,8 @@
     const card = value?.closest('.temp-hero, .quick-stat, .soil-reading-value, .soil-surface-temperature, .metric-row, .daily-reading-card, .rain-hero, .soil-depth-reading, .water-reading');
     if (!card) continue;
     card.classList.add('history-card'); card.tabIndex = 0; card.setAttribute('role', 'button');
-    card.setAttribute('aria-describedby', elementId + (metric === 'condamine-warwick-level' ? ' warwickReferenceNote' : ''));
+    const unitId = $(elementId + 'Unit') ? ' ' + elementId + 'Unit' : '';
+    card.setAttribute('aria-describedby', elementId + unitId + (metric === 'condamine-warwick-level' ? ' warwickReferenceNote' : ''));
     card.setAttribute('aria-haspopup', 'dialog'); card.setAttribute('aria-label', 'View history: ' + metric.replaceAll('-', ' '));
     card.style.setProperty('--history-color', color(metric));
     const spark = document.createElement('span'); spark.className = 'history-spark'; spark.setAttribute('aria-hidden', 'true');
