@@ -2,7 +2,7 @@
   'use strict';
   const dailyPage = location.pathname.endsWith('daily.html');
   const $ = id => document.getElementById(id);
-  const colors = { 'connolly-storage': '#658fbb', 'connolly-volume': '#658fbb', 'leslie-storage': '#438fbd', 'leslie-volume': '#438fbd', air: '#2c9a8c', globe: '#c18a36', humidity: '#6686c4', pressure: '#468dbb', wind: '#249d9b', gust: '#b78641', direction: '#249d9b', solar: '#c39324', rain: '#438fd0', dew: '#698dc1', evaporation: '#708fae', ground: '#a78454' };
+  const colors = { 'connolly-storage': '#658fbb', 'connolly-volume': '#658fbb', 'leslie-storage': '#438fbd', 'leslie-volume': '#438fbd', air: '#2c9a8c', globe: '#c18a36', humidity: '#6686c4', pressure: '#9a68d1', wind: '#249d9b', gust: '#b78641', direction: '#249d9b', solar: '#c39324', rain: '#438fd0', dew: '#698dc1', evaporation: '#708fae', ground: '#a78454' };
   const color = id => `color-mix(in srgb, ${colors[id] || (id.startsWith('soil-moisture') ? '#438fd0' : '#2c9a8c')} var(--history-line-strength, 100%), white)`;
   const timeFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   const dateFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short' });
@@ -51,17 +51,25 @@
     const value = $(elementId);
     const card = value?.closest('.temp-hero, .quick-stat, .soil-reading-value, .soil-surface-temperature, .metric-row, .daily-reading-card, .rain-hero, .soil-depth-reading, .water-reading');
     if (!card) continue;
-    card.classList.add('history-card'); card.tabIndex = 0; card.setAttribute('role', 'button');
+    // Water summaries keep both measurements together, with a full-width plot
+    // below. Each value and the shared plot retain their own history control.
+    const plot = value.closest('.water-panel')?.querySelector(`[data-water-history="${metric}"]`);
+    const controls = plot ? [card, plot] : [card];
     const unitId = $(elementId + 'Unit') ? ' ' + elementId + 'Unit' : '';
-    card.setAttribute('aria-describedby', elementId + unitId + (metric === 'condamine-warwick-level' ? ' warwickReferenceNote' : ''));
-    card.setAttribute('aria-haspopup', 'dialog'); card.setAttribute('aria-label', 'View history: ' + metric.replaceAll('-', ' '));
-    card.style.setProperty('--history-color', color(metric));
+    const timeId = card.matches('.water-reading') ? ' ' + elementId + 'Time' : '';
+    for (const control of controls) {
+      control.classList.add('history-card'); control.tabIndex = 0; control.setAttribute('role', 'button');
+      control.setAttribute('aria-describedby', elementId + unitId + timeId + (metric === 'condamine-warwick-level' ? ' warwickReferenceNote' : ''));
+      control.setAttribute('aria-haspopup', 'dialog'); control.setAttribute('aria-label', 'View history: ' + metric.replaceAll('-', ' '));
+      control.style.setProperty('--history-color', color(metric));
+      control.addEventListener('click', () => openHistory(metric));
+      control.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openHistory(metric); } });
+    }
+    if (plot) value.closest('.water-panel').style.setProperty('--water-colour', color(metric));
     const spark = document.createElement('span'); spark.className = 'history-spark'; spark.setAttribute('aria-hidden', 'true');
     spark.innerHTML = '<svg viewBox="0 0 260 40" preserveAspectRatio="none"></svg><span class="history-spark-caption"><span>Loading history…</span><span class="history-arrow"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></span></span>';
-    card.append(spark);
-    card.addEventListener('click', () => openHistory(metric));
-    card.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openHistory(metric); } });
-    cards.push({ card, spark, metric });
+    (plot || card).append(spark);
+    cards.push({ card, controls, spark, metric });
   }
 
   const dialog = document.createElement('dialog');
@@ -110,7 +118,12 @@
   const close = () => dialog.close();
   dialog.querySelector('.history-close').addEventListener('click', close);
   dialog.addEventListener('click', event => { if (event.target === dialog) { const box = dialog.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) close(); } });
-  dialog.addEventListener('close', () => { cancelNavigation(); modalRequest?.abort(); activeSeries = loadedSeries = null; chartGeometry = null; dialog.style.removeProperty('height'); });
+  dialog.addEventListener('close', () => {
+    // close is queued: another reading can reopen the dialog before it fires.
+    // That older event must not abort or clear the newly opened history view.
+    if (dialog.open) return;
+    cancelNavigation(); modalRequest?.abort(); activeSeries = loadedSeries = null; chartGeometry = null; dialog.style.removeProperty('height');
+  });
   window.addEventListener('resize', () => {
     if (dialog.open && historyBody.dataset.state === 'ready') {
       dialog.style.removeProperty('height'); holdDialogSize();
@@ -131,7 +144,7 @@
     if (selected) $('historyMetric').value = selected;
     for (const entry of cards) {
       const metric = catalog.find(m => m.id === entry.metric);
-      if (metric) entry.card.setAttribute('aria-label', `View ${metric.label.toLowerCase()} history`);
+      if (metric) for (const control of entry.controls) control.setAttribute('aria-label', `View ${metric.label.toLowerCase()} history`);
     }
   }
   async function refreshTrends() {
@@ -661,6 +674,27 @@
     }
   });
   for (const entry of cards.filter(c => c.metric === 'condamine-warwick-level')) waterResize.observe(entry.spark);
+  function renderWaterTimes(readings) {
+    const metricFor = new Map(waterBindings);
+    for (const group of document.querySelectorAll('[data-water-times]')) {
+      const times = [...group.querySelectorAll('[data-water-label]')];
+      const rows = times.map(time => readings[metricFor.get(time.id.replace(/Time$/, ''))]);
+      const first = rows[0], shared = group.querySelector('.water-time-shared');
+      // A matching formatted minute/date alone is not enough. Keep separate
+      // labels whenever the actual observations or availability states differ.
+      const same = rows.length > 1 && rows.every(row => Number.isFinite(row?.value) && Number.isFinite(row?.t) &&
+        row.t === first?.t && Boolean(row.lastAvailable) === Boolean(first.lastAvailable) &&
+        (row.latestValueAvailable !== false) === (first.latestValueAvailable !== false) &&
+        (row.latestObservedAt ?? row.t) === (first.latestObservedAt ?? first.t)) &&
+        times.every(time => time.dataset.reportText === times[0].dataset.reportText);
+      shared.hidden = !same;
+      shared.textContent = same ? times[0].dataset.reportText : '';
+      for (const time of times) {
+        time.hidden = same;
+        time.textContent = time.dataset.waterLabel + ': ' + time.dataset.reportText;
+      }
+    }
+  }
   async function refreshWater() {
     if (!$('localWater') || loadingWater) return;
     loadingWater = true;
@@ -673,10 +707,12 @@
         if (updated) updated.textContent = id.startsWith('connolly-') ?
           (Number.isFinite(row?.value) ? (row.lastAvailable ? 'Last available council report · ' : 'Council report · ') + fullDateFormat.format(row.t) + (row.lastAvailable ? ' · latest report unavailable' : Date.now() - row.t > 14 * 86400000 ? ' · awaiting newer report' : '') : 'Awaiting council report') :
           Number.isFinite(row?.value) ? (row.lastAvailable || Date.now() - row.t > (id === 'condamine-warwick-level' ? 30 * 60000 : 3 * 3600000) ? 'Last available · ' : 'Updated · ') + stamp(row.t) + (row.lastAvailable ? ' · newest observation unavailable' : '') : 'Latest source reading unavailable';
+        if (updated) updated.dataset.reportText = updated.textContent;
         const entry = cards.find(c => c.metric === id), series = data.series.find(s => s.metric.id === id);
         if (entry && series) drawSpark(entry, series);
         else if (entry) { entry.spark.querySelector(':scope > svg').replaceChildren(); entry.spark.querySelector('.history-spark-caption span').textContent = 'Explore recorded history'; }
       }
+      renderWaterTimes(data.readings);
       lastBridgeReading = data.readings['condamine-warwick-level'];
       lastBridgeReference = data.catalog.find(m => m.id === 'condamine-warwick-level')?.bridge;
       renderBridge(Boolean(data.imports['condamine-warwick-live']?.error));

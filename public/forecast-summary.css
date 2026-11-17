@@ -19,7 +19,8 @@
 .forecast-summary-metrics strong { color:var(--forecast-blue); font-size:29px; line-height:1.15; letter-spacing:-.7px; font-weight:720; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .forecast-summary-metrics strong > small { font-size:.58em; font-weight:600; letter-spacing:0; }
 .forecast-summary-metrics .forecast-summary-temperature strong { color:var(--text); font-size:25px; padding-top:3px; }
-.forecast-summary-temperature strong > span { color:var(--muted); font-size:.8em; font-weight:600; letter-spacing:-.4px; }
+.forecast-summary-temperature-value,.forecast-summary-temperature-separator { color:var(--muted); }
+.forecast-summary-temperature strong > .forecast-summary-temperature-low,.forecast-summary-temperature strong > .forecast-summary-temperature-separator { font-size:.8em; font-weight:600; letter-spacing:-.4px; }
 .forecast-summary-signal { margin:13px 0 0; color:var(--muted); font-size:12px; line-height:1.45; font-weight:600; overflow-wrap:anywhere; }
 .forecast-summary[data-storm="forecast"] .forecast-summary-signal { color:var(--amber,#f2c467); }
 .forecast-summary[data-storm="forecast"] .forecast-summary-signal::before { content:"ϟ"; display:inline-block; margin-right:5px; font-size:17px; line-height:.8; font-weight:800; vertical-align:-1px; }

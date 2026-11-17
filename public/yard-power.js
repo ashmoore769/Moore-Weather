@@ -1,6 +1,35 @@
 /* Independent Yard Power dashboard. No simulated live readings. */
 (function () {
   'use strict';
+  // Presentation follows the accepted telemetry ranges; invalid/missing values
+  // stay neutral and are never converted to an apparent zero measurement.
+  const metricMap = [
+    ['batteryVoltageV', 'yardBatteryV', 2, 0, 100],
+    ['pvVoltageV', 'yardPvV', 2, 0, 200],
+    ['pvPowerW', 'yardPvPower', 2, 0, 20000],
+    ['chargeCurrentA', 'yardChargeA', 2, 0, 200],
+    ['controllerLoadPowerW', 'yardLoadPower', 2, 0, 20000],
+    ['controllerTempC', 'yardControllerTemp', 1, -50, 125],
+  ];
+  const validReading = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
+  function readingPresentation(sample) {
+    const readings = Object.fromEntries(metricMap.map(([key, id, digits, min, max]) => {
+      const value = validReading(sample?.[key], min, max) ? sample[key] : null;
+      return [id, { value, text: value === null ? '–' : value.toFixed(digits), color: '' }];
+    }));
+    const battery = readings.yardBatteryV.value, charge = readings.yardChargeA.value;
+    readings.yardBatteryV.color = battery === null ? '' : battery >= 12.9 ? 'var(--battery-good)' : 'var(--amber)';
+    const load = sample?.controllerLoadCurrentA;
+    readings.yardChargeA.title = '';
+    // Both measurements are amperes. Controller load excludes any inverter
+    // wired directly to the battery; displayed load watts cannot substitute.
+    if (battery !== null && battery < 13.8 && charge !== null && validReading(load, 0, 200)) {
+      readings.yardChargeA.color = charge > load ? 'var(--battery-good)' : 'var(--battery-bad)';
+      readings.yardChargeA.title = 'Charge ' + charge.toFixed(2) + ' A compared with controller load ' + load.toFixed(2) + ' A only. Directly connected inverter loads are excluded.';
+    }
+    return readings;
+  }
+  if (typeof module === 'object' && module.exports) { module.exports = { readingPresentation }; return; }
   const card = document.getElementById('yardPower');
   if (!card) return;
   const status = document.getElementById('yardPowerStatus');
@@ -9,14 +38,6 @@
   const historySummary = document.getElementById('yardPowerHistoryDetail');
   const graph = document.getElementById('yardPowerChart');
   const controls = [...card.querySelectorAll('[data-yard-range]')];
-  const metricMap = [
-    ['batteryVoltageV', 'yardBatteryV', 2],
-    ['pvVoltageV', 'yardPvV', 2],
-    ['pvPowerW', 'yardPvPower', 2],
-    ['chargeCurrentA', 'yardChargeA', 2],
-    ['controllerLoadPowerW', 'yardLoadPower', 2],
-    ['controllerTempC', 'yardControllerTemp', 1],
-  ];
   const TIMEOUT_MS = 10000;
   let current = null;
   let range = '24h';
@@ -32,12 +53,10 @@
     const timestamp = Date.parse(value || '');
     return Number.isFinite(timestamp) ? formatTime.format(timestamp) + ' AEST' : 'Unavailable';
   };
-  const valueText = (value, digits) => Number.isFinite(value) ? value.toFixed(digits) : '–';
   const element = id => document.getElementById(id);
-  const setText = (id, value) => { const target = element(id); if (target) target.textContent = value; };
   const escapeSvg = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const series = [
-    { field: 'batteryVoltageV', css: 'yard-line', axis: 'V', label: 'Battery voltage', short: 'Battery' },
+    { field: 'batteryVoltageV', css: 'yard-line yard-line-battery', axis: 'V', label: 'Battery voltage', short: 'Battery' },
     { field: 'pvVoltageV', css: 'yard-line yard-line-panel', axis: 'V', label: 'PV voltage', short: 'PV' },
     { field: 'pvPowerW', css: 'yard-line yard-line-power', axis: 'W', label: 'Solar generation', short: 'Solar' },
     { field: 'controllerLoadPowerW', css: 'yard-line yard-line-load', axis: 'W', label: 'Controller load', short: 'Load' }
@@ -128,7 +147,13 @@
   }
 
   function paint() {
-    for (const [key, id, digits] of metricMap) setText(id, valueText(current?.[key], digits));
+    for (const [id, reading] of Object.entries(readingPresentation(current))) {
+      const target = element(id);
+      if (!target) continue;
+      target.textContent = reading.text;
+      target.style.color = reading.color;
+      if ('title' in reading) target.title = reading.title;
+    }
     if (enabled !== true) return;
     const observed = Date.parse(current?.observedAt || '');
     const diff = Number.isFinite(observed) ? Date.now() - observed : Infinity;

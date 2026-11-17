@@ -1,71 +1,82 @@
-/* Group related sources without changing their graph scales or reference lines. */
-.local-water { container: water-layout / inline-size; margin: 14px 0 12px; color: var(--text); }
-.water-groups { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; align-items: start; }
-.water-group { --water-accent:#6da3c4; container: water-group / inline-size; min-width:0; padding:16px; border:1px solid var(--border); border-top:3px solid var(--water-accent); border-radius:var(--card-radius,18px); background:var(--surface); box-shadow:var(--shadow-soft); }
-.water-rivers { --water-accent:#54b3a6; }
-.water-group-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+/* Compact summaries share a full-width graph without changing its scale or references. */
+.local-water { container:water-layout / inline-size; margin:14px 0 12px; color:var(--text); }
+.water-groups { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
+.water-group { --water-accent:#78b6d8; container:water-group / inline-size; min-width:0; padding:14px; border:1px solid var(--border); border-top:3px solid var(--water-accent); border-radius:var(--card-radius,18px); background:var(--surface); box-shadow:var(--shadow-soft); }
+.water-rivers { --water-accent:#63c6b7; }
+.water-group-header { display:flex; align-items:center; gap:10px; margin-bottom:11px; }
 .water-group-title { display:flex; align-items:center; gap:9px; min-width:0; }
-.water-group-title > svg { flex:none; width:22px; height:22px; fill:none; stroke:var(--water-accent); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.water-group-title h2 { margin:0; color:var(--text); font-size:17px; font-weight:720; letter-spacing:-.2px; }
-.water-group-title p { margin:3px 0 0; color:var(--muted); font-size:11px; line-height:1.4; }
-.water-eyebrow { display:block; font-size:9px; font-weight:750; text-transform:uppercase; letter-spacing:.65px; color:var(--muted); }
-.water-site { font-size:9px; font-weight:650; color:var(--muted); flex-shrink:0; padding:4px 6px; border:1px solid var(--border); border-radius:6px; white-space:nowrap; }
-.water-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
-.water-panel { display:flex; flex-direction:column; min-width:0; padding:15px; border:1px solid var(--border); border-radius:12px; background:var(--surface-soft); }
-.water-panel > header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:14px; }
+.water-group-title > svg { box-sizing:border-box; flex:none; width:32px; height:32px; padding:5px; border:1px solid color-mix(in srgb,var(--water-accent) 28%,var(--border)); border-radius:9px; background:color-mix(in srgb,var(--water-accent) 8%,var(--surface)); fill:none; stroke:var(--water-accent); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.water-group-title h2 { margin:0; color:var(--text); font-size:17px; font-weight:780; letter-spacing:-.2px; }
+.water-group-title p { margin:2px 0 0; color:var(--muted); font-size:10px; line-height:1.4; }
+.water-eyebrow { display:block; font-size:9px; line-height:1.4; font-weight:750; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
+.water-site { font-size:9px; font-weight:650; color:var(--muted); flex-shrink:0; padding:3px 5px; border:1px solid var(--border); border-radius:6px; white-space:nowrap; }
+.water-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; align-items:start; }
+.water-panel { --water-colour:var(--water-accent); container:water-panel / inline-size; display:flex; flex-direction:column; min-width:0; padding:12px; border:1px solid color-mix(in srgb,var(--water-colour) 18%,var(--border)); border-radius:12px; background:linear-gradient(125deg,color-mix(in srgb,var(--water-colour) 4%,var(--surface-soft)),var(--surface-soft) 65%); }
+.water-panel > header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
 .water-panel > header > div { min-width:0; }
-.water-panel h3 { margin:4px 0 0; font-size:17px; line-height:1.3; font-weight:740; letter-spacing:-.25px; }
-.water-reading { display: block; border-radius: 8px; padding: 4px 0; min-width: 0; }
-.water-label { display:block; color:var(--muted); font-size:11px; font-weight:650; line-height:1.4; }
-.water-reading strong { display:block; font-variant-numeric:tabular-nums; font-weight:740; letter-spacing:-1px; }
-.water-hero strong { font-size:40px; line-height:1.25; margin:3px 0; }
-.water-reading strong small { margin-left: 8px; font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
-.water-time { display: block; min-height: 16px; font-size: 10px; line-height: 1.5; color: var(--muted); }
-.water-hero .history-spark > svg { height: 64px; }
-.water-warwick .water-hero .history-spark > svg { height: 174px; overflow: hidden; }
-.water-reference-label { font: 10px var(--font-sans, system-ui, sans-serif); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
-.water-axis-label { fill: var(--muted); font: 10px var(--font-sans, system-ui, sans-serif); }
-.water-volume { margin-top: 16px; border-top: 1px solid var(--border); border-radius: 0; padding-top: 14px; }
-.water-volume strong { font-size: 27px; margin: 3px 0; }
-.water-volume .history-spark > svg { display: none; }
-.water-capacity { margin: 14px 0 12px; font-size: 10px; line-height: 1.55; color: var(--muted); }
-.water-reference-note { margin-top: 10px; }
-.water-bridge { margin: 14px 0 0; padding: 12px 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); }
-.water-bridge strong { display: block; font-size: clamp(17px, 1.8vw, 22px); font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.3; }
-.water-bridge > span { display: block; color: var(--muted); font-size: 10px; line-height: 1.5; margin-top: 4px; }
-.water-bridge[data-state="above"], .water-bridge[data-state="at"] { border-color: #df808b; }
-.water-bridge[data-state="stale"] { border-style: dashed; }
-.water-panel footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 12px; margin-top: auto; border-top: 1px solid var(--border); font-size: 10px; line-height: 1.5; color: var(--muted); }
-.water-panel a { display:inline-flex; align-items:center; gap:4px; color:var(--accent); text-decoration:none; }
-.water-panel a:hover { text-decoration: underline; }
+.water-panel h3 { margin:2px 0 0; font-size:17px; line-height:1.25; font-weight:760; letter-spacing:-.25px; }
+.water-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.water-summary-single { grid-template-columns:minmax(0,1fr); }
+.water-reading { display:block; border-radius:5px; padding:3px 0; min-width:0; }
+.water-label { display:flex; align-items:center; gap:5px; min-height:16px; color:var(--muted); font-size:10px; font-weight:700; line-height:1.35; }
+.water-label > svg { flex:none; width:14px; height:14px; fill:none; stroke:var(--history-color,var(--water-colour)); stroke-width:1.65; stroke-linecap:round; stroke-linejoin:round; }
+.water-history-cue { display:inline-flex; flex:none; margin-left:auto; color:var(--history-color,var(--water-colour)); }
+.water-history-cue > svg { width:9px; height:9px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+.water-reading strong { display:flex; flex-wrap:wrap; align-items:baseline; column-gap:5px; min-height:36px; margin:2px 0 0; color:var(--history-color,var(--water-colour)); font-size:clamp(26px,10cqi,30px); line-height:1.16; font-variant-numeric:tabular-nums; font-weight:760; letter-spacing:-.7px; }
+.water-reading strong > span { white-space:nowrap; }
+.water-reading strong small { font-size:11px; line-height:1.3; font-weight:600; letter-spacing:0; color:var(--muted); white-space:nowrap; }
+.water-volume { border-left:1px solid var(--border); border-radius:0; padding-left:12px; }
+.water-volume strong { font-size:clamp(22px,8.3cqi,26px); letter-spacing:-.55px; }
+/* Secondary measurements keep their value/history button; only the primary has a preview. */
+.water-summary .history-spark { display:none; }
+.water-observed { margin-top:1px; }
+.water-time { display:block; min-height:14px; font-size:10px; line-height:1.4; color:var(--muted); }
+.water-time[hidden] { display:none; }
+.water-history { min-width:0; margin-top:6px; padding-top:7px; border-top:1px solid var(--border); border-radius:4px; }
+.water-history .history-spark { margin-top:0; }
+.water-history .history-spark > svg { height:64px; }
+.water-history .history-spark-caption { margin-top:4px; line-height:1.3; }
+.water-warwick .water-history .history-spark > svg { height:174px; overflow:hidden; }
+.water-reference-label { font:10px var(--font-sans,system-ui,sans-serif); paint-order:stroke; stroke:var(--surface); stroke-width:4px; stroke-linejoin:round; }
+.water-axis-label { fill:var(--muted); font:10px var(--font-sans,system-ui,sans-serif); }
+.water-capacity { margin:8px 0; font-size:10px; line-height:1.45; color:var(--muted); }
+.water-capacity:empty { display:none; }
+.water-reference-note { margin-top:8px; }
+.water-bridge { margin:8px 0 0; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface-soft); }
+.water-bridge strong { display:block; font-size:clamp(16px,1.8vw,20px); font-weight:680; font-variant-numeric:tabular-nums; line-height:1.25; }
+.water-bridge > span { display:block; color:var(--muted); font-size:10px; line-height:1.4; margin-top:3px; }
+.water-bridge[data-state="above"], .water-bridge[data-state="at"] { border-color:#df808b; }
+.water-bridge[data-state="stale"] { border-style:dashed; }
+.water-panel footer { display:flex; justify-content:space-between; flex-wrap:wrap; gap:3px 8px; padding-top:7px; margin-top:0; border-top:1px solid var(--border); font-size:10px; line-height:1.4; color:var(--muted); }
+.water-panel a { display:inline-flex; align-items:center; gap:4px; color:var(--water-colour); text-decoration:none; }
+.water-panel a:hover { text-decoration:underline; }
 .water-external-icon { display:block; flex:none; width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
-.water-import-status { min-height: 30px; font-size: 10px; line-height: 1.6; color: var(--muted); margin: 12px 4px 0; }
-.water-delayed { color: var(--text); }
+.water-import-status { min-height:30px; font-size:10px; line-height:1.6; color:var(--muted); margin:10px 4px 0; }
+.water-delayed { color:var(--text); }
 @container water-group (min-width:500px) {
   .water-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  :is(.water-dam,.water-connolly) .water-hero .history-spark > svg { height: 108px; }
+  :is(.water-dam,.water-connolly) .water-history .history-spark > svg { height:108px; }
 }
 @container water-layout (min-width:1100px) {
   .water-groups { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 @media(max-width:600px) {
-  .water-group { padding:12px; }
+  .water-group { padding:11px; }
   .water-group-title h2 { font-size:16px; }
-  .water-panel { padding:14px; }
 }
 @media(max-width:359px) {
   .water-group { padding:10px; }
-  .water-panel { padding:12px; }
+  .water-panel { padding:10px; }
   .water-panel > header { gap:5px; }
   .water-panel h3 { font-size:16px; }
-  .water-hero strong { font-size:36px; }
+  .water-summary { gap:10px; }
+  .water-volume { padding-left:10px; }
   .water-site { font-size:8px; padding:3px 4px; }
 }
 
 /* Warning colours use current, valid readings only; stale values stay neutral. */
 .water-bridge[data-warning="true"] {
-  border-color: color-mix(in srgb, var(--bridge-warning-colour) 75%, var(--border));
-  background: linear-gradient(110deg, color-mix(in srgb, var(--bridge-warning-colour) var(--bridge-warning-tint), var(--surface)), var(--surface-soft));
+  border-color:color-mix(in srgb,var(--bridge-warning-colour) 75%,var(--border));
+  background:linear-gradient(110deg,color-mix(in srgb,var(--bridge-warning-colour) var(--bridge-warning-tint),var(--surface)),var(--surface-soft));
 }
-
 .water-import-status:empty { display:none; }

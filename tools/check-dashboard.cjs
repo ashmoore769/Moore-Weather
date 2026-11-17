@@ -41,7 +41,8 @@ function series(id, resolution, hours, finish = end) {
   return { metric, resolution, start: finish - hours * HOUR, end: finish, intervalSeconds: step / 1000,
     points, latest: points.at(-1), missing: 0, note: 'Offline fixture', subtitle: 'Saved readings · AEST' };
 }
-let mode = 'fresh', historyMode = 'fresh', requests = [];
+let mode = 'fresh', waterReadingMode = 'fresh', historyMode = 'fresh', requests = [];
+let historyResponseGate = null;
 let currentMode = 'fresh', weatherOffset = 0, skycamFailNewest = false, skycamAttempts = 0;
 let skycamEmptyNewest = false;
 let skycamIncomingSequence = 0;
@@ -67,6 +68,19 @@ function water() {
   const readings = Object.fromEntries(Object.keys(WATER).map(id => [id, { value: id === 'leslie-storage' ? 78.5 :
     id === 'connolly-storage' ? 100 : id === 'connolly-volume' ? 2166 : id === 'leslie-volume' ? 83210 : id === 'condamine-flow' ? 37.2 : id === 'condamine-level' ? 1.668 : 5.34,
     t: now - 60000, capacity: id === 'leslie-volume' ? 106000 : id === 'connolly-volume' ? 2166 : null }]));
+  for (const [primary, secondary] of [['leslie-storage','leslie-volume'],['connolly-storage','connolly-volume'],['condamine-level','condamine-flow']]) {
+    if (waterReadingMode === 'different-times') readings[secondary].t -= primary.startsWith('connolly-') ? 24 * HOUR : HOUR;
+    if (waterReadingMode === 'same-label-different-times') {
+      readings[primary].t = Math.floor((now - 60000) / 60000) * 60000 + 1000;
+      readings[secondary].t = readings[primary].t + 1;
+    }
+    if (waterReadingMode === 'different-availability') Object.assign(readings[secondary], {lastAvailable:true, latestValueAvailable:false, latestObservedAt:now});
+    if (waterReadingMode === 'missing-secondary') readings[secondary] = null;
+  }
+  if (waterReadingMode === 'long-values') {
+    readings['leslie-storage'].value = 82.54; readings['leslie-volume'].value = 106000;
+    readings['condamine-level'].value = 12.345; readings['condamine-flow'].value = 123.456;
+  }
   const row = readings['condamine-warwick-level'];
   if (mode === 'watch') row.value = 6;
   if (mode === 'near') row.value = 6.5;
@@ -140,7 +154,10 @@ const server = http.createServer((req, res) => {
         requests.push(request);
         const metric = catalog.find(m => m.id === request.metric);
         const window = chart.navigationWindow(request.end - request.hours * HOUR, request.end, [request.resolution], now, request.resolution, metric);
-        return res.end(JSON.stringify({ catalog, series: [series(metric.id, window.resolution, window.hours, window.end)] }));
+        const body = JSON.stringify({ catalog, series: [series(metric.id, window.resolution, window.hours, window.end)] });
+        const reply = () => { if (!res.destroyed) res.end(body); };
+        if (historyResponseGate) { historyResponseGate.then(reply); return; }
+        return reply();
       } catch (e) { res.statusCode = 400; return res.end(JSON.stringify({ error: e.message })); }
     }
     res.statusCode = 404; return res.end('{}');
@@ -173,6 +190,22 @@ async function historyReady(page, resolution, hours) {
     document.querySelector('[data-resolution="' + resolution + '"]')?.getAttribute('aria-pressed') === 'true' &&
     (hours === undefined || document.querySelector('#historyRange').value === String(hours)), { resolution, hours });
 }
+async function queuedHistoryReopen(page, selector) {
+  // Hold the new response until the previous dialog's queued close event has
+  // fired, so this checks the cleanup race independently of network timing.
+  let release;
+  historyResponseGate = new Promise(resolve => { release = resolve; });
+  try {
+    await page.evaluate(async selector => {
+      const dialog = document.querySelector('.history-dialog');
+      const closed = new Promise(resolve => dialog.addEventListener('close',resolve,{once:true}));
+      dialog.querySelector('.history-close').click();
+      const control = document.querySelector(selector); control.focus();
+      control.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
+      await closed;
+    },selector);
+  } finally { historyResponseGate = null; release(); }
+}
 
 async function readablePalette(page) {
   const result = await page.evaluate(() => {
@@ -204,7 +237,7 @@ async function readablePalette(page) {
   assert.ok(result.series.every(value => value >= 3),'Graph lines must remain distinct from their cards');
 }
 
-async function bounds(page, width) {
+async function bounds(page, width, compact = false) {
   const boxes = await page.evaluate(() => {
     const rect = selector => { const r = document.querySelector(selector).getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height }; };
     const refs = [...document.querySelectorAll('.water-reference-label')].map(n => {
@@ -212,9 +245,18 @@ async function bounds(page, width) {
     });
     const readings = ['.water-scots','.water-warwick','.water-dam','.water-connolly'].map(selector => ({
       panel: rect(selector), label: rect(selector + ' .water-hero .water-label'),
-      value: rect(selector + ' .water-hero strong')
+      value: rect(selector + ' .water-hero strong'), summary:rect(selector + ' .water-summary'),
+      observed:rect(selector + ' .water-observed'), plot:rect(selector + ' .water-history'),
+      plotSvg:rect(selector + ' .water-history .history-spark > svg'),
+      secondary:document.querySelector(selector + ' .water-volume') ? rect(selector + ' .water-volume') : null,
+      primary:rect(selector + ' .water-hero'),
+      valueColour:getComputedStyle(document.querySelector(selector + ' .water-hero strong')).color,
+      lineColour:document.querySelector(selector + ' .history-series-line') ? getComputedStyle(document.querySelector(selector + ' .history-series-line')).stroke : null,
+      controls:[...document.querySelectorAll(selector + ' .water-reading,' + selector + ' .water-history')].map(n => ({role:n.getAttribute('role'), tabIndex:n.tabIndex, dialog:n.getAttribute('aria-haspopup')}))
     }));
-    return { readings, bridge: rect('#warwickBridge'), warwickReading: rect('.water-warwick .water-hero'),
+    const clipped = [...document.querySelectorAll('.water-label,.water-reading strong,.water-time:not([hidden]),.water-panel footer > *,.water-capacity,.water-site')]
+      .filter(n => n.scrollWidth > n.clientWidth + 1).map(n => ({text:n.textContent, scroll:n.scrollWidth, width:n.clientWidth}));
+    return { readings, clipped, bridge: rect('#warwickBridge'), warwickPlot: rect('.water-warwick .water-history'),
       referenceNote: rect('#warwickReferenceNote'),
       warwick: rect('.water-warwick'), dam: rect('.water-dam'), scots: rect('.water-scots'),
       connolly: rect('.water-connolly'), groups:rect('.water-groups'), dams:rect('#damLevels'), rivers:rect('#riverLevels'),
@@ -227,8 +269,27 @@ async function bounds(page, width) {
     assert.ok(b.x >= -1 && b.right <= width + 1, JSON.stringify({ width, boxes }));
   }
   assert.equal(boxes.overflow, false, 'Page must not scroll horizontally at ' + width);
-  assert.ok(boxes.bridge.y >= boxes.warwickReading.bottom, 'Bridge clearance must follow the river graph');
+  assert.deepEqual(boxes.clipped, [], 'Water readings, timestamps and source details remain fully visible');
+  assert.ok(boxes.bridge.y >= boxes.warwickPlot.bottom, 'Bridge clearance must follow the river graph');
   assert.ok(boxes.referenceNote.y >= boxes.bridge.bottom, 'Bridge reference must follow the clearance');
+  for (const reading of boxes.readings) {
+    const {primary, secondary, summary, observed, plot, valueColour, lineColour} = reading;
+    if (secondary) assert.ok(primary.right <= secondary.x && Math.abs(primary.y - secondary.y) < 1,
+      'Paired measurements share one summary row: ' + JSON.stringify(reading));
+    assert.ok(observed.y >= summary.bottom && plot.y >= observed.bottom, 'All observation times precede the full-width water plot');
+    assert.ok(Math.abs(plot.x-summary.x)<1 && Math.abs(plot.width-summary.width)<1, 'Water plots retain the full summary width');
+    if (lineColour) assert.equal(valueColour,lineColour,'Primary water values match the graph colour');
+    for (const control of reading.controls) assert.deepEqual(control,{role:'button',tabIndex:0,dialog:'dialog'},'Each metric and plot remains an accessible history control');
+  }
+  assert.equal(boxes.svg.height,174,'Warwick retains the full-height flood and bridge reference plot');
+  const damPlotHeight = boxes.damGrid.width >= 500 ? 108 : 64;
+  for (const reading of boxes.readings.slice(2)) assert.equal(reading.plotSvg.height,damPlotHeight,'Dam plot height is retained');
+  assert.equal(boxes.readings[0].plotSvg.height,64,'Scots College plot height is retained');
+  if (compact && width <= 393) {
+    for (const [name,panel,max] of [['Leslie',boxes.dam,320],['Connolly',boxes.connolly,325],['Scots College',boxes.scots,330],['Warwick',boxes.warwick,525]]) {
+      assert.ok(panel.height <= max,name+' card exceeds its compact mobile height budget: '+JSON.stringify({width,panel,max}));
+    }
+  }
   for(let i=0;i<boxes.readings.length;i++) for(let j=i+1;j<boxes.readings.length;j++) {
     const a=boxes.readings[i], b=boxes.readings[j];
     if(Math.abs(a.panel.y-b.panel.y)<1) {
@@ -251,6 +312,49 @@ async function bounds(page, width) {
     r.y >= boxes.svg.y - 1 && r.bottom <= boxes.svg.bottom + 1, 'Reference label clipped: ' + JSON.stringify({ r, svg: boxes.svg }));
   const sorted = boxes.refs.sort((a, b) => a.y - b.y);
   for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i].y >= sorted[i - 1].bottom, 'Reference labels overlap');
+}
+async function waterTimestampStates(page, width) {
+  const states = width === 320 ? ['long-values'] : ['different-times','same-label-different-times','different-availability','missing-secondary'];
+  const refresh = async state => {
+    waterReadingMode = state;
+    const response = page.waitForResponse(r => new URL(r.url()).pathname === '/api/water');
+    await page.evaluate(() => window.__refreshCallbacks.forEach(fn => fn()));
+    await (await response).finished();
+    await page.waitForFunction(state => {
+      const groups = [...document.querySelectorAll('[data-water-times]')];
+      if (state === 'fresh') return groups.every(group => !group.querySelector('.water-time-shared').hidden);
+      if (state === 'long-values') return document.getElementById('leslieStorage').textContent === '82.54' && document.getElementById('condamineFlow').textContent === '123.456';
+      return groups.every(group => {
+        const times = [...group.querySelectorAll('[data-water-label]')];
+        if (!group.querySelector('.water-time-shared').hidden || times.some(time => time.hidden)) return false;
+        if (state === 'same-label-different-times') return times[0].dataset.reportText === times[1].dataset.reportText;
+        if (state === 'different-availability') return /unavailable/.test(times[1].textContent);
+        if (state === 'missing-secondary') return document.getElementById(times[1].id.replace(/Time$/, '')).textContent === '—';
+        return times[0].dataset.reportText !== times[1].dataset.reportText;
+      });
+    }, state);
+  };
+  try {
+    for (const state of states) {
+      await refresh(state);
+      if (state !== 'long-values') {
+        const groups = await page.locator('[data-water-times]').evaluateAll(nodes => nodes.map(group => ({
+          shared:getComputedStyle(group.querySelector('.water-time-shared')).display,
+          times:[...group.querySelectorAll('[data-water-label]')].map(time => ({label:time.dataset.waterLabel,text:time.textContent,display:getComputedStyle(time).display}))
+        })));
+        for (const group of groups) {
+          assert.equal(group.shared,'none','Distinct or unavailable observations must not share a report timestamp');
+          for (const time of group.times) {
+            assert.notEqual(time.display,'none','Both observation timestamps remain visible');
+            assert.ok(time.text.startsWith(time.label+': '),'Split timestamps identify their measurement');
+          }
+        }
+      }
+      await bounds(page,width);
+    }
+  } finally {
+    await refresh('fresh');
+  }
 }
 async function currentReadingsLayout(page, state = 'fresh') {
   try { await assertCurrentReadingsLayout(page, state); }
@@ -601,7 +705,7 @@ async function failurePaths(page, browserName) {
           const page = await context.newPage(), errors = [];
           page.on('pageerror', error => errors.push(error.message));
           for (const pagePath of process.env.DASHBOARD_SKYCAM_ONLY ? ['/index.html'] : ['/index.html', '/daily.html']) {
-            mode = 'fresh'; historyMode = 'fresh'; currentMode='fresh'; weatherOffset=0;skycamFailNewest=false;
+            mode = 'fresh'; waterReadingMode = 'fresh'; historyMode = 'fresh'; currentMode='fresh'; weatherOffset=0;skycamFailNewest=false;
             await page.goto(origin + pagePath); await ready(page);
             await assertDark(page);
             await page.evaluate(() => {
@@ -652,7 +756,7 @@ async function failurePaths(page, browserName) {
             }
             await page.locator('.local-water').scrollIntoViewIfNeeded();
             await page.waitForTimeout(80);
-            await bounds(page, width);
+            await bounds(page, width, true);
             if(pagePath.includes('index')) await reviewScreenshot(page,engine,width,'water-levels','#localWater');
             await navigation(page,width);
             await readablePalette(page);
@@ -660,10 +764,32 @@ async function failurePaths(page, browserName) {
             assert.match(await page.locator('#connollyStorageTime').textContent(), /Council report/);
             assert.match(await page.locator('#connollySourceCheck').textContent(), /Source checked/);
             assert.equal(await page.locator('#connollyVolume').textContent(), '2,166');
+            assert.match(await page.locator('#leslieCapacity').textContent(), /106,000 ML/);
+            assert.match(await page.locator('#connollyCapacity').textContent(), /2,166 ML/);
+            assert.equal(await page.locator('[data-water-times] .water-time-shared:visible').count(),3,'Matching source timestamps appear once per paired summary');
+            assert.equal(await page.locator('[data-water-label]:visible').count(),0,'Duplicate matching timestamps do not add height');
+            assert.equal(await page.locator('#connollySourceCheck').isVisible(),true,'Source check time remains separate from the council report date');
+            assert.deepEqual(await page.locator('.water-panel footer a').evaluateAll(nodes => nodes.map(n=>n.href)),[
+              'https://www.sunwater.com.au/dams/leslie-dam/',
+              'https://www.sdrc.qld.gov.au/living-here/environment-water-waste/dam-levels',
+              'https://water-monitoring.information.qld.gov.au/',
+              'https://www.bom.gov.au/fwo/IDQ65396/IDQ65396.041534.tbl.shtml'
+            ]);
+            if (width === 320 || width === 393) await waterTimestampStates(page,width);
             await page.locator('#connollyStorage').click(); await historyReady(page, 'daily', 720);
             assert.equal(requests.at(-1).metric, 'connolly-storage');
             assert.equal(await page.locator('[data-resolution="hourly"]').isDisabled(), true);
             await page.locator('.history-close').click();
+            if (width === 393) {
+              await page.locator('.water-connolly .water-volume').press('Enter'); await historyReady(page,'daily',720);
+              assert.equal(requests.at(-1).metric,'connolly-volume','Secondary water measurements keep keyboard history access');
+              await page.locator('.history-close').click();
+              await page.locator('.water-scots .water-history').press('Enter'); await historyReady(page,'hourly',168);
+              assert.equal(requests.at(-1).metric,'condamine-level','The full-width plot retains keyboard history access');
+              await queuedHistoryReopen(page,'.water-scots .water-history'); await historyReady(page,'hourly',168);
+              assert.equal(requests.at(-1).metric,'condamine-level','A queued close event cannot abort the newly opened history view');
+              await page.locator('.history-close').click();
+            }
             assert.equal(await page.locator('#warwickBridgeValue').textContent(), '1.66m (Below Bridge)');
             assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), 'false');
             if (pagePath.includes('index')) {

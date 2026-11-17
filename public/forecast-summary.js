@@ -2,7 +2,8 @@
   'use strict';
   const commonJS = typeof module === 'object' && module.exports;
   const model = commonJS ? require('./forecast-summary-model.js') : root.MooreForecastSummary;
-  const api = factory(model);
+  const temperatureColours = commonJS ? require('./temperature-colours.js') : root.MooreTemperatureColours;
+  const api = factory(model, temperatureColours);
   if (commonJS) module.exports = api;
   else {
     root.MooreForecastSummaryCard = api;
@@ -11,7 +12,7 @@
       if (controller) controller.start();
     }
   }
-})(typeof globalThis === 'object' ? globalThis : this, function (defaultModel) {
+})(typeof globalThis === 'object' ? globalThis : this, function (defaultModel, temperatureColours) {
   'use strict';
 
   const PAINT_MS = 30000, REQUEST_TIMEOUT_MS = 15000, RETRY_MIN_MS = 60000, RETRY_MAX_MS = 300000;
@@ -30,6 +31,13 @@
   const rainText = value => !finite(value) ? EMPTY : value > 0 && value < 0.1 ? '<0.1' : value.toFixed(value >= 100 ? 0 : 1);
   const temperatureText = value => finite(value) ? String(Math.round(value)) + '°' : EMPTY;
   const percentText = value => finite(value) ? String(Math.round(value)) + '%' : EMPTY;
+
+  function temperatureMarkup(value, className, title = '') {
+    const color = finite(value) ? temperatureColours?.getTemperatureColorAndDesc(value).color : null;
+    return '<span class="forecast-summary-temperature-value ' + className + '"' +
+      (color ? ' style="color:' + escape(color) + '"' : '') +
+      (title ? ' title="' + escape(title) + '"' : '') + '>' + escape(temperatureText(value)) + '</span>';
+  }
 
   function dayLabel(milliseconds, now) {
     const difference = dayKey(milliseconds) - dayKey(now);
@@ -225,10 +233,10 @@
         attribute(plot, 'aria-valuetext', loading ? 'Forecast loading' : 'Forecast unavailable');
         return;
       }
-      const rain = rainText(selection.rainMm), chance = percentText(selection.chancePercent), temp = temperatureText(selection.tempC);
+      const rain = rainText(selection.rainMm), chance = percentText(selection.chancePercent);
       const interval = intervalText(selection, now());
       const temperatureTitle = 'Temperature at ' + formatTime(selection.endMs) + ' AEST';
-      html('forecastSummaryInspect', '<strong>' + escape(interval) + '</strong><span class="forecast-summary-inspect-rain">' + escape(rain) + (rain === EMPTY ? ' mm' : ' mm rain') + '</span><span>' + escape(chance) + ' chance</span><span title="' + escape(temperatureTitle) + '">' + escape(temp) + '</span>');
+      html('forecastSummaryInspect', '<strong>' + escape(interval) + '</strong><span class="forecast-summary-inspect-rain">' + escape(rain) + (rain === EMPTY ? ' mm' : ' mm rain') + '</span><span>' + escape(chance) + ' chance</span>' + temperatureMarkup(selection.tempC, 'forecast-summary-inspect-temperature', temperatureTitle));
       const spoken = dayLabel(selection.startMs, now()) + ', ' + formatTime(selection.startMs) + ' to ' + formatTime(selection.endMs) + ' AEST; '
         + (finite(selection.rainMm) ? (selection.rainMm < 0.1 && selection.rainMm > 0 ? 'less than 0.1' : selection.rainMm.toFixed(1)) + ' millimetres rain' : 'rain amount unavailable') + '; '
         + (finite(selection.chancePercent) ? Math.round(selection.chancePercent) + ' percent rain chance' : 'rain chance unavailable') + '; '
@@ -254,7 +262,8 @@
       if (summary.usable) {
         html('forecastSummaryRain', escape(rainText(summary.rain.totalMm)) + (finite(summary.rain.totalMm) ? '<small> mm</small>' : ''));
         text('forecastSummaryChance', percentText(summary.rain.peakChancePercent));
-        html('forecastSummaryTemps', escape(temperatureText(summary.temperature.highC)) + '<span> / ' + escape(temperatureText(summary.temperature.lowC)) + '</span>');
+        html('forecastSummaryTemps', temperatureMarkup(summary.temperature.highC, 'forecast-summary-temperature-high') +
+          '<span class="forecast-summary-temperature-separator"> / </span>' + temperatureMarkup(summary.temperature.lowC, 'forecast-summary-temperature-low'));
         if (summary.storms.signal === 'forecast') {
           const firstWindow = summary.storms.windows?.[0] || { firstAtMs: summary.storms.firstAtMs, lastAtMs: summary.storms.lastAtMs };
           text('forecastSummarySignal', 'Thunderstorms possible · ' + pointWindowText(firstWindow, currentTime) + (summary.storms.windows?.length > 1 ? ' + later' : ''));

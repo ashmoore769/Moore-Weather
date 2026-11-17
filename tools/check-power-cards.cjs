@@ -351,6 +351,13 @@ const server = http.createServer((req, res) => {
                   const key = document.querySelector('.station-power-key-' + id);
                   return { id, colour: getComputedStyle(key).color, pattern: getComputedStyle(key, '::before').backgroundImage };
                 }),
+                yardCues: [['battery', 'battery', 'battery'], ['panel', 'panel', 'panel'], ['solar', 'power', 'solar'], ['load', 'load', 'load']]
+                  .map(([metric, line, key]) => ({ metric,
+                    icon: getComputedStyle(yard.querySelector('[data-yard-metric="' + metric + '"] .yard-power-label svg')).stroke,
+                    line: getComputedStyle(yard.querySelector('path.yard-line-' + line)).stroke,
+                    label: getComputedStyle(yard.querySelector('.yard-legend-' + key)).color,
+                    legend: getComputedStyle(yard.querySelector('.yard-legend-' + key), '::before').backgroundColor })),
+                yardIcons: [...yard.querySelectorAll('.yard-power-label svg')].map(icon => getComputedStyle(icon).stroke),
                 viewportWidth: document.documentElement.clientWidth
               };
             });
@@ -379,6 +386,15 @@ const server = http.createServer((req, res) => {
               assert.equal(key.pattern !== 'none', dashed, 'legend swatches distinguish dashed and solid traces');
             }
             const yardLoad = connected.yard.paths.find(trace => trace.classes.includes('yard-line-load'));
+            assert.equal(new Set(connected.yard.paths.map(trace => trace.stroke)).size, 4, 'Yard traces remain four distinct measurements');
+            for (const cue of visual.yardCues) {
+              assert.equal(cue.icon, cue.line, cue.metric + ' icon matches its Yard graph line');
+              assert.equal(cue.label, cue.line, cue.metric + ' legend text matches its Yard graph line');
+              assert.equal(cue.legend, cue.line, cue.metric + ' legend matches its Yard graph line');
+            }
+            assert.equal(visual.yardCues.find(cue => cue.metric === 'battery').line, visual.stationKeys.find(key => key.id === 'battery').colour,
+              'battery uses the same green in both power modules');
+            assert.equal(new Set(visual.yardIcons).size, 6, 'all six Yard metric icons have deliberate distinct colour cues');
             assert.ok(yardLoad.strokeWidth > 0 && yardLoad.strokeWidth < 1.5, 'Yard load uses a fine line');
             assert.ok(connected.yard.paths.filter(trace => trace !== yardLoad).every(trace => trace.strokeWidth === 2),
               'other Yard series retain their existing line weight');
