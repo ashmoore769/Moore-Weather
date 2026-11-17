@@ -1,0 +1,52 @@
+/* Yard Power, independent of weather station power and Fronius. */
+.yard-power-card { margin-top:12px; padding:18px 20px; border-top:3px solid var(--brand-2,var(--accent)); min-width:0; }
+.yard-power-card[hidden],.yard-power-card [hidden] { display:none !important; }
+.yard-power-card * { box-sizing:border-box; }
+.yard-power-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 15px; margin-bottom:14px; }
+.yard-power-title { display:flex; align-items:center; gap:9px; min-width:0; }
+.yard-power-title svg { width:22px; height:22px; fill:none; stroke:var(--brand-2,var(--accent)); stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+.yard-power-title h2 { margin:0; font-size:18px; letter-spacing:-.2px; }
+.yard-power-subtitle { color:var(--muted); font-size:11px; margin:4px 0 0; }
+.yard-power-state { display:flex; align-items:center; gap:9px; }
+.yard-power-status { display:inline-block; border:1px solid var(--border); border-radius:5px; background:var(--surface-soft); color:var(--muted); padding:3px 7px; font-size:10px; font-weight:750; letter-spacing:.3px; }
+.yard-power-status[data-state="fresh"] { background:var(--green-soft); color:var(--green); }
+.yard-power-status[data-state="stale"],.yard-power-status[data-state="unavailable"] { background:var(--amber-soft); color:var(--amber); }
+.yard-power-age { font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.yard-power-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.yard-power-metric { min-width:0; padding:13px 14px; background:var(--surface-soft); border:1px solid var(--border); border-radius:11px; }
+.yard-power-label { color:var(--muted); font-size:11px; font-weight:650; display:flex; align-items:center; gap:7px; line-height:1.35; }
+.yard-power-label svg { width:16px; height:16px; flex:none; stroke:var(--accent); fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.yard-power-reading { display:flex; align-items:baseline; gap:5px; margin-top:10px; font-variant-numeric:tabular-nums; }
+.yard-power-reading strong { font-size:26px; line-height:1.1; font-weight:760; letter-spacing:-.7px; color:var(--text); overflow-wrap:anywhere; }
+.yard-power-reading small { color:var(--muted); font-size:12px; }
+.yard-power-summary { color:var(--muted); font-size:11px; margin:10px 0 0; line-height:1.5; }
+.yard-power-history { margin-top:15px; border-top:1px solid var(--border); padding-top:13px; }
+.yard-power-history-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+.yard-power-history-header h3 { margin:0; font-size:13px; font-weight:700; }
+.yard-power-range { display:flex; gap:4px; }
+.yard-power-range button { border:1px solid var(--border); border-radius:6px; background:var(--surface-soft); color:var(--muted); padding:6px 11px; font:inherit; font-size:11px; font-weight:650; min-height:30px; cursor:pointer; }
+.yard-power-range button[aria-pressed="true"] { color:var(--text); border-color:var(--accent); background:var(--surface); }
+.yard-power-history-detail { font-size:11px; color:var(--muted); margin:10px 0 4px; min-height:16px; }
+.yard-power-chart { position:relative; width:100%; min-height:145px; overflow:hidden; }
+.yard-power-chart svg { display:block; width:100%; height:145px; }
+.yard-power-chart .yard-axis { fill:var(--muted); font:10px sans-serif; }
+.yard-power-chart .yard-grid { stroke:var(--border); stroke-width:1; }
+.yard-power-chart .yard-line { fill:none; stroke:var(--accent); stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+.yard-power-chart .yard-line-power { stroke:var(--green); }
+.yard-power-chart .yard-line-gap { fill:none; }
+.yard-power-legend { display:flex; flex-wrap:wrap; gap:12px; font-size:11px; color:var(--muted); margin:5px 0 0; }
+.yard-power-legend span::before { content:''; display:inline-block; width:14px; height:3px; border-radius:1px; margin:0 6px 3px 0; background:var(--accent); }
+.yard-power-legend .yard-legend-solar::before { background:var(--green); }
+.yard-power-method { color:var(--muted); font-size:11px; margin:9px 0 0; line-height:1.5; }
+@media(max-width:700px) {
+ .yard-power-card { padding:14px; }
+ .yard-power-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .yard-power-metric { padding:11px; }
+ .yard-power-reading strong { font-size:22px; }
+ .yard-power-header { align-items:flex-start; }
+}
+@media(max-width:360px) {
+ .yard-power-metric { padding:9px; }
+ .yard-power-reading strong { font-size:20px; }
+ .yard-power-label { font-size:10px; }
+}
