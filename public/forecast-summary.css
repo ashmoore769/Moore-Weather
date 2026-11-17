@@ -86,3 +86,17 @@
   .forecast-summary-grid,.forecast-summary-midnight { stroke:CanvasText; }
   .forecast-summary-axis { fill:CanvasText; }
 }
+
+
+/* Temperature shares the 24-hour timeline, but uses an independent Celsius axis. */
+.forecast-summary-chart-heading .forecast-summary-key { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.forecast-summary-key::before { content:''; display:inline-block; width:12px; height:4px; border-radius:2px; flex:none; }
+.forecast-summary-key-rain::before { background:var(--forecast-blue); }
+.forecast-summary-key-temp::before { background:var(--forecast-temp,#d7aa60); }
+.forecast-summary-temperature-line { fill:none; stroke:var(--forecast-temp,#d7aa60); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.forecast-summary-temperature-axis { fill:var(--forecast-temp,#d7aa60); font-weight:700; }
+.forecast-summary-temperature-selected { fill:var(--surface); stroke:var(--forecast-temp,#d7aa60); stroke-width:2; vector-effect:non-scaling-stroke; }
+@media(forced-colors:active) {
+  .forecast-summary-temperature-line,.forecast-summary-temperature-selected { stroke:CanvasText; }
+  .forecast-summary-temperature-axis { fill:CanvasText; }
+}
