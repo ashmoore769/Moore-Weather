@@ -30,6 +30,11 @@ test('snapshot exposes independent Scots / Warwick previews and retains bridge l
   assert.equal(scots.metric.referenceLines, undefined);
   assert.match(warwick.note, /Collection continues automatically/);
   assert.doesNotMatch(warwick.note, /Historical imports continue/);
+  assert.match(warwick.note, /minor 5 m, moderate 6 m, major and McCahon Bridge 7 m/);
+  assert.match(warwick.note, /not O\. O\. Madsen Bridge/);
+  assert.match(warwick.note, /does not indicate road closure or safe access/);
+  assert.match(scots.note, /separate upstream gauge/);
+  assert.match(scots.note, /must not be treated as measurements at Warwick Alert/);
 });
 
 test('an unusable newest water observation marks the fallback as last available until fresh valid data returns', t => {

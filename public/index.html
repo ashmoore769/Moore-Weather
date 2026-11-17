@@ -1128,17 +1128,17 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <script defer src="/solar-chart.js?v=1"></script>
 <script defer src="/power-chart-controls.js?v=1"></script>
 <script defer src="/station-power-chart.js?v=3"></script>
-<script defer src="/history.js?v=22"></script>
-<link rel="stylesheet" href="/water.css?v=8">
+<script defer src="/history.js?v=23"></script>
+<link rel="stylesheet" href="/water.css?v=9">
 <link rel="stylesheet" href="/station-shell.css?v=7">
 <script defer src="/station-shell.js?v=7"></script>
 <script defer src="/station-alerts.js?v=9"></script>
 <link rel="stylesheet" href="/dashboard.css?v=17">
-<link rel="stylesheet" href="/solar.css?v=4">
+<link rel="stylesheet" href="/solar.css?v=5">
 <link rel="stylesheet" href="/yard-power.css?v=2">
-<script defer src="/yard-power.js?v=5"></script>
+<script defer src="/yard-power.js?v=6"></script>
 
-<script defer src="/solar.js?v=5"></script>
+<script defer src="/solar.js?v=6"></script>
 <link rel="stylesheet" href="/power-cards.css?v=5">
 <link rel="stylesheet" href="/forecast-summary.css?v=4">
 <script defer src="/forecast-summary-model.js?v=1"></script>
@@ -1404,21 +1404,20 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
           <span class="water-time" id="condamineFlowTime" data-water-label="Flow">Flow: Awaiting source readings</span>
         </div>
         <div class="water-history" data-water-history="condamine-level"></div>
-        <p class="water-capacity">Separate upstream gauge · levels are not directly comparable with Warwick.</p>
         <footer><a href="https://water-monitoring.information.qld.gov.au/" target="_blank" rel="noopener noreferrer">Source: Queensland WMIP <svg class="water-external-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></a><span>CC BY · unverified</span></footer>
       </article>
       <article class="water-panel water-river water-warwick">
         <header><div><span class="water-eyebrow">Condamine River</span><h3>Warwick</h3></div><span class="water-site">041534</span></header>
-        <div class="water-summary water-summary-single">
-          <div class="water-reading water-hero"><span class="water-label"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 13c2-2 3 2 5 0s3 2 5 0 3 2 4 0M3 17c2-2 3 2 5 0s3 2 5 0 3 2 4 0M10 2v7m-3-3 3 3 3-3"/></svg>River level · town gauge<span class="water-history-cue" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></span></span><strong><span id="condamineLevel">—</span><small id="condamineLevelUnit">m</small></strong></div>
+        <div class="water-summary">
+          <div class="water-reading water-hero"><span class="water-label"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 13c2-2 3 2 5 0s3 2 5 0 3 2 4 0M3 17c2-2 3 2 5 0s3 2 5 0 3 2 4 0M10 2v7m-3-3 3 3 3-3"/></svg>River level<span class="water-history-cue" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></span></span><strong><span id="condamineLevel">—</span><small id="condamineLevelUnit">m</small></strong></div>
+          <div class="water-reading water-volume water-bridge" id="warwickBridge" role="status" aria-live="polite" aria-atomic="true">
+            <span class="water-label"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 14h16M4 14V8m12 6V8M4 9c3-5 9-5 12 0M7 7v7m6-7v7M2 17h16"/></svg><span id="warwickBridgeLabel">To bridge</span><span class="water-history-cue" aria-hidden="true"><svg viewBox="0 0 12 12" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></span></span>
+            <strong><span id="warwickBridgeValue">—</span><small id="warwickBridgeUnit">m</small></strong>
+            <span class="water-bridge-context" id="warwickBridgeContext">McCahon Bridge</span>
+          </div>
         </div>
         <div class="water-observed"><span class="water-time" id="condamineLevelTime">Awaiting source readings</span></div>
         <div class="water-history" data-water-history="condamine-warwick-level"></div>
-        <div class="water-bridge" id="warwickBridge" role="status">
-          <strong id="warwickBridgeValue">Awaiting river reading</strong>
-          <span id="warwickBridgeContext">McCahon Bridge · 7.00m gauge reference</span>
-        </div>
-        <p class="water-capacity water-reference-note" id="warwickReferenceNote">Gauge references: minor 5m · moderate 6m · major / McCahon Bridge 7m. Not O. O. Madsen Bridge or a road-access indicator.</p>
         <footer><a href="https://www.bom.gov.au/fwo/IDQ65396/IDQ65396.041534.tbl.shtml" target="_blank" rel="noopener noreferrer">Source: BOM <svg class="water-external-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></a><span>CC BY · unverified</span></footer>
       </article>
       </div>
@@ -1534,7 +1533,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
   </div>
   <p class="yard-power-summary" id="yardPowerSummary">Awaiting telemetry.</p>
   <div class="yard-power-history">
-    <div class="yard-power-history-header"><h3>History</h3><div class="yard-power-range" role="group" aria-label="Yard power history range"><button type="button" data-yard-range="24h" aria-pressed="true">24h</button><button type="button" data-yard-range="7d" aria-pressed="false">7d</button><button type="button" data-yard-range="30d" aria-pressed="false">30d</button></div></div>
+    <div class="yard-power-history-header"><h3>History</h3><div class="yard-power-range" role="group" aria-label="Yard power history range"><button type="button" data-yard-range="12h" aria-pressed="true">12h</button><button type="button" data-yard-range="24h" aria-pressed="false">24h</button><button type="button" data-yard-range="7d" aria-pressed="false">7d</button><button type="button" data-yard-range="30d" aria-pressed="false">30d</button></div></div>
     <p id="yardPowerHistoryDetail" class="yard-power-history-detail">Waiting for historical data.</p>
     <div id="yardPowerChart" class="yard-power-chart"></div>
     <div class="yard-power-legend"><span class="yard-legend-battery">Battery · V</span><span class="yard-legend-panel">PV · V</span><span class="yard-legend-solar">Solar · W</span><span class="yard-legend-load">Load · W</span></div>

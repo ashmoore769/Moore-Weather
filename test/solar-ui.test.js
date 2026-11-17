@@ -232,8 +232,8 @@ test('expired authentication hides private values, redirects once and stops poll
 
 test('solar assets and labels stay separate from existing weather and station measurements', () => {
   assert.equal(html, fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8'));
-  assert.match(html, /src="\/solar\.js\?v=5"/);
-  assert.match(html, /href="\/solar\.css\?v=4"/);
+  assert.match(html, /src="\/solar\.js\?v=6"/);
+  assert.match(html, /href="\/solar\.css\?v=5"/);
   assert.match(html, /PV generation · DC/); assert.match(html, /Solar · AC/);
   assert.match(html, /Generated/);
   assert.match(html, /Solar radiation<\/span>[\s\S]*?id="solarRadVal"/);
@@ -272,6 +272,76 @@ test('stale, missing meters, active batteries and resting solar do not claim spa
   assert.equal(night.tone, 'import'); assert.equal(night.coverage, null); assert.equal(night.title, 'Solar inactive');
   const balanced = liveView({ ...data.current, gridPowerW: 15, loadPowerW: 5715 }, data.rates, true);
   assert.equal(balanced.tone, 'neutral'); assert.equal(balanced.title, 'Balanced'); assert.equal(balanced.value, 15);
+});
+
+test('live reading colours share flow deadbands and the same 2 kW import boundary', () => {
+  const data = payload();
+  const tones = patch => liveView({ ...data.current, ...patch }, data.rates, true).readingTones;
+  for (const [ac, load, grid, expected] of [
+    [5700, 3500, -2200, ['good', 'cool', 'good']],
+    [3500, 3500, 0, ['good', 'cool', 'cool']],
+    [3500, 3550, 50, ['good', 'cool', 'cool']],
+    [3500, 3550.1, 50.1, ['caution', 'caution', 'caution']],
+    [3500, 3425, -75, ['good', 'cool', 'cool']],
+    [3500, 3424.9, -75.1, ['good', 'cool', 'good']],
+    [3500, 5499.9, 1999.9, ['caution', 'caution', 'caution']],
+    [3500, 5500, 2000, ['caution', 'high', 'high']],
+    [25, 25, 0, ['neutral', 'neutral', 'cool']],
+    [25.1, 25.1, 0, ['good', 'cool', 'cool']],
+    [0, 600, 600, ['neutral', 'caution', 'caution']],
+    [0, 2200, 2200, ['neutral', 'high', 'high']],
+    [600, 1000, 0, ['caution', 'neutral', 'cool']]
+  ]) {
+    assert.deepEqual(tones({ inverterPowerW: ac, loadPowerW: load, gridPowerW: grid }),
+      { solar: expected[0], house: expected[1], grid: expected[2] }, `AC ${ac} W, house ${load} W, grid ${grid} W`);
+  }
+});
+
+test('live reading colours withhold uncertain solar attribution and mute stale or invalid values', () => {
+  const data = payload(), neutral = { solar: 'neutral', house: 'neutral', grid: 'neutral' };
+  for (const patch of [{ gridPowerW: null }, { gridPowerW: NaN }, { meterLocation: 'load' }]) {
+    assert.deepEqual(liveView({ ...data.current, ...patch }, data.rates, true).readingTones, neutral);
+  }
+  for (const patch of [{ inverterPowerW: null }, { inverterPowerW: '5700' }, { inverterPowerW: Infinity },
+    { loadPowerW: null }, { loadPowerW: -1 }, { batteryPowerW: 500 }, { batteryPowerW: '500' }]) {
+    assert.deepEqual(liveView({ ...data.current, ...patch }, data.rates, true).readingTones,
+      { solar: 'neutral', house: 'neutral', grid: 'good' }, 'a known grid export does not prove solar attribution');
+  }
+  assert.deepEqual(liveView(data.current, data.rates, false).readingTones, neutral);
+  assert.deepEqual(liveView(null, data.rates, true).readingTones, neutral);
+});
+
+test('a battery charge reading with unknown power cannot imply that solar covers the house', () => {
+  const data = payload();
+  for (const batterySocPercent of [0, 50, 100]) {
+    const current = { ...data.current, batterySocPercent, batteryPowerW: null };
+    const unknown = liveView(current, data.rates, true);
+    assert.equal(unknown.title, 'Partial data');
+    assert.equal(unknown.coverage, null);
+    assert.deepEqual(unknown.readingTones, { solar: 'neutral', house: 'neutral', grid: 'good' });
+    assert.deepEqual(liveView({ ...current, batteryPowerW: 0 }, data.rates, true).readingTones,
+      { solar: 'good', house: 'cool', grid: 'good' }, 'explicit zero battery flow permits solar attribution');
+  }
+});
+
+test('live numeric colour attributes clear on missing or stale updates and recover without changing chart traces', async t => {
+  const data = payload(), f = fixture(t, data); await f.start();
+  const tones = () => ['solarAcPower', 'solarLoadPower', 'solarGridPower'].map(id => f.node(id).attributes['data-reading-tone']);
+  const chart = f.node('solarChart').innerHTML;
+  assert.deepEqual(tones(), ['good', 'cool', 'good']);
+  Object.assign(data.current, { inverterPowerW: 1500, loadPowerW: 3500, gridPowerW: 2000 });
+  f.setBody(data); await f.controller.refresh();
+  assert.deepEqual(tones(), ['caution', 'high', 'high']);
+  Object.assign(data.current, { inverterPowerW: null, loadPowerW: null, gridPowerW: null });
+  f.setBody(data); await f.controller.refresh();
+  assert.deepEqual(tones(), ['neutral', 'neutral', 'neutral']);
+  assert.equal(f.node('solarAcPower').textContent, '–');
+  f.setBody(payload()); await f.controller.refresh();
+  f.setTime(NOW + 181000); f.controller.paint();
+  assert.deepEqual(tones(), ['neutral', 'neutral', 'neutral'], 'retained stale numbers are not live guidance');
+  f.setBody(payload(NOW + 181000)); await f.controller.refresh();
+  assert.deepEqual(tones(), ['good', 'cool', 'good']);
+  assert.equal(f.node('solarChart').innerHTML, chart, 'live numeric states do not recolour or redraw the recorded series');
 });
 
 test('today finance clearly qualifies partial coverage and uses the full supply fee once', async t => {

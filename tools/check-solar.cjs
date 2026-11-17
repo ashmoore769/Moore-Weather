@@ -17,6 +17,13 @@ const dashboard = fs.readFileSync(path.join(publicRoot, 'index.html'), 'utf8').r
 let mode = 'fresh', apiRequests = 0;
 function readings(includeHistory = true) {
   const missing = mode === 'missing', zero = mode === 'zero', stale = mode === 'stale', buying = mode === 'buying';
+  const livePower = {
+    'heavy-import': { inverterPowerW: 1500, gridPowerW: 2000, loadPowerW: 3500 },
+    balanced: { inverterPowerW: 3500, gridPowerW: 0, loadPowerW: 3500 },
+    night: { pvPowerW: 0, inverterPowerW: 0, gridPowerW: 600, loadPowerW: 600 },
+    'battery-active': { inverterPowerW: 2000, gridPowerW: 500, loadPowerW: 3000, batteryPowerW: 500 },
+    'battery-unknown': { batteryPowerW: null, batterySocPercent: 50 }
+  }[mode] || {};
   const day = { date: '2026-11-14', since: iso(now - 4 * 3600000), through: iso(now), quality: 'partial', sampleCount: 240,
     coveredSeconds: 14340, expectedSeconds: 43200, coveragePercent: 33.2, coverageSeconds: { load: 14340, solarToHome: 14340, grid: 14340, generation: 14340 },
     gridImportWh: 1200, gridExportWh: 9200, loadWh: 8000, solarToHomeWh: 6800, generatedAcWh: 16000,
@@ -50,7 +57,7 @@ function readings(includeHistory = true) {
       pvPowerW: missing ? null : zero ? 0 : mode === 'recovered' ? 7200 : 6800,
       inverterPowerW: missing ? null : zero ? 0 : buying ? 2300 : 6500, gridPowerW: missing ? null : zero ? 0 : buying ? 1200 : -3000,
       loadPowerW: missing ? null : zero ? 0 : 3500, batteryPowerW: null, batterySocPercent: null, totalAcEnergyWh: 25000000,
-      meterLocation: 'grid', mode: 'meter' },
+      meterLocation: 'grid', mode: 'meter', ...livePower },
     today: { date: '2026-11-14', energyAcWh: missing || mode === 'waiting' ? null : zero ? 0 : 13240,
       quality: mode === 'reset' ? 'reset' : missing || mode === 'waiting' ? 'unavailable' : 'partial',
       since: iso(now - 2 * 3600000), through: iso(now - 5 * 60000), sampleCount: 100, gapCount: 1, counterReset: mode === 'reset',
@@ -79,6 +86,29 @@ const server = http.createServer((req, res) => {
 async function refresh(page, next) {
   mode = next;
   await page.evaluate(async () => { if (!window.__solarPoll) throw Error('Solar polling callback missing'); await window.__solarPoll(); });
+}
+async function liveReadingColours(page, expected) {
+  const actual = await page.evaluate(() => {
+    const card = document.querySelector('#homeSolar');
+    const palette = Object.fromEntries(Object.entries({ neutral: '--muted', good: '--green', cool: '--solar-home', caution: '--amber', high: '--red' }).map(([tone, token]) => {
+      const probe = document.createElement('span'); probe.style.color = 'var(' + token + ')'; card.append(probe);
+      const color = getComputedStyle(probe).color; probe.remove(); return [tone, color];
+    }));
+    return { palette,
+      readings: ['solarAcPower', 'solarLoadPower', 'solarGridPower'].map(id => {
+        const element = document.getElementById(id);
+        return { tone: element.dataset.readingTone, color: getComputedStyle(element).color };
+      }),
+      series: ['generation', 'home', 'import'].map(name => getComputedStyle(card.querySelector('.solar-chart-series-' + name)).stroke),
+      legend: ['generation', 'home', 'grid'].map(name => getComputedStyle(card.querySelector('#solarChartLegend .solar-dot-' + name)).backgroundColor)
+    };
+  });
+  assert.deepEqual(actual.readings, expected.map(tone => ({ tone, color: actual.palette[tone] })),
+    'Solar AC, House and Grid use their current reading conditions');
+  assert.equal(new Set(Object.values(actual.palette)).size, 5, 'live states use five distinguishable palette colours');
+  const fixed = ['good', 'cool', 'caution'].map(tone => actual.palette[tone]);
+  assert.deepEqual(actual.series, fixed, 'live numeric conditions must not recolour the recorded chart series');
+  assert.deepEqual(actual.legend, fixed, 'chart legend colours remain aligned with their fixed series');
 }
 async function layout(page, width, context, { notice = false } = {}) {
   const result = await page.evaluate(() => {
@@ -387,6 +417,7 @@ async function touchNavigation(page, context, engine) {
             assert.match(await page.locator('#solarLiveMoney').textContent(), /\$0.18\/hr/);
             assert.match(await page.locator('#solarDayNote').textContent(), /85%/);
             assert.equal(await page.locator('#solarChartEmpty').isVisible(), false);
+            await liveReadingColours(page, ['good', 'cool', 'good']);
             const reviewName = `solar-${engine.name()}-${width}-dark-system-${theme}`;
             await panelState(page, 'chart');
             await layout(page, width, reviewName + '-chart');
@@ -441,28 +472,49 @@ async function touchNavigation(page, context, engine) {
             assert.equal(await page.locator('#solarHero').getAttribute('data-tone'), 'import');
             assert.equal(await page.locator('#solarHeadroom').textContent(), '1.20 kW');
             assert.match(await page.locator('#solarLiveMoney').textContent(), /\$0.35\/hr/);
+            await liveReadingColours(page, ['caution', 'caution', 'caution']);
+            if (width === 393 && theme === 'dark') {
+              await refresh(page, 'heavy-import');
+              await liveReadingColours(page, ['caution', 'high', 'high']);
+              assert.equal(await page.locator('#solarGridPower').textContent(), '2.00 kW');
+              await page.locator('#homeSolar').screenshot({ path: path.join(screenshotRoot, reviewName + '-heavy-import.png'), animations: 'disabled' });
+              await refresh(page, 'balanced');
+              await liveReadingColours(page, ['good', 'cool', 'cool']);
+              await refresh(page, 'night');
+              await liveReadingColours(page, ['neutral', 'caution', 'caution']);
+              await refresh(page, 'battery-active');
+              await liveReadingColours(page, ['neutral', 'neutral', 'caution']);
+              await refresh(page, 'battery-unknown');
+              await liveReadingColours(page, ['neutral', 'neutral', 'good']);
+              assert.equal(await page.locator('#solarHeadline').textContent(), 'Partial data');
+            }
             await refresh(page, 'missing');
             assert.equal(await page.locator('#homeSolar').getAttribute('data-state'), 'partial');
             assert.equal(await page.locator('#solarPvPower').textContent(), '–');
             assert.equal(await page.locator('#solarLoadPower').textContent(), '–');
             assert.equal(await page.locator('#solarHeadroom').textContent(), '–');
+            await liveReadingColours(page, ['neutral', 'neutral', 'neutral']);
             await refresh(page, 'zero');
             assert.equal(await page.locator('#solarPvPower').textContent(), '0.00 kW');
             assert.equal(await page.locator('#solarTodayEnergy').textContent(), '0.00 kWh');
             assert.equal(await page.locator('#solarHero').getAttribute('data-tone'), 'neutral');
             assert.equal(await page.locator('#solarCoverageBlock').isVisible(), false);
+            await liveReadingColours(page, ['neutral', 'neutral', 'cool']);
             const observed = await page.locator('#solarObserved').textContent();
             await refresh(page, 'failure');
             assert.equal(await page.locator('#homeSolar').getAttribute('data-state'), 'stale');
             assert.equal(await page.locator('#solarPvPower').textContent(), '0.00 kW');
             assert.equal(await page.locator('#solarObserved').textContent(), observed);
+            await liveReadingColours(page, ['neutral', 'neutral', 'neutral']);
             await refresh(page, 'recovered');
             assert.equal(await page.locator('#homeSolar').getAttribute('data-state'), 'fresh');
             assert.equal(await page.locator('#solarPvPower').textContent(), '7.20 kW');
+            await liveReadingColours(page, ['good', 'cool', 'good']);
             await refresh(page, 'stale');
             assert.equal(await page.locator('#homeSolar').getAttribute('data-state'), 'stale');
             assert.equal(await page.locator('#solarHeadroom').textContent(), '–');
             assert.equal(await page.locator('#solarCoverageBlock').isVisible(), false);
+            await liveReadingColours(page, ['neutral', 'neutral', 'neutral']);
             await layout(page, width, reviewName + '-stale', { notice: true });
             await refresh(page, 'reset');
             assert.equal(await page.locator('#solarTodayEnergy').textContent(), '–');

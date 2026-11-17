@@ -105,6 +105,32 @@ test('data persists separately, preserves existing table, and remains stale with
   later.close();
 });
 
+test('12h history limits the real observations without increasing the existing one-minute resolution', async t => {
+  const f = await fixture(t), hour = 3600000, minute = 60000;
+  const samples = [-13 * hour, -12 * hour, -2 * minute, -minute, -minute + 20000].map((offset, i) => ({
+    ...SAMPLE, observedAt: new Date(NOW + offset).toISOString(), collectedAt: new Date(NOW + offset + 1000).toISOString(),
+    batteryVoltageV: 13 + i / 10, ...(i === 4 ? { pvPowerW: null } : {})
+  }));
+  assert.equal((await f.post(samples)).status, 200);
+  const response = await f.get('?range=12h');
+  assert.equal(response.status, 200);
+  const twelve = await response.json(), day = await (await f.get('?range=24h')).json();
+  assert.equal(twelve.range, '12h');
+  assert.deepEqual(twelve.history.map(row => row.observedAt), [samples[1], samples[2], samples[4]].map(row => row.observedAt),
+    'includes the exact 12-hour boundary and only the newest real observation in each minute');
+  assert.deepEqual(twelve.history, day.history.filter(row => Date.parse(row.observedAt) >= NOW - 12 * hour),
+    '12h uses the same observations and resolution as 24h');
+  assert.equal(day.history[0].observedAt, samples[0].observedAt, '24h retains the earlier observation');
+  assert.equal(twelve.history.at(-1).pvPowerW, null, 'missing values remain missing');
+  assert.equal(twelve.current.observedAt, day.current.observedAt, 'the display period does not change the current reading');
+  for (const range of ['7d', '30d']) {
+    const response = await f.get('?range=' + range);
+    assert.equal(response.status, 200, range + ' remains supported');
+    assert.equal((await response.json()).range, range);
+  }
+  assert.equal((await f.get('?range=6h')).status, 400, 'unsupported periods remain rejected');
+});
+
 test('dashboard markup includes six metrics below station power and loaded assets', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
   const station = html.indexOf('id="stationPower"');
