@@ -232,12 +232,12 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
 <link href="/history.css?v=7" rel="stylesheet"/>
 <script src="/sensor-quality.js?v=1"></script>
 <script defer src="/history-chart.js?v=12"></script>
-<script defer src="/history.js?v=20"></script>
-<link rel="stylesheet" href="/water.css?v=6">
+<script defer src="/history.js?v=21"></script>
+<link rel="stylesheet" href="/water.css?v=7">
 <link rel="stylesheet" href="/station-shell.css?v=7">
 <script defer src="/station-shell.js?v=7"></script>
 <script defer src="/station-alerts.js?v=9"></script>
-<link rel="stylesheet" href="/dashboard.css?v=16">
+<link rel="stylesheet" href="/dashboard.css?v=17">
 <link rel="stylesheet" href="/theme-palette.css?v=1">
 </head>
 <body>
@@ -419,19 +419,12 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
           <div class="station-update"><strong>A complete weather day</strong><p>Summaries become available after the 9 AM observation. Open any reading to explore earlier days.</p><button id="stationRefreshBtn" class="station-refresh-control" type="button">Request station update <span aria-hidden="true">↻</span></button><span id="refreshFeedback" role="status"></span></div></div>
         </section>
       </main>    </div>
-<section class="local-water" id="localWater" aria-label="Warwick river, Leslie and Connolly dams and Scots College readings">
-  <div class="water-grid">
-    <article class="water-panel water-river water-warwick">
-      <header><div><span class="water-eyebrow">Condamine River</span><h3>Warwick</h3></div><span class="water-site">041534</span></header>
-      <div class="water-reading water-hero" aria-describedby="warwickReferenceNote"><span class="water-label">River level · Warwick town gauge</span><strong><span id="condamineLevel">—</span><small>m</small></strong><span class="water-time" id="condamineLevelTime">Awaiting source readings</span></div>
-      <div class="water-bridge" id="warwickBridge" role="status">
-        <strong id="warwickBridgeValue">Awaiting river reading</strong>
-        <span id="warwickBridgeContext">McCahon Bridge · 7.00m gauge reference</span>
-      </div>
-      <p class="water-capacity water-reference-note" id="warwickReferenceNote">Gauge references: minor 5m · moderate 6m · major / McCahon Bridge 7m. Not O. O. Madsen Bridge or a road-access indicator.</p>
-      <footer><a href="https://www.bom.gov.au/fwo/IDQ65396/IDQ65396.041534.tbl.shtml" target="_blank" rel="noopener noreferrer">Source: BOM ↗</a><span>CC BY · unverified</span></footer>
-    </article>
-    <article class="water-panel water-dam">
+<section class="local-water" id="localWater" aria-label="Dam and river levels">
+  <div class="water-groups">
+    <section class="water-group water-dams" id="damLevels" aria-labelledby="damLevelsTitle">
+      <header class="water-group-header"><div class="water-group-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17 8 4h8l4 13M10 4l1 13M14 4l-1 13M3 17h18M3 21c2-2 4 2 6 0s4 2 6 0 4 2 6 0"/></svg><div><h2 id="damLevelsTitle">Dam Levels</h2><p>Leslie and Connolly storage</p></div></div></header>
+      <div class="water-grid">
+        <article class="water-panel water-dam">
       <header><div><span class="water-eyebrow">Upper Condamine</span><h3>Leslie Dam</h3></div><span class="water-site">422315B</span></header>
       <div class="water-reading water-hero" aria-label="View Leslie Dam storage history">
         <span class="water-label">Storage level</span><strong><span id="leslieStorage">—</span><small>% full</small></strong>
@@ -439,27 +432,44 @@ button { font: inherit; -webkit-tap-highlight-color: transparent; }
       </div>
       <div class="water-reading water-volume"><span class="water-label">Stored water</span><strong><span id="leslieVolume">—</span><small>ML</small></strong><span class="water-time" id="leslieVolumeTime">Awaiting source readings</span></div>
       <p class="water-capacity" id="leslieCapacity"></p>
-      <footer><a href="https://www.sunwater.com.au/dams/leslie-dam/" target="_blank" rel="noopener noreferrer">Source: Sunwater ↗</a><span>Automated · unverified</span></footer>
+      <footer><a href="https://www.sunwater.com.au/dams/leslie-dam/" target="_blank" rel="noopener noreferrer">Source: Sunwater <svg class="water-external-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></a><span>Automated · unverified</span></footer>
     </article>
-    <article class="water-panel water-connolly">
-      <header><div><span class="water-eyebrow">Rosenthal Creek</span><h3>Connolly Dam</h3></div></header>
+        <article class="water-panel water-connolly">
+      <header><div><span class="water-eyebrow">Rosenthal Creek</span><h3>Connolly Dam</h3></div><span class="water-site">Council report</span></header>
       <div class="water-reading water-hero" aria-label="View Connolly Dam storage history">
         <span class="water-label">Storage level</span><strong><span id="connollyStorage">—</span><small>% full</small></strong>
         <span class="water-time" id="connollyStorageTime">Awaiting council report</span>
       </div>
       <div class="water-reading water-volume"><span class="water-label">Stored water</span><strong><span id="connollyVolume">—</span><small>ML</small></strong><span class="water-time" id="connollyVolumeTime">Awaiting council report</span></div>
       <p class="water-capacity" id="connollyCapacity"></p>
-      <footer><a href="https://www.sdrc.qld.gov.au/living-here/environment-water-waste/dam-levels" target="_blank" rel="noopener noreferrer">Source: SDRC ↗</a><span>Council reports</span></footer>
+      <footer><a href="https://www.sdrc.qld.gov.au/living-here/environment-water-waste/dam-levels" target="_blank" rel="noopener noreferrer">Source: SDRC <svg class="water-external-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></a><span id="connollySourceCheck" title="Published storage figures. The council report date is shown with the reading.">Council reports</span></footer>
     </article>
-    <article class="water-panel water-river water-scots">
+      </div>
+    </section>
+    <section class="water-group water-rivers" id="riverLevels" aria-labelledby="riverLevelsTitle">
+      <header class="water-group-header"><div class="water-group-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3c-6 5 6 8 0 13M16 3c-6 5 6 8 0 13M3 20c2-2 4 2 6 0s4 2 6 0 4 2 6 0"/></svg><div><h2 id="riverLevelsTitle">River Levels</h2><p>Condamine River · upstream and town gauges</p></div></div></header>
+      <div class="water-grid">
+        <article class="water-panel water-river water-scots">
       <header><div><span class="water-eyebrow">Condamine · upstream</span><h3>Scots College</h3></div><span class="water-site">422310C</span></header>
       <div class="water-scots-readings">
         <div class="water-reading water-hero"><span class="water-label">River level · Scots College</span><strong><span id="scotsLevel">—</span><small>m</small></strong><span class="water-time" id="scotsLevelTime">Awaiting source readings</span></div>
         <div class="water-reading water-volume"><span class="water-label">Flow · Scots College</span><strong><span id="condamineFlow">—</span><small>m³/s</small></strong><span class="water-time" id="condamineFlowTime">Awaiting source readings</span></div>
       </div>
       <p class="water-capacity">Separate upstream gauge · levels are not directly comparable with Warwick.</p>
-      <footer><a href="https://water-monitoring.information.qld.gov.au/" target="_blank" rel="noopener noreferrer">Source: Queensland WMIP ↗</a><span>CC BY · unverified</span></footer>
+      <footer><a href="https://water-monitoring.information.qld.gov.au/" target="_blank" rel="noopener noreferrer">Source: Queensland WMIP <svg class="water-external-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></a><span>CC BY · unverified</span></footer>
     </article>
+        <article class="water-panel water-river water-warwick">
+      <header><div><span class="water-eyebrow">Condamine River</span><h3>Warwick</h3></div><span class="water-site">041534</span></header>
+      <div class="water-reading water-hero" aria-describedby="warwickReferenceNote"><span class="water-label">River level · Warwick town gauge</span><strong><span id="condamineLevel">—</span><small>m</small></strong><span class="water-time" id="condamineLevelTime">Awaiting source readings</span></div>
+      <div class="water-bridge" id="warwickBridge" role="status">
+        <strong id="warwickBridgeValue">Awaiting river reading</strong>
+        <span id="warwickBridgeContext">McCahon Bridge · 7.00m gauge reference</span>
+      </div>
+      <p class="water-capacity water-reference-note" id="warwickReferenceNote">Gauge references: minor 5m · moderate 6m · major / McCahon Bridge 7m. Not O. O. Madsen Bridge or a road-access indicator.</p>
+      <footer><a href="https://www.bom.gov.au/fwo/IDQ65396/IDQ65396.041534.tbl.shtml" target="_blank" rel="noopener noreferrer">Source: BOM <svg class="water-external-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></a><span>CC BY · unverified</span></footer>
+    </article>
+      </div>
+    </section>
   </div>
   <p class="water-import-status" id="waterImportStatus" role="status">Connecting to saved water readings…</p>
 </section>

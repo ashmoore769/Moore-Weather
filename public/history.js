@@ -684,6 +684,11 @@
       $('leslieCapacity').textContent = volume?.capacity ? 'Full supply capacity · ' + volume.capacity.toLocaleString('en-AU') + ' ML' : '';
       const connollyVolume = data.readings['connolly-volume'];
       $('connollyCapacity').textContent = connollyVolume?.capacity ? 'Full supply capacity · ' + connollyVolume.capacity.toLocaleString('en-AU') + ' ML' : '';
+      const connollyCheck = $('connollySourceCheck'), connollySource = data.imports['connolly-current'];
+      if (connollyCheck) {
+        const checkedAt = Date.parse(connollySource?.lastSuccess);
+        connollyCheck.textContent = connollySource?.error ? 'Source check delayed' : Number.isFinite(checkedAt) ? 'Source checked · ' + stamp(checkedAt) : 'Council reports';
+      }
       const archives = ['leslie-daily', 'condamine-level-backfill', 'condamine-flow-backfill', 'condamine-warwick-live'];
       const delayed = Boolean(data.collector?.error) || Object.values(data.imports).some(s => s.error);
       const complete = archives.every(id => data.imports[id]?.complete);

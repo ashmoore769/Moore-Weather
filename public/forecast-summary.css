@@ -30,7 +30,10 @@
 .forecast-summary-plot[aria-disabled="true"] { cursor:default; }
 .forecast-summary-plot svg { display:block; width:100%; height:110px; overflow:visible; pointer-events:none; }
 .forecast-summary-grid { stroke:var(--border); stroke-width:1; vector-effect:non-scaling-stroke; }
+.forecast-summary-hour-grid { stroke:var(--muted); stroke-width:1; opacity:.18; vector-effect:non-scaling-stroke; }
 .forecast-summary-axis { fill:var(--muted); font:10px var(--app-font,system-ui,sans-serif); }
+.forecast-summary-now { stroke:var(--green,#70dda0); stroke-width:1.6; stroke-dasharray:none; vector-effect:non-scaling-stroke; }
+.forecast-summary-now-label { fill:var(--green,#70dda0); font-weight:650; }
 .forecast-summary-midnight { stroke:var(--muted); stroke-width:1; stroke-dasharray:2 4; opacity:.55; vector-effect:non-scaling-stroke; }
 .forecast-summary-day-label { fill:var(--text); font-weight:600; }
 .forecast-summary-selection { fill:var(--forecast-blue); fill-opacity:.12; }
@@ -83,8 +86,10 @@
   .forecast-summary-bar { fill:Highlight; }
   .forecast-summary-bar-selected { stroke:CanvasText; stroke-width:2; }
   .forecast-summary-selection { fill:none; stroke:Highlight; }
-  .forecast-summary-grid,.forecast-summary-midnight { stroke:CanvasText; }
+  .forecast-summary-grid,.forecast-summary-hour-grid,.forecast-summary-midnight { stroke:CanvasText; }
+  .forecast-summary-now { stroke:Highlight; }
   .forecast-summary-axis { fill:CanvasText; }
+  .forecast-summary-now-label { fill:Highlight; }
 }
 
 

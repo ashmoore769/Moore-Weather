@@ -132,6 +132,12 @@
         '<text class="forecast-summary-axis" x="0" y="' + (top + 3) + '">' + (summary.usable ? escape(scale + ' mm') : 'mm') + '</text>',
         '<text class="forecast-summary-axis" x="20" y="' + (bottom + 3) + '" text-anchor="end">' + (summary.usable ? '0' : EMPTY) + '</text>'
       ];
+      // Rain belongs to the whole interval between these hour boundaries.
+      // Keep the guides behind the bars and temperature trace at every width.
+      for (let i = 0; i <= 24; i++) {
+        const x = (left + i * cell).toFixed(2);
+        parts.push('<line class="forecast-summary-hour-grid" data-hour-boundary="' + i + '" x1="' + x + '" x2="' + x + '" y1="' + top + '" y2="' + bottom + '"/>');
+      }
       if (selection) parts.push('<rect class="forecast-summary-selection" x="' + (left + selectedIndex * cell).toFixed(2) + '" y="4" width="' + cell.toFixed(2) + '" height="83" rx="3"/>');
       for (let i = 0; i < 24; i++) {
         const hour = hours[i], value = hour?.rainMm;
@@ -155,7 +161,8 @@
         for (let i = 0; i < 24; i++) {
           const value = hours[i]?.tempC;
           if (!finite(value)) { previous = false; continue; }
-          const x = (left + (i + .5) * cell).toFixed(2), y = tempY(value).toFixed(2);
+          // Temperature is instantaneous at the interval's end, unlike rain.
+          const x = (left + (hours[i].endMs - summary.startMs) / model.HOUR_MS * cell).toFixed(2), y = tempY(value).toFixed(2);
           path += (previous ? 'L' : 'M') + x + ',' + y;
           previous = true;
           singles.push({ x, y, i });
@@ -198,6 +205,15 @@
         for (const marker of labels) {
           parts.push('<text class="forecast-summary-axis' + (marker.midnight ? ' forecast-summary-day-label' : '') + '" x="' + marker.x.toFixed(2) + '" y="102" text-anchor="' + marker.anchor + '">' + escape(marker.label) + '</text>');
         }
+      }
+      const currentTime = now();
+      if (summary.usable && finite(currentTime) && currentTime >= summary.startMs && currentTime <= summary.endMs) {
+        // The first bar includes the ongoing hour. Mark the real current time
+        // within it; its start and the first complete future hour are not Now.
+        const x = left + (currentTime - summary.startMs) / model.HOUR_MS * cell;
+        const labelX = clamp(x + 4, left + 4, right - 23);
+        parts.push('<line class="forecast-summary-now" x1="' + x.toFixed(2) + '" x2="' + x.toFixed(2) + '" y1="' + top + '" y2="' + bottom + '"><title>' + escape('Now · ' + formatTime(currentTime, true) + ' AEST') + '</title></line>');
+        parts.push('<text class="forecast-summary-axis forecast-summary-now-label" x="' + labelX.toFixed(2) + '" y="8">Now</text>');
       }
       html('forecastSummaryChart', parts.join(''));
       attribute(plot, 'aria-disabled', selection ? 'false' : 'true');

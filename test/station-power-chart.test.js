@@ -106,6 +106,30 @@ test('station plots use the available width while preserving pixel-sized axes an
   assert.equal(chart.chartModel([source], NOW, NaN).size.width, 720);
 });
 
+test('station zoom changes only the viewport and clips unchanged readings and gaps to the plot', () => {
+  const input = four().map(series => ({ ...series, points: Array.from({ length: 144 }, (_, i) => ({
+    t: NOW - (143 - i) * 600000, value: i === 72 ? null : series.points.at(-1).value, estimated: i === 80
+  })) }));
+  const original = structuredClone(input), full = chart.chartModel(input, NOW, 393);
+  const zoomed = chart.chartModel(input, NOW, 393, { start: NOW - 12 * 3600000, end: NOW - 6 * 3600000 });
+  assert.equal(zoomed.end - zoomed.start, 6 * 3600000);
+  assert.deepEqual(zoomed.bounds, full.bounds, 'navigation cannot extend the fetched history');
+  assert.deepEqual([zoomed.voltsMin, zoomed.voltsMax, zoomed.currentMin, zoomed.currentMax],
+    [full.voltsMin, full.voltsMax, full.currentMin, full.currentMax], 'both units keep stable scales');
+  for (let i = 0; i < full.lines.length; i++) {
+    assert.equal(zoomed.lines[i].count, full.lines[i].count, 'zoom never resamples or invents observations');
+    assert.equal((zoomed.lines[i].d.match(/M/g) || []).length, (full.lines[i].d.match(/M/g) || []).length,
+      'missing and estimated values remain independent gaps');
+    assert.match(zoomed.lines[i].d, /M-/, 'real samples outside the window remain available at the clipped edges');
+  }
+  assert.match(chart.svgMarkup(zoomed), /clip-path="url\(#stationPowerPlotClip\)"/);
+  assert.match(chart.svgMarkup(zoomed), /<rect x="45" y="12" width="303" height="94"/);
+  const smallest = chart.chartModel(input, NOW, 393, { start: NOW - 1000, end: NOW });
+  assert.equal(smallest.end - smallest.start, 3600000, 'ten-minute observations stop at a one-hour view');
+  assert.ok(smallest.start >= full.bounds.start && smallest.end <= full.bounds.end);
+  assert.deepEqual(input, original, 'navigation leaves the fetched data unchanged');
+});
+
 test('station resize redraws the latest history once per changed visible width', () => {
   let writes = 0, markup = '';
   const attributes = {}, callbacks = [], observed = [];
