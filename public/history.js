@@ -118,7 +118,12 @@
   const close = () => dialog.close();
   dialog.querySelector('.history-close').addEventListener('click', close);
   dialog.addEventListener('click', event => { if (event.target === dialog) { const box = dialog.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) close(); } });
-  dialog.addEventListener('close', () => { cancelNavigation(); modalRequest?.abort(); activeSeries = loadedSeries = null; chartGeometry = null; dialog.style.removeProperty('height'); });
+  dialog.addEventListener('close', () => {
+    // close is queued: another reading can reopen the dialog before it fires.
+    // That older event must not abort or clear the newly opened history view.
+    if (dialog.open) return;
+    cancelNavigation(); modalRequest?.abort(); activeSeries = loadedSeries = null; chartGeometry = null; dialog.style.removeProperty('height');
+  });
   window.addEventListener('resize', () => {
     if (dialog.open && historyBody.dataset.state === 'ready') {
       dialog.style.removeProperty('height'); holdDialogSize();

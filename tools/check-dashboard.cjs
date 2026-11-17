@@ -186,6 +186,24 @@ async function historyReady(page, resolution, hours) {
     document.querySelector('[data-resolution="' + resolution + '"]')?.getAttribute('aria-pressed') === 'true' &&
     (hours === undefined || document.querySelector('#historyRange').value === String(hours)), { resolution, hours });
 }
+async function queuedHistoryReopen(page, selector) {
+  // Hold the new response until the previous dialog's queued close event has
+  // fired, so this checks the cleanup race independently of network timing.
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const pattern = '**/api/history?**', hold = async route => { await gate; await route.continue(); };
+  await page.route(pattern,hold);
+  try {
+    await page.evaluate(async selector => {
+      const dialog = document.querySelector('.history-dialog');
+      const closed = new Promise(resolve => dialog.addEventListener('close',resolve,{once:true}));
+      dialog.querySelector('.history-close').click();
+      const control = document.querySelector(selector); control.focus();
+      control.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
+      await closed;
+    },selector);
+  } finally { release(); await page.unroute(pattern,hold); }
+}
 
 async function readablePalette(page) {
   const result = await page.evaluate(() => {
@@ -766,6 +784,8 @@ async function failurePaths(page, browserName) {
               await page.locator('.history-close').click();
               await page.locator('.water-scots .water-history').press('Enter'); await historyReady(page,'hourly',168);
               assert.equal(requests.at(-1).metric,'condamine-level','The full-width plot retains keyboard history access');
+              await queuedHistoryReopen(page,'.water-scots .water-history'); await historyReady(page,'hourly',168);
+              assert.equal(requests.at(-1).metric,'condamine-level','A queued close event cannot abort the newly opened history view');
               await page.locator('.history-close').click();
             }
             assert.equal(await page.locator('#warwickBridgeValue').textContent(), '1.66m (Below Bridge)');
