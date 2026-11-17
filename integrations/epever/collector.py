@@ -139,6 +139,14 @@ class FrameDecoder:
             if self.buffer[0] != 1 or self.buffer[1] not in (0x43, 0x02, 0x04):
                 del self.buffer[0]
                 continue
+            # A sparse response (especially 0xEC) begins with its coverage byte,
+            # but the mask may arrive in a later TCP packet. Wait until we have
+            # its complete mask before treating the 8-byte request candidate as
+            # a malformed frame. TCP chunk boundaries are not Modbus boundaries.
+            if self.buffer[1] == 0x43 and self.buffer[2] % 2 == 0 and 0 < self.buffer[2] <= 240:
+                required_header = 3 + (self.buffer[2] + 15) // 16
+                if len(self.buffer) < required_header:
+                    break
             candidates = self.candidate_lengths(self.buffer)
             complete = [(size, kind) for size, kind in candidates if len(self.buffer) >= size]
             match = next(((size, kind) for size, kind in complete
