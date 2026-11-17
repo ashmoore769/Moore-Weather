@@ -49,7 +49,7 @@ html[data-theme="dark"] .summary-station-logo { filter: brightness(.8); }
 .compact-temperature-footer strong { color: var(--text); font-weight: 650; }
 .daily-reading-card .history-spark { margin-top: auto; padding-top: 12px; }
 .temperature-compact .history-spark { padding-top: 4px; }
-.daily-reading-card .history-spark svg { height: 34px; }
+.daily-reading-card .history-spark > svg { height: 34px; }
 .daily-readings-panel .history-guide { padding: 12px 14px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 10px; font-size: 11px; }
 .history-guide button { min-height: 44px; }
 .ground-summary { display: grid; gap: 16px; margin-bottom: 12px; }

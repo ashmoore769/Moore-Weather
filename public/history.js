@@ -57,7 +57,7 @@
     card.setAttribute('aria-haspopup', 'dialog'); card.setAttribute('aria-label', 'View history: ' + metric.replaceAll('-', ' '));
     card.style.setProperty('--history-color', color(metric));
     const spark = document.createElement('span'); spark.className = 'history-spark'; spark.setAttribute('aria-hidden', 'true');
-    spark.innerHTML = '<svg viewBox="0 0 260 40" preserveAspectRatio="none"></svg><span class="history-spark-caption"><span>Loading history…</span><span class="history-arrow">↗</span></span>';
+    spark.innerHTML = '<svg viewBox="0 0 260 40" preserveAspectRatio="none"></svg><span class="history-spark-caption"><span>Loading history…</span><span class="history-arrow"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 10 10 2M2 2h8v8"/></svg></span></span>';
     card.append(spark);
     card.addEventListener('click', () => openHistory(metric));
     card.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openHistory(metric); } });
@@ -148,7 +148,7 @@
       guideText.removeAttribute('title');
     } catch (error) {
       guideText.textContent = 'History unavailable'; guideText.title = error.message;
-      for (const { spark } of cards.filter(c => !/^(leslie|condamine|connolly)-/.test(c.metric))) { spark.querySelector('svg').replaceChildren(); spark.querySelector('.history-spark-caption span').textContent = 'History unavailable'; }
+      for (const { spark } of cards.filter(c => !/^(leslie|condamine|connolly)-/.test(c.metric))) { spark.querySelector(':scope > svg').replaceChildren(); spark.querySelector('.history-spark-caption span').textContent = 'History unavailable'; }
     } finally { loadingTrends = false; }
   }
   function paths(svg, series, x, y, baseline, mini = false) {
@@ -174,7 +174,7 @@
     if (mini && latest) svg.append(svgNode('circle', { cx: x(latest.t), cy: y(latest.value), r: 2.5, fill: stroke }));
   }
   function drawWarwickPreview(entry, series) {
-    const svg = entry.spark.querySelector('svg'), width = Math.max(200, entry.spark.clientWidth), height = 174;
+    const svg = entry.spark.querySelector(':scope > svg'), width = Math.max(200, entry.spark.clientWidth), height = 174;
     const left = 3, right = width - 4, top = 16, bottom = height - 22;
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     svg.replaceChildren();
@@ -200,7 +200,7 @@
     const { spark } = entry;
     entry.series = series;
     if (entry.metric === 'condamine-warwick-level' && series) { drawWarwickPreview(entry, series); return; }
-    const svg = spark.querySelector('svg'), caption = spark.querySelector('.history-spark-caption span');
+    const svg = spark.querySelector(':scope > svg'), caption = spark.querySelector('.history-spark-caption span');
     svg.replaceChildren();
     if (!series?.latest) { caption.textContent = 'No readings in this window'; return; }
     const [min, max] = WeatherChart.domain(series, false);
@@ -675,7 +675,7 @@
           Number.isFinite(row?.value) ? (row.lastAvailable || Date.now() - row.t > (id === 'condamine-warwick-level' ? 30 * 60000 : 3 * 3600000) ? 'Last available · ' : 'Updated · ') + stamp(row.t) + (row.lastAvailable ? ' · newest observation unavailable' : '') : 'Latest source reading unavailable';
         const entry = cards.find(c => c.metric === id), series = data.series.find(s => s.metric.id === id);
         if (entry && series) drawSpark(entry, series);
-        else if (entry) { entry.spark.querySelector('svg').replaceChildren(); entry.spark.querySelector('.history-spark-caption span').textContent = 'Explore recorded history'; }
+        else if (entry) { entry.spark.querySelector(':scope > svg').replaceChildren(); entry.spark.querySelector('.history-spark-caption span').textContent = 'Explore recorded history'; }
       }
       lastBridgeReading = data.readings['condamine-warwick-level'];
       lastBridgeReference = data.catalog.find(m => m.id === 'condamine-warwick-level')?.bridge;
