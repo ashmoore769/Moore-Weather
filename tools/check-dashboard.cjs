@@ -307,7 +307,7 @@ async function assertCurrentReadingsLayout(page, state) {
         context + ': content remains inside its card: ' + JSON.stringify({box:card.box, part}));
       if (part.client) assert.ok(part.scroll <= part.client + 1, context + ': content must not overflow horizontally');
     }
-    assert.ok(card.value.y >= card.heading.bottom - 1 && card.plot.y >= Math.max(card.value.bottom, card.detail?.bottom || 0) - 1,
+    assert.ok(card.value.y >= card.heading.bottom - 1 && card.plot.y >= Math.max(card.value.bottom, card.detail?.bottom ?? card.value.bottom) - 1,
       context + ': header, value/detail and graph do not overlap');
     assert.ok(Math.abs(card.plot.height - 42) <= 1 && card.caption.y >= card.plot.bottom - 1, context + ': graph and caption keep consistent spacing');
     assert.equal(card.role, 'button'); assert.equal(card.tabIndex, 0); assert.equal(card.popup, 'dialog');
