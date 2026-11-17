@@ -13,9 +13,9 @@ const HOUR = 3600000, now = Date.now(), end = Math.floor(now / HOUR) * HOUR;
 const screenshotRoot = path.resolve(__dirname, '../artifacts/dashboard');
 const screenshotWidths = new Map([[393, 'phone'], [1440, 'desktop']]);
 async function reviewScreenshot(page, engine, width, view, selector) {
-  if (!screenshotWidths.has(width)) return;
+  if (!screenshotWidths.has(width) && !(width === 320 && view === 'current-readings-long')) return;
   fs.mkdirSync(screenshotRoot, {recursive:true});
-  const file = path.join(screenshotRoot, `${engine.name()}-${screenshotWidths.get(width)}-${view}.png`);
+  const file = path.join(screenshotRoot, `${engine.name()}-${screenshotWidths.get(width) || '320'}-${view}.png`);
   if (selector) await page.locator(selector).screenshot({path:file,animations:'disabled'});
   else {
     await page.evaluate(() => scrollTo(0, 0));
@@ -50,11 +50,12 @@ const cameraFrames = [
   {id:'fixture-old', url:'/skycam/fixture-old.jpg', capturedAt:new Date(now - 10 * 60000).toISOString()},
   {id:'fixture-new', url:'/skycam/fixture-new.jpg', capturedAt:new Date(now - 60000).toISOString()}
 ];
-function currentRecord() {
+function currentRecord(overrides = {}) {
   const local = new Date(now + weatherOffset + 10 * HOUR).toISOString();
   const values = quality.currentSensors.map(key => key === '7' ? 1000 : key === '6' ? 400 : key === '3' ? 50 : key === '21' ? 13.8 : key === '23' ? 10 : key === '32' ? 0 : 20);
   values[3] = currentMode === 'partial' ? 25.7 : 23.4;
   if (currentMode === 'partial') { values[28] = 'NaN'; values[20] = -100; }
+  for (const [index, value] of Object.entries(overrides)) values[Number(index)] = value;
   return [local.slice(0,10).replaceAll('-', '/'), local.slice(11,19), ...values].join(',');
 }
 function dailyRecord() {
@@ -245,6 +246,84 @@ async function bounds(page, width) {
   const sorted = boxes.refs.sort((a, b) => a.y - b.y);
   for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i].y >= sorted[i - 1].bottom, 'Reference labels overlap');
 }
+async function currentReadingsLayout(page, state = 'fresh') {
+  try { await assertCurrentReadingsLayout(page, state); }
+  catch (error) {
+    // Geometry failures must retain the whole ten-card review image, including
+    // widths and failure states outside the normal screenshot selection.
+    try {
+      fs.mkdirSync(screenshotRoot, {recursive:true});
+      const engine = page.context().browser().browserType().name(), width = page.viewportSize().width;
+      const file = `${engine}-${width}-current-readings-${state.replace(/[^a-z0-9]+/gi, '-')}-failure.png`;
+      await page.locator('.layout-primary').screenshot({path:path.join(screenshotRoot, file), animations:'disabled', timeout:5000});
+      console.error('Current-reading geometry failure screenshot: ' + file);
+    } catch (captureError) { console.error('Could not capture current-reading geometry: ' + captureError.message); }
+    throw error;
+  }
+}
+async function assertCurrentReadingsLayout(page, state) {
+  await page.waitForFunction(() => document.querySelectorAll('.layout-primary .current-reading-card .history-spark svg').length === 10);
+  const cards = await page.evaluate(() => {
+    const valueIds = ['tempVal', 'blackGlobeTempVal', 'humidityVal', 'rainSince9Val', 'windSpeedVal',
+      'windDirDegVal', 'solarRadVal', 'pressureVal', 'dewPointVal', 'evapRateVal'];
+    const rect = node => { const r = node.getBoundingClientRect(); return { x:r.x, y:r.y, right:r.right, bottom:r.bottom, width:r.width, height:r.height }; };
+    return [...document.querySelectorAll('.layout-primary .current-reading-card')].map(card => {
+      const heading = card.querySelector('.current-reading-heading'), label = card.querySelector('.current-reading-label');
+      const iconRoot = card.querySelector('.current-reading-icon');
+      const icon = iconRoot?.matches('svg') ? iconRoot : iconRoot?.querySelector('svg');
+      const value = card.querySelector('.current-reading-value'), detail = card.querySelector('.current-reading-detail');
+      const spark = card.querySelector('.history-spark'), css = getComputedStyle(card), titleCss = getComputedStyle(label);
+      const text = document.createRange(); text.selectNodeContents(label);
+      const valueText = document.createRange(); valueText.selectNodeContents(value);
+      const id = valueIds.find(id => card.contains(document.getElementById(id)));
+      return { id, title:label.textContent.trim(), box:rect(card), heading:rect(heading), label:rect(label), titleText:rect(text), icon:rect(icon),
+        value:rect(value), valueText:rect(valueText), detail:detail && detail.getBoundingClientRect().height > 0 ? rect(detail) : null,
+        plot:rect(spark.querySelector('svg')), caption:rect(spark.querySelector('.history-spark-caption')),
+        padding:[css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft],
+        titleStyle:[titleCss.fontSize, titleCss.fontWeight, titleCss.lineHeight, titleCss.letterSpacing],
+        headingGap:getComputedStyle(heading).columnGap,
+        titleLineHeight:parseFloat(titleCss.lineHeight) || parseFloat(titleCss.fontSize) * 1.5,
+        sparks:card.querySelectorAll('.history-spark').length, icons:card.querySelectorAll('.current-reading-icon').length,
+        role:card.getAttribute('role'), tabIndex:card.tabIndex, popup:card.getAttribute('aria-haspopup'),
+        describedBy:(card.getAttribute('aria-describedby') || '').split(/\s+/), unitId:document.getElementById(id + 'Unit')?.id,
+        parts:[heading, value, detail, spark].filter(node => node && node.getBoundingClientRect().height > 0)
+          .map(node => ({...rect(node), scroll:node.scrollWidth, client:node.clientWidth})) };
+    });
+  });
+  assert.equal(cards.length, 10, 'all current readings retain their cards');
+  for (const card of cards) {
+    const context = state + ' ' + card.id;
+    assert.deepEqual(card.padding, cards[0].padding, context + ': consistent card padding');
+    assert.deepEqual(card.titleStyle, cards[0].titleStyle, context + ': consistent title typography');
+    assert.equal(card.icons, 1); assert.equal(card.sparks, 1);
+    assert.ok(Math.abs(card.icon.width - 16) <= 1 && Math.abs(card.icon.height - 16) <= 1, context + ': consistent visible icons');
+    assert.ok(card.label.height <= card.titleLineHeight + 1 && card.titleText.right <= card.heading.right + 1,
+      context + ': title stays on one line without clipping: ' + JSON.stringify({title:card.title, box:card.box,
+        heading:card.heading, label:card.label, text:card.titleText, icon:card.icon, gap:card.headingGap,
+        style:card.titleStyle, lineHeight:card.titleLineHeight}));
+    assert.ok(card.titleText.x >= card.icon.right + 1, context + ': icon and title do not overlap');
+    for (const part of [...card.parts, card.valueText, card.icon, card.plot, card.caption]) {
+      assert.ok(part.x >= card.box.x - 1 && part.right <= card.box.right + 1 && part.y >= card.box.y - 1 && part.bottom <= card.box.bottom + 1,
+        context + ': content remains inside its card: ' + JSON.stringify({box:card.box, part}));
+      if (part.client) assert.ok(part.scroll <= part.client + 1, context + ': content must not overflow horizontally');
+    }
+    assert.ok(card.value.y >= card.heading.bottom - 1 && card.plot.y >= Math.max(card.value.bottom, card.detail?.bottom ?? card.value.bottom) - 1,
+      context + ': header, value/detail and graph do not overlap');
+    assert.ok(Math.abs(card.plot.height - 42) <= 1 && card.caption.y >= card.plot.bottom - 1, context + ': graph and caption keep consistent spacing');
+    assert.equal(card.role, 'button'); assert.equal(card.tabIndex, 0); assert.equal(card.popup, 'dialog');
+    assert.ok(card.describedBy.includes(card.id), context + ': history description retains its reading');
+    if (card.unitId) assert.ok(card.describedBy.includes(card.unitId), context + ': history description retains the separate unit');
+  }
+  for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) {
+    const a = cards[i], b = cards[j];
+    if (Math.abs(a.box.y - b.box.y) > 1) continue;
+    for (const part of ['heading', 'value', 'plot', 'caption']) {
+      assert.ok(Math.abs(a[part].y - b[part].y) <= 1, state + ': neighbouring ' + part + ' rows align: ' + a.id + '/' + b.id);
+    }
+    assert.ok(Math.abs(a.plot.bottom - b.plot.bottom) <= 1 && Math.abs(a.box.bottom - b.box.bottom) <= 1,
+      state + ': neighbouring cards and graphs finish together');
+  }
+}
 async function navigation(page, width) {
   const nav = page.locator('.dashboard-tabs');
   const labels = await nav.locator('.dashboard-tab').allInnerTexts();
@@ -409,12 +488,14 @@ async function failurePaths(page, browserName) {
   assert.equal(await page.locator('#weatherData').getAttribute('data-observed-at'), previousObservation);
   assert.match(await page.locator('#statusBadge').textContent(), /STALE/);
   assert.match(await page.locator('#currentReadingStatus').textContent(), /previous observation/);
+  await currentReadingsLayout(page, 'stale');
   currentMode = 'partial'; await page.evaluate(() => fetchWeather());
   assert.equal(await page.locator('#tempVal').textContent(), '25.7°C');
   assert.equal(await page.locator('#blackGlobeTempVal').textContent(), '--');
   assert.equal(await page.locator('#soilTemp10Val').textContent(), '--');
   assert.equal(await page.locator('#radiantDiffVal').textContent(), '--');
   assert.match(await page.locator('#statusBadge').textContent(), /PARTIAL/);
+  await currentReadingsLayout(page, 'partial');
   currentMode = 'hang';
   await page.evaluate(async () => {
     const timeout = AbortSignal.timeout;
@@ -423,9 +504,11 @@ async function failurePaths(page, browserName) {
   });
   assert.match(await page.locator('#currentReadingStatus').textContent(), /timed out/);
   assert.equal(await page.locator('#fetchBtn').isDisabled(), false);
+  await currentReadingsLayout(page, 'timeout');
   currentMode = 'fresh'; await page.evaluate(() => fetchWeather());
   assert.match(await page.locator('#statusBadge').textContent(), /LIVE/);
   assert.equal(await page.locator('#currentReadingStatus').isVisible(), false);
+  await currentReadingsLayout(page, 'recovered');
 
   await page.evaluate(() => showSkyCamHistory(0, {manual:false,followLive:true,transitionMs:0}));
   const cameraTime = await page.locator('#skycamTime').textContent();
@@ -532,6 +615,27 @@ async function failurePaths(page, browserName) {
             if (width >= 900) {
               if (pagePath.includes('index')) await page.evaluate(() => setDesktopLayout('landscape'));
               else await page.evaluate(() => document.body.classList.add('layout-landscape'));
+            }
+            if (pagePath.includes('index')) {
+              await currentReadingsLayout(page);
+              await reviewScreenshot(page, engine, width, 'current-readings', '.layout-primary');
+              if (width === 320) {
+                try {
+                  await page.evaluate(csv => updateWeatherData(csv), currentRecord({0:199.9, 1:359.9, 2:100,
+                    3:-12.3, 4:9.9, 5:1399.9, 6:1099.9, 12:199.9, 15:225, 16:9.99, 19:-24.5, 28:49.9}));
+                  await page.waitForFunction(() => document.getElementById('rainSince9Inches').textContent === '(8.86 in)');
+                  await currentReadingsLayout(page, 'long values');
+                  await reviewScreenshot(page, engine, width, 'current-readings-long', '.layout-primary');
+                } finally { await page.evaluate(csv => updateWeatherData(csv), currentRecord()); }
+              }
+              if (width === 393) {
+                await page.locator('#tempVal').locator('xpath=ancestor::*[contains(@class,"temp-hero")]').press('Enter');
+                await historyReady(page, '10m', 24); assert.equal(requests.at(-1).metric, 'air');
+                await page.locator('.history-close').click();
+                await page.locator('#dewPointVal').locator('xpath=ancestor::*[contains(@class,"quick-stat")]').locator('.current-reading-heading').click();
+                await historyReady(page, '10m', 24); assert.equal(requests.at(-1).metric, 'dew');
+                await page.locator('.history-close').click();
+              }
             }
             // Two representative viewports per browser, with bounded captures
             // instead of images of every long page in the responsive matrix.

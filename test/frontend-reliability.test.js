@@ -218,7 +218,8 @@ test('a faulty globe or soil sensor never freezes healthy Current readings or cr
   assert.equal(b.node('moisture10Val').textContent, '--');
   assert.equal(b.node('radiantDiffVal').textContent, '--');
   assert.notEqual(b.node('feelsLikeVal').textContent, '--');
-  assert.equal(b.node('pressureVal').textContent, '998.1 hPa');
+  assert.equal(b.node('pressureVal').textContent, '998.1');
+  assert.match(html, /id="pressureValUnit"[^>]*>\s*hPa<\//);
   assert.equal(b.node('solarPanelVal').textContent, '🌙 0.0 V');
   assert.equal(b.node('statusBadge').textContent, '● PARTIAL');
   assert.match(b.node('currentReadingStatus').textContent, /Black Globe/);

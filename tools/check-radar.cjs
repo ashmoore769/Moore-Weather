@@ -16,6 +16,7 @@ function readMapStateInPage(target) {
   return { lat: p.lat, lng: p.lng, zoom: m.getZoom(), minimum: m.getMinZoom(),
     projectedCentre: { x: projected.x, y: projected.y }, targetCentreErrorPx: pixelDistance(projected, destination),
     mapSize: { x: size.x, y: size.y }, containerSize: { x: element.clientWidth, y: element.clientHeight },
+    animation: { zoom: Boolean(m._animatingZoom), pan: Boolean(m._panAnim?._inProgress), pinch: Boolean(m.touchZoom?._zooming) },
     enabled: Object.fromEntries(['dragging', 'touchZoom', 'doubleClickZoom', 'scrollWheelZoom', 'boxZoom', 'keyboard'].map(name => [name, m[name].enabled()])),
     active: document.querySelector('.radar-map-stage').dataset.interactive,
     touch: getComputedStyle(element).touchAction };
@@ -57,6 +58,16 @@ const server = http.createServer((req, res) => {
 });
 async function mapState(page) {
   return page.evaluate(target => window.__radarReviewReadState(target), centre);
+}
+async function waitForMapSettled(page, expected = null) {
+  // Leaflet updates getZoom/getCenter before its zoom transition ends and
+  // ignores touchstart while _animatingZoom. A fixed delay can race WebKit's
+  // animation frame; require the requested view and idle movement handlers.
+  await page.waitForFunction(({ target, expected, tolerance }) => {
+    const state = window.__radarReviewReadState(target);
+    return Object.values(state.animation).every(value => !value) && (!expected ||
+      (state.zoom === expected.zoom && pixelDistance(state.projectedCentre, expected.projectedCentre) <= tolerance));
+  }, { target: centre, expected, tolerance: centreTolerancePx }, { timeout: 5000 });
 }
 function sameView(actual, expected, label) {
   const displacementPx = pixelDistance(actual.projectedCentre, expected.projectedCentre);
@@ -210,13 +221,13 @@ async function touchPinch(page, context, engine) {
             await clearOverlayControls(page);
             checkpoint = 'active zoom control';
             await page.locator('.leaflet-control-zoom-in').click(); await page.waitForFunction(z => window.__radarReviewMap.getZoom() > z, initial.zoom);
-            await page.waitForTimeout(300); const zoomed = await mapState(page);
+            await waitForMapSettled(page); const zoomed = await mapState(page);
             checkpoint = 'active map drag';
             p = await point(page); await drag(page, p, 35, 15);
             const moved = await mapState(page);
             assert.ok(pixelDistance(moved.projectedCentre, zoomed.projectedCentre) > centreTolerancePx, 'Active map drags by more than one displayed pixel');
             checkpoint = 'active reset';
-            await page.locator('#radarReset').click(); await page.waitForTimeout(300);
+            await page.locator('#radarReset').click(); await waitForMapSettled(page, initial);
             sameView(await unlocked(page, 'Reset preserves active state'), initial, 'Reset recentres default view');
             checkpoint = 'active pinch';
             await touchPinch(page, context, engine); assert.ok((await mapState(page)).zoom > initial.zoom, 'Active pinch zooms the map');
@@ -230,7 +241,7 @@ async function touchPinch(page, context, engine) {
             await page.keyboard.press('Space'); await unlocked(page, 'Keyboard Space activates');
             checkpoint = 'outside click and locked reset';
             await page.getByRole('heading', { name: 'Moore Weather', exact: true }).click(); await locked(page, 'Outside click locks');
-            await page.locator('#radarReset').click(); await page.waitForTimeout(300);
+            await page.locator('#radarReset').click(); await waitForMapSettled(page, initial);
             sameView(await locked(page, 'Reset remains locked'), initial, 'Locked reset recentres default view');
             checkpoint = 'playback and browser errors';
             await page.locator('#radarLatest').click(); await locked(page, 'Playback controls do not unlock');
