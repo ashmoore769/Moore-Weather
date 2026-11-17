@@ -21,6 +21,7 @@
   let current = null;
   let range = '24h';
   let latestHistory = null;
+  let renderedWidth = 0;
   let enabled = null;
   let lastAttemptError = false;
   const formatTime = new Intl.DateTimeFormat('en-AU', {
@@ -37,6 +38,8 @@
 
   function drawHistory(history) {
     graph.replaceChildren();
+    const width = Math.max(240, Math.round(graph.clientWidth || 720));
+    renderedWidth = width;
     const points = (Array.isArray(history) ? history : [])
       .filter(point => Number.isFinite(Date.parse(point?.observedAt)))
       .map(point => ({ ...point, time: Date.parse(point.observedAt) }))
@@ -47,7 +50,7 @@
     }
     const duration = { '24h': 86400000, '7d': 604800000, '30d': 2592000000 }[range];
     const end = Date.now(), start = end - duration;
-    const width = 720, height = 134, left = 43, right = 675, top = 12, bottom = 106;
+    const height = 134, left = 43, right = width - 45, top = 12, bottom = 106;
     const series = [
       { field: 'batteryVoltageV', css: 'yard-line', axis: 'V', label: 'Battery voltage' },
       { field: 'pvVoltageV', css: 'yard-line yard-line-panel', axis: 'V', label: 'PV voltage' },
@@ -75,21 +78,35 @@
     }
     for (const item of series) {
       const min = item.axis === 'V' ? minV : minW, max = item.axis === 'V' ? maxV : maxW;
-      let path = '', previous = null, count = 0, onlyPoint = null;
+      let path = '', previous = null, count = 0, segmentCount = 0, segmentStart = null;
+      const dots = [];
+      const finishSegment = () => {
+        if (segmentCount === 1) dots.push(segmentStart);
+        segmentCount = 0;
+        segmentStart = null;
+      };
       for (const point of points) {
         if (point.time < start || point.time > end || !Number.isFinite(point[item.field])) {
+          finishSegment();
           previous = null;
           continue;
         }
         const x = xAt(point.time).toFixed(2), y = yAt(point[item.field], min, max).toFixed(2);
-        path += (!previous || point.time - previous.time > gap ? 'M' : 'L') + x + ',' + y;
-        onlyPoint = { x, y }; previous = point; count += 1;
+        const continuous = previous && point.time - previous.time <= gap;
+        if (!continuous) {
+          finishSegment();
+          segmentStart = { x, y };
+        }
+        path += (continuous ? 'L' : 'M') + x + ',' + y;
+        segmentCount += 1;
+        previous = point; count += 1;
       }
+      finishSegment();
       if (!count) continue;
       svg += '<path class="' + item.css + '" d="' + escapeSvg(path) + '"><title>' +
         escapeSvg(item.label + ' (' + item.axis + ')') + '</title></path>';
-      if (count === 1) svg += '<circle class="' + item.css + ' yard-single-dot" cx="' +
-        onlyPoint.x + '" cy="' + onlyPoint.y + '" r="2.5"/>';
+      for (const dot of dots) svg += '<circle class="' + item.css + ' yard-single-dot" cx="' +
+        dot.x + '" cy="' + dot.y + '" r="2.5"/>';
     }
     svg += '<text class="yard-axis" x="1" y="' + (top + 5) + '">' + maxV.toFixed(0) + ' V</text>' +
       '<text class="yard-axis" x="1" y="' + (bottom + 4) + '">' + minV.toFixed(0) + ' V</text>' +
@@ -101,7 +118,7 @@
       (range === '24h' ? '24h ago' : range === '7d' ? '7 days ago' : '30 days ago') + '</text>' +
       '<text class="yard-axis" text-anchor="end" x="' + right + '" y="' + (height - 3) + '">Now</text>';
     const drawing = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    drawing.setAttribute('viewBox', '0 0 720 134');
+    drawing.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
     drawing.setAttribute('role', 'img');
     drawing.setAttribute('aria-label', 'Yard Power history. Battery and PV voltage use the left scale in volts. Solar generation and controller load use the right scale in watts. Missing measurements are not connected.');
     drawing.innerHTML = svg;
@@ -183,6 +200,12 @@
     setInterval(() => { void refreshCurrent(); }, 60000);
     setInterval(() => { paint(); }, 15000);
     setInterval(() => { void refreshHistory(); }, 300000);
+  }
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(() => {
+      const width = Math.max(240, Math.round(graph.clientWidth || 720));
+      if (latestHistory && graph.clientWidth > 0 && width !== renderedWidth) drawHistory(latestHistory);
+    }).observe(graph);
   }
   void begin();
 })();

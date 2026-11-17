@@ -7,6 +7,7 @@
   'use strict';
   const DAY = 86400000;
   const SIZE = { width: 720, height: 134, left: 45, right: 675, top: 12, bottom: 106 };
+  const renderStates = new WeakMap();
   const METRICS = [
     { id: 'battery', unit: 'V', name: 'Battery', css: 'station-power-line-battery' },
     { id: 'panel', unit: 'V', name: 'Panel', css: 'station-power-line-panel' },
@@ -18,13 +19,15 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
   })[char]);
 
-  function chartModel(series, now = Date.now()) {
+  function chartModel(series, now = Date.now(), width = SIZE.width) {
+    const availableWidth = valid(width) && width >= 120 ? Math.round(width) : SIZE.width;
+    const size = { ...SIZE, width: availableWidth, right: availableWidth - (SIZE.width - SIZE.right) };
     const found = Array.isArray(series) ? series : [];
     const source = new Map(found.filter(s => s && METRICS.some(m => m.id === s.metric?.id))
       .map(s => [s.metric.id, s]));
     const end = Math.min(now, Math.max(...[...source.values()].map(s => valid(s.end) ? s.end : 0), 0));
     const start = end - DAY;
-    const plotWidth = SIZE.right - SIZE.left;
+    const plotWidth = size.right - size.left;
     const seriesPoints = METRICS.map(metric => {
       const input = source.get(metric.id);
       const spacing = valid(input?.intervalSeconds) ? input.intervalSeconds * 1000 : 600000;
@@ -43,29 +46,41 @@
     const voltsMin = Math.min(0, Math.floor(Math.min(0, ...volts) / 5) * 5);
     const currentMax = Math.max(50, Math.ceil(Math.max(0, ...currents) / 50) * 50);
     const currentMin = Math.min(0, Math.floor(Math.min(0, ...currents) / 50) * 50);
-    const x = t => SIZE.left + Math.max(0, Math.min(1, (t - start) / DAY)) * plotWidth;
-    const y = (value, min, max) => SIZE.bottom - (value - min) /
-      Math.max(1, max - min) * (SIZE.bottom - SIZE.top);
+    const x = t => size.left + Math.max(0, Math.min(1, (t - start) / DAY)) * plotWidth;
+    const y = (value, min, max) => size.bottom - (value - min) /
+      Math.max(1, max - min) * (size.bottom - size.top);
     const lines = seriesPoints.map(s => {
       let d = '', previous = null, count = 0, dots = [];
+      let segmentStart = null, segmentLength = 0;
+      const finishSegment = () => {
+        if (segmentLength === 1) dots.push(segmentStart);
+        segmentStart = null;
+        segmentLength = 0;
+        previous = null;
+      };
       const lo = s.unit === 'V' ? voltsMin : currentMin;
       const hi = s.unit === 'V' ? voltsMax : currentMax;
       for (const point of s.points) {
-        if (!valid(point.value)) { previous = null; continue; }
+        if (!valid(point.value)) { finishSegment(); continue; }
         const px = x(point.t).toFixed(2), py = y(point.value, lo, hi).toFixed(2);
         const continuous = previous && point.t - previous.t <= s.spacing * 1.5;
+        if (!continuous) {
+          finishSegment();
+          segmentStart = { x: px, y: py };
+        }
         d += (continuous ? 'L' : 'M') + px + ',' + py;
-        if (!continuous) dots.push({ x: px, y: py });
+        segmentLength += 1;
         previous = point; count += 1;
       }
+      finishSegment();
       return { ...s, d, count, dots };
     });
-    return { lines, start, end, voltsMin, voltsMax, currentMin, currentMax,
+    return { lines, size, start, end, voltsMin, voltsMax, currentMin, currentMax,
       count: lines.reduce((n, line) => n + line.count, 0) };
   }
 
   function svgMarkup(model) {
-    const { width, height, left, right, top, bottom } = SIZE;
+    const { width, height, left, right, top, bottom } = model.size || SIZE;
     const middle = (left + right) / 2;
     let svg = '';
     for (const x of [left, middle, right]) {
@@ -92,12 +107,32 @@
       if (!line.count) continue;
       svg += '<path class="station-power-series ' + escapeText(line.css) +
         '" d="' + line.d + '"><title>' + escapeText(line.name) + ' (' + line.unit + ')</title></path>';
-      if (line.count === 1) {
-        for (const dot of line.dots) svg += '<circle class="station-power-single ' + escapeText(line.css) +
-          '" cx="' + dot.x + '" cy="' + dot.y + '" r="2.5"/>';
-      }
+      for (const dot of line.dots) svg += '<circle class="station-power-single ' + escapeText(line.css) +
+        '" cx="' + dot.x + '" cy="' + dot.y + '" r="2.5"/>';
     }
     return svg;
+  }
+
+  function measuredWidth(chart) {
+    return chart.parentElement?.clientWidth || chart.clientWidth || 0;
+  }
+
+  function watchResize(chart, state) {
+    if (state.watching) return;
+    state.watching = true;
+    const view = state.doc.defaultView || (typeof window === 'object' ? window : null);
+    const redraw = () => {
+      const width = measuredWidth(chart);
+      // SVG content changes can also notify the observer. Only a changed,
+      // visible container width needs another draw, using the cached history.
+      if (width >= 120 && Math.round(width) !== state.width) render(state.series, state.doc);
+    };
+    if (typeof view?.ResizeObserver === 'function') {
+      state.observer = new view.ResizeObserver(redraw);
+      state.observer.observe(chart.parentElement || chart);
+    } else if (view?.addEventListener) {
+      view.addEventListener('resize', redraw);
+    }
   }
 
   function render(series, doc = typeof document !== 'undefined' ? document : null) {
@@ -105,8 +140,12 @@
     const chart = doc?.getElementById('stationPowerChart');
     const message = doc?.getElementById('stationPowerGraphNote');
     if (!card || !chart) return null;
-    const model = chartModel(series);
-    chart.setAttribute('viewBox', '0 0 ' + SIZE.width + ' ' + SIZE.height);
+    const state = renderStates.get(chart) || { doc, watching: false };
+    state.series = series;
+    const model = chartModel(series, Date.now(), measuredWidth(chart));
+    state.width = model.size.width;
+    renderStates.set(chart, state);
+    chart.setAttribute('viewBox', '0 0 ' + model.size.width + ' ' + model.size.height);
     chart.setAttribute('aria-label', 'Weather station power 24-hour trends. Battery and panel on the voltage axis; load and charge on the current axis. Missing measurements are gaps.');
     chart.innerHTML = svgMarkup(model);
     if (message) {
@@ -117,6 +156,7 @@
         ? active + ' of 4 traces · ' + resolutions.join(' / ') + ' history · AEST'
         : 'No recorded station power history in this window.';
     }
+    watchResize(chart, state);
     return model;
   }
 
