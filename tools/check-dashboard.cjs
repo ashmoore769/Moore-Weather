@@ -247,6 +247,21 @@ async function bounds(page, width) {
   for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i].y >= sorted[i - 1].bottom, 'Reference labels overlap');
 }
 async function currentReadingsLayout(page, state = 'fresh') {
+  try { await assertCurrentReadingsLayout(page, state); }
+  catch (error) {
+    // Geometry failures must retain the whole ten-card review image, including
+    // widths and failure states outside the normal screenshot selection.
+    try {
+      fs.mkdirSync(screenshotRoot, {recursive:true});
+      const engine = page.context().browser().browserType().name(), width = page.viewportSize().width;
+      const file = `${engine}-${width}-current-readings-${state.replace(/[^a-z0-9]+/gi, '-')}-failure.png`;
+      await page.locator('.layout-primary').screenshot({path:path.join(screenshotRoot, file), animations:'disabled', timeout:5000});
+      console.error('Current-reading geometry failure screenshot: ' + file);
+    } catch (captureError) { console.error('Could not capture current-reading geometry: ' + captureError.message); }
+    throw error;
+  }
+}
+async function assertCurrentReadingsLayout(page, state) {
   await page.waitForFunction(() => document.querySelectorAll('.layout-primary .current-reading-card .history-spark svg').length === 10);
   const cards = await page.evaluate(() => {
     const valueIds = ['tempVal', 'blackGlobeTempVal', 'humidityVal', 'rainSince9Val', 'windSpeedVal',
@@ -261,11 +276,12 @@ async function currentReadingsLayout(page, state = 'fresh') {
       const text = document.createRange(); text.selectNodeContents(label);
       const valueText = document.createRange(); valueText.selectNodeContents(value);
       const id = valueIds.find(id => card.contains(document.getElementById(id)));
-      return { id, box:rect(card), heading:rect(heading), label:rect(label), titleText:rect(text), icon:rect(icon),
+      return { id, title:label.textContent.trim(), box:rect(card), heading:rect(heading), label:rect(label), titleText:rect(text), icon:rect(icon),
         value:rect(value), valueText:rect(valueText), detail:detail && detail.getBoundingClientRect().height > 0 ? rect(detail) : null,
         plot:rect(spark.querySelector('svg')), caption:rect(spark.querySelector('.history-spark-caption')),
         padding:[css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft],
         titleStyle:[titleCss.fontSize, titleCss.fontWeight, titleCss.lineHeight, titleCss.letterSpacing],
+        headingGap:getComputedStyle(heading).columnGap,
         titleLineHeight:parseFloat(titleCss.lineHeight) || parseFloat(titleCss.fontSize) * 1.5,
         sparks:card.querySelectorAll('.history-spark').length, icons:card.querySelectorAll('.current-reading-icon').length,
         role:card.getAttribute('role'), tabIndex:card.tabIndex, popup:card.getAttribute('aria-haspopup'),
@@ -282,7 +298,9 @@ async function currentReadingsLayout(page, state = 'fresh') {
     assert.equal(card.icons, 1); assert.equal(card.sparks, 1);
     assert.ok(Math.abs(card.icon.width - 16) <= 1 && Math.abs(card.icon.height - 16) <= 1, context + ': consistent visible icons');
     assert.ok(card.label.height <= card.titleLineHeight + 1 && card.titleText.right <= card.heading.right + 1,
-      context + ': title stays on one line without clipping');
+      context + ': title stays on one line without clipping: ' + JSON.stringify({title:card.title, box:card.box,
+        heading:card.heading, label:card.label, text:card.titleText, icon:card.icon, gap:card.headingGap,
+        style:card.titleStyle, lineHeight:card.titleLineHeight}));
     assert.ok(card.titleText.x >= card.icon.right + 1, context + ': icon and title do not overlap');
     for (const part of [...card.parts, card.valueText, card.icon, card.plot, card.caption]) {
       assert.ok(part.x >= card.box.x - 1 && part.right <= card.box.right + 1 && part.y >= card.box.y - 1 && part.bottom <= card.box.bottom + 1,

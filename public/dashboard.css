@@ -203,6 +203,9 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
   .dashboard-identity { gap:7px; }
   .dashboard-identity h1,body.layout-landscape .dashboard-identity h1 { font-size:15px; }
   .dashboard-identity img,body.layout-landscape .dashboard-identity img { width:30px; height:30px; }
+  .current-reading-card { padding:9px; }
+  .current-reading-heading { gap:4px; }
+  .current-reading-label { letter-spacing:.1px; }
   .current-reading-card .current-reading-value { font-size:19px; }
   .current-reading-card .primary-temp { font-size:28px; }
   .humidity-stat .current-reading-value,.rain-stat .current-reading-value { font-size:24px; }
