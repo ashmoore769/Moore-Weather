@@ -1132,6 +1132,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <script defer src="/station-alerts.js?v=9"></script>
 <link rel="stylesheet" href="/dashboard.css?v=13">
 <link rel="stylesheet" href="/solar.css?v=4">
+<link rel="stylesheet" href="/yard-power.css?v=1">
+<script defer src="/yard-power.js?v=1"></script>
+
 <script defer src="/solar-chart.js?v=1"></script>
 <script defer src="/solar.js?v=5"></script>
 <link rel="stylesheet" href="/forecast-summary.css?v=1">
@@ -1456,6 +1459,31 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span><span class="unit-suffix"> mA</span></span></div>
 <div class="metric-row"><span class="metric-label">Charge</span><span class="metric-value" id="chargeVal">--</span></div>
 </div>
+</section>
+<section id="yardPower" class="panel-card section-card yard-power-card" aria-labelledby="yardPowerTitle" hidden>
+  <header class="yard-power-header">
+    <div class="yard-power-title">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-3 8h6l-5 12 1-9H7l6-11Z"/></svg>
+      <div><h2 id="yardPowerTitle" class="section-title">Yard Power</h2><p class="yard-power-subtitle">Off-grid solar · Tank pump &amp; yard lighting</p></div>
+    </div>
+    <div class="yard-power-state"><span class="yard-power-status" id="yardPowerStatus" data-state="waiting" role="status">WAITING</span><span class="yard-power-age" id="yardPowerAge">No reading</span></div>
+  </header>
+  <div class="yard-power-grid" aria-label="Yard Power measurements">
+    <div class="yard-power-metric"><span class="yard-power-label"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M8 7V4h8v3m-7 6h6"/></svg>Battery voltage</span><div class="yard-power-reading"><strong id="yardBatteryV">–</strong><small>V</small></div></div>
+    <div class="yard-power-metric"><span class="yard-power-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-13-7 2 2m10 10 2 2m0-14-2 2M7 17l-2 2"/></svg>PV voltage</span><div class="yard-power-reading"><strong id="yardPvV">–</strong><small>V</small></div></div>
+    <div class="yard-power-metric"><span class="yard-power-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-13-7 2 2m10 10 2 2"/></svg>Solar generation</span><div class="yard-power-reading"><strong id="yardPvPower">–</strong><small>W</small></div></div>
+    <div class="yard-power-metric"><span class="yard-power-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 19h16"/></svg>Charging current</span><div class="yard-power-reading"><strong id="yardChargeA">–</strong><small>A</small></div></div>
+    <div class="yard-power-metric"><span class="yard-power-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0l-1 2H9l-1-2Z"/></svg>Controller load</span><div class="yard-power-reading"><strong id="yardLoadPower">–</strong><small>W</small></div></div>
+    <div class="yard-power-metric"><span class="yard-power-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0Z"/></svg>Controller temp</span><div class="yard-power-reading"><strong id="yardControllerTemp">–</strong><small>°C</small></div></div>
+  </div>
+  <p class="yard-power-summary" id="yardPowerSummary">Awaiting telemetry.</p>
+  <div class="yard-power-history">
+    <div class="yard-power-history-header"><h3>History</h3><div class="yard-power-range" role="group" aria-label="Yard power history range"><button type="button" data-yard-range="24h" aria-pressed="true">24h</button><button type="button" data-yard-range="7d" aria-pressed="false">7d</button><button type="button" data-yard-range="30d" aria-pressed="false">30d</button></div></div>
+    <p id="yardPowerHistoryDetail" class="yard-power-history-detail">Waiting for historical data.</p>
+    <div id="yardPowerChart" class="yard-power-chart"></div>
+    <div class="yard-power-legend"><span>Battery · V</span><span class="yard-legend-solar">Solar · W</span></div>
+    <p class="yard-power-method">Controller load excludes any inverter connected directly to the battery. Historical gaps are not interpolated. Data is informational only.</p>
+  </div>
 </section>
 <footer class="app-footer">
 <a class="footer-signout" href="/help.html">Add to Home Screen</a>
