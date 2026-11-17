@@ -42,6 +42,7 @@ function series(id, resolution, hours, finish = end) {
     points, latest: points.at(-1), missing: 0, note: 'Offline fixture', subtitle: 'Saved readings · AEST' };
 }
 let mode = 'fresh', waterReadingMode = 'fresh', historyMode = 'fresh', requests = [];
+let historyResponseGate = null;
 let currentMode = 'fresh', weatherOffset = 0, skycamFailNewest = false, skycamAttempts = 0;
 let skycamEmptyNewest = false;
 let skycamIncomingSequence = 0;
@@ -153,7 +154,10 @@ const server = http.createServer((req, res) => {
         requests.push(request);
         const metric = catalog.find(m => m.id === request.metric);
         const window = chart.navigationWindow(request.end - request.hours * HOUR, request.end, [request.resolution], now, request.resolution, metric);
-        return res.end(JSON.stringify({ catalog, series: [series(metric.id, window.resolution, window.hours, window.end)] }));
+        const body = JSON.stringify({ catalog, series: [series(metric.id, window.resolution, window.hours, window.end)] });
+        const reply = () => { if (!res.destroyed) res.end(body); };
+        if (historyResponseGate) { historyResponseGate.then(reply); return; }
+        return reply();
       } catch (e) { res.statusCode = 400; return res.end(JSON.stringify({ error: e.message })); }
     }
     res.statusCode = 404; return res.end('{}');
@@ -190,9 +194,7 @@ async function queuedHistoryReopen(page, selector) {
   // Hold the new response until the previous dialog's queued close event has
   // fired, so this checks the cleanup race independently of network timing.
   let release;
-  const gate = new Promise(resolve => { release = resolve; });
-  const pattern = '**/api/history?**', hold = async route => { await gate; await route.continue(); };
-  await page.route(pattern,hold);
+  historyResponseGate = new Promise(resolve => { release = resolve; });
   try {
     await page.evaluate(async selector => {
       const dialog = document.querySelector('.history-dialog');
@@ -202,7 +204,7 @@ async function queuedHistoryReopen(page, selector) {
       control.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
       await closed;
     },selector);
-  } finally { release(); await page.unroute(pattern,hold); }
+  } finally { historyResponseGate = null; release(); }
 }
 
 async function readablePalette(page) {
