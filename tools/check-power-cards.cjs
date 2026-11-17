@@ -10,7 +10,7 @@ const { chromium, webkit } = require('playwright');
 const root = path.resolve(__dirname, '../public');
 const artifacts = path.resolve(__dirname, '../artifacts/dashboard');
 const now = Date.now(), HOUR = 3600000, MINUTE = 60000;
-let mode = 'fresh', historyMode = 'continuous', requests = 0;
+let mode = 'fresh', historyMode = 'continuous', requests = 0, dataRequests = 0;
 const dashboard = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
   .replace(/<script\b([^>]*)>[\s\S]*?<\/script>/gi, (tag, attributes) =>
     /\bsrc="\/(?:station-power-chart|yard-power|theme)\.js\b/.test(attributes) ? tag : '');
@@ -65,7 +65,17 @@ async function chartGeometry(page) {
           width: box.width, height: box.height };
       };
       const chart = document.querySelector(selector);
+      const svg = chart instanceof SVGSVGElement ? chart : chart.querySelector('svg');
+      const viewport = svg.getBoundingClientRect();
       return {
+        svg: { viewportWidth: viewport.width, viewportHeight: viewport.height,
+          hostWidth: svg.parentElement.getBoundingClientRect().width,
+          viewBoxWidth: svg.viewBox.baseVal.width, viewBoxHeight: svg.viewBox.baseVal.height },
+        labels: [...chart.querySelectorAll('text')].map(element => {
+          const matrix = element.getScreenCTM(), fontSize = parseFloat(getComputedStyle(element).fontSize);
+          const scale = matrix ? Math.min(Math.hypot(matrix.a, matrix.b), Math.hypot(matrix.c, matrix.d)) : 0;
+          return { text: element.textContent, renderedFontSize: fontSize * scale };
+        }),
         paths: [...chart.querySelectorAll('path')].map(element => {
           const d = element.getAttribute('d') || '';
           return { ...style(element), classes: [...element.classList],
@@ -79,6 +89,30 @@ async function chartGeometry(page) {
     };
     return { station: inspect('#stationPowerChart'), yard: inspect('#yardPowerChart') };
   });
+}
+
+async function waitForFittedCharts(page) {
+  await page.waitForFunction(() => ['#stationPowerChart', '#yardPowerChart svg'].every(selector => {
+    const svg = document.querySelector(selector);
+    return svg && svg.querySelector('path') &&
+      Math.abs(svg.viewBox.baseVal.width - svg.getBoundingClientRect().width) <= 1 &&
+      Math.abs(svg.viewBox.baseVal.width - svg.parentElement.getBoundingClientRect().width) <= 1;
+  }), null, { timeout: 5000 });
+}
+
+function assertResponsiveChart(chart, description) {
+  assert.ok(Math.abs(chart.svg.viewBoxWidth - chart.svg.viewportWidth) <= 1 &&
+    Math.abs(chart.svg.viewBoxWidth - chart.svg.hostWidth) <= 1,
+    description + ': viewBox must fit the actual chart/container width: ' + JSON.stringify(chart.svg));
+  assert.ok(Math.abs(chart.svg.viewportHeight - 134) <= 1 && chart.svg.viewBoxHeight === 134,
+    description + ': the compact graph height must remain 134px');
+  assert.ok(chart.labels.length >= 6, description + ': both scales and time labels are present');
+  for (const label of chart.labels) {
+    assert.ok(label.renderedFontSize >= 9,
+      description + ': axis text must remain at least 9px on screen: ' + JSON.stringify(label));
+  }
+  assert.ok(Math.max(...chart.paths.map(trace => trace.width)) >= chart.svg.viewportWidth - 120,
+    description + ': the plot must use the available chart width');
 }
 
 function assertVisibleLines(chart, description) {
@@ -128,6 +162,7 @@ function assertSparseGeometry(chart, description, panelClass) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
+  if (url.pathname.startsWith('/api/')) dataRequests++;
   if (url.pathname === '/api/yard-power') {
     requests++;
     const current = template(now - (mode === 'stale' ? 12 : 1) * MINUTE);
@@ -180,6 +215,7 @@ const server = http.createServer((req, res) => {
               { detail: { series } })), station);
             assert.equal(requests, before, 'station composite reuses history rather than fetching more data');
             await page.waitForFunction(() => document.querySelectorAll('#yardPowerChart path.yard-line').length >= 4);
+            await waitForFittedCharts(page);
             const visual = await page.evaluate(() => {
               const yard = document.getElementById('yardPower');
               const station = document.getElementById('stationPower');
@@ -205,12 +241,39 @@ const server = http.createServer((req, res) => {
             const connected = await chartGeometry(page);
             assertVisibleLines(connected.station, 'Station Power continuous history');
             assertVisibleLines(connected.yard, 'Yard Power one-minute history');
+            assertResponsiveChart(connected.station, 'Station Power at ' + width + 'px');
+            assertResponsiveChart(connected.yard, 'Yard Power at ' + width + 'px');
             for (const card of [visual.yard, visual.station]) {
               assert.ok(card.x >= -1 && card.right <= width + 1, 'Card must not overflow the page: ' + JSON.stringify(visual));
             }
             assert.ok(visual.yard.height < (width === 1440 ? 410 : width === 1100 ? 495 : 600),
               'Yard Power should remain compact for the available column width: ' + JSON.stringify(visual));
             assert.deepEqual(errors, [], 'No browser exceptions');
+            if (width === 1440) {
+              const beforeResize = dataRequests;
+              await page.setViewportSize({ width: 393, height: 900 });
+              await page.evaluate(() => document.body.classList.replace('layout-landscape', 'layout-portrait'));
+              await waitForFittedCharts(page);
+              const narrow = await chartGeometry(page);
+              for (const key of ['station', 'yard']) {
+                assertVisibleLines(narrow[key], key + ' after narrowing');
+                assertResponsiveChart(narrow[key], key + ' after narrowing');
+                assert.ok(narrow[key].svg.viewportWidth < connected[key].svg.viewportWidth / 2,
+                  key + ': resize must exercise a substantially narrower chart');
+              }
+              assert.equal(dataRequests, beforeResize, 'Narrowing charts must reuse cached readings without a data request');
+              await page.setViewportSize({ width: 1440, height: 900 });
+              await page.evaluate(() => document.body.classList.replace('layout-portrait', 'layout-landscape'));
+              await waitForFittedCharts(page);
+              const restored = await chartGeometry(page);
+              for (const key of ['station', 'yard']) {
+                assertVisibleLines(restored[key], key + ' after widening');
+                assertResponsiveChart(restored[key], key + ' after widening');
+                assert.ok(Math.abs(restored[key].svg.viewportWidth - connected[key].svg.viewportWidth) <= 1,
+                  key + ': widening must restore the original chart width');
+              }
+              assert.equal(dataRequests, beforeResize, 'Widening charts must reuse cached readings without a data request');
+            }
             if (width !== 1100) {
               await page.locator('#yardPower').screenshot({ path: path.join(artifacts, 'yard-power-' + engine.name() + '-' + width + '.png'), animations: 'disabled' });
               await page.locator('#stationPower').screenshot({ path: path.join(artifacts, 'station-power-' + engine.name() + '-' + width + '.png'), animations: 'disabled' });
@@ -244,6 +307,6 @@ const server = http.createServer((req, res) => {
         }
       } finally { await browser.close(); }
     }
-    console.log('Power cards passed: 6/3/2 Yard columns, 4/2 Station columns, visible unfilled traces, per-series gaps and singleton points, stale states and layout checks.');
+    console.log('Power cards passed: 6/3/2 Yard columns, 4/2 Station columns, visible unfilled traces, readable adaptive axes and cached resize, per-series gaps and singleton points, stale states and layout checks.');
   } finally { await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -83,6 +83,76 @@ test('sparse station observations appear as dots even when missing timestamps ha
   assert.doesNotMatch(chart.svgMarkup(chart.chartModel([missing], NOW)), /<circle /);
 });
 
+test('station plots use the available width while preserving pixel-sized axes and height', () => {
+  const source = readings('battery', [10, 12, 14]);
+  source.intervalSeconds = 12 * 3600;
+  source.points.forEach((point, i) => { point.t = NOW - (2 - i) * 12 * 3600000; });
+  const phone = chart.chartModel([source], NOW, 350);
+  const wide = chart.chartModel([source], NOW, 1320);
+  const coordinates = model => [...model.lines[0].d.matchAll(/[ML]([\d.]+),([\d.]+)/g)]
+    .map(match => [Number(match[1]), Number(match[2])]);
+  assert.deepEqual(coordinates(phone).map(point => point[0]), [45, 175, 305]);
+  assert.deepEqual(coordinates(wide).map(point => point[0]), [45, 660, 1275]);
+  assert.deepEqual(coordinates(phone).map(point => point[1]), coordinates(wide).map(point => point[1]),
+    'resizing changes only the time-axis width, not the vertical scale');
+  for (const model of [phone, wide]) {
+    assert.equal(model.size.height, 134);
+    assert.equal(model.size.left, 45);
+    assert.equal(model.size.width - model.size.right, 45);
+    assert.match(chart.svgMarkup(model), new RegExp('x="' + (model.size.width - 1) + '" y="18" text-anchor="end"'));
+    assert.equal(model.count, 3);
+  }
+  assert.equal(chart.chartModel([source], NOW).size.width, 720);
+  assert.equal(chart.chartModel([source], NOW, NaN).size.width, 720);
+});
+
+test('station resize redraws the latest history once per changed visible width', () => {
+  let writes = 0, markup = '';
+  const attributes = {}, callbacks = [], observed = [];
+  const container = { clientWidth: 350 };
+  const drawing = {
+    parentElement: container,
+    setAttribute(name, value) { attributes[name] = value; },
+    set innerHTML(value) { markup = value; writes += 1; }
+  };
+  const note = { textContent: '' };
+  const doc = {
+    defaultView: { ResizeObserver: class {
+      constructor(callback) { callbacks.push(callback); }
+      observe(target) { observed.push(target); }
+    } },
+    getElementById(id) {
+      return { stationPower: {}, stationPowerChart: drawing, stationPowerGraphNote: note }[id];
+    }
+  };
+  const liveNow = Date.now() - 1000;
+  const live = four().map(series => ({ ...series, end: liveNow,
+    points: series.points.map(point => ({ ...point, t: liveNow + point.t - NOW })) }));
+  chart.render(live, doc);
+  assert.equal(attributes.viewBox, '0 0 350 134');
+  assert.deepEqual(observed, [container]);
+  callbacks[0]();
+  assert.equal(writes, 1, 'initial and content-only observer notifications do not loop');
+  container.clientWidth = 1320;
+  callbacks[0]();
+  assert.equal(attributes.viewBox, '0 0 1320 134');
+  assert.equal(writes, 2);
+  container.clientWidth = 0;
+  callbacks[0]();
+  assert.equal(writes, 2, 'hidden containers wait until a visible width is available');
+
+  container.clientWidth = 1320;
+  chart.render([live[0]], doc);
+  container.clientWidth = 393;
+  callbacks[0]();
+  assert.equal(attributes.viewBox, '0 0 393 134');
+  assert.equal((markup.match(/<path class="station-power-series /g) || []).length, 1,
+    'resizing uses the most recent series, without reviving old measurements');
+  assert.match(note.textContent, /^1 of 4 traces/);
+  assert.equal(callbacks.length, 1, 'regular updates do not add resize observers');
+  assert.equal(writes, 4);
+});
+
 test('composite chart uses the existing station history signal, not extra polling', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'history.js'), 'utf8');
   const module = fs.readFileSync(path.join(__dirname, '..', 'public', 'station-power-chart.js'), 'utf8');
