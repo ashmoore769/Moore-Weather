@@ -217,7 +217,7 @@ async function bounds(page, width) {
     return { readings, bridge: rect('#warwickBridge'), warwickReading: rect('.water-warwick .water-hero'),
       referenceNote: rect('#warwickReferenceNote'),
       warwick: rect('.water-warwick'), dam: rect('.water-dam'), scots: rect('.water-scots'),
-      connolly: rect('.water-connolly'), grid: rect('.water-grid'), svg: rect('.water-warwick .history-spark svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
+      connolly: rect('.water-connolly'), grid: rect('.water-grid'), svg: rect('.water-warwick .history-spark > svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
   });
   for (const b of [boxes.warwick, boxes.dam, boxes.scots, boxes.connolly]) {
     assert.ok(b.x >= -1 && b.right <= width + 1, JSON.stringify({ width, boxes }));
@@ -262,7 +262,7 @@ async function currentReadingsLayout(page, state = 'fresh') {
   }
 }
 async function assertCurrentReadingsLayout(page, state) {
-  await page.waitForFunction(() => document.querySelectorAll('.layout-primary .current-reading-card .history-spark svg').length === 10);
+  await page.waitForFunction(() => document.querySelectorAll('.layout-primary .current-reading-card .history-spark > svg').length === 10);
   const cards = await page.evaluate(() => {
     const valueIds = ['tempVal', 'blackGlobeTempVal', 'humidityVal', 'rainSince9Val', 'windSpeedVal',
       'windDirDegVal', 'solarRadVal', 'pressureVal', 'dewPointVal', 'evapRateVal'];
@@ -278,7 +278,7 @@ async function assertCurrentReadingsLayout(page, state) {
       const id = valueIds.find(id => card.contains(document.getElementById(id)));
       return { id, title:label.textContent.trim(), box:rect(card), heading:rect(heading), label:rect(label), titleText:rect(text), icon:rect(icon),
         value:rect(value), valueText:rect(valueText), detail:detail && detail.getBoundingClientRect().height > 0 ? rect(detail) : null,
-        plot:rect(spark.querySelector('svg')), caption:rect(spark.querySelector('.history-spark-caption')),
+        plot:rect(spark.querySelector(':scope > svg')), caption:rect(spark.querySelector('.history-spark-caption')),
         padding:[css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft],
         titleStyle:[titleCss.fontSize, titleCss.fontWeight, titleCss.lineHeight, titleCss.letterSpacing],
         headingGap:getComputedStyle(heading).columnGap,
