@@ -21,6 +21,7 @@
   let current = null;
   let range = '24h';
   let latestHistory = null;
+  let historyPoints = [], historyRange = range, historyEnd = Date.now();
   let renderedWidth = 0;
   let enabled = null;
   let lastAttemptError = false;
@@ -35,28 +36,23 @@
   const element = id => document.getElementById(id);
   const setText = (id, value) => { const target = element(id); if (target) target.textContent = value; };
   const escapeSvg = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const series = [
+    { field: 'batteryVoltageV', css: 'yard-line', axis: 'V', label: 'Battery voltage', short: 'Battery' },
+    { field: 'pvVoltageV', css: 'yard-line yard-line-panel', axis: 'V', label: 'PV voltage', short: 'PV' },
+    { field: 'pvPowerW', css: 'yard-line yard-line-power', axis: 'W', label: 'Solar generation', short: 'Solar' },
+    { field: 'controllerLoadPowerW', css: 'yard-line yard-line-load', axis: 'W', label: 'Controller load', short: 'Load' }
+  ];
+  const durations = { '24h': 86400000, '7d': 604800000, '30d': 2592000000 };
+  const chartControls = window.MoorePowerChartControls?.create({ plot: graph, prefix: 'yardPower', label: 'Yard Power', redraw: drawHistory });
 
-  function drawHistory(history) {
+  function drawHistory() {
     graph.replaceChildren();
     const width = Math.max(240, Math.round(graph.clientWidth || 720));
     renderedWidth = width;
-    const points = (Array.isArray(history) ? history : [])
-      .filter(point => Number.isFinite(Date.parse(point?.observedAt)))
-      .map(point => ({ ...point, time: Date.parse(point.observedAt) }))
-      .sort((a, b) => a.time - b.time);
-    if (!points.length) {
-      historySummary.textContent = 'No data recorded in this period.';
-      return;
-    }
-    const duration = { '24h': 86400000, '7d': 604800000, '30d': 2592000000 }[range];
-    const end = Date.now(), start = end - duration;
+    const duration = durations[historyRange], points = historyPoints;
+    const bounds = { start: historyEnd - duration, end: historyEnd };
+    const { start, end } = chartControls?.window || bounds;
     const height = 134, left = 43, right = width - 45, top = 12, bottom = 106;
-    const series = [
-      { field: 'batteryVoltageV', css: 'yard-line', axis: 'V', label: 'Battery voltage' },
-      { field: 'pvVoltageV', css: 'yard-line yard-line-panel', axis: 'V', label: 'PV voltage' },
-      { field: 'pvPowerW', css: 'yard-line yard-line-power', axis: 'W', label: 'Solar generation' },
-      { field: 'controllerLoadPowerW', css: 'yard-line yard-line-load', axis: 'W', label: 'Controller load' }
-    ];
     const volts = points.flatMap(point => [point.batteryVoltageV, point.pvVoltageV])
       .filter(value => Number.isFinite(value));
     const watts = points.flatMap(point => [point.pvPowerW, point.controllerLoadPowerW])
@@ -65,8 +61,8 @@
     const minV = Math.min(0, Math.floor(Math.min(0, ...volts) / 5) * 5);
     const maxW = Math.max(10, Math.ceil(Math.max(0, ...watts) / 10) * 10);
     const minW = 0;
-    const gap = range === '24h' ? 4 * 60000 : range === '7d' ? 25 * 60000 : 75 * 60000;
-    const xAt = time => left + Math.max(0, Math.min(1, (time - start) / duration)) * (right - left);
+    const gap = historyRange === '24h' ? 4 * 60000 : historyRange === '7d' ? 25 * 60000 : 75 * 60000;
+    const xAt = time => left + (time - start) / (end - start) * (right - left);
     const yAt = (value, min, max) => bottom - (value - min) / Math.max(.1, max - min) * (bottom - top);
     let svg = '';
     for (const fraction of [0, .5, 1]) {
@@ -76,6 +72,7 @@
       svg += '<line class="yard-grid" x1="' + left + '" y1="' + y + '" x2="' + right +
         '" y2="' + y + '"/>';
     }
+    svg += '<defs><clipPath id="yardPowerPlotClip"><rect x="' + left + '" y="' + top + '" width="' + (right - left) + '" height="' + (bottom - top) + '"/></clipPath></defs><g clip-path="url(#yardPowerPlotClip)">';
     for (const item of series) {
       const min = item.axis === 'V' ? minV : minW, max = item.axis === 'V' ? maxV : maxW;
       let path = '', previous = null, count = 0, segmentCount = 0, segmentStart = null;
@@ -86,7 +83,7 @@
         segmentStart = null;
       };
       for (const point of points) {
-        if (point.time < start || point.time > end || !Number.isFinite(point[item.field])) {
+        if (point.time < bounds.start || point.time > bounds.end || !Number.isFinite(point[item.field])) {
           finishSegment();
           previous = null;
           continue;
@@ -108,22 +105,26 @@
       for (const dot of dots) svg += '<circle class="' + item.css + ' yard-single-dot" cx="' +
         dot.x + '" cy="' + dot.y + '" r="2.5"/>';
     }
-    svg += '<text class="yard-axis" x="1" y="' + (top + 5) + '">' + maxV.toFixed(0) + ' V</text>' +
+    svg += '</g><text class="yard-axis" x="1" y="' + (top + 5) + '">' + maxV.toFixed(0) + ' V</text>' +
       '<text class="yard-axis" x="1" y="' + (bottom + 4) + '">' + minV.toFixed(0) + ' V</text>' +
       '<text class="yard-axis" text-anchor="end" x="' + (width - 1) + '" y="' + (top + 5) + '">' +
         maxW.toFixed(0) + ' W</text>' +
       '<text class="yard-axis" text-anchor="end" x="' + (width - 1) + '" y="' + (bottom + 4) + '">' +
         minW.toFixed(0) + ' W</text>';
+    const fullView = end - start >= duration - 1;
+    const axisTime = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane',
+      ...(historyRange === '24h' ? {} : { day: 'numeric', month: 'short' }), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
     svg += '<text class="yard-axis" x="' + left + '" y="' + (height - 3) + '">' +
-      (range === '24h' ? '24h ago' : range === '7d' ? '7 days ago' : '30 days ago') + '</text>' +
-      '<text class="yard-axis" text-anchor="end" x="' + right + '" y="' + (height - 3) + '">Now</text>';
+      (fullView ? historyRange === '24h' ? '24h ago' : historyRange === '7d' ? '7 days ago' : '30 days ago' : axisTime.format(start)) + '</text>' +
+      '<text class="yard-axis" text-anchor="end" x="' + right + '" y="' + (height - 3) + '">' + (fullView ? 'Now' : axisTime.format(end)) + '</text>';
     const drawing = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     drawing.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
     drawing.setAttribute('role', 'img');
     drawing.setAttribute('aria-label', 'Yard Power history. Battery and PV voltage use the left scale in volts. Solar generation and controller load use the right scale in watts. Missing measurements are not connected.');
     drawing.innerHTML = svg;
     graph.appendChild(drawing);
-    historySummary.textContent = points.length + ' recorded intervals · ' + range + ' · AEST';
+    chartControls?.present({ svg: drawing, width, left, right, top, bottom });
+    historySummary.textContent = points.length ? points.length + ' recorded intervals · ' + historyRange + ' · AEST' : 'No data recorded in this period.';
   }
 
   function paint() {
@@ -179,7 +180,17 @@
       const payload = await getJson('/api/yard-power?range=' + encodeURIComponent(requestedRange));
       if (!payload || payload.enabled !== true || requestedRange !== range) return;
       latestHistory = payload.history;
-      drawHistory(latestHistory);
+      historyRange = requestedRange; historyEnd = Date.now();
+      const bounds = { start: historyEnd - durations[historyRange], end: historyEnd };
+      historyPoints = (Array.isArray(latestHistory) ? latestHistory : [])
+        .filter(point => Number.isFinite(Date.parse(point?.observedAt)))
+        .map(point => ({ ...point, time: Date.parse(point.observedAt) }))
+        .filter(point => point.time >= bounds.start && point.time <= bounds.end).sort((a, b) => a.time - b.time);
+      chartControls?.setData({ bounds, domainKey: historyRange,
+        minSpan: { '24h': 3600000, '7d': 21600000, '30d': 86400000 }[historyRange],
+        items: historyPoints.map(point => ({ t: point.time, values: series.map(item => ({
+          name: item.short, unit: item.axis, precision: 2, value: point[item.field] })) })) });
+      drawHistory();
     } catch {
       historySummary.textContent = 'Historical readings temporarily unavailable.';
     }
@@ -204,7 +215,7 @@
   if (typeof ResizeObserver === 'function') {
     new ResizeObserver(() => {
       const width = Math.max(240, Math.round(graph.clientWidth || 720));
-      if (latestHistory && graph.clientWidth > 0 && width !== renderedWidth) drawHistory(latestHistory);
+      if (latestHistory && graph.clientWidth > 0 && width !== renderedWidth) drawHistory();
     }).observe(graph);
   }
   void begin();

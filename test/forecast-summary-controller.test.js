@@ -31,7 +31,7 @@ function deferred() {
   return { promise, resolve };
 }
 
-function fixture(t, initial = forecast()) {
+function fixture(t, initial = forecast(), initialNow = NOW) {
   const listeners = new Map(), timers = new Map(), requests = [];
   const ids = ['forecastSummary', 'forecastSummaryRain', 'forecastSummaryChance',
     'forecastSummaryTemps', 'forecastSummarySignal', 'forecastSummaryTiming',
@@ -51,9 +51,14 @@ function fixture(t, initial = forecast()) {
     addEventListener: (name, handler) => listeners.set(name, handler),
     removeEventListener: (name, handler) => { if (listeners.get(name) === handler) listeners.delete(name); }
   };
-  let clock = NOW, nextTimer = 0, responder = async () => response(initial);
+  let clock = initialNow, nextTimer = 0, resize = null, responder = async () => response(initial);
   const controller = createController({
     document: doc, now: () => clock, AbortController,
+    ResizeObserver: class {
+      constructor(callback) { resize = callback; }
+      observe() {}
+      disconnect() { resize = null; }
+    },
     setTimeout(callback, delay) {
       const id = ++nextTimer;
       timers.set(id, { callback, at: clock + Math.max(0, delay) });
@@ -75,6 +80,7 @@ function fixture(t, initial = forecast()) {
     replyWith: body => { responder = async () => response(body); },
     fetchWith: handler => { responder = handler; },
     fail: () => { responder = async () => { throw new Error('Synthetic connection failure'); }; },
+    resize(width) { nodes.get('forecastSummaryPlot').clientWidth = width; resize?.(); },
     hidden(value) { doc.hidden = value; listeners.get('visibilitychange')?.(); },
     async start() { controller.start(); await flush(); },
     async advance(milliseconds) {
@@ -96,6 +102,65 @@ function fixture(t, initial = forecast()) {
     }
   };
 }
+
+function chartDrawing(f) {
+  const markup = f.node('forecastSummaryChart').innerHTML;
+  const boundaries = [...markup.matchAll(/class="forecast-summary-hour-grid"[^>]*x1="([\d.]+)"/g)].map(match => Number(match[1]));
+  const nowX = markup.match(/class="forecast-summary-now"[^>]*x1="([\d.]+)"/);
+  const path = markup.match(/class="forecast-summary-temperature-line" d="([^"]*)"/)?.[1] || '';
+  const temperatures = [...path.matchAll(/([ML])([\d.]+),([\d.]+)/g)].map(match => ({ move: match[1], x: Number(match[2]) }));
+  return { markup, boundaries, nowX: nowX ? Number(nowX[1]) : null, temperatures };
+}
+
+test('hour guides and Now use actual times, with temperature at hour ends across chart widths', async t => {
+  const f = fixture(t);
+  await f.start();
+  for (const width of [240, 720]) {
+    f.resize(width);
+    const chart = chartDrawing(f), left = chart.boundaries[0], right = chart.boundaries.at(-1);
+    const hourWidth = (right - left) / 24;
+    assert.equal(chart.boundaries.length, 25, '24 rain intervals retain both outside hour boundaries');
+    assert.equal(right, width - 34, 'the timeline fills the measured width while preserving its Celsius margin');
+    assert.ok(Math.abs(chart.nowX - (left + hourWidth * 17 / 60)) < .01,
+      '19:17 belongs 17/60 through the 19:00–20:00 interval, not at the first future hour');
+    assert.equal(chart.temperatures.length, 24);
+    chart.temperatures.forEach((point, i) => assert.equal(point.x, chart.boundaries[i + 1],
+      'an instantaneous temperature belongs on its recorded end-hour boundary'));
+    assert.match(chart.markup, /Now · 7:17pm AEST/);
+    assert.match(chart.markup, /forecast-summary-now-label[^>]*>Now<\/text>/);
+  }
+  assert.equal(f.requests.length, 1, 'resizing and time guides reuse the existing forecast');
+});
+
+test('Now advances on the existing paint timer and follows the new hour across AEST midnight', async t => {
+  const before = Date.parse('2026-11-14T13:59:45Z');
+  const f = fixture(t, forecast(before), before);
+  await f.start();
+  let chart = chartDrawing(f), hourWidth = chart.boundaries[1] - chart.boundaries[0];
+  assert.ok(Math.abs(chart.nowX - chart.boundaries[0] - hourWidth * 3585 / 3600) < .02);
+  await f.advance(30000);
+  chart = chartDrawing(f); hourWidth = chart.boundaries[1] - chart.boundaries[0];
+  assert.ok(Math.abs(chart.nowX - chart.boundaries[0] - hourWidth * 15 / 3600) < .02,
+    '00:00:15 is fifteen seconds into the new first interval');
+  assert.match(chart.markup, /Now · 12:00am AEST/);
+  assert.equal(f.requests.length, 1, 'the time reference needs no additional network request');
+});
+
+test('time guides preserve independent missing rain and temperature intervals', async t => {
+  const data = forecast(), start = Math.floor(NOW / HOUR_MS) * HOUR_MS;
+  data.hourly.find(row => row.time * 1000 === start + HOUR_MS).precipitation = null;
+  data.hourly = data.hourly.filter(row => row.time * 1000 !== start + 3 * HOUR_MS);
+  const f = fixture(t, data);
+  await f.start();
+  const chart = chartDrawing(f);
+  assert.equal(chart.boundaries.length, 25);
+  assert.equal(chart.temperatures.length, 23);
+  assert.deepEqual(chart.temperatures.filter(point => point.move === 'M').map(point => point.x),
+    [chart.boundaries[1], chart.boundaries[4]], 'temperature resumes after the missing hour without bridging it');
+  assert.match(chart.markup, /data-hour="0" data-state="missing"/);
+  assert.match(chart.markup, /data-hour="2" data-state="missing"/);
+  assert.equal(f.node('forecastSummaryRain').textContent, '–', 'a missing rain interval cannot produce a complete total');
+});
 
 test('concurrent refresh and visibility events share one in-flight request', async t => {
   const f = fixture(t), held = deferred();
@@ -176,6 +241,7 @@ test('failed refreshes retain usable data only until the six-hour expiry, within
   assert.equal(f.node('forecastSummaryTemps').textContent, '–');
   assert.equal(f.node('forecastSummaryPlot').attributes['aria-disabled'], 'true');
   assert.equal((f.node('forecastSummaryChart').innerHTML.match(/data-state="missing"/g) || []).length, 24);
+  assert.equal(chartDrawing(f).nowX, null, 'expired data has no active forecast time reference');
   assert.equal(f.requests.length, 2, 'expiry must not depend on another successful network request');
 });
 

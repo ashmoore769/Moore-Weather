@@ -13,7 +13,7 @@ const now = Date.now(), HOUR = 3600000, MINUTE = 60000;
 let mode = 'fresh', historyMode = 'continuous', requests = 0, dataRequests = 0;
 const dashboard = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
   .replace(/<script\b([^>]*)>[\s\S]*?<\/script>/gi, (tag, attributes) =>
-    /\bsrc="\/(?:station-power-chart|yard-power|theme)\.js\b/.test(attributes) ? tag : '');
+    /\bsrc="\/(?:solar-chart|power-chart-controls|station-power-chart|yard-power|theme)\.js\b/.test(attributes) ? tag : '');
 
 const template = timestamp => ({
   observedAt: new Date(timestamp).toISOString(),
@@ -160,6 +160,115 @@ function assertSparseGeometry(chart, description, panelClass) {
   }
 }
 
+async function powerWindow(page, prefix) {
+  return page.locator('#' + prefix + ' .power-chart-plot').evaluate(element => ({
+    start: Number(element.dataset.windowStart), end: Number(element.dataset.windowEnd),
+    span: Number(element.dataset.windowSpan), zoomed: element.dataset.zoomed
+  }));
+}
+const near = (a, b, label) => assert.ok(Math.abs(a - b) < 2, label + ': ' + a + ' vs ' + b);
+
+async function chartNavigation(page, prefix, width) {
+  const plot = page.locator('#' + prefix + ' .power-chart-plot'), initial = await powerWindow(page, prefix);
+  const before = dataRequests, originalPaths = await plot.locator('svg path').evaluateAll(paths => paths.map(path => path.getAttribute('d')));
+  const axes = await plot.locator('svg text').allTextContents();
+  near(initial.span, 24 * HOUR, prefix + ' initially shows 24 hours');
+  assert.equal(await page.locator('#' + prefix + 'ZoomReset').isDisabled(), true);
+  await page.locator('#' + prefix + 'ZoomIn').click();
+  const zoomed = await powerWindow(page, prefix);
+  near(zoomed.span, initial.span / 2, prefix + ' button zoom halves the time window');
+  assert.deepEqual((await plot.locator('svg text').allTextContents()).slice(0, 4), axes.slice(0, 4),
+    prefix + ' preserves both unit scales while zooming');
+  await plot.press('Shift+ArrowLeft');
+  const earlier = await powerWindow(page, prefix);
+  assert.ok(earlier.start < zoomed.start, prefix + ' keyboard pans earlier');
+  near(earlier.span, zoomed.span, prefix + ' pan retains scale');
+  await page.locator('#' + prefix + 'PanLater').click();
+  const later = await powerWindow(page, prefix);
+  assert.ok(later.start > earlier.start, prefix + ' button pans later');
+  await plot.scrollIntoViewIfNeeded();
+  const box = await plot.boundingBox();
+  await page.mouse.move(box.x + box.width * .6, box.y + box.height / 2); await page.mouse.down();
+  await page.mouse.move(box.x + box.width * .8, box.y + box.height / 2, { steps: 5 }); await page.mouse.up();
+  const dragged = await powerWindow(page, prefix);
+  assert.ok(dragged.start < later.start, prefix + ' dragging right reveals earlier readings');
+  near(dragged.span, later.span, prefix + ' drag retains scale');
+  await plot.press('+');
+  assert.ok((await powerWindow(page, prefix)).span < dragged.span, prefix + ' keyboard zoom works');
+  await plot.press('Home');
+  assert.equal(await page.locator('#' + prefix + 'Scrubber').inputValue(), '0');
+  const first = await page.locator('#' + prefix + 'Inspect').textContent();
+  await plot.press('End');
+  assert.notEqual(await page.locator('#' + prefix + 'Inspect').textContent(), first, prefix + ' keyboard inspects recorded times');
+  await page.locator('#' + prefix + 'Scrubber').evaluate(element => { element.value = '0'; element.dispatchEvent(new Event('input', { bubbles: true })); });
+  assert.equal(await page.locator('#' + prefix + 'Inspect').textContent(), first, prefix + ' slider scrubs the same recorded measurements');
+  assert.equal(await plot.locator('.power-chart-selection').getAttribute('visibility'), 'visible');
+  assert.match(first, /AEST/); assert.match(first, / V/); assert.match(first, prefix === 'stationPower' ? / mA/ : / W/);
+  if (prefix === 'stationPower') {
+    const beforeUpdate = await powerWindow(page, prefix);
+    await page.evaluate(series => window.dispatchEvent(new CustomEvent('moore-weather-station-trends', { detail: { series } })), station);
+    assert.deepEqual(await powerWindow(page, prefix), beforeUpdate, 'routine station history update preserves the chosen view');
+  }
+  for (let attempt = 0; attempt < 8 && !await page.locator('#' + prefix + 'ZoomIn').isDisabled(); attempt++) await page.locator('#' + prefix + 'ZoomIn').click();
+  near((await powerWindow(page, prefix)).span, HOUR, prefix + ' zoom stops at one hour');
+  await page.locator('#' + prefix + 'ZoomOut').click();
+  near((await powerWindow(page, prefix)).span, 2 * HOUR, prefix + ' zoom-out button expands the view');
+  await plot.press('0');
+  assert.deepEqual(await powerWindow(page, prefix), initial, prefix + ' keyboard reset restores the full domain');
+  assert.deepEqual(await plot.locator('svg path').evaluateAll(paths => paths.map(path => path.getAttribute('d'))), originalPaths,
+    prefix + ' reset restores the exact samples and gaps');
+  if (width >= 900) {
+    await plot.scrollIntoViewIfNeeded(); const target = await plot.boundingBox();
+    await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2); await page.mouse.wheel(0, -160);
+    await page.waitForFunction(prefix => Number(document.querySelector('#' + prefix + ' .power-chart-plot').dataset.windowSpan) < 24 * 3600000, prefix);
+    await page.locator('#' + prefix + 'ZoomReset').click();
+  }
+  assert.equal(dataRequests, before, prefix + ' navigation, inspection and rendering never request more readings');
+}
+
+async function touchNavigation(page, context, engine, prefix) {
+  const plot = page.locator('#' + prefix + ' .power-chart-plot'), initial = await powerWindow(page, prefix), before = dataRequests;
+  await plot.scrollIntoViewIfNeeded(); const box = await plot.boundingBox();
+  const x = box.x + box.width / 2, y = box.y + box.height / 2;
+  if (engine === chromium) {
+    const session = await context.newCDPSession(page);
+    const points = distance => [{ x: x - distance, y, id: 1 }, { x: x + distance, y, id: 2 }];
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points(box.width * .12) });
+    for (let step = 1; step <= 8; step++) await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: points(box.width * (.12 + .02 * step)) });
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    assert.ok((await powerWindow(page, prefix)).span < initial.span * .8, prefix + ' native pinch zooms the time window');
+    await page.locator('#' + prefix + 'ZoomReset').click();
+    // Leave enough page below the chart to test native vertical scrolling even
+    // for Yard Power near the footer; the graph remains within the viewport.
+    await plot.evaluate(element => scrollTo(0, Math.max(0, Math.min(element.getBoundingClientRect().top + scrollY - 200,
+      document.documentElement.scrollHeight - innerHeight - 150))));
+    const next = await plot.boundingBox(), oldScroll = await page.evaluate(() => scrollY);
+    const touch = { x: next.x + next.width / 2, y: next.y + next.height * .75, id: 3 };
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [touch] });
+    for (let step = 1; step <= 8; step++) await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ ...touch, y: touch.y - step * 12 }] });
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForFunction(previous => scrollY > previous + 10, oldScroll);
+    near((await powerWindow(page, prefix)).span, initial.span, prefix + ' single-finger page scroll does not zoom');
+    await session.detach();
+  } else {
+    // WebKit exposes no native multitouch automation; use its real pointer
+    // handlers while Chromium above checks native browser gesture arbitration.
+    await plot.evaluate((element, box) => {
+      const fire = (type, id, distance) => element.dispatchEvent(new PointerEvent(type, {
+        bubbles: true, cancelable: true, pointerType: 'touch', pointerId: id, button: 0, buttons: type === 'pointerup' ? 0 : 1,
+        clientX: box.x + (id === 1 ? -distance : distance), clientY: box.y
+      }));
+      fire('pointerdown', 1, box.width * .12); fire('pointerdown', 2, box.width * .12);
+      for (let step = 1; step <= 8; step++) { fire('pointermove', 1, box.width * (.12 + .02 * step)); fire('pointermove', 2, box.width * (.12 + .02 * step)); }
+      fire('pointerup', 1, box.width * .28); fire('pointerup', 2, box.width * .28);
+    }, { x, y, width: box.width });
+    assert.ok((await powerWindow(page, prefix)).span < initial.span * .8, prefix + ' WebKit pinch handlers zoom the time window');
+    await page.locator('#' + prefix + 'ZoomReset').click();
+  }
+  assert.equal(await plot.getAttribute('data-dragging'), 'false', prefix + ' gestures release cleanly');
+  assert.equal(dataRequests, before, prefix + ' touch navigation uses cached history');
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname.startsWith('/api/')) dataRequests++;
@@ -198,7 +307,8 @@ const server = http.createServer((req, res) => {
           { width: 1100, layout: 'portrait', yardColumns: 3, stationColumns: 2 },
           { width: 1440, layout: 'landscape', yardColumns: 6, stationColumns: 4 }
         ]) {
-          const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: 'dark' });
+          const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: 'dark', hasTouch: true });
+          await context.addInitScript(fixtureNow => { Date.now = () => fixtureNow; }, now);
           const page = await context.newPage();
           const errors = [];
           page.on('pageerror', error => errors.push(error.message));
@@ -235,6 +345,8 @@ const server = http.createServer((req, res) => {
                 powerOrder: ['localWater', 'homeSolar', 'stationPower'].map(id => document.getElementById(id).nextElementSibling?.id),
                 powerTitles: powerCards.map(card => card.querySelector('.section-title').textContent.trim()),
                 powerBounds: powerCards.map(bbox),
+                controls: [station, yard].map(card => ({ card: bbox(card),
+                  parts: [...card.querySelectorAll('.power-chart-navigation > *, .power-chart-scrubber, .power-chart-inspect')].map(bbox) })),
                 stationKeys: ['battery', 'panel', 'load', 'charge'].map(id => {
                   const key = document.querySelector('.station-power-key-' + id);
                   return { id, colour: getComputedStyle(key).color, pattern: getComputedStyle(key, '::before').backgroundImage };
@@ -256,6 +368,8 @@ const server = http.createServer((req, res) => {
             assertVisibleLines(connected.station, 'Station Power continuous history');
             assertVisibleLines(connected.yard, 'Yard Power one-minute history');
             assert.equal(new Set(connected.station.paths.map(trace => trace.stroke)).size, 4, 'station series have four distinct colours');
+            assert.equal(visual.stationKeys.find(key => key.id === 'battery').colour, 'rgb(55, 211, 163)', 'station battery is green');
+            assert.equal(visual.stationKeys.find(key => key.id === 'panel').colour, 'rgb(242, 168, 78)', 'station panel is orange');
             for (const trace of connected.station.paths) {
               const dashed = trace.classes.some(css => ['station-power-line-panel', 'station-power-line-charge'].includes(css));
               assert.equal(trace.dash !== 'none' && trace.dash.split(/[ ,]+/).some(value => parseFloat(value) > 0), dashed,
@@ -273,10 +387,22 @@ const server = http.createServer((req, res) => {
             for (const card of [visual.yard, visual.station]) {
               assert.ok(card.x >= -1 && card.right <= width + 1, 'Card must not overflow the page: ' + JSON.stringify(visual));
             }
-            assert.ok(visual.yard.height < (width === 1440 ? 410 : width === 1100 ? 495 : 600),
+            for (const { card, parts } of visual.controls) for (const part of parts) {
+              assert.ok(part.x >= card.x - 1 && part.right <= card.right + 1,
+                'chart controls and inspected readings stay within the card: ' + JSON.stringify({ card, part }));
+            }
+            // Keep the previous compact-card allowance plus a bounded 150px for
+            // the requested navigation, scrubber and exact-reading inspection.
+            assert.ok(visual.yard.height < (width === 1440 ? 560 : width === 1100 ? 645 : 750),
               'Yard Power should remain compact for the available column width: ' + JSON.stringify(visual));
             assert.deepEqual(errors, [], 'No browser exceptions');
+            for (const prefix of ['stationPower', 'yardPower']) {
+              await chartNavigation(page, prefix, width);
+              if (width === 393) await touchNavigation(page, context, engine, prefix);
+            }
             if (width === 1440) {
+              for (const prefix of ['stationPower', 'yardPower']) await page.locator('#' + prefix + 'ZoomIn').click();
+              const views = await Promise.all(['stationPower', 'yardPower'].map(prefix => powerWindow(page, prefix)));
               const beforeResize = dataRequests;
               await page.setViewportSize({ width: 393, height: 900 });
               await page.evaluate(() => document.body.classList.replace('layout-landscape', 'layout-portrait'));
@@ -289,6 +415,8 @@ const server = http.createServer((req, res) => {
                   key + ': resize must exercise a substantially narrower chart');
               }
               assert.equal(dataRequests, beforeResize, 'Narrowing charts must reuse cached readings without a data request');
+              assert.deepEqual(await Promise.all(['stationPower', 'yardPower'].map(prefix => powerWindow(page, prefix))), views,
+                'narrowing preserves the selected time windows');
               await page.setViewportSize({ width: 1440, height: 900 });
               await page.evaluate(() => document.body.classList.replace('layout-portrait', 'layout-landscape'));
               await waitForFittedCharts(page);
@@ -300,6 +428,9 @@ const server = http.createServer((req, res) => {
                   key + ': widening must restore the original chart width');
               }
               assert.equal(dataRequests, beforeResize, 'Widening charts must reuse cached readings without a data request');
+              assert.deepEqual(await Promise.all(['stationPower', 'yardPower'].map(prefix => powerWindow(page, prefix))), views,
+                'widening preserves the selected time windows');
+              for (const prefix of ['stationPower', 'yardPower']) await page.locator('#' + prefix + 'ZoomReset').click();
             }
             if (width !== 1100) {
               await page.locator('#yardPower').screenshot({ path: path.join(artifacts, 'yard-power-' + engine.name() + '-' + width + '.png'), animations: 'disabled' });
@@ -307,12 +438,18 @@ const server = http.createServer((req, res) => {
             }
             await page.locator('[data-yard-range="7d"]').click();
             await page.waitForFunction(() => document.getElementById('yardPowerHistoryDetail').textContent.includes('7d'));
+            near((await powerWindow(page, 'yardPower')).span, 7 * 24 * HOUR, 'range change resets to the newly fetched seven-day domain');
+            const beforeRangeZoom = dataRequests;
+            await page.locator('#yardPowerZoomIn').click();
+            near((await powerWindow(page, 'yardPower')).span, 3.5 * 24 * HOUR, 'seven-day Yard history supports the same zoom controls');
+            assert.equal(dataRequests, beforeRangeZoom, 'seven-day zoom remains local');
             // Exercise two isolated observations, a connected pair and a final
             // group with a missing PV/panel value. This catches invisible M-only
             // subpaths even when a series also has valid connected segments.
             historyMode = 'sparse';
             await page.locator('[data-yard-range="24h"]').click();
             await page.waitForFunction(() => document.getElementById('yardPowerHistoryDetail').textContent.startsWith('7 recorded intervals'));
+            near((await powerWindow(page, 'yardPower')).span, 24 * HOUR, 'switching back resets the Yard time domain');
             await page.evaluate(series => window.dispatchEvent(new CustomEvent('moore-weather-station-trends',
               { detail: { series } })), sparseStation);
             const sparse = await chartGeometry(page);
@@ -324,6 +461,7 @@ const server = http.createServer((req, res) => {
               await page.locator('#stationPower').screenshot({ path: path.join(artifacts, 'station-power-sparse-' + engine.name() + '-' + width + '.png'), animations: 'disabled' });
             }
             historyMode = 'continuous';
+            assert.deepEqual(errors, [], 'interactions do not cause browser errors');
             if (width === 393) {
               mode = 'stale'; await page.reload();
               await page.waitForFunction(() => document.querySelector('#yardPowerStatus').textContent === 'DELAYED');
@@ -335,6 +473,6 @@ const server = http.createServer((req, res) => {
         }
       } finally { await browser.close(); }
     }
-    console.log('Power cards passed: 6/3/2 Yard columns, 4/2 Station columns, visible unfilled traces, readable adaptive axes and cached resize, per-series gaps and singleton points, stale states and layout checks.');
+    console.log('Power cards passed: responsive layouts, distinct units/styles, cached button/wheel/keyboard zoom, pan/drag, native and WebKit pinch, scrub inspection, bounded reset/range changes, persistent resize, per-series gaps and singleton points, stale states and no additional navigation requests.');
   } finally { await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

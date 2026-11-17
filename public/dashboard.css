@@ -92,7 +92,6 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
   .skycam-container:has(#skycamLive:not(:disabled)) .skycam-actions { grid-row:2; grid-column:1 / -1; justify-self:center; }
   .skycam-container:has(#skycamLive:not(:disabled)) #skycamPosition { grid-row:1; grid-column:2; }
 }
-.water-panel { border-radius:var(--card-radius); }
 .primary-meta { gap:10px; margin-top:10px; }
 .temperature-heroes { gap:10px; }
 /* Every current reading has the same header, full-width body and anchored history.
@@ -104,7 +103,7 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 .current-reading-heading { display:flex; align-items:center; gap:6px; min-height:18px; min-width:0; }
 .current-reading-icon { display:inline-flex; flex:none; width:16px; height:16px; color:var(--history-color,var(--stat-accent,var(--accent))); }
 .current-reading-icon svg { width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.current-reading-label { color:var(--muted); font-size:10px; font-weight:750; line-height:1.4; letter-spacing:.55px; text-transform:uppercase; white-space:nowrap; }
+.current-reading-label { color:var(--muted); font-size:10px; font-weight:800; line-height:1.4; letter-spacing:.55px; text-transform:uppercase; white-space:nowrap; }
 .current-reading-body { display:flex; flex-direction:column; flex:1; min-width:0; }
 .current-reading-card .current-reading-value {
   display:block; margin:6px 0 0; font-size:23px; font-weight:790; line-height:1.2;
@@ -124,10 +123,10 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 .current-reading-card .current-reading-rain-detail { display:flex; flex-wrap:wrap; gap:2px 8px; }
 .current-reading-rain-detail > span { white-space:nowrap; }
 .current-reading-card .rain-inches { color:var(--muted); font-size:inherit; font-weight:500; letter-spacing:0; }
-.current-reading-card .history-spark { flex:none; width:100%; margin:0; padding-top:12px; }
+.current-reading-card .history-spark { flex:none; width:100%; margin:0; padding-top:10px; }
 .current-reading-card .history-spark > svg { height:42px; }
 .current-reading-card .history-spark-caption {
-  min-height:28px; margin-top:4px; align-items:flex-end; font-size:10px; font-weight:600; line-height:1.4; letter-spacing:.1px;
+  min-height:20px; margin-top:4px; align-items:flex-end; font-size:10px; font-weight:600; line-height:1.4; letter-spacing:.1px;
 }
 .current-reading-card .history-arrow { flex:none; }
 .quick-stat.rain-stat { border-top-color:var(--rain); }
@@ -209,6 +208,8 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
   .current-reading-card .current-reading-value { font-size:19px; }
   .current-reading-card .primary-temp { font-size:28px; }
   .humidity-stat .current-reading-value,.rain-stat .current-reading-value { font-size:24px; }
+  /* Reserve two caption lines on narrow phones and keep paired graphs aligned. */
+  .current-reading-card .history-spark-caption { min-height:28px; }
 }
 
 /* Forecast joins the existing views without crowding the compact header. */
@@ -257,7 +258,7 @@ body.current-page.layout-portrait :is(#skycamTimelapse,#skycamDownload,#skycamFo
 }
 
 /* The water cards carry their own titles and observation times. */
-.local-water { margin:18px 0 12px; }
+.local-water { margin:14px 0 12px; }
 @media(max-width:390px) {
   .dashboard-navigation { column-gap:8px; }
   .dashboard-tabs { gap:10px; }

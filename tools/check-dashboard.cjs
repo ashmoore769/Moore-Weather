@@ -78,7 +78,7 @@ function water() {
   const preview = series('condamine-warwick-level', 'hourly', 168);
   if (mode === 'missing') { preview.points.forEach(p => p.value = null); preview.latest = null; preview.missing = 168; }
   return { catalog: catalog.filter(m => m.water), readings, collector: { enabled: true }, imports: Object.fromEntries(
-    ['leslie-daily', 'condamine-level-backfill', 'condamine-flow-backfill', 'condamine-warwick-live'].map(id => [id, { complete: true }])),
+    ['leslie-daily', 'condamine-level-backfill', 'condamine-flow-backfill', 'condamine-warwick-live', 'connolly-current'].map(id => [id, { complete: true, lastSuccess:new Date(now).toISOString() }])),
     series: [series('leslie-storage', 'daily', 720), preview, series('condamine-level', 'hourly', 168), series('connolly-storage', 'daily', 720)] };
 }
 const publicRoot = path.resolve(__dirname, '../public');
@@ -217,7 +217,11 @@ async function bounds(page, width) {
     return { readings, bridge: rect('#warwickBridge'), warwickReading: rect('.water-warwick .water-hero'),
       referenceNote: rect('#warwickReferenceNote'),
       warwick: rect('.water-warwick'), dam: rect('.water-dam'), scots: rect('.water-scots'),
-      connolly: rect('.water-connolly'), grid: rect('.water-grid'), svg: rect('.water-warwick .history-spark > svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
+      connolly: rect('.water-connolly'), groups:rect('.water-groups'), dams:rect('#damLevels'), rivers:rect('#riverLevels'),
+      damGrid:rect('#damLevels .water-grid'), riverGrid:rect('#riverLevels .water-grid'),
+      groupLabels:[...document.querySelectorAll('.water-group h2')].map(n=>n.textContent),
+      order:[...document.querySelectorAll('.water-panel h3')].map(n=>n.textContent),
+      svg: rect('.water-warwick .history-spark > svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
   });
   for (const b of [boxes.warwick, boxes.dam, boxes.scots, boxes.connolly]) {
     assert.ok(b.x >= -1 && b.right <= width + 1, JSON.stringify({ width, boxes }));
@@ -233,14 +237,16 @@ async function bounds(page, width) {
         'Neighbouring water readings must align: '+JSON.stringify(boxes.readings));
     }
   }
-  if (boxes.grid.width >= 1200) {
-    assert.ok(boxes.scots.x < boxes.warwick.x && boxes.warwick.x < boxes.dam.x && boxes.dam.x < boxes.connolly.x);
-    assert.ok(Math.abs(boxes.scots.y - boxes.connolly.y) < 1);
-  } else if (boxes.grid.width >= 680) {
-    assert.ok(boxes.warwick.x < boxes.scots.x && Math.abs(boxes.warwick.y - boxes.scots.y) < 1);
-    assert.ok(boxes.dam.x < boxes.connolly.x && Math.abs(boxes.dam.y - boxes.connolly.y) < 1);
-    assert.ok(boxes.dam.y >= boxes.warwick.bottom - 1);
-  } else assert.ok(boxes.warwick.y < boxes.dam.y && boxes.dam.y < boxes.connolly.y && boxes.connolly.y < boxes.scots.y);
+  assert.deepEqual(boxes.groupLabels, ['Dam Levels','River Levels']);
+  assert.deepEqual(boxes.order, ['Leslie Dam','Connolly Dam','Scots College','Warwick']);
+  for (const [first,second,grid,group] of [[boxes.dam,boxes.connolly,boxes.damGrid,boxes.dams],[boxes.scots,boxes.warwick,boxes.riverGrid,boxes.rivers]]) {
+    for(const panel of [first,second]) assert.ok(panel.x >= group.x && panel.right <= group.right && panel.bottom <= group.bottom,
+      'Water panels stay inside their named group: '+JSON.stringify({panel,group}));
+    if(grid.width >= 500) assert.ok(first.x < second.x && Math.abs(first.y-second.y)<1, 'Paired water cards keep their reading order');
+    else assert.ok(first.bottom <= second.y, 'Stacked water cards keep their reading order');
+  }
+  if(boxes.groups.width >= 1100) assert.ok(boxes.dams.x < boxes.rivers.x && Math.abs(boxes.dams.y-boxes.rivers.y)<1);
+  else assert.ok(boxes.dams.bottom <= boxes.rivers.y, 'Dam Levels precedes River Levels');
   for (const r of boxes.refs) assert.ok(r.x >= boxes.svg.x - 1 && r.right <= boxes.svg.right + 1 &&
     r.y >= boxes.svg.y - 1 && r.bottom <= boxes.svg.bottom + 1, 'Reference label clipped: ' + JSON.stringify({ r, svg: boxes.svg }));
   const sorted = boxes.refs.sort((a, b) => a.y - b.y);
@@ -647,10 +653,12 @@ async function failurePaths(page, browserName) {
             await page.locator('.local-water').scrollIntoViewIfNeeded();
             await page.waitForTimeout(80);
             await bounds(page, width);
+            if(pagePath.includes('index')) await reviewScreenshot(page,engine,width,'water-levels','#localWater');
             await navigation(page,width);
             await readablePalette(page);
             assert.equal(await page.locator('#waterImportStatus').isVisible(), false);
             assert.match(await page.locator('#connollyStorageTime').textContent(), /Council report/);
+            assert.match(await page.locator('#connollySourceCheck').textContent(), /Source checked/);
             assert.equal(await page.locator('#connollyVolume').textContent(), '2,166');
             await page.locator('#connollyStorage').click(); await historyReady(page, 'daily', 720);
             assert.equal(requests.at(-1).metric, 'connolly-storage');

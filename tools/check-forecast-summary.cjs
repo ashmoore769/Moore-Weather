@@ -79,6 +79,37 @@ async function checkLayout(page, width) {
 async function waitState(page, state) {
   await page.waitForFunction(expected => document.querySelector('#forecastSummary')?.dataset.state === expected, state);
 }
+async function checkTimeGuides(page) {
+  const guides = await page.evaluate(() => {
+    const chart = document.querySelector('#forecastSummaryChart');
+    const boundaries = [...chart.querySelectorAll('.forecast-summary-hour-grid')];
+    const now = chart.querySelector('.forecast-summary-now'), label = chart.querySelector('.forecast-summary-now-label');
+    const box = chart.getBoundingClientRect(), labelBox = label.getBoundingClientRect();
+    const line = chart.querySelector('.forecast-summary-temperature-line');
+    const temperatures = [...line.getAttribute('d').matchAll(/[ML]([\d.]+),[\d.]+/g)].map(match => Number(match[1]));
+    const selected = chart.querySelector('.forecast-summary-temperature-selected');
+    return { boundaries: boundaries.map(node => Number(node.getAttribute('x1'))),
+      nowX: Number(now.getAttribute('x1')), stroke: getComputedStyle(now).stroke,
+      dash: getComputedStyle(now).strokeDasharray, lineWidth: parseFloat(getComputedStyle(now).strokeWidth),
+      gridStroke: getComputedStyle(boundaries[0]).stroke, gridOpacity: Number(getComputedStyle(boundaries[0]).opacity),
+      label: label.textContent, labelSize: parseFloat(getComputedStyle(label).fontSize),
+      labelLeft: labelBox.left, labelRight: labelBox.right, left: box.left, right: box.right,
+      temperatures, selectedX: Number(selected.getAttribute('cx')) };
+  });
+  assert.equal(guides.boundaries.length, 25, 'all 24 hours are divided at their true interval boundaries');
+  const cell = (guides.boundaries.at(-1) - guides.boundaries[0]) / 24;
+  assert.ok(Math.abs(guides.nowX - guides.boundaries[0] - cell / 2) <= .02,
+    '22:30 is halfway through the ongoing 22:00–23:00 interval');
+  guides.temperatures.forEach((x, i) => assert.equal(x, guides.boundaries[i + 1],
+    'temperature is plotted at its hour-end timestamp'));
+  assert.equal(guides.selectedX, guides.boundaries[1], 'Home inspects the first hour and its end-time temperature');
+  assert.equal(guides.dash, 'none', 'Now is a solid reference, distinct from the midnight marker');
+  assert.ok(guides.lineWidth >= 1.5 && guides.gridOpacity < .3 && guides.stroke !== guides.gridStroke,
+    'Now remains distinct from the subtle hourly grid');
+  assert.equal(guides.label, 'Now'); assert.ok(guides.labelSize >= 10);
+  assert.ok(guides.labelLeft >= guides.left && guides.labelRight <= guides.right,
+    'Now remains readable inside the preview at every viewport width');
+}
 async function assertDark(page) {
   assert.deepEqual(await page.evaluate(() => ({
     theme: document.documentElement.dataset.theme,
@@ -143,6 +174,7 @@ async function assertDark(page) {
             const plot = page.locator('#forecastSummaryPlot');
             await plot.focus(); await page.keyboard.press('Home');
             assert.equal(await plot.getAttribute('aria-valuenow'), '0');
+            await checkTimeGuides(page);
             assert.match(await plot.getAttribute('aria-valuetext'), /22:00.*23:00|10\s*pm.*11\s*pm/i,
               'first rain bar belongs to the ongoing 22:00–23:00 interval, not the API end timestamp');
             await page.keyboard.press('ArrowRight');
@@ -198,6 +230,8 @@ async function assertDark(page) {
                   assert.match(rain, /4\.5/); assert.match(await page.locator('#forecastSummary').innerText(), /delayed|older|stale/i);
                 } else {
                   assert.doesNotMatch(rain, /\d/); assert.match(await page.locator('#forecastSummary').innerText(), /unavailable|expired/i);
+                  assert.equal(await page.locator('.forecast-summary-now').count(), 0,
+                    'unavailable forecasts do not retain an active Now marker');
                 }
                 metrics.push({ name: name + '-' + next, height: await checkLayout(page, width) });
                 if (['dry', 'partial', 'stale'].includes(next)) await page.locator('#forecastSummary').screenshot({ path: path.join(artifacts, name + '-' + next + '.png'), animations: 'disabled' });
