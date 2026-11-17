@@ -591,6 +591,17 @@ async function failurePaths(page, browserName) {
                 primary: parseFloat(getComputedStyle(document.querySelector('#rainSince9Val')).fontSize)
               }));
               assert.ok(sizes.secondary < sizes.primary);
+              const readingSizes = await page.evaluate(() => Object.fromEntries([
+                'tempVal', 'blackGlobeTempVal', 'humidityVal', 'rainSince9Val',
+                'windSpeedVal', 'windDirDegVal', 'solarRadVal', 'pressureVal', 'dewPointVal', 'evapRateVal'
+              ].map(id => [id, parseFloat(getComputedStyle(document.getElementById(id)).fontSize)])));
+              const lowerSizes = ['windSpeedVal', 'windDirDegVal', 'solarRadVal', 'pressureVal', 'dewPointVal', 'evapRateVal']
+                .map(id => readingSizes[id]);
+              assert.equal(readingSizes.humidityVal, readingSizes.rainSince9Val, 'humidity and rainfall share the same emphasis');
+              assert.equal(new Set(lowerSizes).size, 1, 'the six lower readings use uniform numerical type');
+              assert.equal(readingSizes.tempVal, readingSizes.blackGlobeTempVal, 'both temperature readings have equal prominence');
+              assert.ok(readingSizes.tempVal > readingSizes.humidityVal && readingSizes.humidityVal > lowerSizes[0],
+                'temperature, humidity/rainfall, and lower readings retain their visual hierarchy: ' + JSON.stringify(readingSizes));
             }
             assert.match(await page.locator('#warwickBridgeContext').textContent(), /McCahon Bridge/);
             assert.equal(await page.locator('.water-scots .water-reference-line').count(), 0);

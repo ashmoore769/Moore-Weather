@@ -101,7 +101,8 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 .quick-stat .value .unit-suffix { font-size:12px; letter-spacing:0; }
 .quick-stat-subline { font-size:11px; line-height:1.35; }
 .quick-stat.rain-stat { border-top-color:var(--rain); }
-.rain-stat .value { font-size:30px; font-weight:800; color:var(--rain); }
+.rain-stat .value,.humidity-stat .value { font-size:30px; font-weight:800; }
+.rain-stat .value { color:var(--rain); }
 .rain-stat .value .unit-suffix { font-size:14px; font-weight:600; }
 .reading-card-value { font-size:30px; }
 .rain-hero .value { font-weight:800; }
@@ -160,7 +161,7 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
   .quick-stat-icon { width:22px; height:26px; border:0; background:transparent; }
   .quick-stat .value { font-size:20px; }
   .quick-stat .label { font-size:9px; }
-  .rain-stat .value { font-size:26px; }
+  .rain-stat .value,.humidity-stat .value { font-size:26px; }
   .quick-stat.evap-stat .value { font-size:20px; }
   .quick-stat-subline { font-size:10px; }
   .reading-card-value { font-size:26px; }
@@ -176,8 +177,8 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
   .dashboard-identity img,body.layout-landscape .dashboard-identity img { width:30px; height:30px; }
   .quick-stat { grid-template-columns:minmax(0,1fr); }
   .quick-stat-icon { display:none; }
-  .quick-stat .value { font-size:21px; }
-  .rain-stat .value { font-size:27px; }
+  .quick-stat .value,.quick-stat.evap-stat .value { font-size:21px; }
+  .rain-stat .value,.humidity-stat .value { font-size:27px; }
   .primary-temp { font-size:28px; }
 }
 
@@ -223,7 +224,8 @@ body.current-page.layout-portrait :is(#skycamTimelapse,#skycamDownload,#skycamFo
   body.current-page.layout-landscape .quick-stat { grid-template-columns:minmax(0,1fr); }
   body.current-page.layout-landscape .quick-stat-icon { display:none; }
   body.current-page.layout-landscape .quick-stat .value { font-size:21px; }
-  body.current-page.layout-landscape .rain-stat .value { font-size:28px; }
+  body.current-page.layout-landscape .rain-stat .value,
+  body.current-page.layout-landscape .humidity-stat .value { font-size:28px; }
   body.current-page.layout-landscape :is(#skycamTimelapse,#skycamDownload,#skycamFocus) .skycam-action-text { display:none; }
 }
 

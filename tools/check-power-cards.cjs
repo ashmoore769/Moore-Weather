@@ -59,7 +59,7 @@ async function chartGeometry(page) {
     const inspect = selector => {
       const style = element => {
         const css = getComputedStyle(element), box = element.getBoundingClientRect();
-        return { fill: css.fill, stroke: css.stroke, strokeWidth: parseFloat(css.strokeWidth),
+        return { fill: css.fill, stroke: css.stroke, strokeWidth: parseFloat(css.strokeWidth), dash: css.strokeDasharray,
           fillOpacity: parseFloat(css.fillOpacity), strokeOpacity: parseFloat(css.strokeOpacity),
           opacity: parseFloat(css.opacity), visibility: css.visibility, display: css.display,
           width: box.width, height: box.height };
@@ -208,6 +208,8 @@ const server = http.createServer((req, res) => {
             await page.evaluate(layout => {
               document.body.classList.add('layout-' + layout);
               document.documentElement.dataset.theme = 'dark';
+              // Display the static Home Solar card too, so this fixture checks the whole power group.
+              document.getElementById('homeSolar').hidden = false;
             }, layout);
             await page.waitForFunction(() => document.getElementById('yardPowerHistoryDetail').textContent.includes('recorded intervals'));
             const before = requests;
@@ -220,7 +222,8 @@ const server = http.createServer((req, res) => {
               const yard = document.getElementById('yardPower');
               const station = document.getElementById('stationPower');
               const gridCount = selector => getComputedStyle(document.querySelector(selector)).gridTemplateColumns.trim().split(/\s+/).length;
-              const bbox = el => { const b = el.getBoundingClientRect(); return { x: b.x, right: b.right, width: b.width, height: b.height }; };
+              const bbox = el => { const b = el.getBoundingClientRect(); return { x: b.x, right: b.right, y: b.y, bottom: b.bottom, width: b.width, height: b.height }; };
+              const powerCards = ['homeSolar', 'stationPower', 'yardPower'].map(id => document.getElementById(id));
               return {
                 yardColumns: gridCount('#yardPower .yard-power-grid'),
                 stationColumns: gridCount('#stationPower .metric-list'),
@@ -229,6 +232,13 @@ const server = http.createServer((req, res) => {
                 stationTraces: document.querySelectorAll('#stationPowerChart path.station-power-series').length,
                 yardTraces: document.querySelectorAll('#yardPowerChart path.yard-line').length,
                 station: bbox(station), yard: bbox(yard),
+                powerOrder: ['localWater', 'homeSolar', 'stationPower'].map(id => document.getElementById(id).nextElementSibling?.id),
+                powerTitles: powerCards.map(card => card.querySelector('.section-title').textContent.trim()),
+                powerBounds: powerCards.map(bbox),
+                stationKeys: ['battery', 'panel', 'load', 'charge'].map(id => {
+                  const key = document.querySelector('.station-power-key-' + id);
+                  return { id, colour: getComputedStyle(key).color, pattern: getComputedStyle(key, '::before').backgroundImage };
+                }),
                 viewportWidth: document.documentElement.clientWidth
               };
             });
@@ -238,9 +248,26 @@ const server = http.createServer((req, res) => {
             assert.equal(visual.stationMetrics, 4);
             assert.equal(visual.stationTraces, 4);
             assert.equal(visual.yardTraces, 4);
+            assert.deepEqual(visual.powerOrder, ['homeSolar', 'stationPower', 'yardPower'], 'the three power cards stay together after local water');
+            assert.deepEqual(visual.powerTitles, ['Home Solar', 'Weather Station Power', 'Yard Power']);
+            assert.ok(visual.powerBounds.every((card, i, cards) => card.height > 0 && (!i || card.y >= cards[i - 1].bottom)),
+              'all power cards are visible in order without overlapping');
             const connected = await chartGeometry(page);
             assertVisibleLines(connected.station, 'Station Power continuous history');
             assertVisibleLines(connected.yard, 'Yard Power one-minute history');
+            assert.equal(new Set(connected.station.paths.map(trace => trace.stroke)).size, 4, 'station series have four distinct colours');
+            for (const trace of connected.station.paths) {
+              const dashed = trace.classes.some(css => ['station-power-line-panel', 'station-power-line-charge'].includes(css));
+              assert.equal(trace.dash !== 'none' && trace.dash.split(/[ ,]+/).some(value => parseFloat(value) > 0), dashed,
+                'panel/charge are dashed; battery/load remain solid');
+              const key = visual.stationKeys.find(key => trace.classes.includes('station-power-line-' + key.id));
+              assert.equal(key.colour, trace.stroke, 'legend colours match their station traces');
+              assert.equal(key.pattern !== 'none', dashed, 'legend swatches distinguish dashed and solid traces');
+            }
+            const yardLoad = connected.yard.paths.find(trace => trace.classes.includes('yard-line-load'));
+            assert.ok(yardLoad.strokeWidth > 0 && yardLoad.strokeWidth < 1.5, 'Yard load uses a fine line');
+            assert.ok(connected.yard.paths.filter(trace => trace !== yardLoad).every(trace => trace.strokeWidth === 2),
+              'other Yard series retain their existing line weight');
             assertResponsiveChart(connected.station, 'Station Power at ' + width + 'px');
             assertResponsiveChart(connected.yard, 'Yard Power at ' + width + 'px');
             for (const card of [visual.yard, visual.station]) {
@@ -291,6 +318,7 @@ const server = http.createServer((req, res) => {
             const sparse = await chartGeometry(page);
             assertSparseGeometry(sparse.station, 'Station Power sparse history', 'station-power-line-panel');
             assertSparseGeometry(sparse.yard, 'Yard Power sparse history', 'yard-line-panel');
+            assert.ok(sparse.yard.dots.every(dot => dot.strokeWidth === 2), 'thinner Yard load styling does not weaken isolated-point markers');
             if (width !== 1100) {
               await page.locator('#yardPower').screenshot({ path: path.join(artifacts, 'yard-power-sparse-' + engine.name() + '-' + width + '.png'), animations: 'disabled' });
               await page.locator('#stationPower').screenshot({ path: path.join(artifacts, 'station-power-sparse-' + engine.name() + '-' + width + '.png'), animations: 'disabled' });
