@@ -54,12 +54,13 @@
     // Water summaries keep both measurements together, with a full-width plot
     // below. Each value and the shared plot retain their own history control.
     const plot = value.closest('.water-panel')?.querySelector(`[data-water-history="${metric}"]`);
-    const controls = plot ? [card, plot] : [card];
+    const bridge = metric === 'condamine-warwick-level' ? $('warwickBridge') : null;
+    const controls = [card, plot, bridge].filter(Boolean);
     const unitId = $(elementId + 'Unit') ? ' ' + elementId + 'Unit' : '';
     const timeId = card.matches('.water-reading') ? ' ' + elementId + 'Time' : '';
     for (const control of controls) {
       control.classList.add('history-card'); control.tabIndex = 0; control.setAttribute('role', 'button');
-      control.setAttribute('aria-describedby', elementId + unitId + timeId + (metric === 'condamine-warwick-level' ? ' warwickReferenceNote' : ''));
+      control.setAttribute('aria-describedby', control === bridge ? 'warwickBridgeLabel warwickBridgeValue warwickBridgeUnit warwickBridgeContext condamineLevelTime' : elementId + unitId + timeId);
       control.setAttribute('aria-haspopup', 'dialog'); control.setAttribute('aria-label', 'View history: ' + metric.replaceAll('-', ' '));
       control.style.setProperty('--history-color', color(metric));
       control.addEventListener('click', () => openHistory(metric));
@@ -653,7 +654,8 @@
     const difference = WeatherChart.bridgeDifference(lastBridgeReading, lastBridgeReference);
     const badge = $('warwickBridge');
     if (!badge) return;
-    $('warwickBridgeValue').textContent = difference?.text || 'River reading unavailable';
+    $('warwickBridgeValue').textContent = difference ? Math.abs(difference.difference).toFixed(2) : '—';
+    $('warwickBridgeLabel').textContent = !difference ? 'To bridge' : difference.difference > 0 ? 'Below bridge' : difference.difference < 0 ? 'Above bridge' : 'At bridge';
     const stale = unavailable || difference?.stale;
     const warning = !stale && difference ? WeatherChart.bridgeWarning(difference.difference) : null;
     badge.dataset.warning = String(Boolean(warning));
@@ -664,8 +666,10 @@
       badge.style.removeProperty('--bridge-warning-colour'); badge.style.removeProperty('--bridge-warning-tint');
     }
     badge.dataset.state = !difference ? 'unavailable' : stale ? 'stale' : difference.difference > 0 ? 'below' : difference.difference < 0 ? 'above' : 'at';
-    $('warwickBridgeContext').textContent = (difference && stale ? (lastBridgeReading?.lastAvailable ? 'Last available; newest observation unavailable · ' : 'Last available · ') : '') +
-      (lastBridgeReference ? lastBridgeReference.name + ' · ' + lastBridgeReference.level.toFixed(2) + 'm gauge reference' : 'McCahon Bridge · awaiting reference');
+    $('warwickBridgeContext').textContent = (difference && stale ? 'Last available · ' : '') + (lastBridgeReference?.name || 'McCahon Bridge');
+    badge.title = (difference?.text || 'River reading unavailable') + ' · ' +
+      (lastBridgeReference ? lastBridgeReference.name + ' · ' + lastBridgeReference.level.toFixed(2) + 'm gauge reference' : 'Awaiting bridge reference') +
+      (difference && stale ? (lastBridgeReading?.lastAvailable ? ' · Last available; newest observation unavailable' : ' · Last available') : '');
   }
   const waterResize = new ResizeObserver(entries => {
     for (const resize of entries) {

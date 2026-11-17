@@ -11,6 +11,7 @@
   'use strict';
   const POLL_MS = 60000, HISTORY_MS = 300000, PAINT_MS = 15000, REQUEST_TIMEOUT_MS = 10000;
   const DAY_MS = 86400000, OFFSET_MS = 36000000, EMPTY = '–';
+  const SOLAR_IDLE_W = 25, GRID_IMPORT_W = 50, GRID_EXPORT_W = 75, HEAVY_IMPORT_W = 2000;
   const statuses = new Set(['disabled', 'waiting', 'fresh', 'stale', 'unavailable']);
   const qualities = { complete: 'From midnight', partial: 'Partial day', unavailable: 'Unavailable', reset: 'Counter reset' };
   const observationTime = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
@@ -48,17 +49,27 @@
   // deliberately excluded, and active batteries prevent attribution to solar.
   function liveView(current, rates, fresh) {
     const result = { tone: 'neutral', title: 'No data', label: 'Spare solar', value: null,
-      money: EMPTY, coverage: null, homeSource: 'Unavailable' };
+      money: EMPTY, coverage: null, homeSource: 'Unavailable',
+      readingTones: { solar: 'neutral', house: 'neutral', grid: 'neutral' } };
     if (!fresh) return { ...result, title: current ? 'Delayed' : 'Connecting', money: current ? 'Last reading retained' : EMPTY };
     const ac = numeric(current?.inverterPowerW), grid = numeric(current?.gridPowerW), load = numeric(current?.loadPowerW);
     const battery = numeric(current?.batteryPowerW);
+    const batterySoc = numeric(current?.batterySocPercent);
+    const batteryFlowUnknown = battery === null && ((batterySoc !== null && batterySoc >= 0 && batterySoc <= 100) ||
+      (current?.batteryPowerW !== null && current?.batteryPowerW !== undefined));
     const bought = grid === null ? null : Math.max(0, grid), sold = grid === null ? null : Math.max(0, -grid);
+    const importTone = bought >= HEAVY_IMPORT_W ? 'high' : 'caution';
+    // A known grid exchange remains meaningful even when a different reading
+    // is missing. Solar/house attribution below needs the complete flow model.
+    if (grid !== null && current?.meterLocation === 'grid') {
+      result.readingTones.grid = bought > GRID_IMPORT_W ? importTone : sold > GRID_EXPORT_W ? 'good' : 'cool';
+    }
     const buyRate = numeric(rates?.importPerKwh), sellRate = numeric(rates?.exportPerKwh);
     const charge = buyRate === null || bought === null ? null : bought / 1000 * buyRate;
     const credit = sellRate === null || sold === null ? null : sold / 1000 * sellRate;
     const flowMoney = bought > 0 ? (charge === null ? 'Import rate unavailable' : 'Grid cost ' + hourly(charge)) : sold > 0
       ? (credit === null ? 'Export rate unavailable' : 'Export credit ' + hourly(credit)) : grid === 0 ? 'No grid exchange' : EMPTY;
-    if (ac === null || grid === null || load === null || load < 0 || current?.meterLocation !== 'grid') {
+    if (ac === null || grid === null || load === null || load < 0 || current?.meterLocation !== 'grid' || batteryFlowUnknown) {
       return { ...result, title: 'Partial data', money: flowMoney };
     }
     const generation = Math.max(0, ac);
@@ -68,12 +79,17 @@
     }
     const selfUse = Math.min(Math.max(load - bought, 0), load, generation);
     const coverage = load > 10 ? clamp(selfUse / load * 100, 0, 100) : null;
+    // Use the same import deadband for near-balanced readings. A positive
+    // generation value alone must not imply that it covers the household.
+    const coversHouse = generation > SOLAR_IDLE_W && generation + GRID_IMPORT_W >= load && bought <= GRID_IMPORT_W;
+    result.readingTones.solar = generation <= SOLAR_IDLE_W ? 'neutral' : coversHouse ? 'good' : 'caution';
+    result.readingTones.house = bought > GRID_IMPORT_W ? importTone : coversHouse ? 'cool' : 'neutral';
     result.coverage = coverage;
     result.money = flowMoney;
-    result.homeSource = generation <= 25 ? 'Solar inactive' : coverage === null ? 'Low house load' : number(coverage, 0) + '% house solar coverage';
-    if (generation <= 25) return { ...result, tone: bought > 50 ? 'import' : 'neutral', title: 'Solar inactive', label: 'Grid draw', value: bought, coverage: null };
-    if (bought > 50) return { ...result, tone: 'import', title: 'Grid import', label: 'Grid draw', value: bought };
-    if (sold > 75) return { ...result, tone: 'surplus', title: 'Solar surplus', label: 'Spare solar', value: sold };
+    result.homeSource = generation <= SOLAR_IDLE_W ? 'Solar inactive' : coverage === null ? 'Low house load' : number(coverage, 0) + '% house solar coverage';
+    if (generation <= SOLAR_IDLE_W) return { ...result, tone: bought > GRID_IMPORT_W ? 'import' : 'neutral', title: 'Solar inactive', label: 'Grid draw', value: bought, coverage: null };
+    if (bought > GRID_IMPORT_W) return { ...result, tone: 'import', title: 'Grid import', label: 'Grid draw', value: bought };
+    if (sold > GRID_EXPORT_W) return { ...result, tone: 'surplus', title: 'Solar surplus', label: 'Spare solar', value: sold };
     return { ...result, title: 'Balanced', label: bought > 0 ? 'Grid draw' : 'Spare solar', value: bought > 0 ? bought : sold };
   }
 
@@ -181,6 +197,9 @@
       text('solarBatteryPower', battery === null ? (soc === null ? EMPTY : number(soc, 1) + '%') : power(Math.abs(battery)));
       text('solarBatterySoc', battery !== null && soc !== null ? number(soc, 1) + '% state of charge' : '');
       const view = liveView(current, rates, fresh);
+      for (const [id, reading] of [['solarAcPower', 'solar'], ['solarLoadPower', 'house'], ['solarGridPower', 'grid']]) {
+        attr(id, 'data-reading-tone', view.readingTones[reading]);
+      }
       card.dataset.tone = view.tone;
       if (node('solarHero')) node('solarHero').dataset.tone = view.tone;
       text('solarHeadline', view.title);

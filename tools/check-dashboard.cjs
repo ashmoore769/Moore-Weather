@@ -221,12 +221,14 @@ async function readablePalette(page) {
     };
     const contrast = (a,b) => (Math.max(a,b)+.05)/(Math.min(a,b)+.05);
     const card = luminance(css.getPropertyValue('--surface'));
+    const waterSurface = luminance(css.getPropertyValue('--surface-soft'));
     const muted = luminance(css.getPropertyValue('--muted'));
     const lines = Array.from(document.querySelectorAll('.history-spark .history-series-line'));
     return {
       stylesheet: Array.from(document.styleSheets).some(s => s.href?.includes('/theme-palette.css')),
       text: contrast(card,muted),
       series: lines.map(line => contrast(card,luminance(getComputedStyle(line).stroke))),
+      waterAccents: [...document.querySelectorAll('.water-group h2,.water-panel h3,.water-panel footer a')].map(n=>contrast(waterSurface,luminance(getComputedStyle(n).color))),
       surfaces: ['--page','--surface-shell','--surface'].map(v => luminance(css.getPropertyValue(v)))
     };
   });
@@ -235,6 +237,7 @@ async function readablePalette(page) {
   assert.ok(result.surfaces[0] < result.surfaces[1] && result.surfaces[1] < result.surfaces[2],
     'Cards must be visibly raised above the page and shell');
   assert.ok(result.series.every(value => value >= 3),'Graph lines must remain distinct from their cards');
+  assert.ok(result.waterAccents.every(value => value >= 4.5),'Water headings and source links retain readable accent colours');
 }
 
 async function bounds(page, width, compact = false) {
@@ -249,15 +252,23 @@ async function bounds(page, width, compact = false) {
       observed:rect(selector + ' .water-observed'), plot:rect(selector + ' .water-history'),
       plotSvg:rect(selector + ' .water-history .history-spark > svg'),
       secondary:document.querySelector(selector + ' .water-volume') ? rect(selector + ' .water-volume') : null,
+      secondaryLabel:rect(selector + ' .water-volume .water-label'), secondaryValue:rect(selector + ' .water-volume strong'),
       primary:rect(selector + ' .water-hero'),
       valueColour:getComputedStyle(document.querySelector(selector + ' .water-hero strong')).color,
+      headingColour:getComputedStyle(document.querySelector(selector + ' h3')).color,
+      iconColour:getComputedStyle(document.querySelector(selector + ' .water-hero .water-label > svg')).stroke,
+      plotColour:getComputedStyle(document.querySelector(selector + ' .water-history .history-spark')).color,
       lineColour:document.querySelector(selector + ' .history-series-line') ? getComputedStyle(document.querySelector(selector + ' .history-series-line')).stroke : null,
       controls:[...document.querySelectorAll(selector + ' .water-reading,' + selector + ' .water-history')].map(n => ({role:n.getAttribute('role'), tabIndex:n.tabIndex, dialog:n.getAttribute('aria-haspopup')}))
     }));
-    const clipped = [...document.querySelectorAll('.water-label,.water-reading strong,.water-time:not([hidden]),.water-panel footer > *,.water-capacity,.water-site')]
+    const clipped = [...document.querySelectorAll('.water-label,.water-reading strong,.water-bridge-context,.water-time:not([hidden]),.water-panel footer > *,.water-capacity,.water-site')]
       .filter(n => n.scrollWidth > n.clientWidth + 1).map(n => ({text:n.textContent, scroll:n.scrollWidth, width:n.clientWidth}));
-    return { readings, clipped, bridge: rect('#warwickBridge'), warwickPlot: rect('.water-warwick .water-history'),
-      referenceNote: rect('#warwickReferenceNote'),
+    const missingDescriptions = [...document.querySelectorAll('.water-panel [aria-describedby]')]
+      .flatMap(n => n.getAttribute('aria-describedby').split(/\s+/)).filter(id => !document.getElementById(id));
+    return { readings, clipped, missingDescriptions, bridge: rect('#warwickBridge'), warwickPlot: rect('.water-warwick .water-history'),
+      bridgeInSummary:document.getElementById('warwickBridge').parentElement.matches('.water-summary'),
+      warwickTimeCount:document.querySelectorAll('.water-warwick .water-observed .water-time').length,
+      riverSummaryParagraphs:document.querySelectorAll('.water-river .water-capacity').length,
       warwick: rect('.water-warwick'), dam: rect('.water-dam'), scots: rect('.water-scots'),
       connolly: rect('.water-connolly'), groups:rect('.water-groups'), dams:rect('#damLevels'), rivers:rect('#riverLevels'),
       damGrid:rect('#damLevels .water-grid'), riverGrid:rect('#riverLevels .water-grid'),
@@ -270,15 +281,22 @@ async function bounds(page, width, compact = false) {
   }
   assert.equal(boxes.overflow, false, 'Page must not scroll horizontally at ' + width);
   assert.deepEqual(boxes.clipped, [], 'Water readings, timestamps and source details remain fully visible');
-  assert.ok(boxes.bridge.y >= boxes.warwickPlot.bottom, 'Bridge clearance must follow the river graph');
-  assert.ok(boxes.referenceNote.y >= boxes.bridge.bottom, 'Bridge reference must follow the clearance');
+  assert.deepEqual(boxes.missingDescriptions, [], 'All water control descriptions reference retained content');
+  assert.equal(boxes.bridgeInSummary,true,'Bridge distance belongs beside Warwick river level');
+  assert.ok(boxes.bridge.bottom <= boxes.readings[1].observed.y,'Bridge distance shares the river observation time above the plot');
+  assert.equal(boxes.warwickTimeCount,1,'The river level and derived bridge distance use one observation timestamp');
+  assert.equal(boxes.riverSummaryParagraphs,0,'Detailed gauge explanations belong in expanded history');
   for (const reading of boxes.readings) {
     const {primary, secondary, summary, observed, plot, valueColour, lineColour} = reading;
     if (secondary) assert.ok(primary.right <= secondary.x && Math.abs(primary.y - secondary.y) < 1,
       'Paired measurements share one summary row: ' + JSON.stringify(reading));
+    assert.ok(Math.abs(reading.secondaryLabel.y-reading.label.y)<1 && Math.abs(reading.secondaryValue.y-reading.value.y)<1,
+      'Both summary labels and values start on matching lines: '+JSON.stringify(reading));
     assert.ok(observed.y >= summary.bottom && plot.y >= observed.bottom, 'All observation times precede the full-width water plot');
     assert.ok(Math.abs(plot.x-summary.x)<1 && Math.abs(plot.width-summary.width)<1, 'Water plots retain the full summary width');
-    if (lineColour) assert.equal(valueColour,lineColour,'Primary water values match the graph colour');
+    assert.equal(valueColour,reading.headingColour,'Water readings use their stronger group heading accent');
+    assert.equal(valueColour,reading.iconColour,'Water reading icons share the value accent');
+    if (lineColour) assert.equal(lineColour,reading.plotColour,'Plot lines retain their independent history colour');
     for (const control of reading.controls) assert.deepEqual(control,{role:'button',tabIndex:0,dialog:'dialog'},'Each metric and plot remains an accessible history control');
   }
   assert.equal(boxes.svg.height,174,'Warwick retains the full-height flood and bridge reference plot');
@@ -286,7 +304,7 @@ async function bounds(page, width, compact = false) {
   for (const reading of boxes.readings.slice(2)) assert.equal(reading.plotSvg.height,damPlotHeight,'Dam plot height is retained');
   assert.equal(boxes.readings[0].plotSvg.height,64,'Scots College plot height is retained');
   if (compact && width <= 393) {
-    for (const [name,panel,max] of [['Leslie',boxes.dam,320],['Connolly',boxes.connolly,325],['Scots College',boxes.scots,330],['Warwick',boxes.warwick,525]]) {
+    for (const [name,panel,max] of [['Leslie',boxes.dam,320],['Connolly',boxes.connolly,325],['Scots College',boxes.scots,300],['Warwick',boxes.warwick,410]]) {
       assert.ok(panel.height <= max,name+' card exceeds its compact mobile height budget: '+JSON.stringify({width,panel,max}));
     }
   }
@@ -789,8 +807,16 @@ async function failurePaths(page, browserName) {
               await queuedHistoryReopen(page,'.water-scots .water-history'); await historyReady(page,'hourly',168);
               assert.equal(requests.at(-1).metric,'condamine-level','A queued close event cannot abort the newly opened history view');
               await page.locator('.history-close').click();
+              await page.locator('#warwickBridge').press('Enter'); await historyReady(page,'hourly',168);
+              assert.equal(requests.at(-1).metric,'condamine-warwick-level','The bridge reading opens its underlying Warwick history');
+              assert.match(await page.locator('#historyNote').textContent(),/Offline fixture/,'Expanded water history retains the source note');
+              assert.equal(await page.locator('.history-reference-label').count(),3,'Expanded Warwick history retains all flood references');
+              await page.locator('.history-close').click();
             }
-            assert.equal(await page.locator('#warwickBridgeValue').textContent(), '1.66m (Below Bridge)');
+            assert.equal(await page.locator('#warwickBridgeValue').textContent(), '1.66');
+            assert.equal(await page.locator('#warwickBridgeLabel').textContent(), 'Below bridge');
+            assert.equal(await page.locator('#warwickBridgeUnit').textContent(), 'm');
+            assert.match(await page.locator('#warwickBridge').getAttribute('title'),/McCahon Bridge · 7\.00m gauge reference/);
             assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), 'false');
             if (pagePath.includes('index')) {
               if (width === 393) await failurePaths(page, engine.name());
@@ -845,6 +871,7 @@ async function failurePaths(page, browserName) {
             assert.equal(await page.locator('.water-scots .water-reference-line').count(), 0);
             await page.locator('#scotsLevel').click(); await historyReady(page, 'hourly', 168);
             assert.equal(requests.at(-1).metric, 'condamine-level');
+            assert.match(await page.locator('#historyNote').textContent(),/Offline fixture/,'Scots College source guidance remains in expanded history');
             assert.deepEqual(await page.evaluate(() => window.__historyUsage.at(-1)), { name: 'history-open', data: { measurement: 'condamine-level' } });
             await page.locator('.history-close').click();
             await page.locator('#condamineFlow').click(); await historyReady(page, 'daily', 720);
@@ -946,16 +973,20 @@ async function failurePaths(page, browserName) {
           await historyReady(page,'10m',24);
           await page.locator('.history-close').click();
           if (width === 393) {
-            for (const [state, text] of [['watch', '1.00m (Below Bridge)'], ['near', '0.50m (Below Bridge)'], ['above', '0.21m (Above Bridge)'], ['at', '0.00m (At Bridge)'], ['stale', '0.20m (Below Bridge)'], ['invalid-latest', '0.20m (Below Bridge)'], ['missing', 'River reading unavailable']]) {
+            for (const [state, value, label] of [['watch','1.00','Below bridge'],['near','0.50','Below bridge'],['above','0.21','Above bridge'],['at','0.00','At bridge'],['stale','0.20','Below bridge'],['invalid-latest','0.20','Below bridge'],['missing','—','To bridge']]) {
               mode = state; await page.reload(); await ready(page);
-              assert.equal(await page.locator('#warwickBridgeValue').textContent(), text);
+              assert.equal(await page.locator('#warwickBridgeValue').textContent(), value);
+              assert.equal(await page.locator('#warwickBridgeLabel').textContent(), label);
               const warning = ['watch','near','above','at'].includes(state);
               assert.equal(await page.locator('#warwickBridge').getAttribute('data-warning'), String(warning));
               if (warning) {
                 const style = await page.locator('#warwickBridge').getAttribute('style');
                 assert.match(style, new RegExp('hsl\\(' + (state === 'watch' ? 42 : state === 'near' ? 21 : 0)));
               }
-              if (state === 'stale' || state === 'invalid-latest') assert.match(await page.locator('#warwickBridgeContext').textContent(), /Last available/);
+              if (state === 'stale' || state === 'invalid-latest') {
+                assert.match(await page.locator('#warwickBridgeContext').textContent(), /Last available/);
+                assert.match(await page.locator('#condamineLevelTime').textContent(), /Last available/,'The shared observation time remains truthful for both readings');
+              }
               await bounds(page, width);
             }
             // A failed/stale update must remove warning styling on the existing card.

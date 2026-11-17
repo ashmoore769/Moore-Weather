@@ -11,6 +11,7 @@ const root = path.resolve(__dirname, '../public');
 const artifacts = path.resolve(__dirname, '../artifacts/dashboard');
 const now = Date.now(), HOUR = 3600000, MINUTE = 60000;
 let mode = 'fresh', historyMode = 'continuous', requests = 0, dataRequests = 0;
+const historyRequests = [];
 const dashboard = fs.readFileSync(path.join(root, 'index.html'), 'utf8')
   .replace(/<script\b([^>]*)>[\s\S]*?<\/script>/gi, (tag, attributes) =>
     /\bsrc="\/(?:solar-chart|power-chart-controls|station-power-chart|yard-power|theme)\.js\b/.test(attributes) ? tag : '');
@@ -172,7 +173,7 @@ async function chartNavigation(page, prefix, width) {
   const plot = page.locator('#' + prefix + ' .power-chart-plot'), initial = await powerWindow(page, prefix);
   const before = dataRequests, originalPaths = await plot.locator('svg path').evaluateAll(paths => paths.map(path => path.getAttribute('d')));
   const axes = await plot.locator('svg text').allTextContents();
-  near(initial.span, 24 * HOUR, prefix + ' initially shows 24 hours');
+  near(initial.span, (prefix === 'yardPower' ? 12 : 24) * HOUR, prefix + ' initially shows its selected period');
   assert.equal(await page.locator('#' + prefix + 'ZoomReset').isDisabled(), true);
   await page.locator('#' + prefix + 'ZoomIn').click();
   const zoomed = await powerWindow(page, prefix);
@@ -220,7 +221,8 @@ async function chartNavigation(page, prefix, width) {
   if (width >= 900) {
     await plot.scrollIntoViewIfNeeded(); const target = await plot.boundingBox();
     await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2); await page.mouse.wheel(0, -160);
-    await page.waitForFunction(prefix => Number(document.querySelector('#' + prefix + ' .power-chart-plot').dataset.windowSpan) < 24 * 3600000, prefix);
+    await page.waitForFunction(({ prefix, span }) => Number(document.querySelector('#' + prefix + ' .power-chart-plot').dataset.windowSpan) < span,
+      { prefix, span: initial.span });
     await page.locator('#' + prefix + 'ZoomReset').click();
   }
   assert.equal(dataRequests, before, prefix + ' navigation, inspection and rendering never request more readings');
@@ -274,12 +276,15 @@ const server = http.createServer((req, res) => {
   if (url.pathname.startsWith('/api/')) dataRequests++;
   if (url.pathname === '/api/yard-power') {
     requests++;
+    const range = url.searchParams.get('range'), duration = { '12h': 12 * HOUR, '24h': 24 * HOUR, '7d': 7 * 24 * HOUR, '30d': 30 * 24 * HOUR }[range];
+    if (range) historyRequests.push(range);
     const current = template(now - (mode === 'stale' ? 12 : 1) * MINUTE);
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ enabled: true, status: mode === 'stale' ? 'stale' : 'fresh',
       current, staleAfterSeconds: 180, timezone: 'Australia/Brisbane',
-      range: url.searchParams.get('range') || null,
-      history: url.searchParams.has('range') ? (historyMode === 'sparse' ? sparseYardHistory : history) : null }));
+      range: range || null,
+      history: range ? (historyMode === 'sparse' ? sparseYardHistory : history)
+        .filter(point => Date.parse(point.observedAt) >= now - duration) : null }));
     return;
   }
   if (url.pathname === '/' || url.pathname === '/index.html') {
@@ -313,6 +318,7 @@ const server = http.createServer((req, res) => {
           const errors = [];
           page.on('pageerror', error => errors.push(error.message));
           try {
+            const initialHistoryRequest = historyRequests.length;
             await page.goto(origin + '/index.html');
             await page.waitForFunction(() => !document.getElementById('yardPower').hidden);
             await page.evaluate(layout => {
@@ -322,6 +328,11 @@ const server = http.createServer((req, res) => {
               document.getElementById('homeSolar').hidden = false;
             }, layout);
             await page.waitForFunction(() => document.getElementById('yardPowerHistoryDetail').textContent.includes('recorded intervals'));
+            assert.deepEqual(historyRequests.slice(initialHistoryRequest), ['12h'], 'Yard initially requests exactly its real 12-hour history period');
+            assert.deepEqual(await page.locator('[data-yard-range]').evaluateAll(buttons => buttons.map(button =>
+              [button.dataset.yardRange, button.getAttribute('aria-pressed')])),
+            [['12h', 'true'], ['24h', 'false'], ['7d', 'false'], ['30d', 'false']], 'the initial range control agrees with the history request');
+            assert.ok((await page.locator('#yardPowerChart text').allTextContents()).includes('12h ago'), 'the initial time axis labels the selected half-day');
             const before = requests;
             await page.evaluate(series => window.dispatchEvent(new CustomEvent('moore-weather-station-trends',
               { detail: { series } })), station);
@@ -346,7 +357,7 @@ const server = http.createServer((req, res) => {
                 powerTitles: powerCards.map(card => card.querySelector('.section-title').textContent.trim()),
                 powerBounds: powerCards.map(bbox),
                 controls: [station, yard].map(card => ({ card: bbox(card),
-                  parts: [...card.querySelectorAll('.power-chart-navigation > *, .power-chart-scrubber, .power-chart-inspect')].map(bbox) })),
+                  parts: [...card.querySelectorAll('.power-chart-navigation > *, .power-chart-scrubber, .power-chart-inspect, .yard-power-range button')].map(bbox) })),
                 stationKeys: ['battery', 'panel', 'load', 'charge'].map(id => {
                   const key = document.querySelector('.station-power-key-' + id);
                   return { id, colour: getComputedStyle(key).color, pattern: getComputedStyle(key, '::before').backgroundImage };
@@ -458,6 +469,8 @@ const server = http.createServer((req, res) => {
             const beforeRangeZoom = dataRequests;
             await page.locator('#yardPowerZoomIn').click();
             near((await powerWindow(page, 'yardPower')).span, 3.5 * 24 * HOUR, 'seven-day Yard history supports the same zoom controls');
+            await page.locator('#yardPowerZoomReset').click();
+            near((await powerWindow(page, 'yardPower')).span, 7 * 24 * HOUR, 'reset restores the selected seven-day period');
             assert.equal(dataRequests, beforeRangeZoom, 'seven-day zoom remains local');
             // Exercise two isolated observations, a connected pair and a final
             // group with a missing PV/panel value. This catches invisible M-only
@@ -472,6 +485,10 @@ const server = http.createServer((req, res) => {
             assertSparseGeometry(sparse.station, 'Station Power sparse history', 'station-power-line-panel');
             assertSparseGeometry(sparse.yard, 'Yard Power sparse history', 'yard-line-panel');
             assert.ok(sparse.yard.dots.every(dot => dot.strokeWidth === 2), 'thinner Yard load styling does not weaken isolated-point markers');
+            const beforeDayZoom = dataRequests;
+            await page.locator('#yardPowerZoomIn').click(); await page.locator('#yardPowerZoomReset').click();
+            near((await powerWindow(page, 'yardPower')).span, 24 * HOUR, 'reset restores 24h when that period is selected');
+            assert.equal(dataRequests, beforeDayZoom, '24h zoom and reset remain local');
             if (width !== 1100) {
               await page.locator('#yardPower').screenshot({ path: path.join(artifacts, 'yard-power-sparse-' + engine.name() + '-' + width + '.png'), animations: 'disabled' });
               await page.locator('#stationPower').screenshot({ path: path.join(artifacts, 'station-power-sparse-' + engine.name() + '-' + width + '.png'), animations: 'disabled' });
@@ -479,6 +496,17 @@ const server = http.createServer((req, res) => {
             historyMode = 'continuous';
             assert.deepEqual(errors, [], 'interactions do not cause browser errors');
             if (width === 393) {
+              for (const [range, hours] of [['30d', 30 * 24], ['12h', 12]]) {
+                await page.locator('[data-yard-range="' + range + '"]').click();
+                await page.waitForFunction(range => document.getElementById('yardPowerHistoryDetail').textContent.includes(' · ' + range + ' · '), range);
+                near((await powerWindow(page, 'yardPower')).span, hours * HOUR, 'selecting ' + range + ' restores its full domain');
+                const beforeZoom = dataRequests;
+                await page.locator('#yardPowerZoomIn').click();
+                near((await powerWindow(page, 'yardPower')).span, hours * HOUR / 2, range + ' remains zoomable');
+                await page.locator('#yardPowerZoomReset').click();
+                near((await powerWindow(page, 'yardPower')).span, hours * HOUR, 'reset restores selected ' + range);
+                assert.equal(dataRequests, beforeZoom, range + ' zoom/reset uses already fetched readings');
+              }
               mode = 'stale'; await page.reload();
               await page.waitForFunction(() => document.querySelector('#yardPowerStatus').textContent === 'DELAYED');
               assert.equal(await page.locator('#yardPowerSummary').isVisible(), true);

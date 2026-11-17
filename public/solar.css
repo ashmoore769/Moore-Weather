@@ -34,6 +34,12 @@
 .solar-main .solar-reading + .solar-reading { padding-left:12px; border-left:1px solid var(--border); }
 .solar-label { color:var(--muted); font-size:11px; line-height:1.4; }
 .solar-reading strong { color:var(--text); font-size:23px; font-weight:650; line-height:1.2; letter-spacing:-.6px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+/* Live numeric guidance only; chart traces and their legend retain fixed colours. */
+.solar-reading strong[data-reading-tone] { color:var(--muted); }
+.solar-reading strong[data-reading-tone="good"] { color:var(--green); }
+.solar-reading strong[data-reading-tone="cool"] { color:var(--solar-home); }
+.solar-reading strong[data-reading-tone="caution"] { color:var(--amber); }
+.solar-reading strong[data-reading-tone="high"] { color:var(--red); }
 .solar-dot,.solar-chart-legend i { display:inline-block; width:6px; height:6px; margin-right:5px; border-radius:50%; vertical-align:1px; background:var(--muted); }
 .solar-dot-generation,.solar-chart-legend i.solar-dot-generation { background:var(--green); }
 .solar-dot-home,.solar-chart-legend i.solar-dot-home { background:var(--solar-home); }

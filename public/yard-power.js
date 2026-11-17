@@ -40,7 +40,7 @@
   const controls = [...card.querySelectorAll('[data-yard-range]')];
   const TIMEOUT_MS = 10000;
   let current = null;
-  let range = '24h';
+  let range = '12h';
   let latestHistory = null;
   let historyPoints = [], historyRange = range, historyEnd = Date.now();
   let renderedWidth = 0;
@@ -61,7 +61,7 @@
     { field: 'pvPowerW', css: 'yard-line yard-line-power', axis: 'W', label: 'Solar generation', short: 'Solar' },
     { field: 'controllerLoadPowerW', css: 'yard-line yard-line-load', axis: 'W', label: 'Controller load', short: 'Load' }
   ];
-  const durations = { '24h': 86400000, '7d': 604800000, '30d': 2592000000 };
+  const durations = { '12h': 43200000, '24h': 86400000, '7d': 604800000, '30d': 2592000000 };
   const chartControls = window.MoorePowerChartControls?.create({ plot: graph, prefix: 'yardPower', label: 'Yard Power', redraw: drawHistory });
 
   function drawHistory() {
@@ -80,7 +80,8 @@
     const minV = Math.min(0, Math.floor(Math.min(0, ...volts) / 5) * 5);
     const maxW = Math.max(10, Math.ceil(Math.max(0, ...watts) / 10) * 10);
     const minW = 0;
-    const gap = historyRange === '24h' ? 4 * 60000 : historyRange === '7d' ? 25 * 60000 : 75 * 60000;
+    const shortWindow = duration <= durations['24h'];
+    const gap = shortWindow ? 4 * 60000 : historyRange === '7d' ? 25 * 60000 : 75 * 60000;
     const xAt = time => left + (time - start) / (end - start) * (right - left);
     const yAt = (value, min, max) => bottom - (value - min) / Math.max(.1, max - min) * (bottom - top);
     let svg = '';
@@ -132,9 +133,9 @@
         minW.toFixed(0) + ' W</text>';
     const fullView = end - start >= duration - 1;
     const axisTime = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane',
-      ...(historyRange === '24h' ? {} : { day: 'numeric', month: 'short' }), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+      ...(shortWindow ? {} : { day: 'numeric', month: 'short' }), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
     svg += '<text class="yard-axis" x="' + left + '" y="' + (height - 3) + '">' +
-      (fullView ? historyRange === '24h' ? '24h ago' : historyRange === '7d' ? '7 days ago' : '30 days ago' : axisTime.format(start)) + '</text>' +
+      (fullView ? shortWindow ? historyRange + ' ago' : historyRange === '7d' ? '7 days ago' : '30 days ago' : axisTime.format(start)) + '</text>' +
       '<text class="yard-axis" text-anchor="end" x="' + right + '" y="' + (height - 3) + '">' + (fullView ? 'Now' : axisTime.format(end)) + '</text>';
     const drawing = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     drawing.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
@@ -212,7 +213,7 @@
         .map(point => ({ ...point, time: Date.parse(point.observedAt) }))
         .filter(point => point.time >= bounds.start && point.time <= bounds.end).sort((a, b) => a.time - b.time);
       chartControls?.setData({ bounds, domainKey: historyRange,
-        minSpan: { '24h': 3600000, '7d': 21600000, '30d': 86400000 }[historyRange],
+        minSpan: { '12h': 3600000, '24h': 3600000, '7d': 21600000, '30d': 86400000 }[historyRange],
         items: historyPoints.map(point => ({ t: point.time, values: series.map(item => ({
           name: item.short, unit: item.axis, precision: 2, value: point[item.field] })) })) });
       drawHistory();
@@ -223,7 +224,7 @@
 
   controls.forEach(button => button.addEventListener('click', () => {
     const selected = button.dataset.yardRange;
-    if (!['24h', '7d', '30d'].includes(selected)) return;
+    if (!Object.hasOwn(durations, selected)) return;
     range = selected;
     controls.forEach(control => control.setAttribute('aria-pressed', String(control === button)));
     historySummary.textContent = 'Loading historical readings…';
