@@ -474,6 +474,7 @@ require('./lib/backup-auth').mountBackupRoutes(app, { getScheduler: () => databa
 // The Pi can submit only solar measurements using its separate machine token.
 // Browser reads below still require the existing private portal login.
 require('./lib/solar-service').mountSolarIngest(app, { env: process.env, getService: () => solarService });
+require('./lib/yard-power').mountYardPowerIngest(app, { env: process.env, getService: () => yardPowerService });
 
 app.use((req, res, next) => {
   const payload = authenticatedPayload(req);
@@ -523,6 +524,9 @@ const persistence = require('./lib/weather-persistence').createPersistence(proce
 const solarService = require('./lib/solar-service').createSolarService({ env: process.env,
   isReady: () => persistence.status().ready, logger });
 require('./lib/solar-service').mountSolarRead(app, { getService: () => solarService });
+const yardPowerService = require('./lib/yard-power').createYardPowerService({ env: process.env,
+  isReady: () => persistence.status().ready, logger });
+require('./lib/yard-power').mountYardPowerRead(app, { getService: () => yardPowerService });
 const historyApi = require('./lib/weather-history-api').createHistoryApi({
   filename: process.env.WEATHER_DB_PATH,
   isReady: () => persistence.status().ready,
@@ -1569,7 +1573,7 @@ function shutdown() {
   Promise.resolve(stationTerminal.stop()).catch(() => {
     logger.warn('[TERMINAL] Shutdown cleanup could not complete');
   }).finally(() => {
-    webServer.close(() => { solarService.close(); process.exit(0); });
+    webServer.close(() => { solarService.close(); yardPowerService.close(); process.exit(0); });
   });
 }
 process.once('SIGTERM', shutdown);
