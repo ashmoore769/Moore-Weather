@@ -1125,7 +1125,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <link href="/history.css?v=6" rel="stylesheet"/>
 <script src="/sensor-quality.js?v=1"></script>
 <script defer src="/history-chart.js?v=12"></script>
-<script defer src="/history.js?v=17"></script>
+<script defer src="/station-power-chart.js?v=1"></script>
+<script defer src="/history.js?v=18"></script>
 <link rel="stylesheet" href="/water.css?v=5">
 <link rel="stylesheet" href="/station-shell.css?v=7">
 <script defer src="/station-shell.js?v=7"></script>
@@ -1133,13 +1134,14 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
 <link rel="stylesheet" href="/dashboard.css?v=13">
 <link rel="stylesheet" href="/solar.css?v=4">
 <link rel="stylesheet" href="/yard-power.css?v=1">
-<script defer src="/yard-power.js?v=1"></script>
+<script defer src="/yard-power.js?v=2"></script>
 
 <script defer src="/solar-chart.js?v=1"></script>
 <script defer src="/solar.js?v=5"></script>
-<link rel="stylesheet" href="/forecast-summary.css?v=1">
+<link rel="stylesheet" href="/power-cards.css?v=1">
+<link rel="stylesheet" href="/forecast-summary.css?v=2">
 <script defer src="/forecast-summary-model.js?v=1"></script>
-<script defer src="/forecast-summary.js?v=1"></script>
+<script defer src="/forecast-summary.js?v=2"></script>
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/radar.css?v=4">
 <link rel="stylesheet" href="/soil.css?v=2">
@@ -1334,15 +1336,15 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     <p id="forecastSummarySignal" class="forecast-summary-signal" role="status">Loading the outlook…</p>
     <p id="forecastSummaryTiming" class="forecast-summary-timing"></p>
   </div><div class="forecast-summary-hourly">
-    <div class="forecast-summary-chart-heading"><span>Hourly rain · AEST</span><span>Current hour included</span></div>
-    <div id="forecastSummaryPlot" class="forecast-summary-plot" role="slider" tabindex="0" aria-label="Hourly rain forecast" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="23" aria-valuenow="0" aria-valuetext="Forecast loading" aria-describedby="forecastSummaryChartNote"><svg id="forecastSummaryChart" viewBox="0 0 720 110" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+    <div class="forecast-summary-chart-heading"><span class="forecast-summary-key forecast-summary-key-rain">Rain · mm</span><span class="forecast-summary-key forecast-summary-key-temp">Temperature · °C</span></div>
+    <div id="forecastSummaryPlot" class="forecast-summary-plot" role="slider" tabindex="0" aria-label="Hourly rain and temperature forecast" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="23" aria-valuenow="0" aria-valuetext="Forecast loading" aria-describedby="forecastSummaryChartNote"><svg id="forecastSummaryChart" viewBox="0 0 720 110" preserveAspectRatio="none" aria-hidden="true"></svg></div>
     <div id="forecastSummaryInspect" class="forecast-summary-inspect" aria-live="polite">Hourly forecast loading.</div>
-    <p id="forecastSummaryChartNote" class="forecast-summary-sr-only">Rain bars show the amount expected during each hour. Tap or drag horizontally to inspect; use left and right arrow keys, Home or End on a keyboard. Temperature is for the end of the selected hour. All times are AEST.</p>
+    <p id="forecastSummaryChartNote" class="forecast-summary-sr-only">Rain bars show expected rainfall and the gold line shows temperature on a separate degrees Celsius scale. Tap or drag horizontally to inspect; use left and right arrow keys, Home or End on a keyboard. Temperature is for the end of the selected hour. All times are AEST.</p>
   </div></div>
   <footer class="forecast-summary-footer"><span><a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a><span id="forecastSummarySource"> · Warwick area</span></span><a href="https://www.bom.gov.au/qld/warnings.shtml" target="_blank" rel="noopener noreferrer">BOM warnings <span aria-hidden="true">↗</span></a></footer>
   <noscript><p class="forecast-summary-timing">Enable JavaScript to view the forecast summary.</p></noscript>
 </section>
-<section id="homeSolar" class="panel-card section-card solar-card" aria-labelledby="solarTitle" hidden>
+<section id="homeSolar" class="panel-card section-card solar-card power-module" aria-labelledby="solarTitle" hidden>
   <header class="solar-header">
     <h2 class="section-title" id="solarTitle"><svg class="solar-title-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>Home solar</h2>
     <div class="solar-state"><span id="solarStatus" class="solar-badge" role="status">CONNECTING</span><span id="solarObserved" class="solar-observed">No reading</span></div>
@@ -1451,16 +1453,32 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
   </div>
   <p class="water-import-status" id="waterImportStatus" role="status">Connecting to saved water readings…</p>
 </section>
-<section aria-label="Station power and maintenance" class="panel-card section-card maintenance-card layout-power current-power">
-<div class="section-header"><h2 class="section-title">Station power</h2><span class="power-trend-label" id="powerTrendLabel">24-hour trends</span></div>
-<div class="metric-list">
-<div class="metric-row"><span class="metric-label">Battery</span><span class="metric-value" id="batteryVal">--</span></div>
-<div class="metric-row"><span class="metric-label">Solar panel</span><span class="metric-value" id="solarPanelVal">--</span></div>
-<div class="metric-row"><span class="metric-label">Load</span><span class="metric-value"><span id="loadVal">--</span><span class="unit-suffix"> mA</span></span></div>
-<div class="metric-row"><span class="metric-label">Charge</span><span class="metric-value" id="chargeVal">--</span></div>
-</div>
+<section id="stationPower" aria-labelledby="stationPowerTitle" class="panel-card section-card maintenance-card layout-power current-power power-module">
+  <header class="section-header station-power-header">
+    <div class="station-power-title">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7" width="17" height="13" rx="2"/><path d="M8 7V4h8v3M12 11l-2 4h4l-2 3"/></svg>
+      <div><h2 id="stationPowerTitle" class="section-title">Weather Station Power</h2><p class="station-power-subtitle">Weather logger · power management</p></div>
+    </div>
+    <span class="power-trend-label" id="powerTrendLabel">24-hour trends</span>
+  </header>
+  <div class="metric-list" aria-label="Weather station power readings">
+    <div class="metric-row" data-power="battery"><span class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M8 7V4h8v3M9 13h6"/></svg>Battery</span><span class="metric-value" id="batteryVal">--</span></div>
+    <div class="metric-row" data-power="panel"><span class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-13-7 2 2m10 10 2 2"/></svg>Solar panel</span><span class="metric-value" id="solarPanelVal">--</span></div>
+    <div class="metric-row" data-power="load"><span class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v13m-5-5 5 5 5-5M4 20h16"/></svg>Load</span><span class="metric-value"><span id="loadVal">--</span><span class="unit-suffix"> mA</span></span></div>
+    <div class="metric-row" data-power="charge"><span class="metric-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-3 8h6l-5 12 1-9H7l6-11Z"/></svg>Charge</span><span class="metric-value" id="chargeVal">--</span></div>
+  </div>
+  <div class="station-power-history">
+    <div class="station-power-chart"><svg id="stationPowerChart" role="img" aria-label="Loading 24-hour weather station power trends" viewBox="0 0 720 134"></svg></div>
+    <div class="station-power-legend" aria-label="Station power graph legend">
+      <span class="station-power-key station-power-key-battery">Battery · V</span>
+      <span class="station-power-key station-power-key-panel">Panel · V</span>
+      <span class="station-power-key station-power-key-load">Load · mA</span>
+      <span class="station-power-key station-power-key-charge">Charge · mA</span>
+    </div>
+    <p id="stationPowerGraphNote" class="station-power-chart-note">Waiting for station history · Voltage left, current right</p>
+  </div>
 </section>
-<section id="yardPower" class="panel-card section-card yard-power-card" aria-labelledby="yardPowerTitle" hidden>
+<section id="yardPower" class="panel-card section-card yard-power-card power-module" aria-labelledby="yardPowerTitle" hidden>
   <header class="yard-power-header">
     <div class="yard-power-title">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-3 8h6l-5 12 1-9H7l6-11Z"/></svg>
@@ -1481,8 +1499,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outlin
     <div class="yard-power-history-header"><h3>History</h3><div class="yard-power-range" role="group" aria-label="Yard power history range"><button type="button" data-yard-range="24h" aria-pressed="true">24h</button><button type="button" data-yard-range="7d" aria-pressed="false">7d</button><button type="button" data-yard-range="30d" aria-pressed="false">30d</button></div></div>
     <p id="yardPowerHistoryDetail" class="yard-power-history-detail">Waiting for historical data.</p>
     <div id="yardPowerChart" class="yard-power-chart"></div>
-    <div class="yard-power-legend"><span>Battery · V</span><span class="yard-legend-solar">Solar · W</span></div>
-    <p class="yard-power-method">Controller load excludes any inverter connected directly to the battery. Historical gaps are not interpolated. Data is informational only.</p>
+    <div class="yard-power-legend"><span>Battery · V</span><span class="yard-legend-panel">PV · V</span><span class="yard-legend-solar">Solar · W</span><span class="yard-legend-load">Load · W</span></div>
+    <details class="yard-power-method"><summary>About these readings</summary><p>Controller load excludes any inverter connected directly to the battery. Historical gaps are not interpolated. Data is informational only.</p></details>
   </div>
 </section>
 <footer class="app-footer">
