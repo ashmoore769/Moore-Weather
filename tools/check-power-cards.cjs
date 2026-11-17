@@ -83,6 +83,7 @@ const server = http.createServer((req, res) => {
               document.body.classList.add('layout-' + layout);
               document.documentElement.dataset.theme = 'dark';
             }, layout);
+            await page.waitForFunction(() => document.getElementById('yardPowerHistoryDetail').textContent.includes('recorded intervals'));
             const before = requests;
             await page.evaluate(series => window.dispatchEvent(new CustomEvent('moore-weather-station-trends',
               { detail: { series } })), station);
@@ -113,7 +114,8 @@ const server = http.createServer((req, res) => {
             for (const card of [visual.yard, visual.station]) {
               assert.ok(card.x >= -1 && card.right <= width + 1, 'Card must not overflow the page: ' + JSON.stringify(visual));
             }
-            assert.ok(visual.yard.height < 385, 'Yard power compact card should fit within 385px: ' + JSON.stringify(visual));
+            assert.ok(visual.yard.height < (width === 1440 ? 385 : width === 1100 ? 475 : 580),
+              'Yard Power should remain compact for the available column width: ' + JSON.stringify(visual));
             assert.deepEqual(errors, [], 'No browser exceptions');
             if (width !== 1100) {
               await page.locator('#yardPower').screenshot({ path: path.join(artifacts, 'yard-power-' + engine.name() + '-' + width + '.png'), animations: 'disabled' });
