@@ -49,6 +49,9 @@ jobs:
         if: ${{ hashFiles('tools/check-dashboard.cjs') != '' }}
         run: node tools/check-dashboard.cjs
 
+      - name: Check compact power cards and composite trends
+        run: node tools/check-power-cards.cjs
+
       - name: Check the private solar card and connection states
         run: node tools/check-solar.cjs
 
