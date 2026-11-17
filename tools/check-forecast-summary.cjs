@@ -126,6 +126,13 @@ async function assertDark(page) {
             assert.equal(await page.title(), 'Moore Weather · Dashboard');
             assert.equal((await page.locator('#fetchBtn').innerText()).trim(), 'Dashboard');
             assert.equal(await page.locator('.forecast-summary-bar').count(), 24);
+            const temperature = page.locator('#forecastSummaryChart .forecast-summary-temperature-line');
+            assert.equal(await temperature.count(), 1, 'temperature overlays the 24 hourly rain bars');
+            assert.equal(await page.locator('#forecastSummaryChart .forecast-summary-temperature-axis').count(), 2,
+              'temperature has its own Celsius scale');
+            assert.match(await temperature.getAttribute('d'), /^M[\d.,]+L/, 'temperature has a connected path for known hours');
+            assert.equal(await page.locator('#forecastSummaryChart .forecast-summary-temperature-selected').count(), 1);
+
             assert.match(await page.locator('#forecastSummaryRain').innerText(), /4\.5\s*mm/);
             assert.match(await page.locator('#forecastSummaryChance').innerText(), /75%/);
             assert.match(await page.locator('#forecastSummaryTemps').innerText(), /28.*16/s);
@@ -179,6 +186,10 @@ async function assertDark(page) {
                   assert.match(await page.locator('#forecastSummaryTiming').innerText(), /no.*rain|dry/i);
                   assert.doesNotMatch(signal, /safe|all.clear|no storms/i);
                 } else if (next === 'partial') {
+                  const incompleteLine = await page.locator('#forecastSummaryChart .forecast-summary-temperature-line').getAttribute('d');
+                  assert.ok((incompleteLine.match(/M/g) || []).length >= 2,
+                    'temperature forecast gaps must not be interpolated across unavailable hours');
+
                   assert.doesNotMatch(rain, /\d/, 'an incomplete sum must not masquerade as a full 24-hour total');
                   assert.doesNotMatch(await page.locator('#forecastSummaryChance').innerText(), /\d/);
                   assert.match(await page.locator('#forecastSummary').innerText(), /partial|incomplete|unavailable|missing/i);
