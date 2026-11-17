@@ -75,21 +75,35 @@
     }
     for (const item of series) {
       const min = item.axis === 'V' ? minV : minW, max = item.axis === 'V' ? maxV : maxW;
-      let path = '', previous = null, count = 0, onlyPoint = null;
+      let path = '', previous = null, count = 0, segmentCount = 0, segmentStart = null;
+      const dots = [];
+      const finishSegment = () => {
+        if (segmentCount === 1) dots.push(segmentStart);
+        segmentCount = 0;
+        segmentStart = null;
+      };
       for (const point of points) {
         if (point.time < start || point.time > end || !Number.isFinite(point[item.field])) {
+          finishSegment();
           previous = null;
           continue;
         }
         const x = xAt(point.time).toFixed(2), y = yAt(point[item.field], min, max).toFixed(2);
-        path += (!previous || point.time - previous.time > gap ? 'M' : 'L') + x + ',' + y;
-        onlyPoint = { x, y }; previous = point; count += 1;
+        const continuous = previous && point.time - previous.time <= gap;
+        if (!continuous) {
+          finishSegment();
+          segmentStart = { x, y };
+        }
+        path += (continuous ? 'L' : 'M') + x + ',' + y;
+        segmentCount += 1;
+        previous = point; count += 1;
       }
+      finishSegment();
       if (!count) continue;
       svg += '<path class="' + item.css + '" d="' + escapeSvg(path) + '"><title>' +
         escapeSvg(item.label + ' (' + item.axis + ')') + '</title></path>';
-      if (count === 1) svg += '<circle class="' + item.css + ' yard-single-dot" cx="' +
-        onlyPoint.x + '" cy="' + onlyPoint.y + '" r="2.5"/>';
+      for (const dot of dots) svg += '<circle class="' + item.css + ' yard-single-dot" cx="' +
+        dot.x + '" cy="' + dot.y + '" r="2.5"/>';
     }
     svg += '<text class="yard-axis" x="1" y="' + (top + 5) + '">' + maxV.toFixed(0) + ' V</text>' +
       '<text class="yard-axis" x="1" y="' + (bottom + 4) + '">' + minV.toFixed(0) + ' V</text>' +

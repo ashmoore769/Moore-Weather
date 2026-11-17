@@ -52,12 +52,12 @@ body.current-page.layout-landscape #stationPower .metric-list { grid-template-co
 .station-power-chart svg { display:block; width:100%; height:134px; overflow:hidden; }
 .station-power-gridline { stroke:var(--border); stroke-width:1; opacity:.78; vector-effect:non-scaling-stroke; }
 .station-power-axis { fill:var(--muted); font:10px var(--app-font,system-ui,sans-serif); }
-.station-power-series { fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
-.station-power-line-battery { stroke:var(--station-battery,#b28b52); fill:var(--station-battery,#b28b52); }
-.station-power-line-panel { stroke:var(--station-panel,#36a778); fill:var(--station-panel,#36a778); }
-.station-power-line-load { stroke:var(--station-load,#4d9dd3); fill:var(--station-load,#4d9dd3); }
-.station-power-line-charge { stroke:var(--station-charge,#d78954); fill:var(--station-charge,#d78954); }
-.station-power-single { stroke:none; }
+.station-power-series { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.station-power-line-battery { color:var(--station-battery,#b28b52); }
+.station-power-line-panel { color:var(--station-panel,#36a778); }
+.station-power-line-load { color:var(--station-load,#4d9dd3); }
+.station-power-line-charge { color:var(--station-charge,#d78954); }
+.station-power-single { fill:currentColor; stroke:none; }
 .station-power-legend { display:flex; flex-wrap:wrap; align-items:center; gap:5px 14px; font-size:11px; color:var(--muted); padding:0; }
 .station-power-key::before { content:''; display:inline-block; width:13px; height:3px; border-radius:2px; background:currentColor; margin-right:6px; vertical-align:3px; }
 .station-power-key-battery { color:var(--station-battery,#b28b52); }
@@ -114,5 +114,6 @@ body.current-page.layout-landscape #stationPower .metric-list { grid-template-co
 }
 @media(forced-colors:active) {
   .station-power-series,#yardPower .yard-line { stroke:CanvasText; }
+  .station-power-single { fill:CanvasText; }
   .station-power-key::before,.yard-power-legend span::before { background:CanvasText; }
 }

@@ -48,16 +48,28 @@
       Math.max(1, max - min) * (SIZE.bottom - SIZE.top);
     const lines = seriesPoints.map(s => {
       let d = '', previous = null, count = 0, dots = [];
+      let segmentStart = null, segmentLength = 0;
+      const finishSegment = () => {
+        if (segmentLength === 1) dots.push(segmentStart);
+        segmentStart = null;
+        segmentLength = 0;
+        previous = null;
+      };
       const lo = s.unit === 'V' ? voltsMin : currentMin;
       const hi = s.unit === 'V' ? voltsMax : currentMax;
       for (const point of s.points) {
-        if (!valid(point.value)) { previous = null; continue; }
+        if (!valid(point.value)) { finishSegment(); continue; }
         const px = x(point.t).toFixed(2), py = y(point.value, lo, hi).toFixed(2);
         const continuous = previous && point.t - previous.t <= s.spacing * 1.5;
+        if (!continuous) {
+          finishSegment();
+          segmentStart = { x: px, y: py };
+        }
         d += (continuous ? 'L' : 'M') + px + ',' + py;
-        if (!continuous) dots.push({ x: px, y: py });
+        segmentLength += 1;
         previous = point; count += 1;
       }
+      finishSegment();
       return { ...s, d, count, dots };
     });
     return { lines, start, end, voltsMin, voltsMax, currentMin, currentMax,
@@ -92,10 +104,8 @@
       if (!line.count) continue;
       svg += '<path class="station-power-series ' + escapeText(line.css) +
         '" d="' + line.d + '"><title>' + escapeText(line.name) + ' (' + line.unit + ')</title></path>';
-      if (line.count === 1) {
-        for (const dot of line.dots) svg += '<circle class="station-power-single ' + escapeText(line.css) +
-          '" cx="' + dot.x + '" cy="' + dot.y + '" r="2.5"/>';
-      }
+      for (const dot of line.dots) svg += '<circle class="station-power-single ' + escapeText(line.css) +
+        '" cx="' + dot.x + '" cy="' + dot.y + '" r="2.5"/>';
     }
     return svg;
   }

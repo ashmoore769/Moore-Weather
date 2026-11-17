@@ -50,6 +50,39 @@ test('estimated and invalid values are not turned into station power graph measu
   assert.equal(chart.chartModel([], NOW).count, 0);
 });
 
+test('isolated station measurements remain visible around gaps without connecting them', () => {
+  const result = chart.chartModel([
+    readings('battery', [13.1, null, 13.2, 13.3, null, 13.4]),
+    readings('panel', [11, 12, 13, 14, 15, 16])
+  ], NOW);
+  const battery = result.lines.find(line => line.id === 'battery');
+  const panel = result.lines.find(line => line.id === 'panel');
+  assert.equal(battery.count, 4);
+  assert.equal(battery.d.match(/M/g).length, 3, 'two singletons and one connected pair');
+  assert.equal(battery.d.match(/L/g).length, 1, 'only the adjacent measurements are connected');
+  assert.equal(battery.dots.length, 2, 'each isolated segment receives its own marker');
+  assert.equal(panel.dots.length, 0, 'another complete series stays a continuous trace');
+  const svg = chart.svgMarkup(result);
+  assert.equal((svg.match(/<circle class="station-power-single station-power-line-battery"/g) || []).length, 2);
+  assert.doesNotMatch(svg, /<circle class="station-power-single station-power-line-panel"/);
+});
+
+test('sparse station observations appear as dots even when missing timestamps have no rows', () => {
+  const sparse = readings('battery', [12.9, 13.1, 13.3]);
+  sparse.points.forEach((point, i) => { point.t = NOW - (2 - i) * 3 * 600000; });
+  const result = chart.chartModel([sparse], NOW);
+  assert.equal(result.lines[0].dots.length, 3);
+  assert.doesNotMatch(result.lines[0].d, /L/, 'outage gaps must not be bridged');
+  assert.equal((chart.svgMarkup(result).match(/<circle /g) || []).length, 3);
+
+  const one = chart.chartModel([readings('battery', [13.1])], NOW);
+  assert.equal((chart.svgMarkup(one).match(/<circle /g) || []).length, 1);
+  const missing = readings('battery', [null, 13.1, Infinity]);
+  missing.points[1].estimated = true;
+  assert.equal(chart.chartModel([missing], NOW).count, 0);
+  assert.doesNotMatch(chart.svgMarkup(chart.chartModel([missing], NOW)), /<circle /);
+});
+
 test('composite chart uses the existing station history signal, not extra polling', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'history.js'), 'utf8');
   const module = fs.readFileSync(path.join(__dirname, '..', 'public', 'station-power-chart.js'), 'utf8');
