@@ -50,6 +50,7 @@
     const v = next.values;
     const fields = { windMax:0, windAvg:1, gustPeak:5, windDir:7, humidityAvg:10, evapTotal:16, dewAvg:17, batteryMin:18, pressureAvg:34, solarAvg:15, solarMax:37 };
     for (const [id,index] of Object.entries(fields)) set(id, format(v[index], id === 'evapTotal' || id === 'batteryMin' ? 2 : 1));
+    $('pressureAvg').style.color = Number.isFinite(v[34]) ? 'var(--daily-pressure-high)' : 'var(--muted)';
     set('windDirText', direction(v[7]));
     set('rainTotal', format(v[14]) + ' mm');
     set('rainNote', v[14] === null ? '24-hour total' : v[14] < .2 ? 'No measurable rain' : '24-hour total');

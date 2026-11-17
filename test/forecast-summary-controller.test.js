@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createController } = require('../public/forecast-summary');
 const { HOUR_MS, FRESH_MS, MAX_AGE_MS } = require('../public/forecast-summary-model');
+const { getTemperatureColorAndDesc } = require('../public/temperature-colours');
 
 const NOW = Date.parse('2026-11-14T09:17:00Z');
 const MINUTE_MS = 60000;
@@ -111,6 +112,73 @@ function chartDrawing(f) {
   const temperatures = [...path.matchAll(/([ML])([\d.]+),([\d.]+)/g)].map(match => ({ move: match[1], x: Number(match[2]) }));
   return { markup, boundaries, nowX: nowX ? Number(nowX[1]) : null, temperatures };
 }
+
+function temperatureValues(f, id) {
+  return [...f.node(id).innerHTML.matchAll(/<span class="forecast-summary-temperature-value [^"]*"([^>]*)>([^<]*)<\/span>/g)]
+    .map(match => ({ value: match[2], color: match[1].match(/style="color:([^"]+)"/)?.[1] || null }));
+}
+
+test('shared temperature colours preserve every established boundary and description', () => {
+  const bands = [
+    [-20, 'deep-freeze', ''], [-10, 'severe-cold', 'Severely cold'],
+    [0, 'extreme-cold', 'Extremely cold'], [6, 'very-cold', 'Very cold'],
+    [11, 'cold', 'Cold'], [16, 'cool', 'Cool'], [21, 'mild', 'Mild'],
+    [28, 'warm', 'Warm'], [32, 'warmer', 'Warmer'], [36, 'hot', 'Hot'],
+    [41, 'very-hot', 'Very hot'], [60, 'extreme-hot', 'Extremely hot']
+  ];
+  const expected = band => ({ color: 'var(--temp-' + band[1] + ')', desc: band[2] });
+  bands.forEach((band, index) => {
+    assert.deepEqual(getTemperatureColorAndDesc(band[0] - .01), expected(band));
+    assert.deepEqual(getTemperatureColorAndDesc(band[0]), expected(bands[index + 1] || band),
+      'each lower edge starts its new band, with 60°C still extremely hot');
+  });
+  assert.deepEqual(getTemperatureColorAndDesc(60.01), { color: 'var(--text)', desc: '' });
+});
+
+test('shared temperature colours keep unknown inputs neutral instead of coercing them to zero', () => {
+  for (const value of [undefined, null, NaN, Infinity, -Infinity, '', '26', false]) {
+    assert.deepEqual(getTemperatureColorAndDesc(value), { color: 'var(--text)', desc: '' });
+  }
+});
+
+test('forecast high, low and inspected hour each use their actual temperature band before rounding', async t => {
+  const data = forecast();
+  data.hourly[1].temperature_2m = 26;
+  data.hourly[2].temperature_2m = 15;
+  const f = fixture(t, data);
+  await f.start();
+  assert.deepEqual(temperatureValues(f, 'forecastSummaryTemps'), [
+    { value: '26°', color: 'var(--temp-warm)' }, { value: '15°', color: 'var(--temp-cool)' }
+  ]);
+  assert.deepEqual(temperatureValues(f, 'forecastSummaryInspect'), [{ value: '26°', color: 'var(--temp-warm)' }]);
+  f.node('forecastSummaryPlot').listeners.get('keydown')({ key: 'ArrowRight', preventDefault() {} });
+  assert.deepEqual(temperatureValues(f, 'forecastSummaryInspect'), [{ value: '15°', color: 'var(--temp-cool)' }]);
+  assert.equal(f.requests.length, 1, 'changing the selected colour reuses the existing forecast');
+
+  data.hourly[1].temperature_2m = 27.9;
+  data.hourly[2].temperature_2m = 15.9;
+  f.replyWith(data); await f.controller.refresh();
+  assert.deepEqual(temperatureValues(f, 'forecastSummaryTemps'), [
+    { value: '28°', color: 'var(--temp-warm)' }, { value: '16°', color: 'var(--temp-cool)' }
+  ], 'display rounding must not move a reading into a different colour band');
+  assert.deepEqual(temperatureValues(f, 'forecastSummaryInspect'), [{ value: '16°', color: 'var(--temp-cool)' }]);
+});
+
+test('missing forecast temperatures clear prior high, low and selected-hour colours', async t => {
+  const data = forecast();
+  data.hourly[1].temperature_2m = 26;
+  data.hourly[2].temperature_2m = 15;
+  const f = fixture(t, data);
+  await f.start();
+  data.hourly[1].temperature_2m = null;
+  f.replyWith(data); await f.controller.refresh();
+  assert.deepEqual(temperatureValues(f, 'forecastSummaryTemps'), [
+    { value: '–', color: null }, { value: '–', color: null }
+  ], 'an incomplete high/low pair is neutral and withholds the incomplete extrema');
+  assert.deepEqual(temperatureValues(f, 'forecastSummaryInspect'), [{ value: '–', color: null }]);
+  assert.doesNotMatch(f.node('forecastSummaryInspect').innerHTML, /var\(--temp-/);
+  assert.match(f.node('forecastSummaryPlot').attributes['aria-valuetext'], /temperature unavailable/);
+});
 
 test('hour guides and Now use actual times, with temperature at hour ends across chart widths', async t => {
   const f = fixture(t);
@@ -239,6 +307,10 @@ test('failed refreshes retain usable data only until the six-hour expiry, within
   assert.equal(f.node('forecastSummaryRain').textContent, '–');
   assert.equal(f.node('forecastSummaryChance').textContent, '–');
   assert.equal(f.node('forecastSummaryTemps').textContent, '–');
+  assert.doesNotMatch(f.node('forecastSummaryTemps').innerHTML, /forecast-summary-temperature-value|style=/,
+    'expired forecast extrema cannot retain old conditional colours');
+  assert.doesNotMatch(f.node('forecastSummaryInspect').innerHTML, /forecast-summary-temperature-value|style=/,
+    'expired hourly temperatures cannot retain old conditional colours');
   assert.equal(f.node('forecastSummaryPlot').attributes['aria-disabled'], 'true');
   assert.equal((f.node('forecastSummaryChart').innerHTML.match(/data-state="missing"/g) || []).length, 24);
   assert.equal(chartDrawing(f).nowX, null, 'expired data has no active forecast time reference');

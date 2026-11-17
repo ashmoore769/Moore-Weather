@@ -111,10 +111,8 @@ body.current-page.layout-landscape #stationPower .metric-list { grid-template-co
 #yardPower .yard-power-method summary { cursor:pointer; color:var(--muted); }
 #yardPower .yard-power-method p { margin:5px 0 0; line-height:1.5; }
 #yardPower .yard-power-reading small { font-size:11px; }
-.yard-power-legend .yard-legend-panel::before { background:var(--amber); }
-.yard-power-legend .yard-legend-load::before { background:var(--rain); }
-#yardPower .yard-line-panel { stroke:var(--amber); }
-#yardPower .yard-line-load { stroke:var(--rain); }
+#yardPower .yard-line-panel { stroke:var(--yard-panel); }
+#yardPower .yard-line-load { stroke:var(--yard-load); }
 #yardPower path.yard-line-load { stroke-width:1.1; }
 #yardPower .yard-axis { font-size:10px; }
 

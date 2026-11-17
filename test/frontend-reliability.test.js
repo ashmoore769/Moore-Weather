@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const quality = require('../public/sensor-quality');
+const temperatureColours = require('../public/temperature-colours');
 const { parseSummary } = require('../public/daily-summary');
 const { nearestPointIndex, bridgeDifference } = require('../public/history-chart');
 const policy = require('../config/data-quality.json');
@@ -27,7 +28,7 @@ function browser({ currentPage = true } = {}) {
   let stationObservedAt = new Date(now).toISOString();
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } }
   const context = vm.createContext({
-    console, Date: Clock, Intl, Event, AbortSignal, WeatherQuality: quality,
+    console, Date: Clock, Intl, Event, AbortSignal, WeatherQuality: quality, MooreTemperatureColours: temperatureColours,
     document: { getElementById: node, querySelector: selector => currentPage && selector === '[data-current-readings]' ? node('weatherData') : null, body: node('body'), addEventListener() {}, hidden: false },
     setTimeout: (callback, delay) => { timers.push({ callback, delay, active: true }); return timers.length; },
     clearTimeout: id => { if (timers[id - 1]) timers[id - 1].active = false; },
@@ -285,7 +286,7 @@ function cameraBrowser({ retainCurrentUntilLoad = false } = {}) {
   const node = id => { if (!nodes.has(id)) nodes.set(id, new ImageNode()); return nodes.get(id); };
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } }
   const context = vm.createContext({
-    console, Date: Clock, Intl, URL, AbortSignal, Image: ImageNode, WeatherQuality: quality,
+    console, Date: Clock, Intl, URL, AbortSignal, Image: ImageNode, WeatherQuality: quality, MooreTemperatureColours: temperatureColours,
     document: { getElementById: node, querySelector() { return null; }, addEventListener() {}, baseURI: 'https://fixture.test/' },
     setTimeout: schedule, clearTimeout: timer => { timers.delete(timer); clearTimeout(timer); }, setInterval() {},
     fetch: async () => ({ ok: true, json: async () => ({ images: frames }) }),

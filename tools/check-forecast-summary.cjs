@@ -9,7 +9,7 @@ const artifacts = path.resolve(__dirname, '../artifacts/dashboard');
 const HOUR = 3600000, NOW = Date.parse('2026-11-14T12:30:00Z'); // 22:30 AEST
 const START = Math.floor(NOW / HOUR) * HOUR;
 const dashboard = fs.readFileSync(path.join(root, 'index.html'), 'utf8').replace(/<script\b([^>]*)>[\s\S]*?<\/script>/gi,
-  (tag, attributes) => /\bsrc="\/(?:forecast-summary(?:-model)?|theme)\.js\b/.test(attributes) ? tag : '');
+  (tag, attributes) => /\bsrc="\/(?:forecast-summary(?:-model)?|temperature-colours|theme)\.js\b/.test(attributes) ? tag : '');
 let mode = 'fresh', requests = 0;
 function forecast() {
   const age = mode === 'stale' ? HOUR : mode === 'expired' ? 6 * HOUR : 2 * 60000;
@@ -17,7 +17,7 @@ function forecast() {
     time: (START + (i + 1) * HOUR) / 1000,
     precipitation: [0.2, 0, 0, 2.8, 1.4, 0, 0.1][i] || 0,
     precipitation_probability: i === 3 ? 75 : 20,
-    temperature_2m: i === 15 ? 28 : i === 8 ? 16 : 21,
+    temperature_2m: i === 0 || i === 15 ? 26 : i === 8 ? 15 : 21,
     weather_code: i === 4 ? 97 : 3,
     wind_gusts_10m: 20
   }));
@@ -110,6 +110,39 @@ async function checkTimeGuides(page) {
   assert.ok(guides.labelLeft >= guides.left && guides.labelRight <= guides.right,
     'Now remains readable inside the preview at every viewport width');
 }
+async function checkTemperatureColours(page, selectedValue, selectedBand) {
+  const colours = await page.evaluate(() => {
+    const card = document.querySelector('#forecastSummary');
+    const resolve = value => {
+      const probe = document.createElement('span');
+      probe.style.color = value; card.append(probe);
+      const color = getComputedStyle(probe).color; probe.remove(); return color;
+    };
+    const reading = selector => {
+      const element = card.querySelector(selector);
+      return { text: element.textContent, color: getComputedStyle(element).color };
+    };
+    return {
+      shared: typeof window.MooreTemperatureColours?.getTemperatureColorAndDesc === 'function',
+      high: reading('.forecast-summary-temperature-high'), low: reading('.forecast-summary-temperature-low'),
+      selected: reading('.forecast-summary-inspect-temperature'), separator: reading('.forecast-summary-temperature-separator').color,
+      warm: resolve('var(--temp-warm)'), cool: resolve('var(--temp-cool)'), muted: resolve('var(--muted)'),
+      gold: resolve('var(--forecast-temp,#d7aa60)'),
+      line: getComputedStyle(card.querySelector('.forecast-summary-temperature-line')).stroke,
+      axes: [...card.querySelectorAll('.forecast-summary-temperature-axis')].map(axis => getComputedStyle(axis).fill),
+      point: getComputedStyle(card.querySelector('.forecast-summary-temperature-selected')).stroke
+    };
+  });
+  assert.equal(colours.shared, true, 'the forecast must load the same temperature helper as current readings');
+  assert.deepEqual(colours.high, { text: '26°', color: colours.warm });
+  assert.deepEqual(colours.low, { text: '15°', color: colours.cool });
+  assert.notEqual(colours.warm, colours.cool, 'high and low remain independently distinguishable');
+  assert.deepEqual(colours.selected, { text: selectedValue, color: colours[selectedBand] });
+  assert.equal(colours.separator, colours.muted, 'the separator stays muted between independently coloured values');
+  assert.equal(colours.line, colours.gold, 'numerical colours do not recolour the gold temperature trace');
+  assert.deepEqual(colours.axes, [colours.gold, colours.gold]);
+  assert.equal(colours.point, colours.gold, 'the plot selection marker retains its temperature-series colour');
+}
 async function assertDark(page) {
   assert.deepEqual(await page.evaluate(() => ({
     theme: document.documentElement.dataset.theme,
@@ -166,7 +199,7 @@ async function assertDark(page) {
 
             assert.match(await page.locator('#forecastSummaryRain').innerText(), /4\.5\s*mm/);
             assert.match(await page.locator('#forecastSummaryChance').innerText(), /75%/);
-            assert.match(await page.locator('#forecastSummaryTemps').innerText(), /28.*16/s);
+            assert.match(await page.locator('#forecastSummaryTemps').innerText(), /26.*15/s);
             assert.match(await page.locator('#forecastSummarySignal').innerText(), /storm/i, 'code97 must surface a thunderstorm signal');
             assert.equal(await page.locator('.forecast-summary-full').getAttribute('href'), '/forecast.html');
             assert.equal(await page.locator('.forecast-summary-footer a').last().getAttribute('href'), 'https://www.bom.gov.au/qld/warnings.shtml');
@@ -175,8 +208,13 @@ async function assertDark(page) {
             await plot.focus(); await page.keyboard.press('Home');
             assert.equal(await plot.getAttribute('aria-valuenow'), '0');
             await checkTimeGuides(page);
+            await checkTemperatureColours(page, '26°', 'warm');
             assert.match(await plot.getAttribute('aria-valuetext'), /22:00.*23:00|10\s*pm.*11\s*pm/i,
               'first rain bar belongs to the ongoing 22:00–23:00 interval, not the API end timestamp');
+            for (let hour = 0; hour < 8; hour++) await page.keyboard.press('ArrowRight');
+            assert.equal(await plot.getAttribute('aria-valuenow'), '8');
+            await checkTemperatureColours(page, '15°', 'cool');
+            await page.keyboard.press('Home');
             await page.keyboard.press('ArrowRight');
             assert.equal(await plot.getAttribute('aria-valuenow'), '1');
             await page.keyboard.press('End');
@@ -226,12 +264,21 @@ async function assertDark(page) {
                   assert.doesNotMatch(await page.locator('#forecastSummaryChance').innerText(), /\d/);
                   assert.match(await page.locator('#forecastSummary').innerText(), /partial|incomplete|unavailable|missing/i);
                   assert.doesNotMatch(signal, /no storms|all.clear/i);
+                  await plot.focus(); await page.keyboard.press('Home');
+                  for (let hour = 0; hour < 3; hour++) await page.keyboard.press('ArrowRight');
+                  const unknowns = await page.locator('#forecastSummary .forecast-summary-temperature-value').evaluateAll(elements =>
+                    elements.map(element => ({ text: element.textContent, color: getComputedStyle(element).color, inline: element.style.color })));
+                  const neutral = await page.locator('.forecast-summary-temperature-separator').evaluate(element => getComputedStyle(element).color);
+                  assert.deepEqual(unknowns, Array.from({ length: 3 }, () => ({ text: '–', color: neutral, inline: '' })),
+                    'missing extrema and the missing selected hour stay neutral without stale inline colours');
                 } else if (next === 'stale') {
                   assert.match(rain, /4\.5/); assert.match(await page.locator('#forecastSummary').innerText(), /delayed|older|stale/i);
                 } else {
                   assert.doesNotMatch(rain, /\d/); assert.match(await page.locator('#forecastSummary').innerText(), /unavailable|expired/i);
                   assert.equal(await page.locator('.forecast-summary-now').count(), 0,
                     'unavailable forecasts do not retain an active Now marker');
+                  assert.equal(await page.locator('#forecastSummary .forecast-summary-temperature-value').count(), 0,
+                    'expired or unavailable forecasts remove old coloured temperature values');
                 }
                 metrics.push({ name: name + '-' + next, height: await checkLayout(page, width) });
                 if (['dry', 'partial', 'stale'].includes(next)) await page.locator('#forecastSummary').screenshot({ path: path.join(artifacts, name + '-' + next + '.png'), animations: 'disabled' });

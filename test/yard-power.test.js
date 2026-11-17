@@ -8,6 +8,7 @@ const { DatabaseSync } = require('node:sqlite');
 const express = require('express');
 const { configuration, validateBatch, createYardPowerService,
   mountYardPowerIngest, mountYardPowerRead } = require('../lib/yard-power');
+const { readingPresentation } = require('../public/yard-power');
 
 const TOKEN = 'yard-power-collector-is-independent-of-fronius-123456';
 const NOW = Date.parse('2026-11-17T06:00:00.000Z');
@@ -112,4 +113,42 @@ test('dashboard markup includes six metrics below station power and loaded asset
   assert.equal((html.match(/class="yard-power-metric"/g) || []).length, 6);
   assert.match(html, /yard-power\.css/);
   assert.match(html, /yard-power\.js/);
+});
+
+test('Yard battery emphasis uses the raw 12.9V boundary and keeps invalid values neutral', () => {
+  for (const [voltage, text, color] of [
+    [12.899, '12.90', 'var(--amber)'],
+    [12.9, '12.90', 'var(--battery-good)'],
+    [13.1, '13.10', 'var(--battery-good)'],
+    [0, '0.00', 'var(--amber)']
+  ]) {
+    const reading = readingPresentation({ ...SAMPLE, batteryVoltageV: voltage }).yardBatteryV;
+    assert.deepEqual([reading.text, reading.color], [text, color], 'voltage ' + voltage);
+  }
+  for (const voltage of [null, undefined, NaN, Infinity, -1, 101, '12.9']) {
+    const reading = readingPresentation({ ...SAMPLE, batteryVoltageV: voltage }).yardBatteryV;
+    assert.deepEqual([reading.text, reading.color], ['–', ''], 'missing/invalid voltage is not a zero or a warning reading');
+  }
+});
+
+test('Yard charge emphasis compares actual amps only below 13.8V and never substitutes load watts', () => {
+  const sample = { ...SAMPLE, batteryVoltageV: 13, chargeCurrentA: .2 };
+  const ahead = readingPresentation({ ...sample, controllerLoadCurrentA: .1, controllerLoadPowerW: 999 });
+  assert.equal(ahead.yardChargeA.color, 'var(--battery-good)', '0.2A exceeds 0.1A regardless of displayed load watts');
+  assert.match(ahead.yardChargeA.title, /controller load 0\.10 A only/);
+  assert.match(ahead.yardChargeA.title, /inverter loads are excluded/);
+  const behind = readingPresentation({ ...sample, controllerLoadCurrentA: .3, controllerLoadPowerW: .01 });
+  assert.equal(behind.yardChargeA.color, 'var(--battery-bad)', '0.2A is below 0.3A regardless of displayed load watts');
+  assert.equal(readingPresentation({ ...sample, controllerLoadCurrentA: .2 }).yardChargeA.color, 'var(--battery-bad)', 'equality retains the Station comparison');
+  assert.equal(readingPresentation({ ...sample, batteryVoltageV: 13.7999 }).yardChargeA.color, 'var(--battery-good)', 'the 13.8V comparison also precedes display rounding');
+  assert.equal(readingPresentation({ ...sample, batteryVoltageV: 13.8 }).yardChargeA.color, '', 'comparison is neutral at the established voltage limit');
+  for (const field of ['batteryVoltageV', 'chargeCurrentA', 'controllerLoadCurrentA']) {
+    for (const value of [null, undefined, NaN, Infinity, -1, '0.1']) {
+      const reading = readingPresentation({ ...sample, [field]: value }).yardChargeA;
+      assert.equal(reading.color, '', field + ' must be a valid raw measurement');
+      assert.equal(reading.title, '', 'an unavailable comparison clears the prior explanation');
+    }
+  }
+  assert.equal(readingPresentation({ ...sample, controllerLoadCurrentA: 201 }).yardChargeA.color, '');
+  assert.equal(readingPresentation({ ...sample, pvVoltageV: 1.24 }).yardPvV.text, '1.24', 'low PV voltage remains the real reading');
 });
