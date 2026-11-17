@@ -1,0 +1,118 @@
+/* Harmonised power modules. Each graph retains its own units and purpose. */
+#stationPower, #yardPower { border-top-width:3px; margin-top:12px; }
+#stationPower { border-top-color:#b28b52; padding:16px 20px 14px; container:station-power / inline-size; }
+#yardPower { border-top-color:var(--brand-2,var(--accent)); padding:16px 20px 13px; container:yard-power / inline-size; }
+#homeSolar { margin-top:12px; }
+
+#stationPower .station-power-header,
+#yardPower .yard-power-header,
+#homeSolar .solar-header { display:flex; align-items:center; justify-content:space-between; gap:8px 15px; margin-bottom:11px; }
+.station-power-title,
+#yardPower .yard-power-title { display:flex; gap:9px; align-items:center; min-width:0; }
+.station-power-title svg,
+#yardPower .yard-power-title svg { width:22px; height:22px; flex:none; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.station-power-title svg { stroke:#b28b52; }
+#yardPower .yard-power-title svg { stroke:var(--brand-2,var(--accent)); }
+#stationPower .section-title,
+#yardPower .section-title,
+#homeSolar .solar-header .section-title { color:var(--text); font-size:17px; font-weight:720; letter-spacing:-.2px; text-transform:none; margin:0; }
+.station-power-subtitle,
+#yardPower .yard-power-subtitle { color:var(--muted); font-size:11px; margin:3px 0 0; line-height:1.4; }
+#stationPower .power-trend-label { flex:none; font-size:11px; font-weight:650; color:var(--muted); }
+#stationPower .station-power-header { align-items:center; }
+
+#stationPower .metric-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0; }
+#stationPower .metric-row,
+body.current-page.layout-landscape #stationPower .metric-row {
+  position:relative; display:flex; flex-direction:column; align-items:flex-start; justify-content:center;
+  gap:6px; min-width:0; margin:0; min-height:72px; padding:11px 13px;
+  border:1px solid var(--border); border-radius:10px; background:var(--surface-soft);
+  box-shadow:none; cursor:pointer;
+}
+#stationPower .metric-row:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+#stationPower .metric-row:hover { border-color:color-mix(in srgb,var(--accent) 45%,var(--border)); }
+#stationPower .metric-label { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:11px; font-weight:650; line-height:1.3; }
+#stationPower .metric-label svg { width:16px; height:16px; flex:none; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+#stationPower .metric-row[data-power="battery"] .metric-label svg { stroke:var(--station-battery,#b28b52); }
+#stationPower .metric-row[data-power="panel"] .metric-label svg { stroke:var(--station-panel,#36a778); }
+#stationPower .metric-row[data-power="load"] .metric-label svg { stroke:var(--station-load,#4d9dd3); }
+#stationPower .metric-row[data-power="charge"] .metric-label svg { stroke:var(--station-charge,#d78954); }
+#stationPower .metric-value { color:var(--text); font-size:22px; font-weight:740; letter-spacing:-.6px; line-height:1.15; font-variant-numeric:tabular-nums; }
+#stationPower .metric-value .unit-suffix { font-size:11px; letter-spacing:0; }
+#stationPower .history-spark { display:none; }
+
+body.current-page.layout-landscape #stationPower.current-power {
+  display:block; grid-template-columns:none; padding:16px 20px 14px;
+}
+body.current-page.layout-landscape #stationPower .section-header { display:flex; margin-bottom:11px; }
+body.current-page.layout-landscape #stationPower .metric-list { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+
+.station-power-history { margin-top:12px; padding-top:10px; border-top:1px solid var(--border); }
+.station-power-chart { height:134px; width:100%; }
+.station-power-chart svg { display:block; width:100%; height:134px; overflow:hidden; }
+.station-power-gridline { stroke:var(--border); stroke-width:1; opacity:.78; vector-effect:non-scaling-stroke; }
+.station-power-axis { fill:var(--muted); font:10px var(--app-font,system-ui,sans-serif); }
+.station-power-series { fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.station-power-line-battery { stroke:var(--station-battery,#b28b52); fill:var(--station-battery,#b28b52); }
+.station-power-line-panel { stroke:var(--station-panel,#36a778); fill:var(--station-panel,#36a778); }
+.station-power-line-load { stroke:var(--station-load,#4d9dd3); fill:var(--station-load,#4d9dd3); }
+.station-power-line-charge { stroke:var(--station-charge,#d78954); fill:var(--station-charge,#d78954); }
+.station-power-single { stroke:none; }
+.station-power-legend { display:flex; flex-wrap:wrap; align-items:center; gap:5px 14px; font-size:11px; color:var(--muted); padding:0; }
+.station-power-key::before { content:''; display:inline-block; width:13px; height:3px; border-radius:2px; background:currentColor; margin-right:6px; vertical-align:3px; }
+.station-power-key-battery { color:var(--station-battery,#b28b52); }
+.station-power-key-panel { color:var(--station-panel,#36a778); }
+.station-power-key-load { color:var(--station-load,#4d9dd3); }
+.station-power-key-charge { color:var(--station-charge,#d78954); }
+.station-power-chart-note { font-size:10px; color:var(--muted); margin:5px 0 0; }
+#stationPower { --station-battery:#c09b58; --station-panel:#3cb389; --station-load:#4ca1de; --station-charge:#e09b65; }
+
+#yardPower .yard-power-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+#yardPower .yard-power-metric { min-height:69px; padding:10px 12px; gap:0; border-radius:10px; }
+#yardPower .yard-power-label { font-size:11px; line-height:1.3; min-height:17px; gap:6px; }
+#yardPower .yard-power-label svg { width:16px; height:16px; }
+#yardPower .yard-power-reading { margin-top:8px; }
+#yardPower .yard-power-reading strong { font-size:23px; line-height:1.05; }
+#yardPower .yard-power-summary { display:none; margin:9px 0 0; }
+#yardPower:is([data-state="waiting"],[data-state="stale"],[data-state="unavailable"]) .yard-power-summary { display:block; }
+#yardPower .yard-power-history { margin-top:11px; padding-top:10px; }
+#yardPower .yard-power-history-header { gap:6px 10px; }
+#yardPower .yard-power-history-header h3 { font-size:13px; }
+#yardPower .yard-power-history-detail { margin:3px 0 0; min-height:0; font-size:10px; }
+#yardPower .yard-power-chart { min-height:134px; }
+#yardPower .yard-power-chart svg { height:134px; }
+#yardPower .yard-power-legend { gap:5px 13px; font-size:10px; margin:3px 0 0; }
+#yardPower .yard-power-method { margin:5px 0 0; font-size:10px; }
+#yardPower .yard-power-method summary { cursor:pointer; color:var(--muted); }
+#yardPower .yard-power-method p { margin:5px 0 0; line-height:1.5; }
+#yardPower .yard-power-reading small { font-size:11px; }
+.yard-power-legend .yard-legend-panel::before { background:var(--amber); }
+.yard-power-legend .yard-legend-load::before { background:var(--rain); }
+#yardPower .yard-line-panel { stroke:var(--amber); }
+#yardPower .yard-line-load { stroke:var(--rain); }
+#yardPower .yard-axis { font-size:10px; }
+
+@container station-power (min-width:760px) {
+  #stationPower .metric-list,
+  body.current-page.layout-landscape #stationPower .metric-list { grid-template-columns:repeat(4,minmax(0,1fr)); }
+}
+@container yard-power (min-width:455px) {
+  #yardPower .yard-power-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@container yard-power (min-width:930px) {
+  #yardPower .yard-power-grid { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  #yardPower .yard-power-metric { padding:10px 11px; }
+  #yardPower .yard-power-reading strong { font-size:21px; }
+}
+@media(max-width:600px) {
+  #stationPower,#yardPower { padding:12px; }
+  #stationPower .metric-row { padding:10px; }
+  #stationPower .metric-value { font-size:21px; }
+  #stationPower .station-power-header, #yardPower .yard-power-header { align-items:flex-start; }
+  #stationPower .section-title,#yardPower .section-title { font-size:16px; }
+  .station-power-legend { gap:4px 10px; font-size:10px; }
+}
+@media(forced-colors:active) {
+  .station-power-series,#yardPower .yard-line { stroke:CanvasText; }
+  .station-power-key::before,.yard-power-legend span::before { background:CanvasText; }
+}

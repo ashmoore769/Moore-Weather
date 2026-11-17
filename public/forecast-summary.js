@@ -121,7 +121,7 @@
       const hours = summary.hours;
       const width = Math.max(180, Math.round(plot.clientWidth || plot.getBoundingClientRect?.().width || 360));
       const scale = chartScale(hours);
-      const height = 110, left = scale >= 100 ? 43 : 31, right = width - 3, top = 12, bottom = 80;
+      const height = 110, left = scale >= 100 ? 43 : 31, right = width - 34, top = 12, bottom = 80;
       const cell = (right - left) / 24;
       const selection = summary.usable ? hours[selectedIndex] : null;
       plotGeometry = { left, right, width };
@@ -140,6 +140,36 @@
         const barWidth = Math.max(2, cell * 0.64), x = left + i * cell + (cell - barWidth) / 2;
         const state = missing ? 'missing' : zero ? 'zero' : 'rain';
         parts.push('<rect class="forecast-summary-bar forecast-summary-bar-' + state + (selection && i === selectedIndex ? ' forecast-summary-bar-selected' : '') + '" data-hour="' + i + '" data-state="' + state + '" x="' + x.toFixed(2) + '" y="' + (bottom - barHeight).toFixed(2) + '" width="' + barWidth.toFixed(2) + '" height="' + barHeight.toFixed(2) + '" rx="1.5"/>');
+      }
+      // A separate right-hand Celsius scale. The forecast line is derived
+      // from the SAME 24 hourly values as the rain bars, without extra fetches.
+      // Missing temperature hours split the path rather than being bridged.
+      const temperatures = hours.filter(hour => finite(hour?.tempC)).map(hour => hour.tempC);
+      if (temperatures.length) {
+        const lowest = Math.floor(Math.min(...temperatures)) - 2;
+        const highest = Math.ceil(Math.max(...temperatures)) + 2;
+        const tempY = value => top + 5 + (highest - value) /
+          Math.max(1, highest - lowest) * (bottom - top - 10);
+        let path = '', previous = false;
+        const singles = [];
+        for (let i = 0; i < 24; i++) {
+          const value = hours[i]?.tempC;
+          if (!finite(value)) { previous = false; continue; }
+          const x = (left + (i + .5) * cell).toFixed(2), y = tempY(value).toFixed(2);
+          path += (previous ? 'L' : 'M') + x + ',' + y;
+          previous = true;
+          singles.push({ x, y, i });
+        }
+        parts.push('<path class="forecast-summary-temperature-line" d="' + path + '"/>');
+        parts.push('<text class="forecast-summary-axis forecast-summary-temperature-axis" x="' + (width - 1) +
+          '" y="' + (top + 3) + '" text-anchor="end">' + escape(highest + '°') + '</text>');
+        parts.push('<text class="forecast-summary-axis forecast-summary-temperature-axis" x="' + (width - 1) +
+          '" y="' + (bottom + 3) + '" text-anchor="end">' + escape(lowest + '°') + '</text>');
+        if (selection && finite(selection.tempC)) {
+          const active = singles.find(point => point.i === selectedIndex);
+          if (active) parts.push('<circle class="forecast-summary-temperature-selected" cx="' +
+            active.x + '" cy="' + active.y + '" r="3.3"/>');
+        }
       }
       if (finite(summary.startMs)) {
         const midnight = (dayKey(summary.startMs) + 1) * DAY_MS - OFFSET_MS;

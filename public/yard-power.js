@@ -37,59 +37,73 @@
 
   function drawHistory(history) {
     graph.replaceChildren();
-    const values = Array.isArray(history) ? history : [];
-    const points = values.filter(point => Number.isFinite(Date.parse(point.observedAt)));
+    const points = (Array.isArray(history) ? history : [])
+      .filter(point => Number.isFinite(Date.parse(point?.observedAt)))
+      .map(point => ({ ...point, time: Date.parse(point.observedAt) }))
+      .sort((a, b) => a.time - b.time);
     if (!points.length) {
-      historySummary.textContent = 'No historical readings for this period yet.';
+      historySummary.textContent = 'No data recorded in this period.';
       return;
     }
     const duration = { '24h': 86400000, '7d': 604800000, '30d': 2592000000 }[range];
     const end = Date.now(), start = end - duration;
-    const width = 720, height = 145, left = 43, right = 10, top = 12, bottom = 24;
-    const measures = [
-      { field: 'batteryVoltageV', css: 'yard-line', maxGap: range === '24h' ? 4 * 60000 : range === '7d' ? 25 * 60000 : 75 * 60000 },
-      { field: 'pvPowerW', css: 'yard-line yard-line-power', maxGap: range === '24h' ? 4 * 60000 : range === '7d' ? 25 * 60000 : 75 * 60000 }
+    const width = 720, height = 134, left = 43, right = 675, top = 12, bottom = 106;
+    const series = [
+      { field: 'batteryVoltageV', css: 'yard-line', axis: 'V', label: 'Battery voltage' },
+      { field: 'pvVoltageV', css: 'yard-line yard-line-panel', axis: 'V', label: 'PV voltage' },
+      { field: 'pvPowerW', css: 'yard-line yard-line-power', axis: 'W', label: 'Solar generation' },
+      { field: 'controllerLoadPowerW', css: 'yard-line yard-line-load', axis: 'W', label: 'Controller load' }
     ];
-    const timeToX = t => left + Math.max(0, Math.min(1, (t - start) / duration)) * (width - left - right);
+    const volts = points.flatMap(point => [point.batteryVoltageV, point.pvVoltageV])
+      .filter(value => Number.isFinite(value));
+    const watts = points.flatMap(point => [point.pvPowerW, point.controllerLoadPowerW])
+      .filter(value => Number.isFinite(value));
+    const maxV = Math.max(15, Math.ceil(Math.max(0, ...volts) / 5) * 5);
+    const minV = Math.min(0, Math.floor(Math.min(0, ...volts) / 5) * 5);
+    const maxW = Math.max(10, Math.ceil(Math.max(0, ...watts) / 10) * 10);
+    const minW = 0;
+    const gap = range === '24h' ? 4 * 60000 : range === '7d' ? 25 * 60000 : 75 * 60000;
+    const xAt = time => left + Math.max(0, Math.min(1, (time - start) / duration)) * (right - left);
+    const yAt = (value, min, max) => bottom - (value - min) / Math.max(.1, max - min) * (bottom - top);
     let svg = '';
-    for (const item of measures) {
-      const usable = points.filter(point => Number.isFinite(point[item.field]))
-        .map(point => ({ x: Date.parse(point.observedAt), value: point[item.field] }))
-        .filter(point => point.x >= start && point.x <= end);
-      if (!usable.length) continue;
-      const min = item.field === 'pvPowerW' ? 0 : Math.floor(Math.min(...usable.map(p => p.value)) * 2) / 2 - .1;
-      const max = item.field === 'pvPowerW'
-        ? Math.max(10, Math.ceil(Math.max(...usable.map(p => p.value)) / 10) * 10)
-        : Math.ceil(Math.max(...usable.map(p => p.value)) * 2) / 2 + .1;
-      const yOf = value => top + (height - top - bottom) * (1 - (value - min) / Math.max(max - min, .1));
-      let path = '';
-      let previous = null;
-      for (const p of usable) {
-        const x = timeToX(p.x).toFixed(2), y = yOf(p.value).toFixed(2);
-        path += (!previous || p.x - previous.x > item.maxGap ? 'M' : 'L') + x + ',' + y;
-        previous = p;
-      }
-      svg += '<path class="' + item.css + '" d="' + escapeSvg(path) + '"/>';
-      if (item.field === 'batteryVoltageV') {
-        svg += '<text class="yard-axis" x="2" y="' + (top + 4) + '">' + escapeSvg(max.toFixed(1)) + 'V</text>';
-        svg += '<text class="yard-axis" x="2" y="' + (height - bottom) + '">' + escapeSvg(min.toFixed(1)) + 'V</text>';
-      } else {
-        svg += '<text class="yard-axis" text-anchor="end" x="' + (width - 1) + '" y="' + (top + 4) + '">' + escapeSvg(max.toFixed(0)) + 'W</text>';
-      }
+    for (const fraction of [0, .5, 1]) {
+      const x = left + fraction * (right - left), y = top + fraction * (bottom - top);
+      svg += '<line class="yard-grid" x1="' + x + '" y1="' + top + '" x2="' + x +
+        '" y2="' + bottom + '"/>';
+      svg += '<line class="yard-grid" x1="' + left + '" y1="' + y + '" x2="' + right +
+        '" y2="' + y + '"/>';
     }
-    for (const position of [0, 0.5, 1]) {
-      const x = left + position * (width - left - right);
-      svg = '<line class="yard-grid" x1="' + x + '" y1="' + top + '" x2="' + x + '" y2="' + (height - bottom) + '"/>' + svg;
+    for (const item of series) {
+      const min = item.axis === 'V' ? minV : minW, max = item.axis === 'V' ? maxV : maxW;
+      let path = '', previous = null, count = 0, onlyPoint = null;
+      for (const point of points) {
+        if (point.time < start || point.time > end || !Number.isFinite(point[item.field])) {
+          previous = null;
+          continue;
+        }
+        const x = xAt(point.time).toFixed(2), y = yAt(point[item.field], min, max).toFixed(2);
+        path += (!previous || point.time - previous.time > gap ? 'M' : 'L') + x + ',' + y;
+        onlyPoint = { x, y }; previous = point; count += 1;
+      }
+      if (!count) continue;
+      svg += '<path class="' + item.css + '" d="' + escapeSvg(path) + '"><title>' +
+        escapeSvg(item.label + ' (' + item.axis + ')') + '</title></path>';
+      if (count === 1) svg += '<circle class="' + item.css + ' yard-single-dot" cx="' +
+        onlyPoint.x + '" cy="' + onlyPoint.y + '" r="2.5"/>';
     }
+    svg += '<text class="yard-axis" x="1" y="' + (top + 5) + '">' + maxV.toFixed(0) + ' V</text>' +
+      '<text class="yard-axis" x="1" y="' + (bottom + 4) + '">' + minV.toFixed(0) + ' V</text>' +
+      '<text class="yard-axis" text-anchor="end" x="' + (width - 1) + '" y="' + (top + 5) + '">' +
+        maxW.toFixed(0) + ' W</text>' +
+      '<text class="yard-axis" text-anchor="end" x="' + (width - 1) + '" y="' + (bottom + 4) + '">' +
+        minW.toFixed(0) + ' W</text>';
     svg += '<text class="yard-axis" x="' + left + '" y="' + (height - 3) + '">' +
-      (range === '24h' ? '24h ago' : range === '7d' ? '7 days ago' : '30 days ago') + '</text>';
-    svg += '<text class="yard-axis" text-anchor="end" x="' + (width - right) + '" y="' + (height - 3) + '">Now</text>';
-    const ns = 'http://www.w3.org/2000/svg';
-    const drawing = document.createElementNS(ns, 'svg');
-    drawing.setAttribute('viewBox', '0 0 720 145');
+      (range === '24h' ? '24h ago' : range === '7d' ? '7 days ago' : '30 days ago') + '</text>' +
+      '<text class="yard-axis" text-anchor="end" x="' + right + '" y="' + (height - 3) + '">Now</text>';
+    const drawing = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    drawing.setAttribute('viewBox', '0 0 720 134');
     drawing.setAttribute('role', 'img');
-    drawing.setAttribute('aria-label', 'Recorded battery voltage and solar generation, with gaps left unconnected');
-    // Fixed internal SVG fragments, with numeric data validated above.
+    drawing.setAttribute('aria-label', 'Yard Power history. Battery and PV voltage use the left scale in volts. Solar generation and controller load use the right scale in watts. Missing measurements are not connected.');
     drawing.innerHTML = svg;
     graph.appendChild(drawing);
     historySummary.textContent = points.length + ' recorded intervals · ' + range + ' · AEST';
@@ -101,6 +115,7 @@
     const observed = Date.parse(current?.observedAt || '');
     const diff = Number.isFinite(observed) ? Date.now() - observed : Infinity;
     const state = !current ? 'waiting' : diff >= 0 && diff <= 180000 ? 'fresh' : 'stale';
+    card.dataset.state = lastAttemptError ? 'unavailable' : state;
     status.dataset.state = lastAttemptError ? 'unavailable' : state;
     status.textContent = lastAttemptError ? 'UNAVAILABLE' : state === 'fresh' ? 'LIVE' : state === 'stale' ? 'DELAYED' : 'WAITING';
     const ageMin = Number.isFinite(diff) ? Math.max(0, Math.floor(diff / 60000)) : 0;
