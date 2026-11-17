@@ -60,9 +60,9 @@ async function checkLayout(page, width) {
       return { text: element.textContent, left: box.left, right: box.right };
     }).sort((a, b) => a.left - b.left);
     return { left: rect.left, right: rect.right, height: rect.height, width: document.documentElement.scrollWidth,
-      aboveSolar: Boolean(card.compareDocumentPosition(document.querySelector('#homeSolar')) & Node.DOCUMENT_POSITION_FOLLOWING), children, timeLabels };
+      nextCard: card.nextElementSibling?.id, children, timeLabels };
   });
-  assert.equal(layout.aboveSolar, true, 'forecast appears immediately before Home solar in reading order');
+  assert.equal(layout.nextCard, 'localWater', 'forecast is followed by local water before the grouped power cards');
   assert.ok(layout.left >= 0 && layout.right <= width + 1 && layout.width <= width + 1, JSON.stringify(layout));
   for (const child of layout.children) {
     assert.ok(child.left >= layout.left - 1 && child.right <= layout.right + 1 && child.scroll <= child.width + 1,

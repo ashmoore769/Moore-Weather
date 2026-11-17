@@ -238,7 +238,8 @@ test('solar assets and labels stay separate from existing weather and station me
   assert.match(html, /Generated/);
   assert.match(html, /Solar radiation<\/span><span class="value" id="solarRadVal"/);
   assert.match(html, /Solar panel<\/span><span class="metric-value" id="solarPanelVal"/);
-  assert.ok(html.indexOf('id="homeSolar"') < html.indexOf('id="stationPower"'));
+  const cards = ['localWater', 'homeSolar', 'stationPower', 'yardPower'].map(id => html.indexOf('id="' + id + '"'));
+  assert.ok(cards.every((position, i) => position >= 0 && (!i || position > cards[i - 1])), 'power cards follow local water in reading order');
 });
 
 
@@ -416,7 +417,7 @@ test('compact public copy retains objective readings and full timestamp access',
   assert.equal(f.node('solarObserved').textContent, '12:00 · just now');
   assert.match(f.node('solarObserved').attributes.title, /14 Nov.*12:00:00 AEST/);
   assert.equal(f.node('solarObserved').attributes.title, f.node('solarObservedDetail').textContent);
-  const card = html.slice(html.indexOf('<section id="homeSolar"'), html.indexOf('<section class="local-water"'));
+  const card = html.slice(html.indexOf('<section id="homeSolar"'), html.indexOf('<section id="stationPower"'));
   assert.doesNotMatch(card, /\byour\b|\byou\b|<details|<summary/i);
   assert.match(card, /aria-label="Download daily solar CSV"/);
   const states = [liveView(payload().current, payload().rates, true), liveView(payload().current, payload().rates, false),
