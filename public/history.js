@@ -140,6 +140,9 @@
       trendData = await getJson('/api/trends?view=' + (dailyPage ? 'daily' : 'current'), AbortSignal.timeout(20000));
       setCatalog(trendData);
       for (const entry of cards.filter(c => !/^(leslie|condamine|connolly)-/.test(c.metric))) drawSpark(entry, trendData.series.find(s => s.metric.id === entry.metric));
+      // Reuse this existing history response for the Weather Station Power composite.
+      // No additional network call to the logger, server or chart API.
+      if (!dailyPage) window.dispatchEvent(new CustomEvent('moore-weather-station-trends', { detail: { series: trendData.series } }));
       guideText.textContent = dailyPage ? '30-day trends' : '24-hour trends';
       guideText.removeAttribute('title');
     } catch (error) {
