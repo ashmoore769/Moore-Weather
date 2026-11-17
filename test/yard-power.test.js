@@ -106,7 +106,7 @@ test('data persists separately, preserves existing table, and remains stale with
 
 test('dashboard markup includes six metrics below station power and loaded assets', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
-  const station = html.indexOf('>Station power</h2>');
+  const station = html.indexOf('id="stationPower"');
   const yard = html.indexOf('id="yardPower"');
   assert.ok(station !== -1 && yard > station, 'yard card must follow station power');
   assert.equal((html.match(/class="yard-power-metric"/g) || []).length, 6);
