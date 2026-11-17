@@ -238,7 +238,7 @@ test('solar assets and labels stay separate from existing weather and station me
   assert.match(html, /Generated/);
   assert.match(html, /Solar radiation<\/span><span class="value" id="solarRadVal"/);
   assert.match(html, /Solar panel<\/span><span class="metric-value" id="solarPanelVal"/);
-  assert.ok(html.indexOf('id="homeSolar"') < html.indexOf('aria-label="Station power and maintenance"'));
+  assert.ok(html.indexOf('id="homeSolar"') < html.indexOf('id="stationPower"'));
 });
 
 
