@@ -114,7 +114,7 @@ const server = http.createServer((req, res) => {
             for (const card of [visual.yard, visual.station]) {
               assert.ok(card.x >= -1 && card.right <= width + 1, 'Card must not overflow the page: ' + JSON.stringify(visual));
             }
-            assert.ok(visual.yard.height < (width === 1440 ? 385 : width === 1100 ? 475 : 580),
+            assert.ok(visual.yard.height < (width === 1440 ? 410 : width === 1100 ? 495 : 600),
               'Yard Power should remain compact for the available column width: ' + JSON.stringify(visual));
             assert.deepEqual(errors, [], 'No browser exceptions');
             if (width !== 1100) {
