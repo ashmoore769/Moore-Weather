@@ -109,6 +109,7 @@ html[data-theme="dark"] .water-panel.water-warwick { --water-site-accent:#90adfa
   border-color:color-mix(in srgb,var(--bridge-warning-colour) 75%,var(--border));
   background:linear-gradient(110deg,color-mix(in srgb,var(--bridge-warning-colour) var(--bridge-warning-tint),var(--surface)),var(--surface-soft));
 }
-.water-bridge[data-warning="true"] :is(strong,.water-label,.water-history-cue) { color:var(--water-warning-text); }
+/* Safety states take precedence over all decorative site/value colours. */
+.water-panel .water-bridge[data-warning="true"] :is(strong,.water-label,.water-history-cue) { color:var(--water-warning-text); }
 .water-bridge[data-warning="true"] .water-label > svg { stroke:var(--water-warning-text); }
 .water-import-status:empty { display:none; }
