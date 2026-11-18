@@ -106,11 +106,10 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 .current-reading-label { color:var(--muted); font-size:10px; font-weight:800; line-height:1.4; letter-spacing:.55px; text-transform:uppercase; white-space:nowrap; }
 .current-reading-body { display:flex; flex-direction:column; flex:1; min-width:0; }
 .current-reading-card .current-reading-value {
-  display:block; margin:6px 0 0; font-size:38px; font-weight:780; line-height:1.12;
+  display:block; margin:6px 0 0; font-size:36px; font-weight:780; line-height:1.12;
   letter-spacing:-1.1px; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:visible; text-overflow:clip;
 }
-.current-reading-card .unit-suffix { color:var(--muted); font-size:12px; font-weight:600; letter-spacing:0; }
-.humidity-stat .unit-suffix,.rain-stat .unit-suffix { font-size:14px; }
+.current-reading-card .unit-suffix { margin-inline-start:3px; color:var(--muted); font-size:13px; font-weight:600; letter-spacing:0; }
 .current-reading-value [data-quality="unavailable"] + .unit-suffix { display:none; }
 .current-reading-card .current-reading-detail {
   margin:5px 0 0; min-height:0; color:var(--muted); font-size:11px; font-weight:600; line-height:1.4;
@@ -183,9 +182,8 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
   .primary-card { padding:0; }
   .current-reading-card { padding:10px; }
   .current-reading-label { font-size:9px; }
-  .current-reading-card .current-reading-value { font-size:32px; }
-  .current-reading-card .unit-suffix { font-size:11px; }
-  .humidity-stat .unit-suffix,.rain-stat .unit-suffix { font-size:13px; }
+  .current-reading-card .current-reading-value { font-size:30px; }
+  .current-reading-card .unit-suffix { font-size:12px; }
   .current-reading-card .current-reading-detail { font-size:10px; }
   .reading-card-value { font-size:26px; }
   .section-card { padding:13px; }
@@ -201,7 +199,8 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
   .current-reading-card { padding:9px; }
   .current-reading-heading { gap:4px; }
   .current-reading-label { letter-spacing:.1px; }
-  .current-reading-card .current-reading-value { font-size:28px; }
+  .current-reading-card .current-reading-value { font-size:26px; }
+  .current-reading-card .unit-suffix { font-size:11px; }
   /* Reserve two caption lines on narrow phones and keep paired graphs aligned. */
   .current-reading-card .history-spark-caption { min-height:28px; }
 }

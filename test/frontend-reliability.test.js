@@ -102,7 +102,7 @@ test('a successful ping cannot label undisplayed or failed Current readings LIVE
   assert.ok(b.timers.some(timer => timer.delay === 1000));
   b.fail(false); b.setWeather('broken record'); await b.refresh();
   assert.equal(b.node('timeVal').textContent, oldHeader);
-  assert.equal(b.node('tempVal').textContent, '20.0°C');
+  assert.equal(b.node('tempVal').textContent, '20.0');
   b.setWeather(currentCSV()); await b.refresh();
   assert.equal(b.node('statusBadge').textContent, '● LIVE');
   assert.equal(b.node('currentReadingStatus').hidden, true);
@@ -134,14 +134,14 @@ test('a changed server cache fetches Current promptly but only rendered readings
   assert.equal(b.weatherRequests(), 2, 'a different cached timestamp starts a reading fetch');
   assert.equal(fallback.active, false, 'the in-flight fetch replaces the old fallback');
   assert.equal(b.node('timeVal').textContent, oldTime);
-  assert.equal(b.node('tempVal').textContent, '20.0°C');
+  assert.equal(b.node('tempVal').textContent, '20.0');
   assert.equal(b.node('statusBadge').textContent, '● DELAYED');
   await b.ping();
   assert.equal(b.weatherRequests(), 2, 'repeated cache hints share the in-flight request');
 
   release(); await new Promise(setImmediate);
   assert.equal(b.node('weatherData').dataset.observedAt, '2026-11-05T14:30:00+10:00');
-  assert.equal(b.node('tempVal').textContent, '26.0°C');
+  assert.equal(b.node('tempVal').textContent, '26.0');
   assert.equal(b.node('statusBadge').textContent, '● LIVE');
   assert.equal(b.activeTimer().delay, 60000);
   await b.ping();
@@ -213,7 +213,7 @@ test('a faulty globe or soil sensor never freezes healthy Current readings or cr
   const b = browser(), v = values();
   v[3] = 24.5; v[28] = 'NaN'; v[20] = -100; v[24] = -3;
   b.setWeather(currentCSV('14:30:00', v)); await b.refresh();
-  assert.equal(b.node('tempVal').textContent, '24.5°C');
+  assert.equal(b.node('tempVal').textContent, '24.5');
   assert.equal(b.node('blackGlobeTempVal').textContent, '--');
   assert.equal(b.node('soilTemp10Val').textContent, '--');
   assert.equal(b.node('moisture10Val').textContent, '--');

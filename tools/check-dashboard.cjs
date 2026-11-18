@@ -618,8 +618,10 @@ async function failurePaths(page, browserName) {
   assert.match(await page.locator('#currentReadingStatus').textContent(), /previous observation/);
   await currentReadingsLayout(page, 'stale');
   currentMode = 'partial'; await page.evaluate(() => fetchWeather());
-  assert.equal(await page.locator('#tempVal').textContent(), '25.7°C');
+  assert.equal(await page.locator('#tempVal').textContent(), '25.7');
   assert.equal(await page.locator('#blackGlobeTempVal').textContent(), '--');
+  assert.equal(await page.locator('#tempValUnit').isVisible(), true);
+  assert.equal(await page.locator('#blackGlobeTempValUnit').isVisible(), false);
   assert.equal(await page.locator('#soilTemp10Val').textContent(), '--');
   assert.equal(await page.locator('#radiantDiffVal').textContent(), '--');
   assert.match(await page.locator('#statusBadge').textContent(), /PARTIAL/);
@@ -636,6 +638,7 @@ async function failurePaths(page, browserName) {
   currentMode = 'fresh'; await page.evaluate(() => fetchWeather());
   assert.match(await page.locator('#statusBadge').textContent(), /LIVE/);
   assert.equal(await page.locator('#currentReadingStatus').isVisible(), false);
+  assert.equal(await page.locator('#blackGlobeTempValUnit').isVisible(), true);
   await currentReadingsLayout(page, 'recovered');
 
   await page.evaluate(() => showSkyCamHistory(0, {manual:false,followLive:true,transitionMs:0}));
@@ -861,8 +864,13 @@ async function failurePaths(page, browserName) {
               ].map(id => [id, parseFloat(getComputedStyle(document.getElementById(id)).fontSize)])));
               assert.equal(new Set(Object.values(readingSizes)).size, 1,
                 'all ten current readings match the temperature size: ' + JSON.stringify(readingSizes));
-              assert.equal(readingSizes.tempVal, width < 360 ? 28 : width <= 600 ? 32 : 38,
-                'uniform readings retain the established responsive temperature size');
+              assert.equal(readingSizes.tempVal, width < 360 ? 26 : width <= 600 ? 30 : 36,
+                'uniform readings use the refined responsive size');
+              const unitSizes = await page.locator('.layout-primary .current-reading-value .unit-suffix')
+                .evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
+              assert.equal(unitSizes.length, 10, 'every current reading has a separate unit');
+              assert.deepEqual([...new Set(unitSizes)], [width < 360 ? 11 : width <= 600 ? 12 : 13],
+                'all current-reading units share one smaller responsive size');
             }
             assert.match(await page.locator('#warwickBridgeContext').textContent(), /McCahon Bridge/);
             assert.equal(await page.locator('.water-scots .water-reference-line').count(), 0);
