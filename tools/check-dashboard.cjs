@@ -300,9 +300,29 @@ async function bounds(page, width, compact = false) {
     for (const control of reading.controls) assert.deepEqual(control,{role:'button',tabIndex:0,dialog:'dialog'},'Each metric and plot remains an accessible history control');
   }
   assert.equal(boxes.svg.height,174,'Warwick retains the full-height flood and bridge reference plot');
-  const damPlotHeight = boxes.damGrid.width >= 500 ? 108 : 64;
-  for (const reading of boxes.readings.slice(2)) assert.equal(reading.plotSvg.height,damPlotHeight,'Dam plot height is retained');
-  assert.equal(boxes.readings[0].plotSvg.height,64,'Scots College plot height is retained');
+  const wideDesktop = boxes.groups.width >= 1100;
+  const damPlotHeight = wideDesktop ? 174 : boxes.damGrid.width >= 500 ? 108 : 64;
+  const scotsPlotHeight = boxes.riverGrid.width >= 500 ? 174 : 64;
+  for (const reading of boxes.readings.slice(2))
+    assert.equal(reading.plotSvg.height,damPlotHeight,'Dam plot uses compact height on phones and an expanded height on wide desktops');
+  assert.equal(boxes.readings[0].plotSvg.height,scotsPlotHeight,
+    'Scots College preview fills its paired river row without changing the phone chart');
+  if (boxes.damGrid.width >= 500)
+    assert.ok(Math.abs(boxes.dam.height - boxes.connolly.height) <= 2,
+      'Leslie and Connolly desktop cards share a common baseline');
+  if (boxes.riverGrid.width >= 500)
+    assert.ok(Math.abs(boxes.scots.height - boxes.warwick.height) <= 2,
+      'Scots and Warwick desktop cards share a common baseline');
+  if (wideDesktop) {
+    const panels = [boxes.dam, boxes.connolly, boxes.scots, boxes.warwick];
+    const heights = panels.map(panel => panel.height);
+    assert.ok(Math.max(...heights) - Math.min(...heights) <= 2,
+      'All four water cards have equal desktop heights: ' + JSON.stringify({width,heights}));
+    assert.ok(Math.abs(boxes.dams.height - boxes.rivers.height) <= 2,
+      'Dam Levels and River Levels groups have matching outer heights');
+    assert.ok(panels.every(panel => Math.abs(panel.y - panels[0].y) <= 1),
+      'All four desktop location cards share a top edge');
+  }
   if (compact && width <= 393) {
     for (const [name,panel,max] of [['Leslie',boxes.dam,320],['Connolly',boxes.connolly,325],['Scots College',boxes.scots,300],['Warwick',boxes.warwick,410]]) {
       assert.ok(panel.height <= max,name+' card exceeds its compact mobile height budget: '+JSON.stringify({width,panel,max}));
