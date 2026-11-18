@@ -33,5 +33,5 @@ test('secondary water values are differentiated without overriding flood warning
   assert.ok(css.includes('color:color-mix(in srgb,var(--water-secondary-accent) 46%,var(--text))'));
   assert.ok(css.includes('--water-reading-accent:var(--water-secondary-accent)'));
   assert.ok(css.indexOf('Curated, site-specific water accents') < css.indexOf('Warning colours use current'));
-  assert.ok(css.includes('.water-bridge[data-warning="true"] :is(strong,.water-label,.water-history-cue)'));
+  assert.ok(css.includes('.water-panel .water-bridge[data-warning="true"] :is(strong,.water-label,.water-history-cue)'));
 });
