@@ -106,11 +106,9 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 .current-reading-label { color:var(--muted); font-size:10px; font-weight:800; line-height:1.4; letter-spacing:.55px; text-transform:uppercase; white-space:nowrap; }
 .current-reading-body { display:flex; flex-direction:column; flex:1; min-width:0; }
 .current-reading-card .current-reading-value {
-  display:block; margin:6px 0 0; font-size:23px; font-weight:790; line-height:1.2;
-  letter-spacing:-.5px; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:visible; text-overflow:clip;
+  display:block; margin:6px 0 0; font-size:38px; font-weight:780; line-height:1.12;
+  letter-spacing:-1.1px; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:visible; text-overflow:clip;
 }
-.current-reading-card .primary-temp { font-size:38px; font-weight:780; line-height:1.12; letter-spacing:-1.1px; }
-.humidity-stat .current-reading-value,.rain-stat .current-reading-value { font-size:30px; font-weight:800; }
 .current-reading-card .unit-suffix { color:var(--muted); font-size:12px; font-weight:600; letter-spacing:0; }
 .humidity-stat .unit-suffix,.rain-stat .unit-suffix { font-size:14px; }
 .current-reading-value [data-quality="unavailable"] + .unit-suffix { display:none; }
@@ -185,9 +183,7 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
   .primary-card { padding:0; }
   .current-reading-card { padding:10px; }
   .current-reading-label { font-size:9px; }
-  .current-reading-card .current-reading-value { font-size:20px; }
-  .current-reading-card .primary-temp { font-size:32px; }
-  .humidity-stat .current-reading-value,.rain-stat .current-reading-value { font-size:26px; }
+  .current-reading-card .current-reading-value { font-size:32px; }
   .current-reading-card .unit-suffix { font-size:11px; }
   .humidity-stat .unit-suffix,.rain-stat .unit-suffix { font-size:13px; }
   .current-reading-card .current-reading-detail { font-size:10px; }
@@ -205,9 +201,7 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
   .current-reading-card { padding:9px; }
   .current-reading-heading { gap:4px; }
   .current-reading-label { letter-spacing:.1px; }
-  .current-reading-card .current-reading-value { font-size:19px; }
-  .current-reading-card .primary-temp { font-size:28px; }
-  .humidity-stat .current-reading-value,.rain-stat .current-reading-value { font-size:24px; }
+  .current-reading-card .current-reading-value { font-size:28px; }
   /* Reserve two caption lines on narrow phones and keep paired graphs aligned. */
   .current-reading-card .history-spark-caption { min-height:28px; }
 }
@@ -251,9 +245,6 @@ body.layout-landscape .dashboard-navigation { grid-area:navigation; min-width:0;
 /* Narrow desktop columns need the same compact controls as a phone. */
 body.current-page.layout-portrait :is(#skycamTimelapse,#skycamDownload,#skycamFocus) .skycam-action-text { display:none; }
 @media(min-width:900px) and (max-width:1199px) {
-  body.current-page.layout-landscape .quick-stat .current-reading-value { font-size:21px; }
-  body.current-page.layout-landscape .rain-stat .current-reading-value,
-  body.current-page.layout-landscape .humidity-stat .current-reading-value { font-size:28px; }
   body.current-page.layout-landscape :is(#skycamTimelapse,#skycamDownload,#skycamFocus) .skycam-action-text { display:none; }
 }
 

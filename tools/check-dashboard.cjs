@@ -747,9 +747,9 @@ async function failurePaths(page, browserName) {
             if (pagePath.includes('index')) {
               await currentReadingsLayout(page);
               await reviewScreenshot(page, engine, width, 'current-readings', '.layout-primary');
-              if (width === 320) {
+              if ([320, 393, 1024].includes(width)) {
                 try {
-                  await page.evaluate(csv => updateWeatherData(csv), currentRecord({0:199.9, 1:359.9, 2:100,
+                  await page.evaluate(csv => updateWeatherData(csv), currentRecord({0:199.9, 1:292.5, 2:100,
                     3:-12.3, 4:9.9, 5:1399.9, 6:1099.9, 12:199.9, 15:225, 16:9.99, 19:-24.5, 28:49.9}));
                   await page.waitForFunction(() => document.getElementById('rainSince9Inches').textContent === '(8.86 in)');
                   await currentReadingsLayout(page, 'long values');
@@ -859,13 +859,10 @@ async function failurePaths(page, browserName) {
                 'tempVal', 'blackGlobeTempVal', 'humidityVal', 'rainSince9Val',
                 'windSpeedVal', 'windDirDegVal', 'solarRadVal', 'pressureVal', 'dewPointVal', 'evapRateVal'
               ].map(id => [id, parseFloat(getComputedStyle(document.getElementById(id)).fontSize)])));
-              const lowerSizes = ['windSpeedVal', 'windDirDegVal', 'solarRadVal', 'pressureVal', 'dewPointVal', 'evapRateVal']
-                .map(id => readingSizes[id]);
-              assert.equal(readingSizes.humidityVal, readingSizes.rainSince9Val, 'humidity and rainfall share the same emphasis');
-              assert.equal(new Set(lowerSizes).size, 1, 'the six lower readings use uniform numerical type');
-              assert.equal(readingSizes.tempVal, readingSizes.blackGlobeTempVal, 'both temperature readings have equal prominence');
-              assert.ok(readingSizes.tempVal > readingSizes.humidityVal && readingSizes.humidityVal > lowerSizes[0],
-                'temperature, humidity/rainfall, and lower readings retain their visual hierarchy: ' + JSON.stringify(readingSizes));
+              assert.equal(new Set(Object.values(readingSizes)).size, 1,
+                'all ten current readings match the temperature size: ' + JSON.stringify(readingSizes));
+              assert.equal(readingSizes.tempVal, width < 360 ? 28 : width <= 600 ? 32 : 38,
+                'uniform readings retain the established responsive temperature size');
             }
             assert.match(await page.locator('#warwickBridgeContext').textContent(), /McCahon Bridge/);
             assert.equal(await page.locator('.water-scots .water-reference-line').count(), 0);
