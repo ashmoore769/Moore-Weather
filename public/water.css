@@ -52,12 +52,24 @@ html[data-theme="dark"] .water-rivers { --water-accent:#4fd6bf; }
 .water-external-icon { display:block; flex:none; width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
 .water-import-status { min-height:30px; font-size:10px; line-height:1.6; color:var(--muted); margin:10px 4px 0; }
 .water-delayed { color:var(--text); }
+/* Side-by-side layouts share a card baseline, even with different sources and footnotes.
+   Taller plots use the available desktop space rather than introducing blank card filler.
+   Phone layouts retain their original compact chart heights and stacked cards. */
 @container water-group (min-width:500px) {
-  .water-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .water-grid { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
   :is(.water-dam,.water-connolly) .water-history .history-spark > svg { height:108px; }
+  /* The upstream river preview is normally 64px high. When it sits beside the
+     Warwick flood-reference plot, give it comparable visual weight. */
+  .water-scots .water-history .history-spark > svg { height:174px; }
+  .water-panel .water-history { margin-top:auto; }
 }
 @container water-layout (min-width:1100px) {
-  .water-groups { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .water-groups { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
+  .water-group { display:flex; flex-direction:column; }
+  .water-grid { flex:1; align-items:stretch; }
+  /* The four locations are visible on a single desktop row. Equal-height plots
+     make them visually equivalent while preserving the Warwick gauge labels. */
+  :is(.water-dam,.water-connolly,.water-scots) .water-history .history-spark > svg { height:174px; }
 }
 @media(max-width:600px) {
   .water-group { padding:11px; }
