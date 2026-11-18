@@ -73,6 +73,36 @@ html[data-theme="dark"] .water-rivers { --water-accent:#4fd6bf; }
   .water-site { font-size:8px; padding:3px 4px; }
 }
 
+
+/* Curated, site-specific water accents. Keep existing traces, scales and flood colours. */
+.water-panel { --water-site-accent:var(--water-accent); --water-secondary-accent:var(--water-site-accent); --water-colour:var(--water-site-accent); }
+.water-panel.water-dam { --water-site-accent:#176f98; --water-secondary-accent:#426f85; }
+.water-panel.water-connolly { --water-site-accent:#70509b; --water-secondary-accent:#71628d; }
+.water-panel.water-scots { --water-site-accent:#147a67; --water-secondary-accent:#39776c; }
+.water-panel.water-warwick { --water-site-accent:#3d5fa5; --water-secondary-accent:#5f6d94; }
+html[data-theme="dark"] .water-panel.water-dam { --water-site-accent:#73c3f2; --water-secondary-accent:#a9daea; }
+html[data-theme="dark"] .water-panel.water-connolly { --water-site-accent:#baa8f6; --water-secondary-accent:#c5b9e7; }
+html[data-theme="dark"] .water-panel.water-scots { --water-site-accent:#55dab8; --water-secondary-accent:#8ee6cc; }
+html[data-theme="dark"] .water-panel.water-warwick { --water-site-accent:#90adfa; --water-secondary-accent:#b8c8ee; }
+.water-panel { border-top:2px solid color-mix(in srgb,var(--water-site-accent) 68%,var(--border)); }
+.water-panel h3, .water-panel a { color:var(--water-site-accent); }
+.water-panel .water-reading.water-hero strong { color:var(--water-site-accent); }
+.water-panel .water-reading.water-volume {
+  --water-reading-accent:var(--water-secondary-accent);
+  border-left-color:color-mix(in srgb,var(--water-secondary-accent) 27%,var(--border));
+}
+.water-panel .water-reading.water-volume strong {
+  color:color-mix(in srgb,var(--water-secondary-accent) 46%,var(--text));
+}
+.water-panel .water-label > svg { stroke:var(--water-reading-accent,var(--water-site-accent)); }
+.water-panel .water-history-cue { color:var(--water-reading-accent,var(--water-site-accent)); }
+.water-panel .water-eyebrow { color:color-mix(in srgb,var(--water-site-accent) 25%,var(--muted)); }
+.water-panel .water-site {
+  color:color-mix(in srgb,var(--water-site-accent) 33%,var(--muted));
+  border-color:color-mix(in srgb,var(--water-site-accent) 22%,var(--border));
+  background:color-mix(in srgb,var(--water-site-accent) 5%,transparent);
+}
+
 /* Warning colours use current, valid readings only; stale values stay neutral. */
 .water-bridge[data-warning="true"] {
   --water-warning-text:color-mix(in srgb,var(--bridge-warning-colour) 60%,var(--text));
