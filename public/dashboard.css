@@ -299,3 +299,26 @@ body.current-page.layout-portrait :is(#skycamTimelapse,#skycamDownload,#skycamFo
 body.current-page.layout-landscape .layout-radar { flex:none; }
 
 .current-page .radar-map { position:absolute; inset:0; }
+
+/* Wide landscape desktops use the spare space beside Soil Profile to extend
+   the radar viewport. SkyCam retains its 4:3 image framing. Other layouts
+   keep the two original, identically sized weather viewfinders. */
+@media(min-width:1200px) {
+  body.current-page.layout-landscape .current-visuals {
+    align-self:stretch;
+    min-height:0;
+  }
+  body.current-page.layout-landscape .layout-radar {
+    flex:1 1 auto;
+    min-height:0;
+  }
+  body.current-page.layout-landscape .radar-map-stage {
+    flex:1 1 auto;
+    height:auto;
+    min-height:0;
+    /* A preferred minimum proportion, not a fixed 4:3 viewport: flex growth
+       creates additional map coverage without distorting Leaflet imagery. */
+    aspect-ratio:4 / 3;
+  }
+}
+
