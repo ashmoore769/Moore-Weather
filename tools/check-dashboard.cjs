@@ -504,12 +504,33 @@ async function cameraLabels(page, focus = false) {
   }
 }
 async function visualWindows(page) {
-  const boxes = await page.evaluate(() => ['.skycam-image-stage','.radar-map-stage'].map(selector => {
-    const r=document.querySelector(selector).getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};
-  }));
-  const [camera,radar]=boxes;
-  assert.ok(Math.abs(camera.width-radar.width)<2 && Math.abs(camera.height-radar.height)<2, 'Camera/radar dimensions: '+JSON.stringify(boxes));
+  const boxes = await page.evaluate(() => {
+    const rect = selector => {
+      const r=document.querySelector(selector).getBoundingClientRect();
+      return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};
+    };
+    return {
+      camera:rect('.skycam-image-stage'),
+      radar:rect('.radar-map-stage'),
+      radarPanel:rect('.layout-radar'),
+      radarControls:rect('.radar-controls'),
+      soil:rect('#soilProfile'),
+      stretched:innerWidth>=1200 && document.body.classList.contains('layout-landscape')
+    };
+  });
+  const {camera,radar,radarPanel,radarControls,soil,stretched}=boxes;
+  assert.ok(Math.abs(camera.width-radar.width)<2, 'SkyCam and radar keep matching widths: '+JSON.stringify(boxes));
   assert.ok(Math.abs(camera.width/camera.height-4/3)<.01);
+  if(stretched) {
+    assert.ok(radar.height>=camera.height+20, 'Desktop radar should use surplus height while SkyCam stays 4:3: '+JSON.stringify(boxes));
+    assert.ok(Math.abs(radarPanel.bottom-soil.bottom)<=3,
+      'Desktop radar controls should finish level with Soil Profile: '+JSON.stringify(boxes));
+    assert.ok(radarControls.y>=radar.bottom-1,
+      'Radar playback controls remain below the expanded map: '+JSON.stringify(boxes));
+  } else {
+    assert.ok(Math.abs(camera.height-radar.height)<2,
+      'Original equal-sized weather viewfinders remain on phones and narrower layouts: '+JSON.stringify(boxes));
+  }
   await cameraLabels(page);
   await page.evaluate(()=>{
     document.querySelector('.skycam-container').classList.add('skycam-focus-mode');
