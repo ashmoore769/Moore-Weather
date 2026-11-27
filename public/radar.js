@@ -12,7 +12,7 @@
   const stationLocation=[-28.213713,151.9893045];
   const imageCache=new Map();
   function status(message,kind='') { $('radarStatus').textContent=message; $('radarStatus').dataset.kind=kind; }
-  function pause() { playing=false; clearTimeout(playTimer); $('radarPlay').textContent='▶ Play'; $('radarPlay').setAttribute('aria-pressed','false'); }
+  function pause() { playing=false; clearTimeout(playTimer); $('radarPlay').innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 11 7-11 7Z"/></svg><span>Play</span>'; $('radarPlay').setAttribute('aria-pressed','false'); }
   function setInteractive(enabled) {
     interactive=Boolean(map && enabled); tapPointer=null; tapReady=false;
     for(const name of ['dragging','touchZoom','doubleClickZoom','scrollWheelZoom','boxZoom','keyboard','tapHold']) map?.[name]?.[interactive?'enable':'disable']();
@@ -169,7 +169,7 @@
   const about=document.querySelector('.radar-about');
   document.addEventListener('click',event=>{if(about.open&&!about.contains(event.target))about.open=false;});
   about.addEventListener('keydown',event=>{if(event.key==='Escape'){about.open=false;about.querySelector('summary').focus();}});
-  $('radarPlay').addEventListener('click',()=>{ if(playing) pause(); else { playing=true; $('radarPlay').textContent='Ⅱ Pause'; $('radarPlay').setAttribute('aria-pressed','true'); playNext(); } });
+  $('radarPlay').addEventListener('click',()=>{ if(playing) pause(); else { playing=true; $('radarPlay').innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg><span>Pause</span>'; $('radarPlay').setAttribute('aria-pressed','true'); playNext(); } });
   $('radarSlider').addEventListener('input',()=>{ pause(); ++sequence; clearTimeout(inputTimer); inputTimer=setTimeout(()=>show(Number($('radarSlider').value)),180); });
   $('radarLatest').addEventListener('click',()=>{pause();show(data.frames.length-1);});
   $('radarReset').addEventListener('click',()=>{pause();if(map&&data)map.setView([data.location.latitude,data.location.longitude],map.getMinZoom());});

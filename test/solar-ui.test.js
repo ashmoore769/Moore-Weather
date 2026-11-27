@@ -7,6 +7,18 @@ const { createController, liveView } = require('../public/solar');
 const html = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 const NOW = Date.parse('2026-11-14T02:00:00.000Z');
 const iso = time => new Date(time).toISOString();
+function sectionById(id) {
+  const start = html.indexOf('<section id="' + id + '"');
+  assert.ok(start >= 0, 'section exists: ' + id);
+  const tags = /<\/?section\b[^>]*>/g;
+  tags.lastIndex = start;
+  let depth = 0, tag;
+  while ((tag = tags.exec(html))) {
+    depth += tag[0].startsWith('</') ? -1 : 1;
+    if (depth === 0) return html.slice(start, tags.lastIndex);
+  }
+  assert.fail('section is closed: ' + id);
+}
 function payload(time = NOW) {
   return { enabled: true, status: 'fresh', timezone: 'Australia/Brisbane', staleAfterSeconds: 180,
     current: { observedAt: iso(time), collectedAt: iso(time), receivedAt: iso(time), pvPowerW: 6000, inverterPowerW: 5700,
@@ -184,6 +196,20 @@ test('future source clocks are flagged and never shown as live', async t => {
   assert.match(f.node('solarMessage').textContent, /clock/);
 });
 
+test('solar status clearly separates an offline feed from retained stale observations', async t => {
+  const f = fixture(t, { ...payload(), current:null, status:'unavailable' });
+  await f.start();
+  assert.equal(f.node('solarStatus').textContent, 'OFFLINE');
+  assert.equal(f.node('solarAcPower').textContent, '–');
+  f.setBody(payload()); await f.controller.refresh();
+  assert.equal(f.node('solarStatus').textContent, 'LIVE');
+  f.setTime(NOW + 38 * 3600000); f.controller.paint();
+  assert.equal(f.node('solarStatus').textContent, 'STALE');
+  assert.equal(f.node('solarObserved').textContent, '12:00 · 1 d ago');
+  assert.equal(f.node('solarAcPower').textContent, '5.70 kW', 'the real retained value remains visible');
+  assert.match(f.node('solarObserved').attributes.title, /14 Nov.*12:00:00 AEST/);
+});
+
 test('daily energy remains qualified, suppresses reset totals and expires at Brisbane midnight', async t => {
   const data = payload(); data.today.quality = 'complete'; data.today.label = 'AC energy recorded from midnight.';
   const f = fixture(t, data); await f.start();
@@ -232,15 +258,16 @@ test('expired authentication hides private values, redirects once and stops poll
 
 test('solar assets and labels stay separate from existing weather and station measurements', () => {
   assert.equal(html, fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8'));
-  assert.match(html, /src="\/solar\.js\?v=6"/);
-  assert.match(html, /href="\/solar\.css\?v=5"/);
+  assert.match(html, /src="\/solar\.js\?v=\d+(?:\.\d+)*"/);
+  assert.match(html, /href="\/solar\.css\?v=\d+(?:\.\d+)*"/);
   assert.match(html, /PV generation · DC/); assert.match(html, /Solar · AC/);
   assert.match(html, /Generated/);
   assert.match(html, /Solar radiation<\/span>[\s\S]*?id="solarRadVal"/);
   assert.match(html, /id="solarRadValUnit"[^>]*>\s*W\/m²<\//);
   assert.match(html, /Solar panel<\/span><span class="metric-value" id="solarPanelVal"/);
-  const cards = ['localWater', 'homeSolar', 'stationPower', 'yardPower'].map(id => html.indexOf('id="' + id + '"'));
-  assert.ok(cards.every((position, i) => position >= 0 && (!i || position > cards[i - 1])), 'power cards follow local water in reading order');
+  const cards = ['homeSolar', 'stationPower', 'yardPower'].map(id => html.indexOf('id="' + id + '"'));
+  assert.ok(cards.every((position, i) => position >= 0 && (!i || position > cards[i - 1])), 'home solar precedes the two independent equipment power cards');
+  assert.ok(html.includes('id="localWater"'), 'water remains an independent module');
 });
 
 
@@ -488,7 +515,7 @@ test('compact public copy retains objective readings and full timestamp access',
   assert.equal(f.node('solarObserved').textContent, '12:00 · just now');
   assert.match(f.node('solarObserved').attributes.title, /14 Nov.*12:00:00 AEST/);
   assert.equal(f.node('solarObserved').attributes.title, f.node('solarObservedDetail').textContent);
-  const card = html.slice(html.indexOf('<section id="homeSolar"'), html.indexOf('<section id="stationPower"'));
+  const card = sectionById('homeSolar');
   assert.doesNotMatch(card, /\byour\b|\byou\b|<details|<summary/i);
   assert.match(card, /aria-label="Download daily solar CSV"/);
   const states = [liveView(payload().current, payload().rates, true), liveView(payload().current, payload().rates, false),

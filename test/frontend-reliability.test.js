@@ -89,12 +89,12 @@ test('Daily screens out a faulty aggregate group and retains unrelated valid sen
 test('a successful ping cannot label undisplayed or failed Current readings LIVE', async () => {
   const b = browser();
   await new Promise(setImmediate);
-  assert.equal(b.node('statusBadge').textContent, '● CONNECTING');
+  assert.equal(b.node('statusBadge').textContent, '● Station connecting');
   assert.equal(b.node('dateVal').textContent, '');
   b.setWeather(currentCSV('13:30:00')); await b.refresh();
   const oldHeader = b.node('timeVal').textContent;
   b.fail(true); await b.refresh();
-  assert.equal(b.node('statusBadge').textContent, '● STALE');
+  assert.equal(b.node('statusBadge').textContent, '● Station stale');
   assert.equal(b.node('timeVal').textContent, oldHeader);
   assert.equal(b.node('weatherData').dataset.observedAt, '2026-11-05T13:30:00+10:00');
   assert.match(b.node('currentReadingStatus').textContent, /previous observation/);
@@ -104,7 +104,7 @@ test('a successful ping cannot label undisplayed or failed Current readings LIVE
   assert.equal(b.node('timeVal').textContent, oldHeader);
   assert.equal(b.node('tempVal').textContent, '20.0');
   b.setWeather(currentCSV()); await b.refresh();
-  assert.equal(b.node('statusBadge').textContent, '● LIVE');
+  assert.equal(b.node('statusBadge').textContent, '● Station live');
   assert.equal(b.node('currentReadingStatus').hidden, true);
 });
 
@@ -123,7 +123,7 @@ test('a changed server cache fetches Current promptly but only rendered readings
   await new Promise(setImmediate);
   b.setWeather(currentCSV('14:28:00')); await b.refresh();
   const oldTime = b.node('timeVal').textContent, fallback = b.activeTimer();
-  assert.equal(b.node('statusBadge').textContent, '● DELAYED');
+  assert.equal(b.node('statusBadge').textContent, '● Station delayed');
   assert.equal(fallback.delay, 60000);
 
   const v = values(); v[3] = 26;
@@ -135,14 +135,14 @@ test('a changed server cache fetches Current promptly but only rendered readings
   assert.equal(fallback.active, false, 'the in-flight fetch replaces the old fallback');
   assert.equal(b.node('timeVal').textContent, oldTime);
   assert.equal(b.node('tempVal').textContent, '20.0');
-  assert.equal(b.node('statusBadge').textContent, '● DELAYED');
+  assert.equal(b.node('statusBadge').textContent, '● Station delayed');
   await b.ping();
   assert.equal(b.weatherRequests(), 2, 'repeated cache hints share the in-flight request');
 
   release(); await new Promise(setImmediate);
   assert.equal(b.node('weatherData').dataset.observedAt, '2026-11-05T14:30:00+10:00');
   assert.equal(b.node('tempVal').textContent, '26.0');
-  assert.equal(b.node('statusBadge').textContent, '● LIVE');
+  assert.equal(b.node('statusBadge').textContent, '● Station live');
   assert.equal(b.activeTimer().delay, 60000);
   await b.ping();
   assert.equal(b.weatherRequests(), 2, 'an already displayed cache does not fetch again');
@@ -157,7 +157,7 @@ test('Current accepts a backwards timestamp correction announced by the server c
   assert.equal(b.weatherRequests(), 2);
   assert.ok(Date.parse(b.node('weatherData').dataset.observedAt) < previous);
   assert.equal(b.node('weatherData').dataset.observedAt, '2026-11-05T14:30:00+10:00');
-  assert.equal(b.node('statusBadge').textContent, '● LIVE');
+  assert.equal(b.node('statusBadge').textContent, '● Station live');
 });
 
 test('cache-change hints preserve Current failure backoff and do not relabel retained readings', async () => {
@@ -167,7 +167,7 @@ test('cache-change hints preserve Current failure backoff and do not relabel ret
   const oldTime = b.node('timeVal').textContent;
   b.fail(true); await b.ping();
   assert.equal(b.weatherRequests(), 2);
-  assert.equal(b.node('statusBadge').textContent, '● STALE');
+  assert.equal(b.node('statusBadge').textContent, '● Station stale');
   assert.equal(b.node('timeVal').textContent, oldTime);
 
   for (const delay of [1000, 2000, 4000, 8000, 16000, 30000, 30000]) {
@@ -182,7 +182,7 @@ test('cache-change hints preserve Current failure backoff and do not relabel ret
 
   b.fail(false); b.setWeather(currentCSV());
   await b.runTimer(b.activeTimer());
-  assert.equal(b.node('statusBadge').textContent, '● LIVE');
+  assert.equal(b.node('statusBadge').textContent, '● Station live');
   assert.equal(b.node('currentReadingStatus').hidden, true);
   assert.equal(b.activeTimer().delay, 60000);
 });
@@ -201,11 +201,11 @@ test('invalid or unavailable status checks leave the independent 60-second Curre
   b.failPing(true); await b.ping();
   assert.equal(b.weatherRequests(), 1);
   assert.equal(b.activeTimer(), fallback);
-  assert.equal(b.node('statusBadge').textContent, '● DELAYED');
+  assert.equal(b.node('statusBadge').textContent, '● Station delayed');
   assert.equal(fallback.delay, 60000);
   b.setWeather(currentCSV()); await b.runTimer(fallback);
   assert.equal(b.weatherRequests(), 2);
-  assert.equal(b.node('statusBadge').textContent, '● LIVE');
+  assert.equal(b.node('statusBadge').textContent, '● Station live');
   assert.equal(b.activeTimer().delay, 60000);
 });
 
@@ -222,7 +222,7 @@ test('a faulty globe or soil sensor never freezes healthy Current readings or cr
   assert.equal(b.node('pressureVal').textContent, '998.1');
   assert.match(html, /id="pressureValUnit"[^>]*>\s*hPa<\//);
   assert.equal(b.node('solarPanelVal').textContent, '🌙 0.0 V');
-  assert.equal(b.node('statusBadge').textContent, '● PARTIAL');
+  assert.equal(b.node('statusBadge').textContent, '● Station partial');
   assert.match(b.node('currentReadingStatus').textContent, /Black Globe/);
 });
 

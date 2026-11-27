@@ -75,11 +75,12 @@ async function assertDark(page) {
           const file = path.resolve(root, '.' + pathname);
           if (!file.startsWith(root + path.sep) || !fs.existsSync(file)) return route.fulfill({ status: 404, body: '' });
           if (file.endsWith('.html')) {
-            let html = fs.readFileSync(file, 'utf8')
-              .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+            const html = fs.readFileSync(file, 'utf8')
+              // Keep the production analytics/theme tags and their cache keys.
+              // Unrelated polling and media scripts remain outside this fixture.
+              .replace(/<script\b([^>]*)>[\s\S]*?<\/script>/gi,
+                (tag, attributes) => /\bsrc="\/(?:theme|analytics)\.js\b/.test(attributes) ? tag : '')
               .replace(/\sonclick="[^"]*"/gi, '');
-            // Retain real markup/CSS. Skip live polling and media scripts.
-            html = html.replace('</head>', '<script src="/theme.js?v=6"></script><script defer src="/analytics.js?v=1"></script></head>');
             return route.fulfill({ contentType: 'text/html', body: html });
           }
           const type = file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' :

@@ -18,21 +18,24 @@
       label = age <= 90000 ? 'LIVE' : age <= 180000 ? 'DELAYED' : 'STALE';
       cls = age <= 90000 ? 'connected' : age <= 180000 ? 'fetching' : 'error';
       const seconds = Math.max(0, Math.floor(age / 1000));
-      text = 'Observed ' + (seconds < 5 ? 'just now' : seconds < 60 ? seconds + 's ago' : seconds < 3600 ? Math.floor(seconds / 60) + 'm ago' : Math.floor(seconds / 3600) + 'h ' + Math.floor(seconds % 3600 / 60) + 'm ago');
+      text = 'Observed ' + (seconds < 60 ? 'just now' : seconds < 3600 ? Math.floor(seconds / 60) + ' min ago' : seconds < 86400 ? Math.floor(seconds / 3600) + ' hr ago' : Math.floor(seconds / 86400) + ' d ago');
       if (current && Number(current.dataset.unavailableSensors) > 0 && age <= 90000) { label = 'PARTIAL'; cls = 'fetching'; text += ' · some sensors unavailable'; }
     }
     if (updateFailed) {
       label = Number.isFinite(observed) ? 'STALE' : 'OFFLINE'; cls = 'error';
       text = Number.isFinite(observed) ? text + ' · update failed' : 'Readings unavailable; retrying';
     }
-    badge.textContent = '● ' + label;
+    badge.textContent = '● Station ' + label.toLowerCase();
     badge.className = 'status-badge ' + cls;
+    badge.dataset.state = label.toLowerCase();
     if (detail) detail.textContent = text;
     if (Number.isFinite(observed)) {
+      badge.title = 'Station observed ' + date.format(observed) + ' at ' + time.format(observed) + ' AEST';
+      if (detail) detail.title = badge.title;
       const dateNode = document.getElementById('dateVal'), timeNode = document.getElementById('timeVal');
       if (dateNode) dateNode.textContent = date.format(observed);
       if (timeNode) timeNode.textContent = time.format(observed) + ' AEST';
-    }
+    } else { badge.title = text; if (detail) detail.title = text; }
   }
   async function refresh() {
     if (busy) return; busy = true;

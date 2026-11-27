@@ -105,12 +105,12 @@ function assertResponsiveChart(chart, description) {
   assert.ok(Math.abs(chart.svg.viewBoxWidth - chart.svg.viewportWidth) <= 1 &&
     Math.abs(chart.svg.viewBoxWidth - chart.svg.hostWidth) <= 1,
     description + ': viewBox must fit the actual chart/container width: ' + JSON.stringify(chart.svg));
-  assert.ok(Math.abs(chart.svg.viewportHeight - 134) <= 1 && chart.svg.viewBoxHeight === 134,
-    description + ': the compact graph height must remain 134px');
+  assert.ok(Math.abs(chart.svg.viewportHeight - 224) <= 1 && chart.svg.viewBoxHeight === 224,
+    description + ': the enlarged graph has a matching 224px canvas and viewBox');
   assert.ok(chart.labels.length >= 6, description + ': both scales and time labels are present');
   for (const label of chart.labels) {
-    assert.ok(label.renderedFontSize >= 9,
-      description + ': axis text must remain at least 9px on screen: ' + JSON.stringify(label));
+    assert.ok(label.renderedFontSize >= 11.9,
+      description + ': 12px axis text must not be shrunk by SVG scaling: ' + JSON.stringify(label));
   }
   assert.ok(Math.max(...chart.paths.map(trace => trace.width)) >= chart.svg.viewportWidth - 120,
     description + ': the plot must use the available chart width');
@@ -310,7 +310,9 @@ const server = http.createServer((req, res) => {
         for (const { width, layout, yardColumns, stationColumns } of [
           { width: 393, layout: 'portrait', yardColumns: 2, stationColumns: 2 },
           { width: 1100, layout: 'portrait', yardColumns: 3, stationColumns: 2 },
-          { width: 1440, layout: 'landscape', yardColumns: 6, stationColumns: 4 }
+          { width: 1279, layout: 'landscape', yardColumns: 6, stationColumns: 4 },
+          { width: 1280, layout: 'landscape', yardColumns: 3, stationColumns: 2 },
+          { width: 1366, layout: 'landscape', yardColumns: 3, stationColumns: 2 }
         ]) {
           const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: 'dark', hasTouch: true });
           await context.addInitScript(fixtureNow => { Date.now = () => fixtureNow; }, now);
@@ -322,6 +324,7 @@ const server = http.createServer((req, res) => {
             await page.goto(origin + '/index.html');
             await page.waitForFunction(() => !document.getElementById('yardPower').hidden);
             await page.evaluate(layout => {
+              document.body.classList.remove('layout-portrait', 'layout-landscape');
               document.body.classList.add('layout-' + layout);
               document.documentElement.dataset.theme = 'dark';
               // Display the static Home Solar card too, so this fixture checks the whole power group.
@@ -353,10 +356,15 @@ const server = http.createServer((req, res) => {
                 stationTraces: document.querySelectorAll('#stationPowerChart path.station-power-series').length,
                 yardTraces: document.querySelectorAll('#yardPowerChart path.yard-line').length,
                 station: bbox(station), yard: bbox(yard),
-                powerOrder: ['localWater', 'homeSolar', 'stationPower'].map(id => document.getElementById(id).nextElementSibling?.id),
+                equipmentOrder: [...document.querySelector('.dashboard-power').children].map(card => card.id),
+                solarBeforeEquipment: Boolean(document.getElementById('homeSolar').compareDocumentPosition(station) & Node.DOCUMENT_POSITION_FOLLOWING),
                 powerTitles: powerCards.map(card => card.querySelector('.section-title').textContent.trim()),
                 powerBounds: powerCards.map(bbox),
+                content: [station, yard].map(card => ({ id:card.id, clientHeight:card.clientHeight, scrollHeight:card.scrollHeight })),
+                labels: [...document.querySelectorAll('#stationPower .metric-label,#yardPower .yard-power-label,.station-power-legend,.yard-power-legend,.power-chart-inspect')]
+                  .map(element => ({ text:element.textContent, size:parseFloat(getComputedStyle(element).fontSize) })),
                 controls: [station, yard].map(card => ({ card: bbox(card),
+                  buttons: [...card.querySelectorAll('.power-chart-navigation button,.yard-power-range button')].map(bbox),
                   parts: [...card.querySelectorAll('.power-chart-navigation > *, .power-chart-scrubber, .power-chart-inspect, .yard-power-range button')].map(bbox) })),
                 stationKeys: ['battery', 'panel', 'load', 'charge'].map(id => {
                   const key = document.querySelector('.station-power-key-' + id);
@@ -367,9 +375,11 @@ const server = http.createServer((req, res) => {
                     icon: getComputedStyle(yard.querySelector('[data-yard-metric="' + metric + '"] .yard-power-label svg')).stroke,
                     line: getComputedStyle(yard.querySelector('path.yard-line-' + line)).stroke,
                     label: getComputedStyle(yard.querySelector('.yard-legend-' + key)).color,
-                    legend: getComputedStyle(yard.querySelector('.yard-legend-' + key), '::before').backgroundColor })),
+                    legend: getComputedStyle(yard.querySelector('.yard-legend-' + key), '::before').backgroundColor,
+                    pattern: getComputedStyle(yard.querySelector('.yard-legend-' + key), '::before').backgroundImage })),
                 yardIcons: [...yard.querySelectorAll('.yard-power-label svg')].map(icon => getComputedStyle(icon).stroke),
-                viewportWidth: document.documentElement.clientWidth
+                viewportWidth: document.documentElement.clientWidth,
+                documentWidth: document.documentElement.scrollWidth
               };
             });
             assert.equal(visual.yardColumns, yardColumns, JSON.stringify(visual));
@@ -378,10 +388,25 @@ const server = http.createServer((req, res) => {
             assert.equal(visual.stationMetrics, 4);
             assert.equal(visual.stationTraces, 4);
             assert.equal(visual.yardTraces, 4);
-            assert.deepEqual(visual.powerOrder, ['homeSolar', 'stationPower', 'yardPower'], 'the three power cards stay together after local water');
+            assert.deepEqual(visual.equipmentOrder, ['stationPower', 'yardPower'], 'the two equipment feeds share their own power group');
+            assert.equal(visual.solarBeforeEquipment, true, 'the full-width Home Solar module appears before equipment diagnostics');
             assert.deepEqual(visual.powerTitles, ['Home Solar', 'Weather Station Power', 'Yard Power']);
-            assert.ok(visual.powerBounds.every((card, i, cards) => card.height > 0 && (!i || card.y >= cards[i - 1].bottom)),
-              'all power cards are visible in order without overlapping');
+            assert.ok(visual.powerBounds.every(card => card.height > 0), 'all power modules are visible');
+            assert.ok(visual.powerBounds[0].bottom <= Math.min(visual.station.y, visual.yard.y) + 1,
+              'Home Solar has its own earlier row without overlapping equipment cards');
+            if (layout === 'landscape' && width >= 1280) {
+              assert.ok(Math.abs(visual.station.y - visual.yard.y) <= 1,
+                'wide equipment cards share the same top edge');
+              assert.ok(Math.abs(visual.station.bottom - visual.yard.bottom) <= 1,
+                'wide equipment cards share the same bottom edge');
+              assert.ok(visual.station.right <= visual.yard.x - 12,
+                'paired equipment cards have a clear gutter and never overlap');
+              assert.ok(Math.abs(visual.station.width - visual.yard.width) <= 1,
+                'paired equipment cards use equal column widths');
+            } else {
+              assert.ok(visual.yard.y >= visual.station.bottom + 12,
+                'compact and Portrait layouts stack equipment cards with a clear gap');
+            }
             const connected = await chartGeometry(page);
             assertVisibleLines(connected.station, 'Station Power continuous history');
             assertVisibleLines(connected.yard, 'Yard Power one-minute history');
@@ -401,33 +426,44 @@ const server = http.createServer((req, res) => {
             for (const cue of visual.yardCues) {
               assert.equal(cue.icon, cue.line, cue.metric + ' icon matches its Yard graph line');
               assert.equal(cue.label, cue.line, cue.metric + ' legend text matches its Yard graph line');
-              assert.equal(cue.legend, cue.line, cue.metric + ' legend matches its Yard graph line');
+              if (cue.metric === 'panel') {
+                assert.notEqual(cue.pattern, 'none', 'the PV legend uses the same dashed cue as its trace');
+              } else {
+                assert.equal(cue.legend, cue.line, cue.metric + ' legend matches its Yard graph line');
+              }
             }
             assert.equal(visual.yardCues.find(cue => cue.metric === 'battery').line, visual.stationKeys.find(key => key.id === 'battery').colour,
               'battery uses the same green in both power modules');
             assert.equal(new Set(visual.yardIcons).size, 6, 'all six Yard metric icons have deliberate distinct colour cues');
-            assert.ok(yardLoad.strokeWidth > 0 && yardLoad.strokeWidth < 1.5, 'Yard load uses a fine line');
-            assert.ok(connected.yard.paths.filter(trace => trace !== yardLoad).every(trace => trace.strokeWidth === 2),
-              'other Yard series retain their existing line weight');
+            assert.ok(Math.abs(yardLoad.strokeWidth - 1.6) < .01, 'Yard load retains a finer, readable stroke');
+            assert.ok(connected.yard.paths.filter(trace => trace !== yardLoad).every(trace => Math.abs(trace.strokeWidth - 2.2) < .01),
+              'other Yard series use the coordinated 2.2px line weight');
+            for (const trace of connected.yard.paths) {
+              const dashed = trace.dash !== 'none' && trace.dash.split(/[ ,]+/).some(value => parseFloat(value) > 0);
+              assert.equal(dashed, trace.classes.includes('yard-line-panel'), 'PV voltage has a dashed cue; other Yard traces are solid');
+            }
             assertResponsiveChart(connected.station, 'Station Power at ' + width + 'px');
             assertResponsiveChart(connected.yard, 'Yard Power at ' + width + 'px');
             for (const card of [visual.yard, visual.station]) {
               assert.ok(card.x >= -1 && card.right <= width + 1, 'Card must not overflow the page: ' + JSON.stringify(visual));
             }
-            for (const { card, parts } of visual.controls) for (const part of parts) {
-              assert.ok(part.x >= card.x - 1 && part.right <= card.right + 1,
+            for (const { card, parts, buttons } of visual.controls) {
+              for (const part of parts) assert.ok(part.x >= card.x - 1 && part.right <= card.right + 1,
                 'chart controls and inspected readings stay within the card: ' + JSON.stringify({ card, part }));
+              for (const button of buttons) assert.ok(button.width >= 43.9 && button.height >= 43.9,
+                'range and chart buttons retain 44px touch targets: ' + JSON.stringify(button));
             }
-            // Keep the previous compact-card allowance plus a bounded 150px for
-            // the requested navigation, scrubber and exact-reading inspection.
-            assert.ok(visual.yard.height < (width === 1440 ? 560 : width === 1100 ? 645 : 750),
-              'Yard Power should remain compact for the available column width: ' + JSON.stringify(visual));
+            for (const label of visual.labels) assert.ok(label.size >= 12,
+              'reading labels, legends and inspectors remain readable: ' + JSON.stringify(label));
+            for (const card of visual.content) assert.ok(card.scrollHeight <= card.clientHeight + 1,
+              'card height grows with its content instead of clipping labels or controls: ' + JSON.stringify(card));
+            assert.ok(visual.documentWidth <= visual.viewportWidth + 1, 'power modules do not create horizontal page overflow');
             assert.deepEqual(errors, [], 'No browser exceptions');
             for (const prefix of ['stationPower', 'yardPower']) {
               await chartNavigation(page, prefix, width);
               if (width === 393) await touchNavigation(page, context, engine, prefix);
             }
-            if (width === 1440) {
+            if (width === 1366) {
               for (const prefix of ['stationPower', 'yardPower']) await page.locator('#' + prefix + 'ZoomIn').click();
               const views = await Promise.all(['stationPower', 'yardPower'].map(prefix => powerWindow(page, prefix)));
               const beforeResize = dataRequests;
@@ -438,13 +474,13 @@ const server = http.createServer((req, res) => {
               for (const key of ['station', 'yard']) {
                 assertVisibleLines(narrow[key], key + ' after narrowing');
                 assertResponsiveChart(narrow[key], key + ' after narrowing');
-                assert.ok(narrow[key].svg.viewportWidth < connected[key].svg.viewportWidth / 2,
+                assert.ok(narrow[key].svg.viewportWidth < connected[key].svg.viewportWidth * .75,
                   key + ': resize must exercise a substantially narrower chart');
               }
               assert.equal(dataRequests, beforeResize, 'Narrowing charts must reuse cached readings without a data request');
               assert.deepEqual(await Promise.all(['stationPower', 'yardPower'].map(prefix => powerWindow(page, prefix))), views,
                 'narrowing preserves the selected time windows');
-              await page.setViewportSize({ width: 1440, height: 900 });
+              await page.setViewportSize({ width, height: 900 });
               await page.evaluate(() => document.body.classList.replace('layout-portrait', 'layout-landscape'));
               await waitForFittedCharts(page);
               const restored = await chartGeometry(page);
@@ -484,7 +520,7 @@ const server = http.createServer((req, res) => {
             const sparse = await chartGeometry(page);
             assertSparseGeometry(sparse.station, 'Station Power sparse history', 'station-power-line-panel');
             assertSparseGeometry(sparse.yard, 'Yard Power sparse history', 'yard-line-panel');
-            assert.ok(sparse.yard.dots.every(dot => dot.strokeWidth === 2), 'thinner Yard load styling does not weaken isolated-point markers');
+            assert.ok(sparse.yard.dots.every(dot => Math.abs(dot.strokeWidth - 2.2) < .01), 'thinner Yard load styling does not weaken isolated-point markers');
             const beforeDayZoom = dataRequests;
             await page.locator('#yardPowerZoomIn').click(); await page.locator('#yardPowerZoomReset').click();
             near((await powerWindow(page, 'yardPower')).span, 24 * HOUR, 'reset restores 24h when that period is selected');
@@ -508,7 +544,7 @@ const server = http.createServer((req, res) => {
                 assert.equal(dataRequests, beforeZoom, range + ' zoom/reset uses already fetched readings');
               }
               mode = 'stale'; await page.reload();
-              await page.waitForFunction(() => document.querySelector('#yardPowerStatus').textContent === 'DELAYED');
+              await page.waitForFunction(() => document.querySelector('#yardPowerStatus').textContent === 'STALE');
               assert.equal(await page.locator('#yardPowerSummary').isVisible(), true);
               assert.doesNotMatch(await page.locator('#yardBatteryV').textContent(), /^0\.00$/, 'stale is not represented as zero battery');
               mode = 'fresh';

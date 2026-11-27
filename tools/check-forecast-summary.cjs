@@ -50,30 +50,45 @@ const server = http.createServer((req, res) => {
 async function checkLayout(page, width) {
   const layout = await page.evaluate(() => {
     const card = document.querySelector('#forecastSummary'), rect = card.getBoundingClientRect();
+    const overview=card.closest('.dashboard-overview'), weather=document.querySelector('#weatherData');
+    const weatherBox=weather.getBoundingClientRect(), plot=card.querySelector('#forecastSummaryPlot'), svg=card.querySelector('#forecastSummaryChart');
     const children = [...card.querySelectorAll('.forecast-summary-header,.forecast-summary-metrics,.forecast-summary-signal,.forecast-summary-timing,.forecast-summary-hourly,.forecast-summary-inspect,.forecast-summary-footer')]
       .filter(element => element.getBoundingClientRect().height > 0).map(element => ({
         name: element.className, left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right,
         width: element.clientWidth, scroll: element.scrollWidth
       }));
-    const timeLabels = [...card.querySelectorAll('.forecast-summary-axis[y="102"]')].map(element => {
+    const timeLabels = [...card.querySelectorAll('.forecast-summary-axis[y="146"]')].map(element => {
       const box = element.getBoundingClientRect();
       return { text: element.textContent, left: box.left, right: box.right };
     }).sort((a, b) => a.left - b.left);
-    return { left: rect.left, right: rect.right, height: rect.height, width: document.documentElement.scrollWidth,
-      nextCard: card.nextElementSibling?.id, children, timeLabels };
+    return { left: rect.left, right: rect.right, top:rect.top, bottom:rect.bottom, height: rect.height, width: document.documentElement.scrollWidth,
+      overviewMembers:overview?[...overview.children].map(node=>node.id):null,
+      weather:{left:weatherBox.left,right:weatherBox.right,top:weatherBox.top,bottom:weatherBox.bottom,height:weatherBox.height},
+      inMain:document.querySelector('main').contains(card), paired:innerWidth>=1050 && document.body.classList.contains('layout-landscape'),
+      plotHeight:plot.getBoundingClientRect().height, svgHeight:svg.getBoundingClientRect().height, viewBoxHeight:svg.viewBox.baseVal.height,
+      axisSizes:[...svg.querySelectorAll('.forecast-summary-axis')].map(node=>parseFloat(getComputedStyle(node).fontSize)),
+      children, timeLabels };
   });
-  assert.equal(layout.nextCard, 'localWater', 'forecast is followed by local water before the grouped power cards');
+  assert.deepEqual(layout.overviewMembers,['weatherData','forecastSummary'],'Forecast shares the overview with current conditions');
+  assert.equal(layout.inMain,true,'The forecast belongs to the main dashboard landmark');
+  if(layout.paired)assert.ok(Math.abs(layout.top-layout.weather.top)<1 && layout.left>=layout.weather.right+12,'Wide layouts present forecast beside current conditions');
+  else assert.ok(layout.top>=layout.weather.bottom+12 && Math.abs(layout.left-layout.weather.left)<1,'Narrow layouts place forecast directly after current conditions');
   assert.ok(layout.left >= 0 && layout.right <= width + 1 && layout.width <= width + 1, JSON.stringify(layout));
+  assert.ok(Math.abs(layout.plotHeight-152)<1 && Math.abs(layout.svgHeight-152)<1 && layout.viewBoxHeight===152,'The forecast uses the full readable 152px chart without stretching its coordinates');
+  assert.ok(layout.axisSizes.length>=4 && layout.axisSizes.every(size=>size>=12),'Both forecast scales and time labels remain readable');
   for (const child of layout.children) {
     assert.ok(child.left >= layout.left - 1 && child.right <= layout.right + 1 && child.scroll <= child.width + 1,
       'forecast content must stay within the card: ' + JSON.stringify(child));
   }
+  assert.ok(layout.timeLabels.length>=2,'The chart retains visible time labels along its lower edge');
   for (let i = 1; i < layout.timeLabels.length; i++) {
     assert.ok(layout.timeLabels[i].left >= layout.timeLabels[i - 1].right + 2,
       'hour and midnight labels must remain distinct: ' + JSON.stringify(layout.timeLabels));
   }
-  const limit = width >= 900 ? 290 : width >= 361 ? 390 : 420;
-  assert.ok(layout.height <= limit, `Forecast summary should stay compact at ${width}px: ${layout.height}px exceeds ${limit}px`);
+  // Desktop cards intentionally stretch to the height of the paired overview.
+  // Stacked cards still fit comfortably within the 960px review viewport.
+  const limit=layout.paired?Math.max(layout.weather.height,640):640;
+  assert.ok(layout.height <= limit+1, `Forecast summary should stay bounded at ${width}px: ${layout.height}px exceeds ${limit}px`);
   return Math.round(layout.height);
 }
 async function waitState(page, state) {
@@ -188,7 +203,9 @@ async function assertDark(page) {
             }, width >= 900);
             await assertDark(page);
             assert.equal(await page.title(), 'Moore Weather · Dashboard');
-            assert.equal((await page.locator('#fetchBtn').innerText()).trim(), 'Dashboard');
+            assert.equal(await page.locator('#fetchBtn').getAttribute('aria-label'),'Refresh station readings');
+            assert.equal(await page.locator('#fetchBtn').evaluate(node=>node.tagName),'BUTTON','Refresh remains an explicit action');
+            assert.equal(await page.locator('.dashboard-tab[aria-current="page"]').getAttribute('href'),'/','Dashboard is a separate navigation link');
             assert.equal(await page.locator('.forecast-summary-bar').count(), 24);
             const temperature = page.locator('#forecastSummaryChart .forecast-summary-temperature-line');
             assert.equal(await temperature.count(), 1, 'temperature overlays the 24 hourly rain bars');
@@ -232,13 +249,17 @@ async function assertDark(page) {
             assert.equal(focus.touch, 'pan-y', 'vertical page scrolling remains available over the chart');
             await plot.scrollIntoViewIfNeeded();
             const box = await plot.boundingBox();
-            if (width < 900) await page.touchscreen.tap(box.x + box.width * .75, box.y + box.height / 2);
+            // Use visible hourly bars, not a percentage that includes the axis gutters.
+            const targetBar = await plot.locator('.forecast-summary-bar[data-hour="18"]').boundingBox();
+            const targetX = targetBar.x + targetBar.width / 2, targetY = box.y + box.height / 2;
+            if (width < 900) await page.touchscreen.tap(targetX, targetY);
             else {
-              await page.mouse.move(box.x + box.width * .25, box.y + box.height / 2);
-              await page.mouse.down(); await page.mouse.move(box.x + box.width * .75, box.y + box.height / 2, { steps: 5 }); await page.mouse.up();
+              const startBar = await plot.locator('.forecast-summary-bar[data-hour="6"]').boundingBox();
+              await page.mouse.move(startBar.x + startBar.width / 2, targetY);
+              await page.mouse.down(); await page.mouse.move(targetX, targetY, { steps: 5 }); await page.mouse.up();
             }
             const selected = Number(await plot.getAttribute('aria-valuenow'));
-            assert.ok(selected >= 16 && selected <= 19, 'touch or drag selects the corresponding hour');
+            assert.equal(selected, 18, 'touch or drag selects the visible target hour');
             await plot.focus(); await page.keyboard.press('Home');
             const name = `forecast-${engine.name()}-${width}-dark-system-${theme}`;
             metrics.push({ name, height: await checkLayout(page, width) });

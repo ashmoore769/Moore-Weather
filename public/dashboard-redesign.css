@@ -1,0 +1,250 @@
+/* Dashboard 1.4: one reading element per sensor, one responsive composition.
+   This file is scoped to Current; the shared Forecast/Daily shell is unchanged. */
+.current-page {
+  --dashboard-gap:28px;
+  --card-radius:16px;
+  --dashboard-line:color-mix(in srgb,var(--border) 80%,transparent);
+}
+body.current-page .main-container {
+  width:min(calc(100% - 48px),680px);
+  margin:28px auto 32px;
+}
+body.current-page.layout-landscape .main-container { width:min(calc(100% - 64px),1440px); }
+.current-page .dashboard-header {
+  margin-bottom:28px; border:0; border-radius:0; background:transparent; box-shadow:none;
+}
+.current-page .dashboard-header::before { content:none; }
+html[data-theme="dark"] body.current-page :is(.dashboard-header,.dashboard-masthead) { background:transparent; }
+html[data-theme="dark"] #dashboardHeader,
+html[data-theme="dark"] #dashboardHeader .dashboard-masthead { background:transparent; }
+.current-page .history-status { margin:0 0 24px; }
+.current-page .dashboard-masthead,
+body.current-page.layout-landscape .dashboard-masthead {
+  display:grid; grid-template-columns:minmax(0,1fr) auto auto;
+  grid-template-areas:"identity status tools"; align-items:center; gap:20px;
+  padding:0 0 20px; background:transparent; border:0;
+}
+.current-page .dashboard-identity,
+body.current-page.layout-landscape .dashboard-identity { gap:12px; }
+.current-page .dashboard-identity img { width:44px; height:44px; border-radius:12px; }
+.current-page .dashboard-identity h1,
+body.current-page.layout-landscape .dashboard-identity h1 { font-size:25px; line-height:1.15; letter-spacing:-.7px; }
+.current-page .dashboard-location,
+body.current-page.layout-landscape .dashboard-location { margin-top:5px; font-size:11px; font-weight:600; letter-spacing:1.4px; }
+.current-page .dashboard-tools { display:flex; align-items:center; gap:6px; }
+.current-page .dashboard-tool,
+.current-page .dashboard-tools .desktop-layout-switcher button {
+  display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px;
+  padding:0 10px; border:1px solid var(--dashboard-line); border-radius:10px;
+  color:var(--muted); background:transparent; font-size:12px; gap:7px;
+}
+.current-page .dashboard-tool svg { width:19px; height:19px; }
+.current-page .dashboard-tool:hover,
+.current-page .dashboard-tools .desktop-layout-switcher button:hover { background:var(--surface-soft); color:var(--text); border-color:var(--border-strong); }
+.current-page .dashboard-tools .desktop-layout-switcher { display:flex; gap:2px; padding:3px; border:1px solid var(--dashboard-line); border-radius:12px; background:transparent; }
+.current-page .dashboard-tools .desktop-layout-switcher button { border:0; min-width:38px; min-height:38px; padding:0; border-radius:8px; }
+.current-page .dashboard-tools .desktop-layout-switcher button.active { background:var(--surface-raised); color:var(--accent); }
+.current-page .dashboard-status,
+body.current-page.layout-landscape .dashboard-status { display:flex; flex-direction:column; align-items:flex-end; gap:5px; justify-content:center; }
+.current-page .dashboard-status .status-badge { font-size:11px; letter-spacing:.25px; min-height:27px; padding:5px 9px; border-radius:7px; }
+.current-page .dashboard-status #freshnessText { font-size:12px; line-height:1.35; }
+.current-page .dashboard-navrow { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-top:16px; border-top:1px solid var(--dashboard-line); }
+.current-page .dashboard-navigation,
+body.current-page.layout-landscape .dashboard-navigation { min-width:0; padding:0; margin:0; }
+.current-page .dashboard-tabs { padding:4px; gap:4px; border-radius:12px; background:var(--surface-shell); border-color:var(--dashboard-line); width:max-content; }
+.current-page .dashboard-navigation .dashboard-tab,
+body.current-page.layout-landscape .dashboard-navigation .dashboard-tab {
+  min-height:44px; padding:0 17px; font-size:13px; line-height:1.3; border-radius:8px;
+}
+.current-page .dashboard-navigation .dashboard-tab[aria-current="page"] { color:var(--text); background:var(--surface-raised); box-shadow:inset 0 0 0 1px var(--border-strong); }
+.current-page .dashboard-observation,
+body.current-page.layout-landscape .dashboard-observation { display:flex; flex-direction:row; flex-wrap:wrap; justify-content:flex-end; gap:4px 14px; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.current-page .dashboard-observation #timeVal { color:var(--text); }
+.current-page .dashboard-main { display:grid; gap:var(--dashboard-gap); }
+.current-page .dashboard-main > *, .current-page .dashboard-overview > *, .current-page .dashboard-environment > *, .current-page .dashboard-power > * { min-width:0; }
+body.current-page.layout-landscape :is(.dashboard-environment,.dashboard-power,.current-visuals) > *,
+.current-page :is(.dashboard-environment,.dashboard-power,.current-visuals) > * { grid-area:auto; }
+.current-page .dashboard-overview { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--dashboard-gap); align-items:stretch; }
+.current-page .weather-overview { display:flex; flex-direction:column; }
+.current-page .weather-overview .current-readings-grid { flex:1; }
+html[data-theme="dark"] body.current-page #weatherData,
+body.current-page.layout-landscape #weatherData,
+.current-page #weatherData { padding:0; margin:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.current-page .dashboard-section-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:16px; min-height:44px; }
+.current-page .dashboard-eyebrow { margin:0 0 5px; color:var(--muted); font-size:10px; font-weight:650; letter-spacing:1.4px; text-transform:uppercase; }
+.current-page .dashboard-section-heading h2 { margin:0; font-size:21px; line-height:1.2; font-weight:700; letter-spacing:-.45px; }
+.current-page .dashboard-section-hint { color:var(--muted); font-size:12px; line-height:1.4; text-align:right; }
+.current-page .dashboard-section-hint span { margin-left:4px; color:var(--accent); }
+.current-page .dashboard-external-icon { display:inline-block; width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; vertical-align:-1px; flex:none; }
+.current-page .current-readings-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.current-page .secondary-readings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.current-page .current-reading-card {
+  display:flex; flex-direction:column; min-width:0; padding:15px 15px 12px; min-height:178px;
+  background:var(--surface); border:1px solid var(--dashboard-line);
+  border-top:2px solid color-mix(in srgb,var(--history-color,var(--stat-accent,var(--accent))) 80%,var(--surface));
+  border-radius:14px; overflow:hidden; box-shadow:0 3px 10px #0000000a;
+}
+.current-page .current-reading-card:hover { background:color-mix(in srgb,var(--surface-raised) 36%,var(--surface)); border-color:color-mix(in srgb,var(--history-color,var(--accent)) 55%,var(--border)); }
+.current-page .current-reading-heading { gap:7px; min-height:20px; align-items:center; }
+.current-page .current-reading-icon { width:17px; height:17px; }
+.current-page .current-reading-label { font-size:12px; font-weight:600; letter-spacing:0; line-height:1.35; text-transform:none; white-space:normal; }
+.current-page .current-reading-card .current-reading-value { margin:9px 0 0; font-size:37px; line-height:1.1; letter-spacing:-1.1px; font-weight:700; }
+.current-page .current-readings-grid .temp-hero .current-reading-value { font-size:44px; }
+.current-page .current-reading-value:has(#windDirDegVal) { white-space:normal; }
+.current-page .current-reading-card .unit-suffix { margin-inline-start:4px; font-size:14px; font-weight:500; }
+.current-page .current-reading-card .current-reading-detail { margin-top:6px; font-size:12px; line-height:1.4; font-weight:500; }
+.current-page .current-reading-card .history-spark { margin-top:auto; padding-top:12px; }
+.current-page .current-reading-card .history-spark > svg { height:37px; }
+.current-page .current-reading-card .history-spark-caption { min-height:2.8em; font-size:11px; line-height:1.4; font-weight:500; margin-top:5px; }
+.current-page .current-reading-card .history-arrow { opacity:.8; }
+.current-page .current-reading-card .history-spark-caption span:first-child { min-width:0; }
+.current-page .reading-status { padding:12px 14px; margin:0 0 12px; font-size:13px; line-height:1.5; border-radius:10px; }
+.current-page .panel-card { border-radius:16px; box-shadow:none; }
+.current-page .section-title { font-size:20px; font-weight:700; letter-spacing:-.35px; text-transform:none; }
+.current-page .dashboard-environment { display:grid; gap:var(--dashboard-gap); align-items:stretch; }
+.current-page .dashboard-power { display:grid; gap:var(--dashboard-gap); align-items:start; }
+.current-page .dashboard-measurements { display:flex; flex-direction:column; }
+.current-page .dashboard-measurements .secondary-readings-grid { flex:1; }
+.current-page .dashboard-measurements .current-reading-card { min-height:188px; }
+.current-page .current-visuals,
+body.current-page.layout-landscape .current-visuals { display:grid; grid-template-columns:minmax(0,1fr); gap:20px; min-height:0; align-items:start; }
+.current-page .current-visuals > * { min-width:0; }
+.current-page .layout-skycam { grid-area:auto; }
+.current-page .skycam-container { border:1px solid var(--dashboard-line); background:var(--surface); overflow:hidden; }
+.current-page .skycam-image-stage,
+body.current-page.layout-landscape .skycam-image-stage { min-height:0; aspect-ratio:4 / 3; }
+.current-page .skycam-badge { font-size:11px; min-height:30px; letter-spacing:.3px; }
+.current-page .skycam-interval-badge { display:none; }
+.current-page .skycam-caption { position:relative; inset:auto; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 12px; padding:14px; min-height:99px; background:var(--surface); }
+.current-page .skycam-caption > span { border:0; border-radius:0; padding:0; min-height:0; background:transparent; box-shadow:none; backdrop-filter:none; text-shadow:none; font-size:12px; color:var(--muted); line-height:1.45; }
+.current-page #skycamTime { grid-row:1; align-self:end; color:var(--text); font-weight:600; }
+.current-page #skycamPosition { grid-row:2; grid-column:1; align-self:start; justify-self:start; font-weight:400; }
+.current-page .skycam-actions { grid-row:1 / 3; grid-column:2; align-self:center; gap:5px; }
+.current-page .skycam-action { width:44px; min-width:44px; min-height:44px; padding:0; border-radius:10px; border:1px solid var(--border); background:var(--surface-soft); box-shadow:none; font-size:17px; }
+.current-page .skycam-action-text { display:none; }
+.current-page #skycamTimelapseIcon { display:flex; }
+.current-page #skycamTimelapseIcon svg,.current-page #radarPlay svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.current-page #radarPlay { gap:5px; }
+.current-page .skycam-nav { top:calc((100% - 99px) / 2); border-radius:12px; }
+.current-page .skycam-container:fullscreen .skycam-caption,
+.current-page .skycam-container.skycam-focus-mode .skycam-caption { position:absolute; inset:auto 16px 16px; min-height:0; padding:12px; border:1px solid var(--viewer-border); border-radius:14px; background:var(--viewer-surface); }
+.current-page .skycam-container:fullscreen .skycam-image-stage,
+.current-page .skycam-container.skycam-focus-mode .skycam-image-stage { height:100%; aspect-ratio:auto; }
+.current-page .skycam-container:fullscreen .skycam-nav,
+.current-page .skycam-container.skycam-focus-mode .skycam-nav { top:50%; }
+.current-page .skycam-container:fullscreen .skycam-interval-badge,
+.current-page .skycam-container.skycam-focus-mode .skycam-interval-badge { display:block; font-size:11px; }
+.current-page .radar-panel,body.current-page.layout-landscape .layout-radar { flex:none; margin:0; padding:0; border:1px solid var(--dashboard-line); border-radius:16px; overflow:hidden; background:var(--surface); }
+.current-page .radar-map-stage,body.current-page.layout-landscape .radar-map-stage { aspect-ratio:4 / 3; height:auto; min-height:0; flex:none; border-radius:0; }
+.current-page .radar-title-badge h2 { font-size:11px; }
+.current-page .radar-frame-badge strong { font-size:12px; }
+.current-page .radar-legend { font-size:10px; }
+.current-page .radar-frame-badge span { font-size:10px; }
+.current-page .radar-controls { margin:12px 14px 0; gap:12px; }
+.current-page .radar-timeline label { font-size:11px; }
+.current-page .radar-timeline-ends { font-size:11px; }
+.current-page .radar-timeline input { min-height:28px; }
+.current-page .radar-meta { margin:4px 14px 6px; min-height:31px; }
+.current-page .radar-status,.current-page .radar-credit { font-size:11px; }
+.current-page .radar-about summary { width:36px; height:36px; }
+.current-page .radar-about p { font-size:13px; }
+.current-page .radar-interaction { min-height:36px; bottom:5px; font-size:11px; }
+.current-page .local-water { margin:0; }
+.current-page .water-groups { gap:20px; }
+.current-page .water-group { padding:20px; box-shadow:none; }
+.current-page .water-group-title h2 { font-size:20px; }
+.current-page .water-group-title p { margin-top:4px; font-size:12px; }
+.current-page .water-group-header { margin-bottom:16px; }
+.current-page .water-panel { padding:14px; }
+.current-page .water-panel h3 { font-size:18px; }
+.current-page .water-eyebrow { font-size:10px; letter-spacing:.5px; }
+.current-page .water-site { display:none; }
+.current-page .water-label { font-size:12px; font-weight:500; }
+.current-page .water-time,.current-page .water-capacity,.current-page .water-panel footer,.current-page .water-bridge-context { font-size:12px; line-height:1.5; }
+.current-page .water-panel footer { min-height:40px; align-items:center; gap:6px 10px; margin-top:8px; }
+.current-page .water-history .history-spark-caption { font-size:11px; }
+.current-page .water-observed { margin:7px 0 4px; }
+.current-page .water-reading strong small { font-size:12px; }
+@container water-panel (max-width:260px) {
+  .current-page .water-label { min-height:2.7em; }
+}
+.current-page .app-footer { display:flex; justify-content:center; gap:4px 14px; margin:26px 0 0; padding:18px 0 0; border-top:1px solid var(--dashboard-line); }
+.current-page .app-footer a,.current-page .app-footer button { min-height:44px; display:inline-flex; align-items:center; font-size:12px; color:var(--muted); }
+.current-page :is(button,a,summary,[role="button"],[role="slider"]):focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+@media(min-width:1050px) {
+  body.current-page.layout-landscape .dashboard-overview { grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:24px; }
+  body.current-page.layout-landscape .current-visuals,
+  body.current-page.layout-landscape .dashboard-environment { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(min-width:1280px) {
+  body.current-page.layout-landscape .dashboard-power { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; gap:20px; }
+}
+@media(max-width:1180px) {
+  .current-page .dashboard-tool-label { display:none; }
+  .current-page .dashboard-tool { padding:0; }
+}
+body.current-page.layout-portrait .dashboard-masthead { grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"identity tools" "status status"; gap:14px; }
+body.current-page.layout-portrait .dashboard-status { flex-direction:row; justify-content:flex-start; align-items:center; gap:10px; }
+body.current-page.layout-portrait .dashboard-tool-label { display:none; }
+body.current-page.layout-portrait .dashboard-navrow { flex-direction:column; align-items:stretch; gap:12px; }
+body.current-page.layout-portrait .dashboard-observation { justify-content:space-between; }
+body.current-page.layout-portrait .dashboard-tabs { width:100%; grid-template-columns:repeat(4,auto); }
+@media(max-width:760px) {
+  .current-page { --dashboard-gap:24px; }
+  body.current-page .main-container,body.current-page.layout-portrait .main-container { width:calc(100% - 28px); margin:18px auto 24px; }
+  .current-page .dashboard-header { margin-bottom:24px; }
+  .current-page .dashboard-identity h1 { font-size:22px; }
+  .current-page .dashboard-identity img { width:36px; height:36px; border-radius:10px; }
+  .current-page .dashboard-tools .desktop-layout-switcher { display:none; }
+  .current-page .dashboard-navigation .dashboard-tab,body.current-page.layout-landscape .dashboard-navigation .dashboard-tab { padding:0 6px; font-size:13px; gap:4px; }
+  .current-page .dashboard-section-heading { margin-bottom:14px; }
+  .current-page .dashboard-section-heading h2 { font-size:20px; }
+  .current-page .dashboard-section-hint { font-size:11px; max-width:115px; }
+  .current-page .dashboard-section-hint span { display:none; }
+  .current-page .water-group { padding:16px; }
+}
+@media(max-width:560px) {
+  .current-page .current-readings-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .current-page .current-reading-card { padding:14px 13px 11px; min-height:178px; }
+  .current-page .current-reading-card .current-reading-value { font-size:35px; }
+  .current-page .current-readings-grid .temp-hero .current-reading-value { font-size:40px; }
+  .current-page .current-reading-card .unit-suffix { font-size:13px; margin-inline-start:3px; }
+  .current-page .current-reading-card .current-reading-label { font-size:12px; }
+  .current-page .secondary-readings-grid { gap:10px; }
+  .current-page .dashboard-measurements .current-reading-card { min-height:184px; }
+  .current-page .dashboard-tools { gap:4px; }
+  .current-page .dashboard-masthead,body.current-page.layout-portrait .dashboard-masthead { column-gap:8px; }
+  .current-page .skycam-caption { padding:12px; gap:5px 8px; grid-template-columns:minmax(0,1fr); min-height:132px; }
+  .current-page .skycam-actions { grid-row:2; grid-column:1; justify-self:start; margin-top:3px; }
+  .current-page #skycamTime { grid-row:1; }
+  .current-page #skycamPosition { grid-row:3; }
+  .current-page .skycam-nav { top:calc((100% - 132px) / 2); }
+  .current-page .skycam-action { width:auto; padding:0 11px; gap:5px; font-size:14px; }
+  .current-page :is(#skycamTimelapse,#skycamDownload,#skycamFocus) .skycam-action-text { display:inline; font-size:12px; }
+  .current-page .skycam-container:has(#skycamLive:not(:disabled)) :is(#skycamDownload,#skycamFocus) .skycam-action-text { display:none; }
+  .current-page .radar-controls { margin-inline:12px; gap:9px; }
+  .current-page .radar-meta { margin-inline:12px; }
+  .current-page .radar-timeline label span { display:none; }
+}
+@media(max-width:370px) {
+  body.current-page .main-container,body.current-page.layout-portrait .main-container { width:calc(100% - 24px); margin-top:14px; }
+  .current-page .dashboard-identity { gap:8px; }
+  .current-page .dashboard-identity h1 { font-size:18px; letter-spacing:-.5px; }
+  .current-page .dashboard-identity img { width:30px; height:30px; }
+  .current-page .dashboard-location { font-size:9px; letter-spacing:.8px; }
+  .current-page .dashboard-tools { gap:2px; }
+  .current-page .dashboard-navigation .dashboard-tab { font-size:12px; padding:0 3px; }
+  .current-page .dashboard-history-button svg { display:none; }
+  .current-page .current-reading-card { padding:12px 10px 10px; }
+  .current-page .current-reading-card .current-reading-value { font-size:31px; }
+  .current-page .current-readings-grid .temp-hero .current-reading-value { font-size:36px; }
+  .current-page .current-reading-icon { width:15px; height:15px; }
+  .current-page .current-reading-heading { gap:5px; }
+  .current-page .current-reading-card .unit-suffix { font-size:12px; }
+  .current-page .skycam-action { padding-inline:8px; }
+  .current-page .skycam-actions { gap:4px; }
+  .current-page .radar-frame-badge span { display:none; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .current-page *, .current-page *::before, .current-page *::after { scroll-behavior:auto; transition-duration:.01ms; }
+}

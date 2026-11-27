@@ -121,25 +121,38 @@ async function layout(page, width, context, { notice = false } = {}) {
         width: element.clientWidth, scroll: element.scrollWidth }));
     const panels = [...card.querySelectorAll('[role="tabpanel"]')].map(element => ({ id: element.id,
       hidden: element.hidden, height: element.getBoundingClientRect().height, contentHeight: element.scrollHeight }));
+    const overview=card.querySelector('.solar-overview').getBoundingClientRect(), workspace=card.querySelector('.solar-workspace').getBoundingClientRect();
+    const header=card.querySelector('.solar-header').getBoundingClientRect(), cardStyle=getComputedStyle(card);
+    const innerWidth=card.clientWidth-parseFloat(cardStyle.paddingLeft)-parseFloat(cardStyle.paddingRight);
+    const controls=[...card.querySelectorAll('.solar-view-tabs button,.solar-ranges button,.solar-chart-navigation button,#solarChartMetric,#solarDownload')]
+      .filter(element=>element.getClientRects().length>0).map(element=>({id:element.id,width:element.getBoundingClientRect().width,height:element.getBoundingClientRect().height}));
     const chart = card.querySelector('#solarChart').getBoundingClientRect();
     const plot = card.querySelector('#solarChartPlot').getBoundingClientRect();
     const axis = card.querySelector('.solar-chart-xaxis').getBoundingClientRect();
     return { left: rect.left, right: rect.right, height: rect.height, documentWidth: document.documentElement.scrollWidth, children, panels,
-      chart: { height: chart.height, bottom: chart.bottom, plotBottom: plot.bottom, axisTop: axis.top } };
+      innerWidth, controls, headerHeight:header.height, overviewHeight:overview.height, workspaceHeight:workspace.height,
+      sideBySide:workspace.left>=overview.right+1 && Math.abs(workspace.top-overview.top)<1,
+      chart: { height: chart.height, bottom: chart.bottom, plotHeight:plot.height, plotBottom: plot.bottom, axisTop: axis.top } };
   });
-  // These generous maximums guard the intended reduction from the previous
-  // 1,200–1,500px card without tying the tests to individual CSS pixel values.
-  const limit = (width >= 900 ? 600 : width >= 361 ? 850 : 920) + (notice ? 100 : 0);
+  // Larger labels, 44px controls and a useful plot have an intentional height
+  // cost. Bound unused space around the measured content instead of imposing
+  // the former small-font card's pixel budget on the new design.
+  const contentHeight=result.sideBySide?Math.max(result.overviewHeight,result.workspaceHeight):result.overviewHeight+result.workspaceHeight;
+  const limit=contentHeight+result.headerHeight+(result.sideBySide?96:120)+(notice?100:0);
   heightMetrics.push({ context, width, height: Math.round(result.height * 10) / 10, limit,
     panels: result.panels.filter(panel => !panel.hidden).map(panel => ({ id: panel.id, height: Math.round(panel.height * 10) / 10 })) });
   assert.ok(result.left >= 0 && result.right <= width + 1, JSON.stringify(result));
   assert.ok(result.documentWidth <= width + 1, 'dashboard must not create horizontal scrolling at ' + width);
+  assert.equal(result.sideBySide,result.innerWidth>=900,'Solar columns follow the card width rather than the viewport');
+  for(const control of result.controls)assert.ok(control.width>=44 && control.height>=44,'Solar controls retain usable touch targets: '+JSON.stringify(control));
+  assert.ok(result.panels.filter(panel=>!panel.hidden).every(panel=>panel.height<=560),'The chart, log and details retain a bounded work area');
   for (const child of result.children) {
     assert.ok(child.left >= result.left - 1 && child.right <= result.right + 1, JSON.stringify(child));
     assert.ok(child.scroll <= child.width + 1, 'solar content overflows: ' + JSON.stringify(child));
   }
-  assert.ok(result.height <= limit, `Solar card is not compact at ${context}: ${result.height.toFixed(1)}px exceeds ${limit}px`);
+  assert.ok(result.height <= limit, `Solar card has unnecessary empty space at ${context}: ${result.height.toFixed(1)}px exceeds ${limit}px`);
   if (result.chart.height > 0) {
+    assert.ok(result.chart.plotHeight>=190,'Solar retains a readable plot below its controls');
     assert.ok(result.chart.bottom <= result.chart.plotBottom + 1, 'SVG must stay within its allocated plot: ' + JSON.stringify(result.chart));
     assert.ok(result.chart.plotBottom <= result.chart.axisTop + 1, 'time labels must remain below the plot: ' + JSON.stringify(result.chart));
   }
