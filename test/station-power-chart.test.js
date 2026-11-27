@@ -91,15 +91,15 @@ test('station plots use the available width while preserving pixel-sized axes an
   const wide = chart.chartModel([source], NOW, 1320);
   const coordinates = model => [...model.lines[0].d.matchAll(/[ML]([\d.]+),([\d.]+)/g)]
     .map(match => [Number(match[1]), Number(match[2])]);
-  assert.deepEqual(coordinates(phone).map(point => point[0]), [52, 175, 298]);
-  assert.deepEqual(coordinates(wide).map(point => point[0]), [52, 660, 1268]);
+  assert.deepEqual(coordinates(phone).map(point => point[0]), [45, 175, 305]);
+  assert.deepEqual(coordinates(wide).map(point => point[0]), [45, 660, 1275]);
   assert.deepEqual(coordinates(phone).map(point => point[1]), coordinates(wide).map(point => point[1]),
     'resizing changes only the time-axis width, not the vertical scale');
   for (const model of [phone, wide]) {
-    assert.equal(model.size.height, 224);
-    assert.equal(model.size.left, 52);
-    assert.equal(model.size.width - model.size.right, 52);
-    assert.match(chart.svgMarkup(model), new RegExp('x="' + (model.size.width - 1) + '" y="22" text-anchor="end"'));
+    assert.equal(model.size.height, 134);
+    assert.equal(model.size.left, 45);
+    assert.equal(model.size.width - model.size.right, 45);
+    assert.match(chart.svgMarkup(model), new RegExp('x="' + (model.size.width - 1) + '" y="18" text-anchor="end"'));
     assert.equal(model.count, 3);
   }
   assert.equal(chart.chartModel([source], NOW).size.width, 720);
@@ -123,7 +123,7 @@ test('station zoom changes only the viewport and clips unchanged readings and ga
     assert.match(zoomed.lines[i].d, /M-/, 'real samples outside the window remain available at the clipped edges');
   }
   assert.match(chart.svgMarkup(zoomed), /clip-path="url\(#stationPowerPlotClip\)"/);
-  assert.match(chart.svgMarkup(zoomed), /<rect x="52" y="16" width="289" height="178"/);
+  assert.match(chart.svgMarkup(zoomed), /<rect x="45" y="12" width="303" height="94"/);
   const smallest = chart.chartModel(input, NOW, 393, { start: NOW - 1000, end: NOW });
   assert.equal(smallest.end - smallest.start, 3600000, 'ten-minute observations stop at a one-hour view');
   assert.ok(smallest.start >= full.bounds.start && smallest.end <= full.bounds.end);
@@ -153,13 +153,13 @@ test('station resize redraws the latest history once per changed visible width',
   const live = four().map(series => ({ ...series, end: liveNow,
     points: series.points.map(point => ({ ...point, t: liveNow + point.t - NOW })) }));
   chart.render(live, doc);
-  assert.equal(attributes.viewBox, '0 0 350 224');
+  assert.equal(attributes.viewBox, '0 0 350 134');
   assert.deepEqual(observed, [container]);
   callbacks[0]();
   assert.equal(writes, 1, 'initial and content-only observer notifications do not loop');
   container.clientWidth = 1320;
   callbacks[0]();
-  assert.equal(attributes.viewBox, '0 0 1320 224');
+  assert.equal(attributes.viewBox, '0 0 1320 134');
   assert.equal(writes, 2);
   container.clientWidth = 0;
   callbacks[0]();
@@ -169,7 +169,7 @@ test('station resize redraws the latest history once per changed visible width',
   chart.render([live[0]], doc);
   container.clientWidth = 393;
   callbacks[0]();
-  assert.equal(attributes.viewBox, '0 0 393 224');
+  assert.equal(attributes.viewBox, '0 0 393 134');
   assert.equal((markup.match(/<path class="station-power-series /g) || []).length, 1,
     'resizing uses the most recent series, without reviving old measurements');
   assert.match(note.textContent, /^1 of 4 traces/);

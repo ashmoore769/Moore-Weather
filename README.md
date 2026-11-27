@@ -36,13 +36,9 @@ After configuration is ready, `npm start` (or `node server.js`) serves the app a
 
 **Starting the server begins polling the physical station immediately.** The Render instance already polls it. Use a mock station for development, or coordinate access before running another live poller: the server's transaction queue only coordinates requests within its own process.
 
-## GUI preview
-
-Run `npm run dev` for a separate dashboard preview with labelled sample data. It does not poll the physical station, read credentials, or write to production storage. The production command remains `npm start`. See [preview modes](tools/preview/README.md) and [the 1.4 GUI release and rollback](docs/DASHBOARD-1.4.md).
-
 ## Graphs and history
 
-The Dashboard shows current conditions beside the next 24 hours of forecast on wide screens, followed by Home Solar, SkyCam and radar, supporting measurements and soil, equipment power, and local water levels. Weather and station-power previews cover the previous 24 hours; Yard Power defaults to 12 hours. Select a card to open the history viewer, change measurement, choose 10-minute/hourly/daily records, and browse earlier end dates. Daily Summary cards show 30-day trends. The viewer supports pointer/touch inspection, arrow-key navigation and an accessible readings table in both themes.
+The Current page has five-hour trends on weather, soil and power readings. Select a card to open the history viewer, change measurement, choose 10-minute/hourly/daily records, and browse earlier end dates. Daily Summary cards show 30-day trends. The viewer supports pointer/touch inspection, arrow-key navigation and an accessible readings table in both themes.
 
 Charts read the SQL archive only and never issue station commands. See [history chart notes](docs/HISTORY.md) for native intervals, measurement conventions, query limits and verification.
 
@@ -58,7 +54,7 @@ for the calculation method, tariffs and collector setup.
 
 ## Forecast and radar
 
-The Forecast tab adds a free Open-Meteo seven-day forecast. RainViewer regional radar sits beside SkyCam on wide dashboards and below it on narrow screens. There are no API keys or new paid services. See [forecast and radar notes](docs/FORECAST-RADAR.md) for provider terms, caching, AEST reporting and verification.
+The Forecast tab adds a free Open-Meteo seven-day forecast. RainViewer regional radar sits directly below the SkyCam on Current. There are no API keys or new paid services. See [forecast and radar notes](docs/FORECAST-RADAR.md) for provider terms, caching, AEST reporting and verification.
 
 ## Deployment
 

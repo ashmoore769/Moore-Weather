@@ -12,15 +12,6 @@
     ['controllerTempC', 'yardControllerTemp', 1, -50, 125],
   ];
   const validReading = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
-  function ageText(milliseconds) {
-    if (!Number.isFinite(milliseconds)) return 'age unavailable';
-    if (milliseconds < -90000) return 'check clock';
-    const seconds = Math.max(0, Math.floor(milliseconds / 1000));
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return Math.floor(seconds / 60) + ' min ago';
-    if (seconds < 86400) return Math.floor(seconds / 3600) + ' hr ago';
-    return Math.floor(seconds / 86400) + ' d ago';
-  }
   function readingPresentation(sample) {
     const readings = Object.fromEntries(metricMap.map(([key, id, digits, min, max]) => {
       const value = validReading(sample?.[key], min, max) ? sample[key] : null;
@@ -32,17 +23,13 @@
     readings.yardChargeA.title = '';
     // Both measurements are amperes. Controller load excludes any inverter
     // wired directly to the battery; displayed load watts cannot substitute.
-    if (charge === 0 && readings.yardPvPower.value === 0) {
-      // No solar output and no charging is an idle condition, including night.
-      // This is based on measured zeros, not a clock-based guess about daylight.
-      readings.yardChargeA.title = 'Solar output and charging are both zero. No charging is available; the recorded load is unchanged.';
-    } else if (battery !== null && battery < 13.8 && charge !== null && validReading(load, 0, 200)) {
+    if (battery !== null && battery < 13.8 && charge !== null && validReading(load, 0, 200)) {
       readings.yardChargeA.color = charge > load ? 'var(--battery-good)' : 'var(--battery-bad)';
       readings.yardChargeA.title = 'Charge ' + charge.toFixed(2) + ' A compared with controller load ' + load.toFixed(2) + ' A only. Directly connected inverter loads are excluded.';
     }
     return readings;
   }
-  if (typeof module === 'object' && module.exports) { module.exports = { readingPresentation, ageText }; return; }
+  if (typeof module === 'object' && module.exports) { module.exports = { readingPresentation }; return; }
   const card = document.getElementById('yardPower');
   if (!card) return;
   const status = document.getElementById('yardPowerStatus');
@@ -61,10 +48,6 @@
   let lastAttemptError = false;
   const formatTime = new Intl.DateTimeFormat('en-AU', {
     timeZone: 'Australia/Brisbane', hour: '2-digit', minute: '2-digit', hour12: false
-  });
-  const formatObserved = new Intl.DateTimeFormat('en-AU', {
-    timeZone: 'Australia/Brisbane', day: 'numeric', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
   });
   const clock = value => {
     const timestamp = Date.parse(value || '');
@@ -88,7 +71,7 @@
     const duration = durations[historyRange], points = historyPoints;
     const bounds = { start: historyEnd - duration, end: historyEnd };
     const { start, end } = chartControls?.window || bounds;
-    const height = 224, left = 52, right = width - 52, top = 16, bottom = 194;
+    const height = 134, left = 43, right = width - 45, top = 12, bottom = 106;
     const volts = points.flatMap(point => [point.batteryVoltageV, point.pvVoltageV])
       .filter(value => Number.isFinite(value));
     const watts = points.flatMap(point => [point.pvPowerW, point.controllerLoadPowerW])
@@ -165,23 +148,23 @@
   }
 
   function paint() {
-    const observed = Date.parse(current?.observedAt || '');
-    const diff = Number.isFinite(observed) ? Date.now() - observed : Infinity;
-    const state = !current ? 'waiting' : diff >= 0 && diff <= 180000 ? 'fresh' : 'stale';
-    const displayedState = lastAttemptError ? 'unavailable' : state;
     for (const [id, reading] of Object.entries(readingPresentation(current))) {
       const target = element(id);
       if (!target) continue;
       target.textContent = reading.text;
-      target.style.color = displayedState === 'fresh' ? reading.color : '';
+      target.style.color = reading.color;
       if ('title' in reading) target.title = reading.title;
     }
     if (enabled !== true) return;
-    card.dataset.state = displayedState;
-    status.dataset.state = displayedState;
-    status.textContent = lastAttemptError ? 'OFFLINE' : state === 'fresh' ? 'LIVE' : state === 'stale' ? 'STALE' : 'WAITING';
-    age.textContent = current ? ageText(diff) : 'No reading';
-    age.title = Number.isFinite(observed) ? 'Observed ' + formatObserved.format(observed) + ' AEST' : 'Waiting for first valid reading';
+    const observed = Date.parse(current?.observedAt || '');
+    const diff = Number.isFinite(observed) ? Date.now() - observed : Infinity;
+    const state = !current ? 'waiting' : diff >= 0 && diff <= 180000 ? 'fresh' : 'stale';
+    card.dataset.state = lastAttemptError ? 'unavailable' : state;
+    status.dataset.state = lastAttemptError ? 'unavailable' : state;
+    status.textContent = lastAttemptError ? 'UNAVAILABLE' : state === 'fresh' ? 'LIVE' : state === 'stale' ? 'DELAYED' : 'WAITING';
+    const ageMin = Number.isFinite(diff) ? Math.max(0, Math.floor(diff / 60000)) : 0;
+    age.textContent = current ? (ageMin < 1 ? 'Just updated' : ageMin + ' min ago') : 'No reading';
+    age.title = current ? 'Observed ' + clock(current.observedAt) : 'Waiting for first valid reading';
     summary.textContent = lastAttemptError
       ? 'Stored measurements remain available while the feed recovers.'
       : !current ? 'Waiting for the first EPEVER measurement.'

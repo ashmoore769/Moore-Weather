@@ -129,7 +129,7 @@
       const hours = summary.hours;
       const width = Math.max(180, Math.round(plot.clientWidth || plot.getBoundingClientRect?.().width || 360));
       const scale = chartScale(hours);
-      const height = 152, left = scale >= 100 ? 50 : 39, right = width - 37, top = 17, bottom = 122;
+      const height = 110, left = scale >= 100 ? 43 : 31, right = width - 34, top = 12, bottom = 80;
       const cell = (right - left) / 24;
       const selection = summary.usable ? hours[selectedIndex] : null;
       plotGeometry = { left, right, width };
@@ -146,7 +146,7 @@
         const x = (left + i * cell).toFixed(2);
         parts.push('<line class="forecast-summary-hour-grid" data-hour-boundary="' + i + '" x1="' + x + '" x2="' + x + '" y1="' + top + '" y2="' + bottom + '"/>');
       }
-      if (selection) parts.push('<rect class="forecast-summary-selection" x="' + (left + selectedIndex * cell).toFixed(2) + '" y="4" width="' + cell.toFixed(2) + '" height="125" rx="3"/>');
+      if (selection) parts.push('<rect class="forecast-summary-selection" x="' + (left + selectedIndex * cell).toFixed(2) + '" y="4" width="' + cell.toFixed(2) + '" height="83" rx="3"/>');
       for (let i = 0; i < 24; i++) {
         const hour = hours[i], value = hour?.rainMm;
         const missing = !finite(value), zero = value === 0;
@@ -196,13 +196,13 @@
           markers.push({ index: midnightIndex, label: 'Tomorrow', midnight: true });
         }
         const positioned = markers.map(marker => {
-          const x = left + marker.index * cell, labelWidth = marker.label.length * 7.2;
+          const x = left + marker.index * cell, labelWidth = marker.label.length * 6;
           const anchor = x - left < labelWidth / 2 + 1 ? 'start' : right - x < labelWidth / 2 + 1 ? 'end' : 'middle';
           const labelLeft = anchor === 'start' ? x : anchor === 'end' ? x - labelWidth : x - labelWidth / 2;
           return { ...marker, x, anchor, left: labelLeft - 1, right: labelLeft + labelWidth + 1 };
         });
         // Reserve the midnight label first. Bounds include its actual anchor
-        // and a conservative width for the 12px axis font, so an edge-anchored
+        // and a conservative width for the 10px axis font, so an edge-anchored
         // date label cannot collide with the next ordinary tick on mobile.
         const labels = [];
         positioned.sort((a, b) => Number(b.midnight) - Number(a.midnight) || a.index - b.index);
@@ -211,7 +211,7 @@
         }
         labels.sort((a, b) => a.index - b.index);
         for (const marker of labels) {
-          parts.push('<text class="forecast-summary-axis' + (marker.midnight ? ' forecast-summary-day-label' : '') + '" x="' + marker.x.toFixed(2) + '" y="146" text-anchor="' + marker.anchor + '">' + escape(marker.label) + '</text>');
+          parts.push('<text class="forecast-summary-axis' + (marker.midnight ? ' forecast-summary-day-label' : '') + '" x="' + marker.x.toFixed(2) + '" y="102" text-anchor="' + marker.anchor + '">' + escape(marker.label) + '</text>');
         }
       }
       const currentTime = now();
@@ -221,7 +221,7 @@
         const x = left + (currentTime - summary.startMs) / model.HOUR_MS * cell;
         const labelX = clamp(x + 4, left + 4, right - 23);
         parts.push('<line class="forecast-summary-now" x1="' + x.toFixed(2) + '" x2="' + x.toFixed(2) + '" y1="' + top + '" y2="' + bottom + '"><title>' + escape('Now · ' + formatTime(currentTime, true) + ' AEST') + '</title></line>');
-        parts.push('<text class="forecast-summary-axis forecast-summary-now-label" x="' + labelX.toFixed(2) + '" y="11">Now</text>');
+        parts.push('<text class="forecast-summary-axis forecast-summary-now-label" x="' + labelX.toFixed(2) + '" y="8">Now</text>');
       }
       html('forecastSummaryChart', parts.join(''));
       attribute(plot, 'aria-disabled', selection ? 'false' : 'true');

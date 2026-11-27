@@ -76,36 +76,32 @@
   const dialog = document.createElement('dialog');
   dialog.className = 'history-dialog'; dialog.setAttribute('aria-labelledby', 'historyTitle');
   dialog.innerHTML = `
-    <div class="history-header"><div class="history-brand"><strong>Moore Weather</strong><span>Station history</span></div><button type="button" class="history-close" aria-label="Close history" autofocus><span>Close</span><span aria-hidden="true">×</span></button></div>
+    <div class="history-header"><div class="history-brand"><strong>Moore Weather</strong><span>Station history</span></div><button type="button" class="history-close" aria-label="Close history"><span>Close</span><span aria-hidden="true">×</span></button></div>
     <div class="history-scroll">
     <div class="history-heading"><h2 id="historyTitle">Weather history</h2><p id="historySubtitle">West Warwick · all times AEST</p></div>
     <div class="history-controls">
       <label>Measurement<select id="historyMetric" aria-label="Measurement"></select></label>
       <label>Time span<select id="historyRange" aria-label="Time span"></select></label>
+      <label>End date · AEST<input id="historyEnd" aria-label="End date in AEST" type="date"></label>
+      <button class="history-latest" type="button" id="historyLatest">Latest readings</button>
+    </div>
+    <div class="history-resolution-row"><div class="history-resolutions" role="group" aria-label="Graph resolution">
+      <button type="button" data-resolution="10m" aria-pressed="true">10 minute</button><button type="button" data-resolution="hourly" aria-pressed="false">Hourly</button><button type="button" data-resolution="daily" aria-pressed="false">Daily</button>
+    </div><span class="history-period" id="historyPeriod"></span></div>
+    <div class="history-trend-control"><label><input type="checkbox" id="historyTrend"> Fitted trend line</label><span id="historyTrendStatus" role="status"></span></div>
+    <div class="history-navigation" role="group" aria-label="Explore graph">
+      <button type="button" id="historyEarlier" aria-label="Pan to earlier readings">Earlier</button>
+      <button type="button" id="historyZoomIn" aria-label="Zoom in">+</button>
+      <button type="button" id="historyZoomOut" aria-label="Zoom out">−</button>
+      <button type="button" id="historyLater" aria-label="Pan to later readings">Later</button>
+      <button type="button" id="historyReset">Reset view</button>
+      <span id="historyNavigationHint">Drag to pan · scroll or pinch to zoom</span>
     </div>
     <div class="history-body" data-state="loading" aria-busy="true">
-      <p class="history-period" id="historyPeriod"></p>
       <div class="history-summary" id="historySummary"></div>
       <div class="history-chart" id="historyChart" tabindex="0" role="group" aria-label="Weather history chart. Arrow keys inspect readings. Shift plus arrow keys pan. Plus and minus zoom. Zero resets the view." aria-describedby="historyNavigationHint"><svg aria-hidden="true"></svg><div class="history-chart-message" id="historyMessage" role="status">Loading history…</div></div>
-      <div class="history-navigation" role="group" aria-label="Explore graph">
-        <button type="button" id="historyEarlier" aria-label="Pan to earlier readings"><span aria-hidden="true">←</span> Earlier</button>
-        <button type="button" id="historyZoomIn" aria-label="Zoom in">+</button>
-        <button type="button" id="historyZoomOut" aria-label="Zoom out">−</button>
-        <button type="button" id="historyLater" aria-label="Pan to later readings">Later <span aria-hidden="true">→</span></button>
-        <button type="button" id="historyReset">Reset view</button>
-        <button class="history-latest" type="button" id="historyLatest" aria-label="Show latest readings">Latest</button>
-        <span id="historyNavigationHint">Drag to pan · scroll or pinch to zoom</span>
-      </div>
       <div class="history-inspect" id="historyInspect" aria-live="polite">Point to the chart or use the arrow keys to inspect a reading.</div>
       <div class="history-legend" id="historyLegend"></div><p class="history-note" id="historyNote"></p>
-      <details class="history-options" id="historyOptions">
-        <summary>Graph options <span>Date, resolution &amp; trend</span></summary>
-        <div class="history-advanced-controls"><label>End date · AEST<input id="historyEnd" aria-label="End date in AEST" type="date"></label></div>
-        <div class="history-resolution-row"><span class="history-option-label">Graph resolution</span><div class="history-resolutions" role="group" aria-label="Graph resolution">
-          <button type="button" data-resolution="10m" aria-pressed="true">10 minute</button><button type="button" data-resolution="hourly" aria-pressed="false">Hourly</button><button type="button" data-resolution="daily" aria-pressed="false">Daily</button>
-        </div></div>
-        <div class="history-trend-control"><label><input type="checkbox" id="historyTrend"> Fitted trend line</label><span id="historyTrendStatus" role="status"></span></div>
-      </details>
       <details class="history-table" id="historyTable"><summary>View readings as a table</summary><div class="history-table-scroll"></div></details>
     </div></div>`;
   document.body.append(dialog);
@@ -354,7 +350,7 @@
   });
 
   function renderPeriod(s) {
-    $('historyPeriod').textContent = `${selection.custom ? 'Custom view · ' : ''}${longFormat.format(s.start)} – ${longFormat.format(s.end)} AEST`;
+    $('historyPeriod').textContent = `${selection.custom ? 'Custom view · ' : ''}${longFormat.format(s.start)} — ${longFormat.format(s.end)} AEST`;
   }
   function renderHistory() {
     const s = activeSeries, m = s.metric, valid = s.points.filter(p => p.value !== null);
@@ -440,7 +436,7 @@
     const s = activeSeries, container = $('historyChart'), svg = container.querySelector('svg');
     const width = container.clientWidth, height = container.clientHeight;
     if (!width) return;
-    const left = 57, right = width - 12, top = 14, bottom = height - 35;
+    const left = 51, right = width - 12, top = 14, bottom = height - 35;
     const [min, max] = WeatherChart.domain(s);
     const x = t => left + (t - s.start) / (s.end - s.start) * (right - left);
     const y = v => bottom - (v - min) / (max - min) * (bottom - top);
@@ -450,12 +446,12 @@
       const value = min + (max - min) * i / 4, py = y(value);
       svg.append(svgNode('line', { x1: left, x2: right, y1: py, y2: py, stroke: 'var(--border)', 'stroke-dasharray': i ? '3 5' : '' }));
       const label = s.metric.kind === 'direction' ? ['N', 'E', 'S', 'W', 'N'][i] : value.toFixed(Math.min(s.metric.precision, max - min > 30 ? 0 : s.metric.precision));
-      svg.append(svgNode('text', { x: left - 9, y: py + 4, 'text-anchor': 'end', fill: 'var(--muted)', 'font-size': 12 }, label));
+      svg.append(svgNode('text', { x: left - 9, y: py + 4, 'text-anchor': 'end', fill: 'var(--muted)', 'font-size': 11 }, label));
     }
     const ticks = width < 450 ? 3 : 5;
     for (let i = 0; i < ticks; i++) {
       const t = s.start + (s.end - s.start) * i / (ticks - 1);
-      svg.append(svgNode('text', { x: x(t), y: height - 10, 'text-anchor': i === 0 ? 'start' : i === ticks - 1 ? 'end' : 'middle', fill: 'var(--muted)', 'font-size': 12 }, (s.end - s.start <= 86400000 ? timeFormat : s.end - s.start > 200 * 86400000 ? monthFormat : dateFormat).format(t)));
+      svg.append(svgNode('text', { x: x(t), y: height - 10, 'text-anchor': i === 0 ? 'start' : i === ticks - 1 ? 'end' : 'middle', fill: 'var(--muted)', 'font-size': 11 }, (s.end - s.start <= 86400000 ? timeFormat : s.end - s.start > 200 * 86400000 ? monthFormat : dateFormat).format(t)));
     }
     const plotClip = svgNode('clipPath', { id: 'historyDataClip' });
     plotClip.append(svgNode('rect', { x: left, y: top, width: right - left, height: bottom - top })); svg.append(plotClip);

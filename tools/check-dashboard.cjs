@@ -274,8 +274,7 @@ async function bounds(page, width, compact = false) {
       damGrid:rect('#damLevels .water-grid'), riverGrid:rect('#riverLevels .water-grid'),
       groupLabels:[...document.querySelectorAll('.water-group h2')].map(n=>n.textContent),
       order:[...document.querySelectorAll('.water-panel h3')].map(n=>n.textContent),
-      svg: rect('.water-warwick .history-spark > svg'), refs, currentPage:document.body.classList.contains('current-page'),
-      overflow: document.documentElement.scrollWidth > innerWidth };
+      svg: rect('.water-warwick .history-spark > svg'), refs, overflow: document.documentElement.scrollWidth > innerWidth };
   });
   for (const b of [boxes.warwick, boxes.dam, boxes.scots, boxes.connolly]) {
     assert.ok(b.x >= -1 && b.right <= width + 1, JSON.stringify({ width, boxes }));
@@ -325,12 +324,7 @@ async function bounds(page, width, compact = false) {
       'All four desktop location cards share a top edge');
   }
   if (compact && width <= 393) {
-    // Current's verified 337px client-width heights are 347/357/323/441px.
-    // Allow about two extra 18px metadata lines at the narrower 320px fixture;
-    // retain the original Daily budgets because its presentation is unchanged.
-    const limits=boxes.currentPage?[385,395,360,480]:[320,325,300,410];
-    for (const [index,[name,panel]] of [['Leslie',boxes.dam],['Connolly',boxes.connolly],['Scots College',boxes.scots],['Warwick',boxes.warwick]].entries()) {
-      const max=limits[index];
+    for (const [name,panel,max] of [['Leslie',boxes.dam,320],['Connolly',boxes.connolly,325],['Scots College',boxes.scots,300],['Warwick',boxes.warwick,410]]) {
       assert.ok(panel.height <= max,name+' card exceeds its compact mobile height budget: '+JSON.stringify({width,panel,max}));
     }
   }
@@ -403,27 +397,25 @@ async function waterTimestampStates(page, width) {
 async function currentReadingsLayout(page, state = 'fresh') {
   try { await assertCurrentReadingsLayout(page, state); }
   catch (error) {
-    // The ten readings now live in two groups. Preserve both review images,
-    // including widths and failure states outside the normal selection.
+    // Geometry failures must retain the whole ten-card review image, including
+    // widths and failure states outside the normal screenshot selection.
     try {
       fs.mkdirSync(screenshotRoot, {recursive:true});
       const engine = page.context().browser().browserType().name(), width = page.viewportSize().width;
-      for (const [group, selector] of [['primary','#weatherData'],['secondary','.dashboard-measurements']]) {
-        const file = `${engine}-${width}-current-readings-${group}-${state.replace(/[^a-z0-9]+/gi, '-')}-failure.png`;
-        await page.locator(selector).screenshot({path:path.join(screenshotRoot, file), animations:'disabled', timeout:5000});
-        console.error('Current-reading geometry failure screenshot: ' + file);
-      }
+      const file = `${engine}-${width}-current-readings-${state.replace(/[^a-z0-9]+/gi, '-')}-failure.png`;
+      await page.locator('.layout-primary').screenshot({path:path.join(screenshotRoot, file), animations:'disabled', timeout:5000});
+      console.error('Current-reading geometry failure screenshot: ' + file);
     } catch (captureError) { console.error('Could not capture current-reading geometry: ' + captureError.message); }
     throw error;
   }
 }
 async function assertCurrentReadingsLayout(page, state) {
-  await page.waitForFunction(() => document.querySelectorAll('.dashboard-main .current-reading-card .history-spark > svg').length === 10);
+  await page.waitForFunction(() => document.querySelectorAll('.layout-primary .current-reading-card .history-spark > svg').length === 10);
   const cards = await page.evaluate(() => {
     const valueIds = ['tempVal', 'blackGlobeTempVal', 'humidityVal', 'rainSince9Val', 'windSpeedVal',
       'windDirDegVal', 'solarRadVal', 'pressureVal', 'dewPointVal', 'evapRateVal'];
     const rect = node => { const r = node.getBoundingClientRect(); return { x:r.x, y:r.y, right:r.right, bottom:r.bottom, width:r.width, height:r.height }; };
-    return [...document.querySelectorAll('.dashboard-main .current-reading-card')].map(card => {
+    return [...document.querySelectorAll('.layout-primary .current-reading-card')].map(card => {
       const heading = card.querySelector('.current-reading-heading'), label = card.querySelector('.current-reading-label');
       const iconRoot = card.querySelector('.current-reading-icon');
       const icon = iconRoot?.matches('svg') ? iconRoot : iconRoot?.querySelector('svg');
@@ -432,7 +424,7 @@ async function assertCurrentReadingsLayout(page, state) {
       const text = document.createRange(); text.selectNodeContents(label);
       const valueText = document.createRange(); valueText.selectNodeContents(value);
       const id = valueIds.find(id => card.contains(document.getElementById(id)));
-      return { id, group:card.closest('.current-readings-grid')?'primary':'secondary', title:label.textContent.trim(), box:rect(card), heading:rect(heading), label:rect(label), titleText:rect(text), icon:rect(icon),
+      return { id, title:label.textContent.trim(), box:rect(card), heading:rect(heading), label:rect(label), titleText:rect(text), icon:rect(icon),
         value:rect(value), valueText:rect(valueText), detail:detail && detail.getBoundingClientRect().height > 0 ? rect(detail) : null,
         plot:rect(spark.querySelector(':scope > svg')), caption:rect(spark.querySelector('.history-spark-caption')),
         padding:[css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft],
@@ -447,17 +439,14 @@ async function assertCurrentReadingsLayout(page, state) {
     });
   });
   assert.equal(cards.length, 10, 'all current readings retain their cards');
-  assert.equal(new Set(cards.map(card => card.id)).size,10,'Every measurement has one interactive reading card');
-  assert.equal(cards.filter(card => card.group==='primary').length,6,'Six core readings remain in Current conditions');
-  assert.equal(cards.filter(card => card.group==='secondary').length,4,'Four supporting readings remain in More measurements');
   for (const card of cards) {
     const context = state + ' ' + card.id;
     assert.deepEqual(card.padding, cards[0].padding, context + ': consistent card padding');
     assert.deepEqual(card.titleStyle, cards[0].titleStyle, context + ': consistent title typography');
     assert.equal(card.icons, 1); assert.equal(card.sparks, 1);
-    assert.ok(card.icon.width>=15 && card.icon.width<=19 && card.icon.height>=15 && card.icon.height<=19, context + ': readable visible icons');
-    assert.ok(card.label.height <= 2*card.titleLineHeight + 1 && card.titleText.right <= card.heading.right + 1,
-      context + ': title uses at most two readable lines without clipping: ' + JSON.stringify({title:card.title, box:card.box,
+    assert.ok(Math.abs(card.icon.width - 16) <= 1 && Math.abs(card.icon.height - 16) <= 1, context + ': consistent visible icons');
+    assert.ok(card.label.height <= card.titleLineHeight + 1 && card.titleText.right <= card.heading.right + 1,
+      context + ': title stays on one line without clipping: ' + JSON.stringify({title:card.title, box:card.box,
         heading:card.heading, label:card.label, text:card.titleText, icon:card.icon, gap:card.headingGap,
         style:card.titleStyle, lineHeight:card.titleLineHeight}));
     assert.ok(card.titleText.x >= card.icon.right + 1, context + ': icon and title do not overlap');
@@ -468,15 +457,15 @@ async function assertCurrentReadingsLayout(page, state) {
     }
     assert.ok(card.value.y >= card.heading.bottom - 1 && card.plot.y >= Math.max(card.value.bottom, card.detail?.bottom ?? card.value.bottom) - 1,
       context + ': header, value/detail and graph do not overlap');
-    assert.ok(card.plot.height>=35 && Math.abs(card.plot.height-cards[0].plot.height)<=1 && card.caption.y >= card.plot.bottom - 1, context + ': graphs retain useful height and consistent caption spacing');
+    assert.ok(Math.abs(card.plot.height - 42) <= 1 && card.caption.y >= card.plot.bottom - 1, context + ': graph and caption keep consistent spacing');
     assert.equal(card.role, 'button'); assert.equal(card.tabIndex, 0); assert.equal(card.popup, 'dialog');
     assert.ok(card.describedBy.includes(card.id), context + ': history description retains its reading');
     if (card.unitId) assert.ok(card.describedBy.includes(card.unitId), context + ': history description retains the separate unit');
   }
   for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) {
     const a = cards[i], b = cards[j];
-    if (a.group!==b.group || Math.abs(a.box.y - b.box.y) > 1) continue;
-    for (const part of ['heading', 'plot', 'caption']) {
+    if (Math.abs(a.box.y - b.box.y) > 1) continue;
+    for (const part of ['heading', 'value', 'plot', 'caption']) {
       assert.ok(Math.abs(a[part].y - b[part].y) <= 1, state + ': neighbouring ' + part + ' rows align: ' + a.id + '/' + b.id);
     }
     assert.ok(Math.abs(a.plot.bottom - b.plot.bottom) <= 1 && Math.abs(a.box.bottom - b.box.bottom) <= 1,
@@ -487,7 +476,6 @@ async function navigation(page, width) {
   const nav = page.locator('.dashboard-tabs');
   const labels = await nav.locator('.dashboard-tab').allInnerTexts();
   assert.deepEqual(labels.map(s => s.replace(/\s+/g, ' ').trim()), ['Dashboard', 'Forecast', 'Daily Summary', 'Trends']);
-  assert.equal(await nav.locator('.dashboard-tab').first().evaluate(node=>node.tagName),'A','Dashboard is navigation, not a refresh action');
   const boxes = await nav.locator('.dashboard-tab').evaluateAll(nodes => nodes.map(n => {
     const r = n.getBoundingClientRect(); return { x:r.x, y:r.y, right:r.right, bottom:r.bottom, width:r.width, scroll:n.scrollWidth, client:n.clientWidth };
   }));
@@ -503,20 +491,15 @@ async function cameraLabels(page, focus = false) {
   assert.equal(await page.locator('.skycam-interval-badge').textContent(), 'UPDATES · EVERY 10 MIN');
   const geometry = await page.evaluate(() => {
     const rect = node => { const r=node.getBoundingClientRect(); return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,scroll:node.scrollWidth,client:node.clientWidth}; };
-    const container=document.querySelector('.skycam-container'), style=getComputedStyle(container);
-    return { container:rect(container),
-      border:{left:parseFloat(style.borderLeftWidth),right:parseFloat(style.borderRightWidth),top:parseFloat(style.borderTopWidth)},
+    return { container:rect(document.querySelector('.skycam-container')),
       live:rect(document.querySelector('#skycamBadge')),
-      interval:rect(document.querySelector('.skycam-interval-badge')),
-      intervalVisible:getComputedStyle(document.querySelector('.skycam-interval-badge')).display!=='none', width:innerWidth };
+      interval:rect(document.querySelector('.skycam-interval-badge')), width:innerWidth };
   });
-  const {container,border,live,interval,width}=geometry, inset=focus ? 12 : width<=600 ? 7 : 10;
-  // Positioned overlays use the padding edge; the card now has a visible border.
-  assert.ok(Math.abs(live.x-container.x-border.left-inset)<1, 'Live label must retain its original left inset');
-  assert.equal(geometry.intervalVisible,focus,'The update interval appears in the focused viewer, while the dashboard keeps its simpler label');
-  if(focus)assert.ok(Math.abs(container.right-border.right-interval.right-inset)<1, 'Focused update label retains a clear right inset');
-  for(const b of focus?[live,interval]:[live]){
-    assert.ok(Math.abs(b.y-container.y-border.top-inset)<1, 'Label must retain its original top inset');
+  const {container,live,interval,width}=geometry, inset=focus ? 12 : width<=600 ? 7 : 10;
+  assert.ok(Math.abs(live.x-container.x-inset)<1, 'Live label must retain its original left inset');
+  assert.ok(Math.abs(container.right-interval.right-inset)<1, 'Update label must retain its original right inset');
+  for(const b of [live,interval]){
+    assert.ok(Math.abs(b.y-container.y-inset)<1, 'Label must retain its original top inset');
     assert.ok(b.scroll<=b.client+1, 'Label text clips');
   }
 }
@@ -531,16 +514,23 @@ async function visualWindows(page) {
       radar:rect('.radar-map-stage'),
       radarPanel:rect('.layout-radar'),
       radarControls:rect('.radar-controls'),
-      paired:innerWidth>=1050 && document.body.classList.contains('layout-landscape')
+      soil:rect('#soilProfile'),
+      stretched:innerWidth>=1200 && document.body.classList.contains('layout-landscape')
     };
   });
-  const {camera,radar,radarPanel,radarControls,paired}=boxes;
+  const {camera,radar,radarPanel,radarControls,soil,stretched}=boxes;
   assert.ok(Math.abs(camera.width-radar.width)<2, 'SkyCam and radar keep matching widths: '+JSON.stringify(boxes));
   assert.ok(Math.abs(camera.width/camera.height-4/3)<.01);
-  assert.ok(Math.abs(camera.height-radar.height)<2,'SkyCam and radar retain equal 4:3 viewfinders: '+JSON.stringify(boxes));
-  assert.ok(radarControls.y>=radar.bottom-1 && radarControls.bottom<=radarPanel.bottom+1,'Radar playback stays below the map and inside its card');
-  if(paired)assert.ok(Math.abs(camera.y-radar.y)<2 && radar.x>=camera.right+12,'Wide layouts pair SkyCam and radar without overlap');
-  else assert.ok(radar.y>=camera.bottom+12,'Narrow layouts stack the visual cards without overlap');
+  if(stretched) {
+    assert.ok(radar.height>=camera.height+20, 'Desktop radar should use surplus height while SkyCam stays 4:3: '+JSON.stringify(boxes));
+    assert.ok(Math.abs(radarPanel.bottom-soil.bottom)<=3,
+      'Desktop radar controls should finish level with Soil Profile: '+JSON.stringify(boxes));
+    assert.ok(radarControls.y>=radar.bottom-1,
+      'Radar playback controls remain below the expanded map: '+JSON.stringify(boxes));
+  } else {
+    assert.ok(Math.abs(camera.height-radar.height)<2,
+      'Original equal-sized weather viewfinders remain on phones and narrower layouts: '+JSON.stringify(boxes));
+  }
   await cameraLabels(page);
   await page.evaluate(()=>{
     document.querySelector('.skycam-container').classList.add('skycam-focus-mode');
@@ -558,39 +548,29 @@ async function soilProfileLayout(page) {
   const geometry = await page.evaluate(() => {
     const rect = node => { const r=node.getBoundingClientRect(); return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width}; };
     const soil=document.querySelector('#soilProfile');
-    const environment=document.querySelector('.dashboard-environment'), power=document.querySelector('.dashboard-power');
-    return { paired:innerWidth>=1050 && document.body.classList.contains('layout-landscape'),
-      nested:environment.contains(soil), inCurrent:document.querySelector('#weatherData').contains(soil),
+    return { landscape:innerWidth>=900 && document.body.classList.contains('layout-landscape'),
+      nested:document.querySelector('#weatherData').contains(soil),
       count:document.querySelectorAll('#soilProfile').length,
       soil:rect(soil), weather:rect(document.querySelector('#weatherData')),
-      environment:rect(environment), measurements:rect(document.querySelector('.dashboard-measurements')),
-      overview:rect(document.querySelector('.dashboard-overview')),
+      primary:rect(document.querySelector('.layout-primary')),
       forecast:rect(document.querySelector('#forecastSummary')),
-      overviewMembers:[...document.querySelector('.dashboard-overview').children].map(node=>node.id),
-      powerMembers:[...power.children].map(node=>node.id),
-      inMain:document.querySelector('main').contains(environment) && document.querySelector('main').contains(power),
       rows:[...soil.querySelectorAll('.soil-reading')].map(row => ({box:rect(row),
         metrics:[...row.querySelectorAll('.soil-reading-value')].map(metric => ({box:rect(metric),
           contents:[...metric.querySelectorAll('.soil-reading-value-label,.soil-reading-value-number,.history-spark')].map(rect)}))})) };
   });
-  const {soil,weather,forecast,measurements,environment,overview,rows}=geometry;
+  const {soil,weather,primary,forecast,rows}=geometry;
   assert.equal(geometry.count,1,'One soil card serves every layout');
-  assert.equal(geometry.nested,true,'Soil stays in the environment group in every layout');
-  assert.equal(geometry.inCurrent,false,'Current conditions retains its focused six-reading overview');
-  assert.equal(geometry.inMain,true,'Environmental and power groups remain inside the main landmark');
-  assert.deepEqual(geometry.overviewMembers,['weatherData','forecastSummary'],'Current conditions and forecast form one overview');
-  assert.deepEqual(geometry.powerMembers,['stationPower','yardPower'],'Station and yard power retain their paired equipment group');
-  assert.ok(environment.y>=overview.bottom+12,'The environment group is separate from the overview');
-  if(geometry.paired) {
-    assert.ok(Math.abs(soil.y-measurements.y)<1 && soil.x>=measurements.right+12,'Desktop pairs soil with supporting measurements');
-    assert.ok(Math.abs(soil.width-measurements.width)<2,'Environmental cards receive balanced desktop columns');
-    assert.ok(Math.abs(forecast.y-weather.y)<1 && forecast.x>=weather.right+12,'Desktop pairs current conditions with the forecast');
+  if(geometry.landscape) {
+    assert.equal(geometry.nested,true,'Desktop soil sits within the current readings section');
+    assert.ok(Math.abs(soil.x-primary.x)<1 && Math.abs(soil.width-primary.width)<1,'Desktop soil aligns with the readings column');
+    assert.ok(Math.abs(soil.y-primary.bottom-20)<1,'Desktop soil follows the readings with the normal grid gap');
+    assert.ok(soil.bottom<=weather.bottom,'Desktop soil stays inside the current readings section');
+    assert.ok(forecast.y>=weather.bottom+12 && forecast.y<=weather.bottom+40,'Forecast follows the main section without a vacated soil-card gap');
   } else {
-    assert.ok(Math.abs(soil.x-measurements.x)<1 && Math.abs(soil.width-measurements.width)<1,'Stacked environment cards share one width');
-    assert.ok(soil.y>=measurements.bottom+12,'Soil follows supporting measurements with clear separation');
-    assert.ok(forecast.y>=weather.bottom+12 && Math.abs(forecast.x-weather.x)<1,'Stacked overview places the forecast after current conditions');
+    assert.equal(geometry.nested,false,'Mobile and portrait soil remain an independent dashboard card');
+    assert.ok(Math.abs(soil.x-forecast.x)<1 && Math.abs(soil.width-forecast.width)<1,'Soil spans the same width as the standalone cards');
+    assert.ok(soil.y>=weather.bottom+12 && forecast.y>=soil.bottom+12,'Soil has clear separation from adjacent sections');
   }
-  assert.ok(soil.x>=environment.x-1 && soil.right<=environment.right+1 && soil.bottom<=environment.bottom+1,'Soil stays inside its environment group');
   for(const {box,metrics} of rows) {
     assert.ok(box.x>=soil.x && box.right<=soil.right,'Soil depth row stays inside its card');
     for(const {box:metric,contents} of metrics) {
@@ -613,7 +593,7 @@ async function cameraControlLayout(page, engine, width) {
       const a=boxes.parts[i],b=boxes.parts[j];
       assert.ok(a.right<=b.x+1 || b.right<=a.x+1 || a.bottom<=b.y+1 || b.bottom<=a.y+1,'SkyCam caption overlaps in '+state);
     }
-    for(const button of boxes.buttons) assert.ok(button.width>=44 && button.height>=44,'SkyCam controls retain 44px touch targets');
+    for(const button of boxes.buttons) assert.ok(button.width>=40 && button.height>=40,'SkyCam controls retain usable touch targets');
     if([320,393,1440].includes(width)) {
       fs.mkdirSync(screenshotRoot,{recursive:true});
       await page.locator('.layout-skycam').screenshot({path:path.join(screenshotRoot,`${engine.name()}-${width}-skycam-${state}.png`),animations:'disabled'});
@@ -675,7 +655,7 @@ async function failurePaths(page, browserName) {
   await page.evaluate(() => fetchWeather());
   assert.equal(await page.locator('#timeVal').textContent(), previousTime);
   assert.equal(await page.locator('#weatherData').getAttribute('data-observed-at'), previousObservation);
-  assert.match(await page.locator('#statusBadge').textContent(), /Station stale/);
+  assert.match(await page.locator('#statusBadge').textContent(), /STALE/);
   assert.match(await page.locator('#currentReadingStatus').textContent(), /previous observation/);
   await currentReadingsLayout(page, 'stale');
   currentMode = 'partial'; await page.evaluate(() => fetchWeather());
@@ -685,7 +665,7 @@ async function failurePaths(page, browserName) {
   assert.equal(await page.locator('#blackGlobeTempValUnit').isVisible(), false);
   assert.equal(await page.locator('#soilTemp10Val').textContent(), '--');
   assert.equal(await page.locator('#radiantDiffVal').textContent(), '--');
-  assert.match(await page.locator('#statusBadge').textContent(), /Station partial/);
+  assert.match(await page.locator('#statusBadge').textContent(), /PARTIAL/);
   await currentReadingsLayout(page, 'partial');
   currentMode = 'hang';
   await page.evaluate(async () => {
@@ -697,7 +677,7 @@ async function failurePaths(page, browserName) {
   assert.equal(await page.locator('#fetchBtn').isDisabled(), false);
   await currentReadingsLayout(page, 'timeout');
   currentMode = 'fresh'; await page.evaluate(() => fetchWeather());
-  assert.match(await page.locator('#statusBadge').textContent(), /Station live/);
+  assert.match(await page.locator('#statusBadge').textContent(), /LIVE/);
   assert.equal(await page.locator('#currentReadingStatus').isVisible(), false);
   assert.equal(await page.locator('#blackGlobeTempValUnit').isVisible(), true);
   await currentReadingsLayout(page, 'recovered');
@@ -810,16 +790,14 @@ async function failurePaths(page, browserName) {
             }
             if (pagePath.includes('index')) {
               await currentReadingsLayout(page);
-              await reviewScreenshot(page, engine, width, 'current-readings', '#weatherData');
-              await reviewScreenshot(page, engine, width, 'supporting-readings', '.dashboard-measurements');
+              await reviewScreenshot(page, engine, width, 'current-readings', '.layout-primary');
               if ([320, 393, 1024].includes(width)) {
                 try {
                   await page.evaluate(csv => updateWeatherData(csv), currentRecord({0:199.9, 1:292.5, 2:100,
                     3:-12.3, 4:9.9, 5:1399.9, 6:1099.9, 12:199.9, 15:225, 16:9.99, 19:-24.5, 28:49.9}));
                   await page.waitForFunction(() => document.getElementById('rainSince9Inches').textContent === '(8.86 in)');
                   await currentReadingsLayout(page, 'long values');
-                  await reviewScreenshot(page, engine, width, 'current-readings-long', '#weatherData');
-                  await reviewScreenshot(page, engine, width, 'supporting-readings-long', '.dashboard-measurements');
+                  await reviewScreenshot(page, engine, width, 'current-readings-long', '.layout-primary');
                 } finally { await page.evaluate(csv => updateWeatherData(csv), currentRecord()); }
               }
               if (width === 393) {
@@ -898,10 +876,10 @@ async function failurePaths(page, browserName) {
                 await page.evaluate(()=>setDesktopLayout('landscape'));
                 await soilProfileLayout(page);
                 await page.setViewportSize({width:393,height:960});
-                await page.waitForFunction(()=>document.body.classList.contains('layout-portrait') && document.querySelector('.dashboard-environment').contains(document.querySelector('#soilProfile')));
+                await page.waitForFunction(()=>document.body.classList.contains('layout-portrait') && !document.querySelector('#weatherData').contains(document.querySelector('#soilProfile')));
                 await soilProfileLayout(page);
                 await page.setViewportSize({width,height:960});
-                await page.waitForFunction(()=>document.body.classList.contains('layout-landscape') && document.querySelector('.dashboard-environment').contains(document.querySelector('#soilProfile')));
+                await page.waitForFunction(()=>document.body.classList.contains('layout-landscape') && document.querySelector('#weatherData').contains(document.querySelector('#soilProfile')));
                 await soilProfileLayout(page);
                 assert.equal(await page.evaluate(()=>window.__soilBeforeLayout.card===document.querySelector('#soilProfile') && window.__soilBeforeLayout.spark===document.querySelector('#soilProfile .history-spark')),true,'Layout changes retain the soil card and its existing sparkline nodes');
               }
@@ -925,16 +903,15 @@ async function failurePaths(page, browserName) {
                 'tempVal', 'blackGlobeTempVal', 'humidityVal', 'rainSince9Val',
                 'windSpeedVal', 'windDirDegVal', 'solarRadVal', 'pressureVal', 'dewPointVal', 'evapRateVal'
               ].map(id => [id, parseFloat(getComputedStyle(document.getElementById(id)).fontSize)])));
-              const supportingSizes=Object.entries(readingSizes).filter(([id])=>id!=='tempVal').map(([,size])=>size);
-              assert.equal(new Set(supportingSizes).size,1,'Supporting readings share a consistent size: '+JSON.stringify(readingSizes));
-              assert.ok(readingSizes.tempVal>supportingSizes[0] && supportingSizes[0]>=30,
-                'Air temperature leads the hierarchy while every reading remains large and readable');
-              const unitSizes = await page.locator('.dashboard-main .current-reading-value .unit-suffix')
+              assert.equal(new Set(Object.values(readingSizes)).size, 1,
+                'all ten current readings match the temperature size: ' + JSON.stringify(readingSizes));
+              assert.equal(readingSizes.tempVal, width < 360 ? 26 : width <= 600 ? 30 : 36,
+                'uniform readings use the refined responsive size');
+              const unitSizes = await page.locator('.layout-primary .current-reading-value .unit-suffix')
                 .evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
               assert.equal(unitSizes.length, 10, 'every current reading has a separate unit');
-              assert.equal(new Set(unitSizes).size,1,'Current-reading units share a consistent responsive size');
-              assert.ok(unitSizes.every(size=>size>=12 && size<Math.min(...supportingSizes)),
-                'Units stay readable and secondary to the measurement');
+              assert.deepEqual([...new Set(unitSizes)], [width < 360 ? 11 : width <= 600 ? 12 : 13],
+                'all current-reading units share one smaller responsive size');
             }
             assert.match(await page.locator('#warwickBridgeContext').textContent(), /McCahon Bridge/);
             assert.equal(await page.locator('.water-scots .water-reference-line').count(), 0);
@@ -948,7 +925,6 @@ async function failurePaths(page, browserName) {
             await page.locator('.history-close').click();
             await page.locator(pagePath.includes('daily') ? '#rainTotal' : '#rainSince9Val').click();
             await historyReady(page, pagePath.includes('daily') ? 'daily' : '10m');
-            if (!await page.locator('#historyOptions').evaluate(node => node.open)) await page.locator('#historyOptions summary').click();
             if (pagePath.includes('daily')) { await page.locator('[data-resolution="10m"]').click(); await historyReady(page, '10m', 24); }
             assert.deepEqual(await page.evaluate(() => window.__historyUsage.at(-1)), { name: 'history-open', data: { measurement: 'rain' } });
             await page.selectOption('#historyRange', '720'); await historyReady(page, '10m', 720);
@@ -984,10 +960,7 @@ async function failurePaths(page, browserName) {
               await bounds(page, width);
             }
             await page.locator('#stationAlertsBtn').click();
-            assert.equal(await page.locator('#alertTitle').textContent(), 'Alerts & status');
-            assert.equal(await page.locator('#alertRules').evaluate(node => node.open), false, 'Notification policy starts collapsed');
-            assert.equal(await page.locator('#alertCurrent').isVisible(), true);
-            assert.equal(await page.locator('#alertState').isVisible(), true);
+            assert.match(await page.locator('#alertTitle').textContent(), /river alerts/);
             assert.match(await page.locator('.alert-dialog').textContent(), /0.50m below McCahon/);
             await page.waitForFunction(() => document.querySelector('#systemHealthChecks').textContent.includes('off-site copy not configured'));
             assert.match(await page.locator('#systemHealthChecks').textContent(), /2 unresolved history gaps/);
@@ -1019,12 +992,8 @@ async function failurePaths(page, browserName) {
             historyMode='gaps';await page.evaluate(()=>window.__refreshCallbacks.forEach(fn=>fn()));
             await page.waitForFunction(()=>document.getElementById('historyFeedStatus').textContent.includes('4 missing intervals'));
             assert.equal(await page.locator('#historyStatus').isVisible(),false,'Older gaps must not leave a dashboard warning when current feeds recover');
-            assert.equal(await page.locator('#stationAlertsBtn').evaluate(n=>n.classList.contains('history-warning')),false,'Older archive gaps must not look like a current failure');
-            assert.equal(await page.locator('#stationAlertsBtn').evaluate(n=>n.classList.contains('history-archive-note')),true);
+            assert.equal(await page.locator('#stationAlertsBtn').evaluate(n=>n.classList.contains('history-warning')),true);
             await page.locator('#stationAlertsBtn').click();
-            assert.equal(await page.locator('#alertCollectionState').textContent(),'Up to date');
-            assert.equal(await page.locator('#historyArchiveState').textContent(),'Older gaps remain');
-            if (!await page.locator('#historyArchive').evaluate(node => node.open)) await page.locator('#historyArchive summary').click();
             assert.equal(await page.locator('#historyFeedStatus').isVisible(),true);
             assert.match(await page.locator('#historyFeedStatus').textContent(),/2 unresolved gaps/);
             assert.match(await page.locator('#historyAlertSummary').textContent(),/Current history feeds are up to date/);

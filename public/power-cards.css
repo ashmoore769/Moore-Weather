@@ -1,43 +1,58 @@
-/* A shared reading, chart and control language for the two independent power feeds. */
-#stationPower,#yardPower { grid-area:auto; margin:0; min-width:0; padding:20px; border-top-width:3px; }
-#stationPower { --station-battery:#37d3a3; --station-panel:#f2a84e; --station-load:#5ab9ff; --station-charge:#e38bfa; border-top-color:#b28b52; container:station-power / inline-size; }
-#yardPower { border-top-color:var(--brand-2,var(--accent)); container:yard-power / inline-size; }
-#stationPower .station-power-header,#yardPower .yard-power-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 16px; margin-bottom:18px; }
-.station-power-title,#yardPower .yard-power-title { display:flex; gap:10px; align-items:center; min-width:0; }
-.station-power-title svg,#yardPower .yard-power-title svg { width:24px; height:24px; flex:none; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+/* Harmonised power modules. Each graph retains its own units and purpose. */
+#stationPower, #yardPower { border-top-width:3px; margin-top:12px; }
+#stationPower { border-top-color:#b28b52; padding:16px 20px 14px; container:station-power / inline-size; }
+#yardPower { border-top-color:var(--brand-2,var(--accent)); padding:16px 20px 13px; container:yard-power / inline-size; }
+#homeSolar { margin-top:12px; }
+
+#stationPower .station-power-header,
+#yardPower .yard-power-header,
+#homeSolar .solar-header { display:flex; align-items:center; justify-content:space-between; gap:8px 15px; margin-bottom:11px; }
+.station-power-title,
+#yardPower .yard-power-title { display:flex; gap:9px; align-items:center; min-width:0; }
+.station-power-title svg,
+#yardPower .yard-power-title svg { width:22px; height:22px; flex:none; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .station-power-title svg { stroke:#b28b52; }
 #yardPower .yard-power-title svg { stroke:var(--brand-2,var(--accent)); }
-#stationPower .section-title,#yardPower .section-title { color:var(--text); font-size:20px; font-weight:720; letter-spacing:-.3px; text-transform:none; margin:0; line-height:1.3; }
-.station-power-subtitle,#yardPower .yard-power-subtitle { color:var(--muted); font-size:12px; margin:4px 0 0; line-height:1.5; }
-#stationPower .power-trend-label { flex:none; font-size:12px; font-weight:600; color:var(--muted); }
-#stationPower .metric-list,body.current-page.layout-landscape #stationPower .metric-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:0; }
-#stationPower .metric-row,body.current-page.layout-landscape #stationPower .metric-row {
- position:relative; display:flex; flex-direction:column; align-items:flex-start; justify-content:center;
- gap:7px; min-width:0; margin:0; min-height:94px; padding:12px 14px;
- border:1px solid var(--border); border-radius:12px; background:var(--surface-soft); box-shadow:none; cursor:pointer;
+#stationPower .section-title,
+#yardPower .section-title,
+#homeSolar .solar-header .section-title { color:var(--text); font-size:17px; font-weight:720; letter-spacing:-.2px; text-transform:none; margin:0; }
+.station-power-subtitle,
+#yardPower .yard-power-subtitle { color:var(--muted); font-size:11px; margin:3px 0 0; line-height:1.4; }
+#stationPower .power-trend-label { flex:none; font-size:11px; font-weight:650; color:var(--muted); }
+#stationPower .station-power-header { align-items:center; }
+
+#stationPower .metric-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0; }
+#stationPower .metric-row,
+body.current-page.layout-landscape #stationPower .metric-row {
+  position:relative; display:flex; flex-direction:column; align-items:flex-start; justify-content:center;
+  gap:6px; min-width:0; margin:0; min-height:72px; padding:11px 13px;
+  border:1px solid var(--border); border-radius:10px; background:var(--surface-soft);
+  box-shadow:none; cursor:pointer;
 }
-#stationPower .metric-row:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
-#stationPower .metric-row:hover { border-color:color-mix(in srgb,var(--accent) 55%,var(--border)); }
-#stationPower .metric-label { display:inline-flex; align-items:center; gap:8px; min-height:28px; color:var(--muted); font-size:13px; font-weight:600; line-height:1.4; }
-#stationPower .metric-label svg { width:18px; height:18px; flex:none; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-#stationPower .metric-row[data-power="battery"] .metric-label svg { stroke:var(--station-battery); }
-#stationPower .metric-row[data-power="panel"] .metric-label svg { stroke:var(--station-panel); }
-#stationPower .metric-row[data-power="load"] .metric-label svg { stroke:var(--station-load); }
-#stationPower .metric-row[data-power="charge"] .metric-label svg { stroke:var(--station-charge); }
-#stationPower .metric-value { color:var(--text); font-size:26px; font-weight:740; letter-spacing:-.6px; line-height:1.2; font-variant-numeric:tabular-nums; }
-#stationPower .metric-value .unit-suffix { font-size:13px; letter-spacing:0; }
+#stationPower .metric-row:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+#stationPower .metric-row:hover { border-color:color-mix(in srgb,var(--accent) 45%,var(--border)); }
+#stationPower .metric-label { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:11px; font-weight:650; line-height:1.3; }
+#stationPower .metric-label svg { width:16px; height:16px; flex:none; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+#stationPower .metric-row[data-power="battery"] .metric-label svg { stroke:var(--station-battery,#37d3a3); }
+#stationPower .metric-row[data-power="panel"] .metric-label svg { stroke:var(--station-panel,#f2a84e); }
+#stationPower .metric-row[data-power="load"] .metric-label svg { stroke:var(--station-load,#5ab9ff); }
+#stationPower .metric-row[data-power="charge"] .metric-label svg { stroke:var(--station-charge,#e38bfa); }
+#stationPower .metric-value { color:var(--text); font-size:22px; font-weight:740; letter-spacing:-.6px; line-height:1.15; font-variant-numeric:tabular-nums; }
+#stationPower .metric-value .unit-suffix { font-size:11px; letter-spacing:0; }
 #stationPower .history-spark { display:none; }
-body.current-page.layout-landscape #stationPower.current-power { display:block; grid-template-columns:none; padding:20px; }
-body.current-page.layout-landscape #stationPower .section-header { display:flex; margin-bottom:18px; }
-.station-power-history { margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
-.station-power-history-header,#yardPower .yard-power-history-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 12px; min-height:44px; }
-.station-power-history-header h3,#yardPower .yard-power-history-header h3 { margin:0; font-size:15px; font-weight:700; line-height:1.4; }
-.station-power-history-detail,#yardPower .yard-power-history-detail { margin:8px 0 4px; min-height:18px; color:var(--muted); font-size:12px; line-height:1.5; }
-.station-power-chart { height:224px; width:100%; }
-.station-power-chart svg { display:block; width:100%; height:224px; overflow:hidden; }
-.station-power-gridline { stroke:var(--border); stroke-width:1; opacity:.65; vector-effect:non-scaling-stroke; }
-.station-power-axis { fill:var(--muted); font:12px var(--app-font,system-ui,sans-serif); }
-.station-power-series { fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+
+body.current-page.layout-landscape #stationPower.current-power {
+  display:block; grid-template-columns:none; padding:16px 20px 14px;
+}
+body.current-page.layout-landscape #stationPower .section-header { display:flex; margin-bottom:11px; }
+body.current-page.layout-landscape #stationPower .metric-list { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+
+.station-power-history { margin-top:12px; padding-top:10px; border-top:1px solid var(--border); }
+.station-power-chart { height:134px; width:100%; }
+.station-power-chart svg { display:block; width:100%; height:134px; overflow:hidden; }
+.station-power-gridline { stroke:var(--border); stroke-width:1; opacity:.78; vector-effect:non-scaling-stroke; }
+.station-power-axis { fill:var(--muted); font:10px var(--app-font,system-ui,sans-serif); }
+.station-power-series { fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
 .station-power-line-battery { color:var(--station-battery,#37d3a3); }
 .station-power-line-panel { color:var(--station-panel,#f2a84e); }
 .station-power-line-load { color:var(--station-load,#5ab9ff); }
@@ -45,87 +60,85 @@ body.current-page.layout-landscape #stationPower .section-header { display:flex;
 .station-power-series.station-power-line-panel { stroke-dasharray:7 5; }
 .station-power-series.station-power-line-charge { stroke-dasharray:3 5; }
 .station-power-single { fill:currentColor; stroke:none; }
-.station-power-legend { display:flex; flex-wrap:wrap; align-items:center; gap:7px 16px; font-size:12px; line-height:1.5; color:var(--muted); padding:0; margin-top:8px; }
-.station-power-key::before { content:''; display:inline-block; width:20px; height:2px; border-radius:1px; background:currentColor; margin-right:7px; vertical-align:3px; }
+.station-power-legend { display:flex; flex-wrap:wrap; align-items:center; gap:5px 14px; font-size:11px; color:var(--muted); padding:0; }
+.station-power-key::before { content:''; display:inline-block; width:19px; height:2px; border-radius:1px; background:currentColor; margin-right:6px; vertical-align:3px; }
 .station-power-key-battery { color:var(--station-battery,#37d3a3); }
 .station-power-key-panel { color:var(--station-panel,#f2a84e); }
 .station-power-key-load { color:var(--station-load,#5ab9ff); }
 .station-power-key-charge { color:var(--station-charge,#e38bfa); }
 .station-power-key-panel::before { background:repeating-linear-gradient(to right,currentColor 0 7px,transparent 7px 12px); }
 .station-power-key-charge::before { background:repeating-linear-gradient(to right,currentColor 0 3px,transparent 3px 8px); }
-.station-power-chart-note { font-size:12px; line-height:1.5; color:var(--muted); margin:8px 0 0; }
-.power-chart-plot { position:relative; min-width:0; touch-action:pan-y; cursor:crosshair; user-select:none; -webkit-user-select:none; border-radius:6px; }
+.station-power-chart-note { font-size:10px; color:var(--muted); margin:5px 0 0; }
+#stationPower { --station-battery:#37d3a3; --station-panel:#f2a84e; --station-load:#5ab9ff; --station-charge:#e38bfa; }
+
+.power-chart-plot { position:relative; min-width:0; touch-action:pan-y; cursor:crosshair; user-select:none; -webkit-user-select:none; border-radius:3px; }
 .power-chart-plot > svg { touch-action:pan-y; overflow:hidden; }
 .power-chart-plot[data-zoomed="true"] { cursor:grab; }
 .power-chart-plot[data-dragging="true"] { cursor:grabbing; }
-.power-chart-plot:focus-visible,.power-chart-controls :focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.power-chart-plot:focus-visible,.power-chart-controls :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .power-chart-selection { stroke:var(--muted); stroke-width:1; stroke-dasharray:3 5; vector-effect:non-scaling-stroke; pointer-events:none; }
-.power-chart-controls { min-width:0; margin-top:12px; }
-.power-chart-navigation { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:4px; min-width:0; }
-.power-chart-window { margin-right:auto; color:var(--muted); font-size:12px; white-space:nowrap; }
-.power-chart-navigation button { display:inline-flex; align-items:center; justify-content:center; flex:none; min-width:44px; min-height:44px; padding:6px 10px; margin:0; border:1px solid var(--border); border-radius:8px; background:var(--surface-soft); color:var(--text); box-shadow:none; font:600 18px var(--app-font,system-ui,sans-serif); cursor:pointer; }
-.power-chart-navigation button svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.power-chart-navigation button[id$="ZoomReset"] { min-width:58px; font-size:12px; }
+.power-chart-controls { min-width:0; margin-top:8px; }
+.power-chart-navigation { display:flex; align-items:center; justify-content:flex-end; gap:4px; min-width:0; }
+.power-chart-window { margin-right:auto; color:var(--muted); font-size:10px; white-space:nowrap; }
+.power-chart-navigation button { display:inline-flex; align-items:center; justify-content:center; flex:none; min-width:38px; min-height:36px; padding:4px 8px; margin:0; border:1px solid var(--border); border-radius:6px; background:var(--surface-soft); color:var(--text); box-shadow:none; font:600 17px var(--app-font,system-ui,sans-serif); cursor:pointer; }
+.power-chart-navigation button svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.power-chart-navigation button[id$="ZoomReset"] { min-width:50px; font-size:11px; }
 .power-chart-navigation button:hover:not(:disabled) { background:var(--surface-raised); border-color:var(--accent); }
 .power-chart-navigation button:disabled { opacity:.4; cursor:default; }
-.power-chart-scrubber { display:block; width:100%; min-width:0; height:44px; margin:0; padding:0; accent-color:var(--accent); cursor:ew-resize; }
+.power-chart-scrubber { display:block; width:100%; min-width:0; height:28px; margin:0; padding:0; accent-color:var(--accent); cursor:ew-resize; }
 .power-chart-scrubber[hidden] { display:none; }
-.power-chart-inspect { display:flex; flex-wrap:wrap; align-content:center; gap:3px 12px; min-height:44px; min-width:0; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface-soft); color:var(--muted); font-size:12px; line-height:1.5; font-variant-numeric:tabular-nums; }
+.power-chart-inspect { display:flex; flex-wrap:wrap; align-content:center; gap:2px 10px; min-height:28px; min-width:0; padding:5px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface-soft); color:var(--muted); font-size:11px; line-height:1.4; font-variant-numeric:tabular-nums; }
 .power-chart-inspect strong { color:var(--text); font-weight:650; }
 .power-chart-inspect span { white-space:nowrap; }
-.power-chart-hint { margin:6px 0 0; color:var(--muted); font-size:12px; line-height:1.5; }
-#yardPower .yard-power-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-#yardPower .yard-power-metric { min-height:94px; padding:12px 14px; border-radius:12px; }
-#yardPower .yard-power-label { font-size:12px; line-height:1.4; min-height:28px; gap:8px; }
-#yardPower .yard-power-label svg { width:18px; height:18px; }
-#yardPower .yard-power-reading { margin-top:7px; }
-#yardPower .yard-power-reading strong { font-size:26px; line-height:1.2; }
-#yardPower .yard-power-reading small { font-size:13px; }
-#yardPower:is([data-state="stale"],[data-state="unavailable"]) .yard-power-reading strong { color:var(--muted); }
-#yardPower .yard-power-summary { display:none; margin:12px 0 0; }
+.power-chart-hint { margin:3px 0 0; color:var(--muted); font-size:9px; line-height:1.4; }
+
+#yardPower .yard-power-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+#yardPower .yard-power-metric { min-height:69px; padding:10px 12px; gap:0; border-radius:10px; }
+#yardPower .yard-power-label { font-size:11px; line-height:1.3; min-height:17px; gap:6px; }
+#yardPower .yard-power-label svg { width:16px; height:16px; }
+#yardPower .yard-power-reading { margin-top:8px; }
+#yardPower .yard-power-reading strong { font-size:23px; line-height:1.05; }
+#yardPower .yard-power-summary { display:none; margin:9px 0 0; }
 #yardPower:is([data-state="waiting"],[data-state="stale"],[data-state="unavailable"]) .yard-power-summary { display:block; }
-#yardPower .yard-power-history { margin-top:20px; padding-top:16px; }
-#yardPower .yard-power-chart { min-height:224px; }
-#yardPower .yard-power-chart svg { height:224px; }
-#yardPower .yard-power-legend { gap:7px 16px; font-size:12px; line-height:1.5; margin:8px 0 0; }
-#yardPower .yard-power-method { margin:8px 0 0; font-size:13px; }
-#yardPower .yard-power-method summary { display:flex; align-items:center; min-height:44px; cursor:pointer; color:var(--muted); }
-#yardPower .yard-power-method summary::before { content:'+'; width:20px; margin-right:5px; color:var(--accent); font-size:18px; }
-#yardPower .yard-power-method[open] summary::before { content:'−'; }
-#yardPower .yard-power-method p { margin:4px 0 0; font-size:14px; line-height:1.6; }
+#yardPower .yard-power-history { margin-top:11px; padding-top:10px; }
+#yardPower .yard-power-history-header { gap:6px 10px; }
+#yardPower .yard-power-history-header h3 { font-size:13px; }
+#yardPower .yard-power-history-detail { margin:3px 0 0; min-height:0; font-size:10px; }
+#yardPower .yard-power-chart { min-height:134px; }
+#yardPower .yard-power-chart svg { height:134px; }
+#yardPower .yard-power-legend { gap:5px 13px; font-size:10px; margin:3px 0 0; }
+#yardPower .yard-power-method { margin:5px 0 0; font-size:10px; }
+#yardPower .yard-power-method summary { cursor:pointer; color:var(--muted); }
+#yardPower .yard-power-method p { margin:5px 0 0; line-height:1.5; }
+#yardPower .yard-power-reading small { font-size:11px; }
 #yardPower .yard-line-panel { stroke:var(--yard-panel); }
-#yardPower path.yard-line-panel { stroke-dasharray:7 5; }
-#yardPower .yard-legend-panel::before { background:repeating-linear-gradient(to right,currentColor 0 7px,transparent 7px 12px); }
 #yardPower .yard-line-load { stroke:var(--yard-load); }
-#yardPower path.yard-line-load { stroke-width:1.6; }
-#yardPower .yard-axis { font-size:12px; }
+#yardPower path.yard-line-load { stroke-width:1.1; }
+#yardPower .yard-axis { font-size:10px; }
+
 @container station-power (min-width:760px) {
- #stationPower .metric-list,body.current-page.layout-landscape #stationPower .metric-list { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  #stationPower .metric-list,
+  body.current-page.layout-landscape #stationPower .metric-list { grid-template-columns:repeat(4,minmax(0,1fr)); }
 }
-@container yard-power (min-width:520px) { #yardPower .yard-power-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-@container yard-power (min-width:1050px) { #yardPower .yard-power-grid { grid-template-columns:repeat(6,minmax(0,1fr)); } }
-@container station-power (max-width:350px) {
- #stationPower .station-power-header { align-items:flex-start; }
- #stationPower .section-title { font-size:18px; }
- #stationPower .metric-row,body.current-page.layout-landscape #stationPower .metric-row { padding:11px; }
- #stationPower .metric-label { font-size:12px; }
- #stationPower .metric-value { font-size:24px; }
- #stationPower .power-chart-window { flex-basis:100%; margin:0 0 2px; }
- #stationPower .power-chart-navigation { justify-content:flex-start; }
+@container yard-power (min-width:455px) {
+  #yardPower .yard-power-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }
-@container yard-power (max-width:350px) {
- #yardPower .section-title { font-size:18px; }
- #yardPower .yard-power-metric { padding:11px; }
- #yardPower .yard-power-reading strong { font-size:24px; }
- #yardPower .power-chart-window { flex-basis:100%; margin:0 0 2px; }
- #yardPower .power-chart-navigation { justify-content:flex-start; }
+@container yard-power (min-width:930px) {
+  #yardPower .yard-power-grid { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  #yardPower .yard-power-metric { padding:10px 11px; }
+  #yardPower .yard-power-reading strong { font-size:21px; }
 }
 @media(max-width:600px) {
- #stationPower,#yardPower,body.current-page.layout-landscape #stationPower.current-power { padding:16px; }
+  #stationPower,#yardPower { padding:12px; }
+  #stationPower .metric-row { padding:10px; }
+  #stationPower .metric-value { font-size:21px; }
+  #stationPower .station-power-header, #yardPower .yard-power-header { align-items:flex-start; }
+  #stationPower .section-title,#yardPower .section-title { font-size:16px; }
+  .station-power-legend { gap:4px 10px; font-size:10px; }
 }
 @media(forced-colors:active) {
- .station-power-series,#yardPower .yard-line { stroke:CanvasText; }
- .station-power-single { fill:CanvasText; }
- .station-power-key::before,.yard-power-legend span::before { background:CanvasText; }
- .station-power-key-panel::before,.station-power-key-charge::before,#yardPower .yard-legend-panel::before { background:none; border-top:2px dashed CanvasText; height:0; }
+  .station-power-series,#yardPower .yard-line { stroke:CanvasText; }
+  .station-power-single { fill:CanvasText; }
+  .station-power-key::before,.yard-power-legend span::before { background:CanvasText; }
+  .station-power-key-panel::before,.station-power-key-charge::before { background:none; border-top:2px dashed CanvasText; height:0; }
 }

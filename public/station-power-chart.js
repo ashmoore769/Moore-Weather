@@ -6,7 +6,7 @@
 })(typeof globalThis === 'object' ? globalThis : this, function (navigation) {
   'use strict';
   const DAY = 86400000;
-  const SIZE = { width: 720, height: 224, left: 52, right: 668, top: 16, bottom: 194 };
+  const SIZE = { width: 720, height: 134, left: 45, right: 675, top: 12, bottom: 106 };
   const renderStates = new WeakMap();
   const METRICS = [
     { id: 'battery', unit: 'V', name: 'Battery', css: 'station-power-line-battery' },
@@ -94,10 +94,10 @@
       svg += '<line class="station-power-gridline" x1="' + left + '" x2="' + right +
         '" y1="' + y + '" y2="' + y + '"/>';
     }
-    svg += '<text class="station-power-axis" x="1" y="' + (top + 6) + '">' + model.voltsMax + ' V</text>';
+    svg += '<text class="station-power-axis" x="1" y="18">' + model.voltsMax + ' V</text>';
     svg += '<text class="station-power-axis" x="1" y="' + (bottom + 3) + '">' + model.voltsMin + ' V</text>';
     svg += '<text class="station-power-axis" x="' + (width - 1) +
-      '" y="' + (top + 6) + '" text-anchor="end">' + model.currentMax + ' mA</text>';
+      '" y="18" text-anchor="end">' + model.currentMax + ' mA</text>';
     svg += '<text class="station-power-axis" x="' + (width - 1) +
       '" y="' + (bottom + 3) + '" text-anchor="end">' + model.currentMin + ' mA</text>';
     const fullView = model.end - model.start >= DAY - 1;

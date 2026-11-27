@@ -188,7 +188,7 @@ test('hour guides and Now use actual times, with temperature at hour ends across
     const chart = chartDrawing(f), left = chart.boundaries[0], right = chart.boundaries.at(-1);
     const hourWidth = (right - left) / 24;
     assert.equal(chart.boundaries.length, 25, '24 rain intervals retain both outside hour boundaries');
-    assert.equal(right, width - 37, 'the timeline fills the measured width while preserving its readable Celsius margin');
+    assert.equal(right, width - 34, 'the timeline fills the measured width while preserving its Celsius margin');
     assert.ok(Math.abs(chart.nowX - (left + hourWidth * 17 / 60)) < .01,
       '19:17 belongs 17/60 through the 19:00–20:00 interval, not at the first future hour');
     assert.equal(chart.temperatures.length, 24);

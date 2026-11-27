@@ -37,13 +37,12 @@
     return number(reading / 1000) + ' kW';
   }
   function ageText(milliseconds) {
-    if (!Number.isFinite(milliseconds)) return 'age unavailable';
-    if (milliseconds < -90000) return 'check clock';
     const seconds = Math.max(0, Math.floor(milliseconds / 1000));
-    if (seconds < 60) return 'just now';
-    if (seconds < 3600) return Math.floor(seconds / 60) + ' min ago';
-    if (seconds < 86400) return Math.floor(seconds / 3600) + ' hr ago';
-    return Math.floor(seconds / 86400) + ' d ago';
+    if (seconds < 5) return 'just now';
+    if (seconds < 60) return seconds + 's ago';
+    if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+    return Math.floor(seconds / 86400) + 'd ago';
   }
 
   // A fresh grid meter is the authority for spare power. DC panel output is
@@ -233,12 +232,12 @@
           state = 'stale'; label = 'STALE';
           message = failed ? 'Update failed; last reading retained.' : 'No recent update; last reading retained.';
         } else if (serverStatus === 'unavailable') {
-          state = 'unavailable'; label = 'OFFLINE'; message = 'Temporarily unavailable; last reading retained.';
+          state = 'unavailable'; label = 'UNAVAILABLE'; message = 'Temporarily unavailable; last reading retained.';
         } else if (numeric(current.inverterPowerW) === null || numeric(current.gridPowerW) === null || numeric(current.loadPowerW) === null || current.loadPowerW < 0) {
           state = 'partial'; label = 'PARTIAL'; message = 'Some measurements unavailable.';
         } else { state = 'fresh'; label = 'LIVE'; message = ''; }
       } else if (failed || serverStatus === 'unavailable') {
-        state = 'unavailable'; label = 'OFFLINE'; message = 'Solar readings unavailable; retrying.';
+        state = 'unavailable'; label = 'UNAVAILABLE'; message = 'Solar readings unavailable; retrying.';
       }
       card.dataset.state = state;
       text('solarStatus', label); node('solarStatus').className = 'solar-badge solar-badge-' + state;
@@ -642,5 +641,5 @@
     }
     return { start, stop, refresh, paint, setRange, setPanel };
   }
-  return { createController, liveView, ageText };
+  return { createController, liveView };
 });
